@@ -4,7 +4,7 @@
 all: help run
 
 # modify the PYTHONPATH variable
-PYTHONPATH=$(abspath $(CURDIR)/../../python)
+PYTHONPATH=$(abspath $(CURDIR)/../../lib):$(abspath $(CURDIR)/../../python):
 
 help: 
 	@echo "make sure environmental variable PYTHONPATH is present"
@@ -15,7 +15,7 @@ help:
 	@echo "      CTYPESGEN_DIR=$(CTYPESGEN_DIR)"
 
 run: test_loop.py ../../python/dd_proto.py
-	python3 test_loop.py
+	python3 -i test_loop.py
 
 clean: 
 	rm -rf test_loop_results
