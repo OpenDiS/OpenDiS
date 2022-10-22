@@ -79,12 +79,13 @@ class DisNetwork(nx.DiGraph):
 
 class DDParam():
     def __init__(self, mu=1.0, nu=0.3, bounds=None, boundary_cond=None, force_mode=None,
-                       collision_mode=None, mobility_law=None, time_integrator=None):
+                       remesh_rule=None, collision_mode=None, mobility_law=None, time_integrator=None):
         self.mu = mu
         self.nu = nu
         self.bounds = bounds
         self.boundary_cond = boundary_cond
         self.force_mode = force_mode
+        self.remesh_rule = remesh_rule
         self.collision_mode = collision_mode
         self.mobility_law = mobility_law
         self.time_integrator = time_integrator
@@ -97,6 +98,7 @@ class DDSim():
         self.disnet = DisNetwork()
         self.param = DDParam()
         self.NodeForce_Functions = {'LineTension': self.NodeForce_LineTension}
+        self.Remesh_Functions = {'LengthBased': self.Remesh_LengthBased}
         self.Collision_Functions = {'Proximity': self.Collision_Proximity}
         self.MobilityLaw_Functions = {'LineTension': self.NodeForce_LineTension}
         self.TimeIntegration_Functions = {'EulerForward': self.TimeIntegration_EulerForward}
@@ -108,6 +110,9 @@ class DDSim():
 
     def NodeForce(self):
         self.NodeForce_Functions[self.param.force_mode]()
+
+    def Remesh(self):
+        self.Remesh_Functions[self.param.remesh_rule]()
 
     def Collision(self):
         self.Collision_Functions[self.param.collision_mode]()
@@ -132,6 +137,12 @@ class DDSim():
     def NodeForce_LineTension(self):
         # line tension forces only
         print('NodeForce_LineTension')
+        # to be implemented ...
+        pass
+
+    def Remesh_LengthBased(self):
+        # remesh based on segment length
+        print('Remesh_LengthBased')
         # to be implemented ...
         pass
 
