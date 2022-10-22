@@ -6,20 +6,19 @@ import matplotlib.pyplot as plt
 
 opendis_lib = __import__('opendis')
 
-def pbc_position_L(r1, r2, L):
-    ds = (r2-r1)/L
-    ds = ds - ds.round()
-    return r1 + ds*L
-
 # DisNetwork is an extension of DiGraph for which each node has attributes such as R, F, V
 #  and each edge has attributes such as burg_vec and plane_normal
 class DisNetwork(nx.DiGraph):
     def __init__(self, data=None, **attr):
-         super(DisNetwork, self).__init__()
+         super(DisNetwork, self).__init__(data, **attr)
 
     def pos_array(self):
         return np.array([self.nodes[node]['R'] for node in self.nodes])
     
+    def seg_array(self):
+        # construct segment list (each link appear once: node1 < node2)
+        return None
+
     def insert_node(self, node1, node2, tag, pos=None):
         # insert a new node on the link connecting node1 and node2
         if not self.has_edge(node1, node2) or not self.has_edge(node2, node1):
@@ -55,7 +54,12 @@ class DisNetwork(nx.DiGraph):
         self.remove_node(node)
 
     def merge_node(self, node1, node2):
-        # merge two nodes into one node
+        # merge two nodes, node1 and node2, into node1
+        # redirect all links to/from node2 into node1
+
+        # remove any links between node1 and node2
+
+        # if node1 has double-links to any neighbor, combine them into one (or zero) link
         pass
 
     def split_node(self, node, partition):
@@ -65,32 +69,85 @@ class DisNetwork(nx.DiGraph):
 
 
 class DDParam():
-    def __init__(self, mu=1.0, nu=0.3, bounds=None):
+    def __init__(self, mu=1.0, nu=0.3, bounds=None, boundary_cond=None, force_mode=None,
+                       collision_mode=None, mobility_law=None, time_integrator=None):
         self.mu = mu
         self.nu = nu
         self.bounds = bounds
+        self.boundary_cond = boundary_cond
+        self.force_mode = force_mode
+        self.collision_mode = collision_mode
+        self.mobility_law = mobility_law
+        self.time_integrator = time_integrator
+
+        self.load_type       = None
+        self.applied_stress  = np.zeros(6)
 
 class DDSim():
     def __init__(self, param=None):
         self.disnet = DisNetwork()
-        #self.disnet = nx.DiGraph()
         self.param = DDParam()
+        self.NodeForce_Functions = {'LineTension': self.NodeForce_LineTension}
+        self.Collision_Functions = {'Proximity': self.Collision_Proximity}
+        self.MobilityLaw_Functions = {'LineTension': self.NodeForce_LineTension}
+        self.TimeIntegration_Functions = {'EulerForward': self.TimeIntegration_EulerForward}
 
-    def LinkForce(self):
-        # compute forces on every link
-        pass
+    def pbc_position_L(self, r1, r2, L):
+        ds = (r2-r1)/L
+        ds = ds - ds.round()
+        return r1 + ds*L
 
     def NodeForce(self):
-        # compute forces on every node by calling
-        # opendis_lib.SegSegForce(...)
-        pass
+        self.NodeForce_Functions[self.param.force_mode]()
+
+    def Collision(self):
+        self.Collision_Functions[self.param.collision_mode]()
 
     def MobilityLaw(self):
-        # compute velocity on all nodes
-        pass
+        self.MobilityLaw_Functions[self.param.mobility_law]()
 
     def TimeIntegration(self):
-        # advance nodes by one time step
+        self.TimeIntegration_Functions[self.param.time_integrator]()
+
+    def Step(self):
+        self.NodeForce()
+        self.MobilityLaw()
+        self.TimeIntegration()
+        self.Collision()
+
+    def Run(self):
+        # for tstep in range(self.param.maxstep):
+        #     self.Step()
+        pass
+
+    def NodeForce_LineTension(self):
+        # line tension forces only
+        print('NodeForce_LineTension')
+        # to be implemented ...
+        pass
+
+    def Collision_Proximity(self):
+        # use current node position to detect collision
+        print('Collision_Proximity')
+        # to be implemented ...
+        pass
+
+    def MobilityLaw_FCC0(self):
+        # compute velocity on all nodes
+        print('MobilityLaw_FCC0')
+        # to be implemented ...
+        pass
+
+    def TimeIntegration_EulerForward(self):
+        # advance nodes by one time step using Eurler-Forward method
+        print('TimeIntegration_EulerForward')
+        # to be implemented ...
+        pass
+
+    def LinkForce(self):
+        # compute forces on every link by calling
+        # opendis_lib.SegSegForce(...)
+        # shall we move it to an extension ?
         pass
 
     def plot_disnet(self, plot_links=True, trim=False, fig=None, ax=None, block=False, pause_seconds=0.01):
@@ -116,7 +173,7 @@ class DDSim():
                         nbr_coords = self.disnet.nodes[nbr_tag]['R']
                         r_link[0,:] = my_coords
                         # to do: extend to non-cubic box
-                        r_link[1,:] = pbc_position_L(my_coords, nbr_coords, L)
+                        r_link[1,:] = self.pbc_position_L(my_coords, nbr_coords, L)
                         if (not trim) or np.max(np.absolute(r_link)) <= L/2:
                             p_link = np.append(p_link, [r_link[0,:], r_link[1,:]])
 
