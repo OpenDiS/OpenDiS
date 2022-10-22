@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 import networkx as nx
 import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
@@ -15,11 +16,39 @@ except ImportError:
     print('            cd python ; make           ')
     print('---------------------------------------')
 
-# DisNetwork is an extension of DiGraph for which each node has attributes such as R, F, V
-#  and each edge has attributes such as burg_vec and plane_normal
-class DisNetwork(nx.DiGraph):
+# DisNetwork_ABSTRACT is an abstract (meta) class that contains methods
+#  specific for dislocation networks, built upon general network methods
+class DisNetwork_ABSTRACT(ABC):
     def __init__(self, data=None, **attr):
-         super(DisNetwork, self).__init__(data, **attr)
+         super(DisNetwork_ABSTRACT, self).__init__(data, **attr)
+
+    @abstractmethod
+    def nodes(self):
+        pass
+
+    @abstractmethod
+    def has_node(self, tag):
+        pass
+
+    @abstractmethod
+    def add_node(self, tag, **attr):
+        pass
+
+    @abstractmethod
+    def remove_node(self, tag):
+        pass
+
+    @abstractmethod
+    def has_edge(self, node1, node2):
+        pass
+
+    @abstractmethod
+    def add_edge(self, node1, node2, **attr):
+        pass
+
+    @abstractmethod
+    def remove_edge(self, node1, node2):
+        pass
 
     def pos_array(self):
         return np.array([self.nodes[node]['R'] for node in self.nodes])
@@ -94,8 +123,13 @@ class DDParam():
         self.applied_stress  = np.zeros(6)
 
 class DDSim():
+    # DisNetwork is an extension of DiGraph for which each node has attributes such as R, F, V
+    #  and each edge has attributes such as burg_vec and plane_normal
+    class DisNetwork (nx.DiGraph, DisNetwork_ABSTRACT):
+        pass
+
     def __init__(self, param=None):
-        self.disnet = DisNetwork()
+        self.disnet = self.DisNetwork()
         self.param = DDParam()
         self.NodeForce_Functions = {'LineTension': self.NodeForce_LineTension}
         self.Remesh_Functions = {'LengthBased': self.Remesh_LengthBased}
