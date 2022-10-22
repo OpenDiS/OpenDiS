@@ -4,7 +4,16 @@ from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d.art3d import Line3DCollection
 import matplotlib.pyplot as plt
 
-opendis_lib = __import__('opendis')
+try:
+    opendis_lib = __import__('opendis')
+    found_opendis = True
+except ImportError:
+    found_opendis = False
+    print('---------------------------------------')
+    print(' cannot find opendis.py                ')
+    print(' to create: cd src ; make libopendis.so')
+    print('            cd python ; make           ')
+    print('---------------------------------------')
 
 # DisNetwork is an extension of DiGraph for which each node has attributes such as R, F, V
 #  and each edge has attributes such as burg_vec and plane_normal
