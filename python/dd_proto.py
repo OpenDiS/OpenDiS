@@ -27,6 +27,10 @@ class DisNetwork_ABSTRACT(ABC):
         pass
 
     @abstractmethod
+    def edges(self):
+        pass
+
+    @abstractmethod
     def has_node(self, tag):
         pass
 
@@ -53,9 +57,15 @@ class DisNetwork_ABSTRACT(ABC):
     def pos_array(self):
         return np.array([self.nodes[node]['R'] for node in self.nodes])
     
-    def seg_array(self):
+    def seg_list(self):
         # construct segment list (each link appear once: node1 < node2)
-        return None
+        segments = []
+        for edge in self.edges():
+            node1 = edge[0]
+            node2 = edge[1]
+            if node1 < node2:
+                segments.append({"edge":edge, "burg_vec":self.edges[edge]["burg_vec"], "R1":self.nodes[node1]["R"], "R2":self.nodes[node2]["R"]})
+        return segments
 
     def insert_node(self, node1, node2, tag, pos=None):
         # insert a new node on the link connecting node1 and node2
@@ -107,10 +117,12 @@ class DisNetwork_ABSTRACT(ABC):
 
 
 class DDParam():
-    def __init__(self, mu=1.0, nu=0.3, bounds=None, boundary_cond=None, force_mode=None,
+    def __init__(self, mu=1.0, nu=0.3, a=None, Ec=None, bounds=None, boundary_cond=None, force_mode=None,
                        remesh_rule=None, collision_mode=None, mobility_law=None, time_integrator=None):
         self.mu = mu
         self.nu = nu
+        self.a  = a
+        self.Ec = Ec
         self.bounds = bounds
         self.boundary_cond = boundary_cond
         self.force_mode = force_mode
@@ -121,6 +133,45 @@ class DDParam():
 
         self.load_type       = None
         self.applied_stress  = np.zeros(6)
+        self.dt0 = None
+        self.max_step = None
+        self.print_freq = None
+        self.plot_freq = None
+        self.plot_pause_seconds = 0.01
+
+def voigt_vector_to_tensor(voigt_vector):
+    return np.array([[voigt_vector[0], voigt_vector[5], voigt_vector[4]],
+                     [voigt_vector[5], voigt_vector[1], voigt_vector[3]],
+                     [voigt_vector[4], voigt_vector[3], voigt_vector[2]]])
+
+def pkforcevec(sigext, segments):
+    nseg = len(segments)
+    fpk = np.zeros((nseg, 3))
+    for idx, segment in enumerate(segments):
+        sigb = sigext @ segment["burg_vec"]
+        dR = segment["R2"] - segment["R1"]
+        fpk[idx] = np.cross(sigb, dR)
+    return fpk
+
+def selfforcevec_LineTension(MU, NU, Ec, segments):
+    # to do: vectorize the calculations
+    nseg = len(segments)
+    fs0 = np.zeros((nseg, 3))
+    fs1 = np.zeros((nseg, 3))
+    omninv = 1.0/(1.0-NU)
+    for idx, segment in enumerate(segments):
+        dR = segment["R2"] - segment["R1"]
+        L = np.linalg.norm(dR)
+        t = dR / L
+        bs = np.dot(segment["burg_vec"], t)
+        bs2 = bs*bs
+        bev = segment["burg_vec"] - bs*t
+        be2 = np.sum(bev*bev)
+        Score = 2.0*NU*omninv*Ec*bs
+        LTcore = (bs2+be2*omninv)*Ec
+        fs1[idx] = Score*bev - LTcore*t
+    fs0 = -fs1
+    return fs0, fs1
 
 class DDSim():
     # DisNetwork is an extension of DiGraph for which each node has attributes such as R, F, V
@@ -134,7 +185,7 @@ class DDSim():
         self.NodeForce_Functions = {'LineTension': self.NodeForce_LineTension}
         self.Remesh_Functions = {'LengthBased': self.Remesh_LengthBased}
         self.Collision_Functions = {'Proximity': self.Collision_Proximity}
-        self.MobilityLaw_Functions = {'LineTension': self.NodeForce_LineTension}
+        self.MobilityLaw_Functions = {'FCC0': self.MobilityLaw_FCC0}
         self.TimeIntegration_Functions = {'EulerForward': self.TimeIntegration_EulerForward}
 
     def pbc_position_L(self, r1, r2, L):
@@ -164,39 +215,70 @@ class DDSim():
         self.Collision()
 
     def Run(self):
-        # for tstep in range(self.param.maxstep):
-        #     self.Step()
-        pass
+        if self.param.plot_freq != None:
+            fig = plt.figure(figsize=(8,8))
+            ax = plt.axes(projection='3d')
+            # plot initial configuration
+            self.plot_disnet(fig=fig, ax=ax, trim=True, block=False)
+
+        for tstep in range(self.param.max_step):
+            self.Step()
+
+            if self.param.print_freq != None:
+                if tstep % self.param.print_freq == 0:
+                    print("step = %d dt = %e"%(tstep, self.param.dt))
+
+            if self.param.plot_freq != None:
+                if tstep % self.param.plot_freq == 0:
+                    self.plot_disnet(fig=fig, ax=ax, trim=True, block=False, pause_seconds=self.param.plot_pause_seconds)
+
+        # plot final configuration
+        self.plot_disnet(fig=fig, ax=ax, trim=True, block=False)
+
 
     def NodeForce_LineTension(self):
-        # line tension forces only
-        print('NodeForce_LineTension')
-        # to be implemented ...
-        pass
+        # pk force from external stress and line tension forces only (from DDLab/src/segforcevec.m)
+        # Note: PBC not handled
+        #print('NodeForce_LineTension')
+        self.disnet.segments = self.disnet.seg_list()
+        sigext = voigt_vector_to_tensor(self.param.applied_stress)
+        fpk = pkforcevec(sigext, self.disnet.segments)
+        fs0, fs1 = selfforcevec_LineTension(self.param.mu, self.param.nu, self.param.Ec, self.disnet.segments)
+        self.disnet.fseg = np.hstack((fpk + fs0, fpk + fs1))
+
+        for node in self.disnet.nodes:
+            self.disnet.nodes[node]["F"] = np.array([0.0,0.0,0.0])
+        for idx, segment in enumerate(self.disnet.segments):
+            node1 = segment["edge"][0]
+            node2 = segment["edge"][1]
+            self.disnet.nodes[node1]["F"] += self.disnet.fseg[idx, 0:3]
+            self.disnet.nodes[node2]["F"] += self.disnet.fseg[idx, 3:6]
 
     def Remesh_LengthBased(self):
         # remesh based on segment length
-        print('Remesh_LengthBased')
+        #print('Remesh_LengthBased')
         # to be implemented ...
         pass
 
     def Collision_Proximity(self):
         # use current node position to detect collision
-        print('Collision_Proximity')
+        #print('Collision_Proximity')
         # to be implemented ...
         pass
 
     def MobilityLaw_FCC0(self):
         # compute velocity on all nodes
-        print('MobilityLaw_FCC0')
-        # to be implemented ...
-        pass
+        #print('MobilityLaw_FCC0')
+        # to be properly implemented (a place holder for now) - steepest descent
+        for node in self.disnet.nodes:
+            self.disnet.nodes[node]["V"] = self.disnet.nodes[node]["F"]
 
     def TimeIntegration_EulerForward(self):
         # advance nodes by one time step using Eurler-Forward method
-        print('TimeIntegration_EulerForward')
-        # to be implemented ...
-        pass
+        #print('TimeIntegration_EulerForward')
+        self.param.dt = self.param.dt0
+        for node in self.disnet.nodes:
+            self.disnet.nodes[node]["R"] += self.disnet.nodes[node]["V"] * self.param.dt
 
     def LinkForce(self):
         # compute forces on every link by calling
@@ -227,7 +309,8 @@ class DDSim():
                         nbr_coords = self.disnet.nodes[nbr_tag]['R']
                         r_link[0,:] = my_coords
                         # to do: extend to non-cubic box
-                        r_link[1,:] = self.pbc_position_L(my_coords, nbr_coords, L)
+                        r_link[1,:] = nbr_coords
+                        #r_link[1,:] = self.pbc_position_L(my_coords, nbr_coords, L)
                         if (not trim) or np.max(np.absolute(r_link)) <= L/2:
                             p_link = np.append(p_link, [r_link[0,:], r_link[1,:]])
 

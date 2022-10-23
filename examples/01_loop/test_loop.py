@@ -9,6 +9,8 @@ def set_param():
     print("set_param")
     ddsim.param.mu = 160e9
     ddsim.param.nu = 0.31
+    ddsim.param.Ec = 1.0e6
+    ddsim.param.applied_stress = np.array([0.0, 0.0, 0.0, 0.0, -1.0e6, 0.0])
     # to do: decide - should bounds be part of param or disnet ?
     ddsim.param.bounds = np.array([[-2.0, -2.0, -2.0], [2.0, 2.0, 2.0]])
 
@@ -17,6 +19,11 @@ def set_param():
     ddsim.param.collision_mode  = 'Proximity'
     ddsim.param.mobility_law    = 'FCC0'
     ddsim.param.time_integrator = 'EulerForward'
+    ddsim.param.dt0 = 1.0e-8
+    ddsim.param.max_step = 200
+    ddsim.param.print_freq = 10
+    ddsim.param.plot_freq = 10
+    ddsim.param.plot_pause_seconds = 0.1
 
 def init_loop(radius=1.0, N=20, burg=None, plane_normal=None):
     print("init_loop: create a circular loop")
@@ -44,7 +51,8 @@ def main():
     ddsim.NodeForce()
     print_force()
 
-    ddsim.plot_disnet()
+    #ddsim.plot_disnet()
+    ddsim.Run()
 
 
 if __name__ == "__main__":
