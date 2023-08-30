@@ -1,6 +1,8 @@
 import networkx as nx
 import numpy as np
-import sys
+import sys, os
+
+sys.path.extend([os.path.abspath('../../python'),os.path.abspath('../../lib')])
 
 from dd_proto import *
 

@@ -1,7 +1,9 @@
 import networkx as nx
 import numpy as np
+import sys, os
 
-# export PYTHONPATH=$HOME/Codes/OpenDiS.git/python:$HOME/Codes/OpenDiS.git/lib
+sys.path.extend([os.path.abspath('../../python'),os.path.abspath('../../lib')])
+
 from dd_proto import *
 
 ddsim = DDSim()

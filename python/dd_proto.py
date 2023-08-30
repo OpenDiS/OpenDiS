@@ -1,9 +1,15 @@
 from abc import ABC, abstractmethod
 import networkx as nx
 import numpy as np
-from mpl_toolkits.mplot3d import Axes3D
-from mpl_toolkits.mplot3d.art3d import Line3DCollection
-import matplotlib.pyplot as plt
+
+try:
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D
+    from mpl_toolkits.mplot3d.art3d import Line3DCollection
+except ImportError:
+    print('-----------------------------------------')
+    print(' cannot import matplotlib or mpl_toolkits')
+    print('-----------------------------------------')
 
 from compute_stress_force_analytic_paradis import compute_segseg_force_vec
 from compute_stress_force_analytic_python  import python_segseg_force_vec
@@ -220,8 +226,10 @@ class DDSim():
 
     def Run(self):
         if self.param.plot_freq != None:
-            fig = plt.figure(figsize=(8,8))
-            ax = plt.axes(projection='3d')
+            try: 
+                fig = plt.figure(figsize=(8,8))
+                ax = plt.axes(projection='3d')
+            except NameError: print('plt not defined'); return
             # plot initial configuration
             self.plot_disnet(fig=fig, ax=ax, trim=True, block=False)
 
@@ -292,9 +300,11 @@ class DDSim():
 
     def plot_disnet(self, plot_links=True, trim=False, fig=None, ax=None, block=False, pause_seconds=0.01):
         if fig==None:
-            fig = plt.figure(figsize=(8,8))
+            try: fig = plt.figure(figsize=(8,8))
+            except NameError: print('plt not defined'); return
         if ax==None:
-            ax = plt.axes(projection='3d')
+            try: ax = plt.axes(projection='3d')
+            except NameError: print('plt not defined'); return
 
         # to do: extend to non-cubic box
         L = self.param.bounds[1][0] - self.param.bounds[0][0]
