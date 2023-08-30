@@ -5,6 +5,9 @@ from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d.art3d import Line3DCollection
 import matplotlib.pyplot as plt
 
+from compute_stress_force_analytic_paradis import compute_segseg_force_vec
+from compute_stress_force_analytic_python  import python_segseg_force_vec
+
 try:
     opendis_lib = __import__('opendis')
     found_opendis = True

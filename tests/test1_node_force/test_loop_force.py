@@ -1,6 +1,7 @@
 import networkx as nx
 import numpy as np
 
+# export PYTHONPATH=$HOME/Codes/OpenDiS.git/python:$HOME/Codes/OpenDiS.git/lib
 from dd_proto import *
 
 ddsim = DDSim()
@@ -26,7 +27,7 @@ def set_param():
     ddsim.param.plot_pause_seconds = 0.1
 
 def init_loop_from_file(rn_file, links_file):
-    print("init_loop: create a circular loop")
+    print("init_loop_from_file: rn_file = '%s', links_file = '%s'" % (rn_file, links_file))
     G = ddsim.disnet
     rn = np.loadtxt(rn_file)[:, 1:]
     links = np.loadtxt(links_file)
