@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 
 from compute_stress_force_analytic_paradis import compute_segseg_force_vec
 from compute_stress_force_analytic_python  import python_segseg_force_vec
+from compute_stress_analytic_paradis       import compute_seg_stress
 
 try:
     opendis_lib = __import__('opendis')

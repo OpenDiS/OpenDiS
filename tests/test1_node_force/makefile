@@ -1,7 +1,7 @@
 
-.PHONY: all help run clean
+.PHONY: all help clean
 
-all: help run
+all: help segseg_force seg_stress
 
 # modify the PYTHONPATH variable
 PYTHONPATH=$(abspath $(CURDIR)/../../lib):$(abspath $(CURDIR)/../../python):
@@ -16,6 +16,9 @@ help:
 
 segseg_force: test_segseg_force.py
 	python3 test_segseg_force.py
+
+seg_stress: test_seg_stress.py
+	python3 test_seg_stress.py
 
 clean: 
 	@echo "nothing to clean"	
