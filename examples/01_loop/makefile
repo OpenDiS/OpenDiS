@@ -3,9 +3,6 @@
 
 all: help run
 
-# modify the PYTHONPATH variable
-PYTHONPATH=$(abspath $(CURDIR)/../../lib):$(abspath $(CURDIR)/../../python):
-
 help: 
 	@echo "make sure environmental variable PYTHONPATH is present"
 	@echo "you may include the following line in $$HOME/.bash_profile"
