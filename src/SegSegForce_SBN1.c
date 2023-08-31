@@ -1,7 +1,23 @@
 #include "SegSegForce_SBN1.h"
+#include "SegmentStress.h"
+#include <stdio.h>
+#include <stdlib.h>
 
 /* copy ParaDiS function for computing stress of a straight segment */
 
+/* from DD_Force.git/python/utils/compute_stress_force_numerical.py */
+
+#define MAX_QUAD_POINTS 7
+
+real8 Shape_Func_N1(real8 x)
+{
+    return 0.5 * (1.0 - x);
+}
+
+real8 Shape_Func_N2(real8 x)
+{
+    return 0.5 * (1.0 + x);
+}
 
 void SegSegForceHalf_SBN1(real8 p1x, real8 p1y, real8 p1z,
                             real8 p2x, real8 p2y, real8 p2z,
@@ -9,15 +25,50 @@ void SegSegForceHalf_SBN1(real8 p1x, real8 p1y, real8 p1z,
                             real8 p4x, real8 p4y, real8 p4z,
                             real8 bpx, real8 bpy, real8 bpz,
                             real8 bx, real8 by, real8 bz,
-                            real8 a, real8 MU, real8 NU, int Nint,
+                            real8 a, real8 MU, real8 NU,
+                            int Nint, real8 *quad_points, real8 *weights,
                             real8 *fp3x, real8 *fp3y, real8 *fp3z,
                             real8 *fp4x, real8 *fp4y, real8 *fp4z)
 {
-    /* hard code integration points and weights for Nint = 1,2,3 */
+    int i; 
+    real8 N1_quad_points[MAX_QUAD_POINTS], N2_quad_points[MAX_QUAD_POINTS];
+    real8 p34_half_x, p34_half_y, p34_half_z, p34_mid_x, p34_mid_y, p34_mid_z;
+    real8 px, py, pz, sigma[3][3], sigb[3];
 
-    /* calculate the stress field of segment 1-2 */
+    if (Nint > MAX_QUAD_POINTS) {
+        fprintf(stderr, "Nint > %d\n", MAX_QUAD_POINTS);
+        exit(1);
+    }
+    p34_half_x = 0.5*(p4x-p3x); p34_half_y = 0.5*(p4y-p3y); p34_half_z = 0.5*(p4z-p3z);
+    p34_mid_x  = 0.5*(p4x+p3x); p34_mid_y  = 0.5*(p4y+p3y); p34_mid_z  = 0.5*(p4z+p3z);
 
-    /* numerically integrate Peach-Koehler force on segment 3-4 */
+    for(i = 0; i < Nint; i++)
+    {
+        N1_quad_points[i] = Shape_Func_N1(quad_points[i]);
+        N2_quad_points[i] = Shape_Func_N2(quad_points[i]);
+    }
+    *fp3x = 0.0; *fp3y = 0.0; *fp3z = 0.0;
+    for(i = 0; i < Nint; i++)
+    {
+        px = p34_mid_x + p34_half_x * quad_points[i];
+        py = p34_mid_y + p34_half_y * quad_points[i];
+        pz = p34_mid_z + p34_half_z * quad_points[i];
+
+        SegmentStress(MU, NU, bpx, bpy, bpz, p1x, p1y, p1z, p2x, p2y, p2z,
+                      px, py, pz, a, sigma);
+
+        sigb[0] = sigma[0][0] * bx + sigma[0][1] * by + sigma[0][2] * bz;
+        sigb[1] = sigma[1][0] * bx + sigma[1][1] * by + sigma[1][2] * bz;
+        sigb[2] = sigma[2][0] * bx + sigma[2][1] * by + sigma[2][2] * bz;
+
+        *fp3x += (sigb[1]*p34_half_z - sigb[2]*p34_half_y) * N1_quad_points[i] * weights[i];
+        *fp3y += (sigb[2]*p34_half_x - sigb[0]*p34_half_z) * N1_quad_points[i] * weights[i];
+        *fp3z += (sigb[0]*p34_half_y - sigb[1]*p34_half_x) * N1_quad_points[i] * weights[i];
+
+        *fp4x += (sigb[1]*p34_half_z - sigb[2]*p34_half_y) * N2_quad_points[i] * weights[i];
+        *fp4y += (sigb[2]*p34_half_x - sigb[0]*p34_half_z) * N2_quad_points[i] * weights[i];
+        *fp4z += (sigb[0]*p34_half_y - sigb[1]*p34_half_x) * N2_quad_points[i] * weights[i];
+    }
 }
 
 /*-------------------------------------------------------------------------
@@ -52,7 +103,8 @@ void SegSegForce_SBN1(real8 p1x, real8 p1y, real8 p1z,
                           real8 p4x, real8 p4y, real8 p4z,
                           real8 bpx, real8 bpy, real8 bpz,
                           real8 bx, real8 by, real8 bz,
-                          real8 a, real8 MU, real8 NU, int Nint,
+                          real8 a, real8 MU, real8 NU,
+                          int Nint, real8 *quad_points, real8 *weights,
                           int seg12Local, int seg34Local,
                           real8 *fp1x, real8 *fp1y, real8 *fp1z,
                           real8 *fp2x, real8 *fp2y, real8 *fp2z,
@@ -67,7 +119,7 @@ void SegSegForce_SBN1(real8 p1x, real8 p1y, real8 p1z,
                 SegSegForceHalf_SBN1(p1x, p1y, p1z, p2x, p2y, p2z,
                                      p3x, p3y, p3z, p4x, p4y, p4z,
                                      bpx, bpy, bpz, bx, by, bz,
-                                     a, MU, NU, Nint,
+                                     a, MU, NU, Nint, quad_points, weights,
                                      fp3x, fp3y, fp3z, fp4x, fp4y, fp4z);
 
             } /* if segment p3->p4 is "local" */
@@ -80,7 +132,7 @@ void SegSegForce_SBN1(real8 p1x, real8 p1y, real8 p1z,
                 SegSegForceHalf_SBN1(p3x, p3y, p3z, p4x, p4y, p4z,
                                      p1x, p1y, p1z, p2x, p2y, p2z,
                                      bx, by, bz, bpx, bpy, bpz,
-                                     a, MU, NU, Nint,
+                                     a, MU, NU, Nint, quad_points, weights,
                                      fp1x, fp1y, fp1z, fp2x, fp2y, fp2z);
             } /* if segment p1->p2 is "local" */
 

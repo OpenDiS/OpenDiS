@@ -11,7 +11,9 @@ except ImportError:
     print(' cannot import matplotlib or mpl_toolkits')
     print('-----------------------------------------')
 
-from compute_stress_force_analytic_paradis import compute_segseg_force_vec
+from compute_stress_force_analytic_paradis import compute_segseg_force_vec, compute_segseg_force
+from compute_stress_force_analytic_paradis import compute_segseg_force_SBN1_vec, compute_segseg_force_SBN1
+from compute_stress_force_analytic_paradis import compute_segseg_force_SBN1_SBA
 from compute_stress_force_analytic_python  import python_segseg_force_vec
 from compute_stress_analytic_paradis       import compute_seg_stress
 
@@ -192,7 +194,10 @@ class DDSim():
     def __init__(self, param=None):
         self.disnet = self.DisNetwork()
         self.param = DDParam()
-        self.NodeForce_Functions = {'LineTension': self.NodeForce_LineTension}
+        self.NodeForce_Functions = {
+            'LineTension': self.NodeForce_LineTension,
+            'Elasticity_SBA': self.NodeForce_Elasticity_SBA,
+            'Elasticity_SBN1_SBA': self.NodeForce_Elasticity_SBN1_SBA }
         self.Remesh_Functions = {'LengthBased': self.Remesh_LengthBased}
         self.Collision_Functions = {'Proximity': self.Collision_Proximity}
         self.MobilityLaw_Functions = {'FCC0': self.MobilityLaw_FCC0}
@@ -247,6 +252,8 @@ class DDSim():
         # plot final configuration
         self.plot_disnet(fig=fig, ax=ax, trim=True, block=False)
 
+    def Get_NodeForce_Array(self):
+        return np.array([self.disnet.nodes[node]["F"] for node in self.disnet.nodes])
 
     def NodeForce_LineTension(self):
         # pk force from external stress and line tension forces only (from DDLab/src/segforcevec.m)
@@ -265,6 +272,114 @@ class DDSim():
             node2 = segment["edge"][1]
             self.disnet.nodes[node1]["F"] += self.disnet.fseg[idx, 0:3]
             self.disnet.nodes[node2]["F"] += self.disnet.fseg[idx, 3:6]
+
+    def NodeForce_Elasticity_SBA(self):
+        # pk force from external stress and elastic interactions (from ParaDiS)
+        # Note: PBC not handled
+        self.disnet.segments = self.disnet.seg_list()
+        sigext = voigt_vector_to_tensor(self.param.applied_stress)
+        fpk = pkforcevec(sigext, self.disnet.segments)
+        self.disnet.fseg = np.hstack((fpk, fpk))
+
+        for node in self.disnet.nodes:
+            self.disnet.nodes[node]["F"] = np.array([0.0,0.0,0.0])
+        for idx, segment in enumerate(self.disnet.segments):
+            node1 = segment["edge"][0]
+            node2 = segment["edge"][1]
+            self.disnet.nodes[node1]["F"] += self.disnet.fseg[idx, 0:3]
+            self.disnet.nodes[node2]["F"] += self.disnet.fseg[idx, 3:6]
+
+        nseg = len(self.disnet.segments)
+        for i in range(nseg):
+            for j in range(i, nseg):
+                seg1 = self.disnet.segments[i]
+                seg2 = self.disnet.segments[j]
+                p1 = np.array(seg1["R1"])
+                p2 = np.array(seg1["R2"])
+                p3 = np.array(seg2["R1"])
+                p4 = np.array(seg2["R2"])
+                b12 = np.array(seg1["burg_vec"])
+                b34 = np.array(seg2["burg_vec"])
+                f1, f2, f3, f4 = compute_segseg_force(p1, p2, p3, p4, b12, b34, self.param.mu, self.param.nu, self.param.a)
+                node1 = seg1["edge"][0]
+                node2 = seg1["edge"][1]
+                node3 = seg2["edge"][0]
+                node4 = seg2["edge"][1]
+                if i == j:
+                    self.disnet.fseg[i, 0:3] += f1
+                    self.disnet.fseg[i, 3:6] += f2
+                    self.disnet.nodes[node1]["F"] += f1
+                    self.disnet.nodes[node2]["F"] += f2
+                else:
+                    self.disnet.fseg[i, 0:3] += f1
+                    self.disnet.fseg[i, 3:6] += f2
+                    self.disnet.fseg[j, 0:3] += f3
+                    self.disnet.fseg[j, 3:6] += f4
+                    self.disnet.nodes[node1]["F"] += f1
+                    self.disnet.nodes[node2]["F"] += f2
+                    self.disnet.nodes[node3]["F"] += f3
+                    self.disnet.nodes[node4]["F"] += f4
+
+    def NodeForce_Elasticity_SBN1_SBA(self):
+        # pk force from external stress and elastic interactions (from ParaDiS)
+        # Note: PBC not handled
+        self.disnet.segments = self.disnet.seg_list()
+        sigext = voigt_vector_to_tensor(self.param.applied_stress)
+        fpk = pkforcevec(sigext, self.disnet.segments)
+        self.disnet.fseg = np.hstack((fpk, fpk))
+
+        for node in self.disnet.nodes:
+            self.disnet.nodes[node]["F"] = np.array([0.0,0.0,0.0])
+        for idx, segment in enumerate(self.disnet.segments):
+            node1 = segment["edge"][0]
+            node2 = segment["edge"][1]
+            self.disnet.nodes[node1]["F"] += self.disnet.fseg[idx, 0:3]
+            self.disnet.nodes[node2]["F"] += self.disnet.fseg[idx, 3:6]
+
+        if self.param.force_nint == 1:
+            quad_points = np.array([0.0])
+            weights = np.array([2.0])
+        elif self.param.force_nint == 2:
+            quad_points = np.array([-0.577350269189626, 0.577350269189626])
+            weights = np.array([1.0, 1.0])
+        elif self.param.force_nint == 3:
+            quad_points = np.array([-0.774596669241483, 0.0, 0.774596669241483])
+            weights = np.array([0.555555555555556, 0.888888888888889, 0.555555555555556])
+        else:
+            quad_points, weights = np.polynomial.legendre.leggauss(self.param.force_nint)
+        print('quad_points = ', quad_points)
+        print('weights = ', weights)
+
+        nseg = len(self.disnet.segments)
+        for i in range(nseg):
+            for j in range(i, nseg):
+                seg1 = self.disnet.segments[i]
+                seg2 = self.disnet.segments[j]
+                p1 = np.array(seg1["R1"])
+                p2 = np.array(seg1["R2"])
+                p3 = np.array(seg2["R1"])
+                p4 = np.array(seg2["R2"])
+                b12 = np.array(seg1["burg_vec"])
+                b34 = np.array(seg2["burg_vec"])
+                f1, f2, f3, f4 = compute_segseg_force_SBN1_SBA(p1, p2, p3, p4, b12, b34, self.param.mu, self.param.nu, self.param.a, quad_points, weights)
+                node1 = seg1["edge"][0]
+                node2 = seg1["edge"][1]
+                node3 = seg2["edge"][0]
+                node4 = seg2["edge"][1]
+                if i == j:
+                    self.disnet.fseg[i, 0:3] += f1
+                    self.disnet.fseg[i, 3:6] += f2
+                    self.disnet.nodes[node1]["F"] += f1
+                    self.disnet.nodes[node2]["F"] += f2
+                else:
+                    self.disnet.fseg[i, 0:3] += f1
+                    self.disnet.fseg[i, 3:6] += f2
+                    self.disnet.fseg[j, 0:3] += f3
+                    self.disnet.fseg[j, 3:6] += f4
+                    self.disnet.nodes[node1]["F"] += f1
+                    self.disnet.nodes[node2]["F"] += f2
+                    self.disnet.nodes[node3]["F"] += f3
+                    self.disnet.nodes[node4]["F"] += f4
 
     def Remesh_LengthBased(self):
         # remesh based on segment length
