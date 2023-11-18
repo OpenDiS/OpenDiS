@@ -1,5 +1,6 @@
 #include "SegSegForce_SBN1.h"
 #include "SegmentStress.h"
+#include "StressDueToSeg.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -33,7 +34,7 @@ void SegSegForceHalf_SBN1(real8 p1x, real8 p1y, real8 p1z,
     int i; 
     real8 N1_quad_points[MAX_QUAD_POINTS], N2_quad_points[MAX_QUAD_POINTS];
     real8 p34_half_x, p34_half_y, p34_half_z, p34_mid_x, p34_mid_y, p34_mid_z;
-    real8 px, py, pz, sigma[3][3], sigb[3];
+    real8 px, py, pz, sigma[3][3], sigb[3], sigma_vec[6];
 
     if (Nint > MAX_QUAD_POINTS) {
         fprintf(stderr, "Nint > %d\n", MAX_QUAD_POINTS);
@@ -54,8 +55,20 @@ void SegSegForceHalf_SBN1(real8 p1x, real8 p1y, real8 p1z,
         py = p34_mid_y + p34_half_y * quad_points[i];
         pz = p34_mid_z + p34_half_z * quad_points[i];
 
-        SegmentStress(MU, NU, bpx, bpy, bpz, p1x, p1y, p1z, p2x, p2y, p2z,
-                      px, py, pz, a, sigma);
+#if 0
+        /* coordinate dependent form */
+        SegmentStress(MU, NU, bpx, bpy, bpz, p1x, p1y, p1z, p2x, p2y, p2z, px, py, pz, a, sigma);
+#else
+        /* coordinate independent form */
+        StressDueToSeg(px, py, pz, p1x, p1y, p1z, p2x, p2y, p2z, bpx, bpy, bpz, a, MU, NU, sigma_vec);
+        sigma[0][0] = sigma_vec[0]; sigma[0][1] = sigma_vec[3]; sigma[0][2] = sigma_vec[5];
+        sigma[1][0] = sigma_vec[3]; sigma[1][1] = sigma_vec[1]; sigma[1][2] = sigma_vec[4];
+        sigma[2][0] = sigma_vec[5]; sigma[2][1] = sigma_vec[4]; sigma[2][2] = sigma_vec[2];
+
+        //sigb[0] = sigma_vec[0] * bx + sigma_vec[3] * by + sigma_vec[5] * bz;
+        //sigb[1] = sigma_vec[3] * bx + sigma_vec[1] * by + sigma_vec[4] * bz;
+        //sigb[2] = sigma_vec[5] * bx + sigma_vec[4] * by + sigma_vec[2] * bz;
+#endif
 
         sigb[0] = sigma[0][0] * bx + sigma[0][1] * by + sigma[0][2] * bz;
         sigb[1] = sigma[1][0] * bx + sigma[1][1] * by + sigma[1][2] * bz;

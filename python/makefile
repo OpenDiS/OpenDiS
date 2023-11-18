@@ -10,7 +10,7 @@
 
 CC_PREPROCESS   = ${CC} -E ${DEFS}
 
-HEADER_FILES = ../src/SegSegForce.h ../src/SegmentStress.h ../src/SegSegForce_SBN1.h ../src/SegSegForce_SBN1_SBA.h
+HEADER_FILES = ../src/SegSegForce.h ../src/SegmentStress.h ../src/StressDueToSeg.h ../src/SegSegForce_SBN1.h ../src/SegSegForce_SBN1_SBA.h
 LIB_OPENDIS  = ../lib/libopendis.so
 
 # Add _gpu to target name

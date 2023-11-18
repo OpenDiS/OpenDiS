@@ -24,7 +24,8 @@ ref_stress = np.load("ref_seg_stress.npy")
 seg_stress = np.zeros_like(ref_stress)
 
 for ii, (p1, p2, b12, x) in enumerate(zip(p1_list, p2_list, b12_list, x_list)):
-    seg_stress[ii] = compute_seg_stress(p1, p2, b12, x, mu, nu, a)
+    #seg_stress[ii] = compute_seg_stress_coord_dep(p1, p2, b12, x, mu, nu, a)
+    seg_stress[ii] = compute_seg_stress_coord_indep(p1, p2, b12, x, mu, nu, a)
 
 isclose_seg_stress = np.allclose(seg_stress, ref_stress, rtol=0.0, atol=atol)
 

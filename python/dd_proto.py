@@ -15,7 +15,7 @@ from compute_stress_force_analytic_paradis import compute_segseg_force_vec, comp
 from compute_stress_force_analytic_paradis import compute_segseg_force_SBN1_vec, compute_segseg_force_SBN1
 from compute_stress_force_analytic_paradis import compute_segseg_force_SBN1_SBA
 from compute_stress_force_analytic_python  import python_segseg_force_vec
-from compute_stress_analytic_paradis       import compute_seg_stress
+from compute_stress_analytic_paradis       import compute_seg_stress_coord_dep, compute_seg_stress_coord_indep
 
 try:
     opendis_lib = __import__('opendis')
