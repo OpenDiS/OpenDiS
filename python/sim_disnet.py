@@ -25,7 +25,7 @@ class SimulateNetwork:
 
     """
     def __init__(self, calforce,
-                 mobility=None, timeint=None, collision=None, vis=None,
+                 mobility=None, timeint=None, collision=None, remesh=None, vis=None,
                  dt0: float=1.0e-8,
                  max_step: int=10,
                  print_freq: int=None,
@@ -33,22 +33,16 @@ class SimulateNetwork:
                  plot_pause_seconds: float=None,
                  **kwargs) -> None:
         self.calforce = calforce
-        if mobility != None:
-            self.mobility = mobility
-        if timeint != None:
-            self.timeint = timeint
-        if collision != None:
-            self.collision = collision
-        if vis != None:
-            self.vis = vis
+        self.mobility = mobility
+        self.timeint = timeint
+        self.collision = collision
+        self.remesh = remesh
+        self.vis = vis
         self.dt0 = dt0
         self.max_step = max_step
-        if print_freq != None:
-            self.print_freq = print_freq
-        if plot_freq != None:
-            self.plot_freq = plot_freq
-        if plot_pause_seconds != None:
-            self.plot_pause_seconds = plot_pause_seconds
+        self.print_freq = print_freq
+        self.plot_freq = plot_freq
+        self.plot_pause_seconds = plot_pause_seconds
         pass
 
     def step(self, G: DisNet):
@@ -58,15 +52,15 @@ class SimulateNetwork:
 
         vel_dict = self.mobility.Mobility(G, nodeforce_dict)
 
-        #for node, vel in vel_dict.items():
-        #    G.nodes()[node]["R"] += vel * self.dt
-
         # using a constant time step (for now)
         self.timeint.dt = self.dt0
         self.timeint.Update(G, vel_dict)
 
-        if hasattr(self, 'collision'):
+        if self.collision is not None:
             self.collision.HandleCol(G)
+
+        if self.remesh is not None:
+            self.remesh.Remesh(G)
 
     def run(self, G: DisNet):
         if self.plot_freq != None:

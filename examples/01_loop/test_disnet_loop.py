@@ -7,6 +7,8 @@ from disnet import DisNet
 from calforce_disnet import CalForce
 from mobility_disnet import MobilityLaw
 from timeint_disnet import TimeIntegration
+from collision_disnet import Collision
+from remesh_disnet import Remesh
 from vis_disnet import VisualizeNetwork
 from sim_disnet import SimulateNetwork
 
@@ -38,11 +40,13 @@ def main():
     #np.savetxt("force.dat", lt_force_array)
     #print("save force to 'force.dat'")
 
-    mobility = MobilityLaw(mobility_law='Relax')
-    timeint  = TimeIntegration(integrator='EulerForward')
+    mobility  = MobilityLaw(mobility_law='Relax')
+    timeint   = TimeIntegration(integrator='EulerForward')
+    collision = None #Collision(collision_mode='Proximity')
+    remesh    = None #Remesh(remesh_rule='LengthBased')
 
     sim = SimulateNetwork(calforce=calforce, mobility=mobility,
-                          timeint=timeint, vis=vis,
+                          timeint=timeint, collision=collision, remesh=remesh, vis=vis,
                           dt0 = 1.0e-8, max_step=200, 
                           print_freq=10, plot_freq=10, plot_pause_seconds=0.1)
     sim.run(G)
