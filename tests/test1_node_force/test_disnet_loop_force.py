@@ -3,8 +3,8 @@ import sys, os
 
 sys.path.extend([os.path.abspath('../../python'),os.path.abspath('../../lib')])
 
-from disnet import DisNet
-from calforce_disnet import CalForce
+from pydis.disnet import DisNet
+from pydis.calforce.calforce_disnet import CalForce
 
 def init_loop_from_file(rn_file, links_file):
     print("init_loop_from_file: rn_file = '%s', links_file = '%s'" % (rn_file, links_file))
@@ -23,11 +23,6 @@ def compare_force(ref_file, node_force, rtol = 0.0, atol = 1e-9):
 
 def main():
     G = init_loop_from_file(rn_file = "loop_rn.dat", links_file = "loop_links.dat")
-
-    # To do:
-    # 1. Add a utility class to plot DisNet
-    # vis = VisDisNet
-    # vis.plot(G)
 
     calforce = CalForce(mu=50, nu=0.3, a=0.01, Ec=1.0e6)
     nodeforce_dict = calforce.NodeForce_LineTension(G)

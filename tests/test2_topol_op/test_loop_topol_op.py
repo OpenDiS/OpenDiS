@@ -3,7 +3,7 @@ import sys, os
 
 sys.path.extend([os.path.abspath('../../python'),os.path.abspath('../../lib')])
 
-from disnet import DisNet
+from pydis.disnet import DisNet
 
 def init_loop_from_file(rn_file, links_file):
     print("init_loop_from_file: rn_file = '%s', links_file = '%s'" % (rn_file, links_file))
@@ -15,11 +15,6 @@ def init_loop_from_file(rn_file, links_file):
 
 def main():
     G = init_loop_from_file(rn_file = "loop_rn.dat", links_file = "loop_links.dat")
-
-    # To do:
-    # 1. Add a utility class to plot DisNet
-    # vis = VisDisNet
-    # vis.plot(G)
 
     return G.is_sane()
 
