@@ -4,9 +4,7 @@ import sys, os
 
 sys.path.extend([os.path.abspath('../../python'),os.path.abspath('../../lib')])
 
-from dd_proto import *
-
-ddsim = DDSim()
+from pydis.calforce.compute_stress_analytic_paradis       import compute_seg_stress_coord_dep, compute_seg_stress_coord_indep
 
 mu = 1000.0
 nu = 0.3
@@ -31,8 +29,8 @@ isclose_seg_stress = np.allclose(seg_stress, ref_stress, rtol=0.0, atol=atol)
 
 print(f"max error: {np.max(np.abs(seg_stress - ref_stress)): .6e}")
 if isclose_seg_stress:
-    print("\033[92mTest Passed!\033[0m")
+    print("\033[32mTest Passed!\033[0m")
 else:
-    print("\033[91mTest Failed!\033[0m")
+    print("\033[31mTest Failed!\033[0m")
 
 sys.exit(0 if isclose_seg_stress else 1)
