@@ -15,8 +15,15 @@ class DisNode:
 
     Defines the basic attributes on a node
     """
-    def __init__(self, R: np.ndarray) -> None:
+    def __init__(self, R: np.ndarray, F: np.ndarray=None,
+                v: np.ndarray=None, flag: np.ndarray=None) -> None:
         self.R = R
+        if F is not None:
+            self.F = F
+        if v is not None:
+            self.v = v
+        if flag is not None:
+            self.flag = flag
 
 class DisEdge:
     """DisEdge: class for dislocation edge
@@ -54,14 +61,23 @@ class DisNet:
     def pos_array(self) -> np.ndarray:
         """pos_array: return a numpy array of node positions
         """
-        return np.array([node.R for node in self._G.nodes()])
+        return np.array([node_attr["R"] for node, node_attr in self._G.nodes.items()])
     
     def seg_list(self) -> list:
         """seg_list: return a list of segments
 
-        To do: also return the Burgers vector and plane normal
+        Each link appear once: node1 < node2
         """
-        return [(node1.R, node2.R) for node1, node2 in self._G.edges() if node1 < node2]
+        segments = []
+        for edge in self._G.edges():
+            node1 = edge[0]
+            node2 = edge[1]
+            if node1 < node2:
+                segments.append({"edge":edge,
+                                 "burg_vec":self._G.edges[edge]["burg_vec"],
+                                 "R1":self._G.nodes[node1]["R"],
+                                 "R2":self._G.nodes[node2]["R"]})
+        return segments
     
     def has_node(self, tag: Tag) -> bool:
         """has_node: check if a node exists in the network
