@@ -7,6 +7,8 @@ Provide simulation functions based on other utlitity classes
 import numpy as np
 from disnet import DisNet
 from calforce_disnet import CalForce
+from mobility_disnet import MobilityLaw
+from timeint_disnet import TimeIntegration
 from vis_disnet import VisualizeNetwork
 
 try:
@@ -22,7 +24,8 @@ class SimulateNetwork:
     """SimulateNetwork: class for simulating dislocation network
 
     """
-    def __init__(self, calforce, vis, 
+    def __init__(self, calforce,
+                 mobility=None, timeint=None, collision=None, vis=None,
                  dt0: float=1.0e-8,
                  max_step: int=10,
                  print_freq: int=None,
@@ -30,9 +33,15 @@ class SimulateNetwork:
                  plot_pause_seconds: float=None,
                  **kwargs) -> None:
         self.calforce = calforce
-        self.vis = vis
+        if mobility != None:
+            self.mobility = mobility
+        if timeint != None:
+            self.timeint = timeint
+        if collision != None:
+            self.collision = collision
+        if vis != None:
+            self.vis = vis
         self.dt0 = dt0
-        self.dt  = dt0
         self.max_step = max_step
         if print_freq != None:
             self.print_freq = print_freq
@@ -44,19 +53,20 @@ class SimulateNetwork:
 
     def step(self, G: DisNet):
         """step: take a time step of DD simulation on DisNet G
-
-        To do: define separate classes for mobility, time integration, and collision
         """
         nodeforce_dict = self.calforce.NodeForce(G)
 
-        for node, force in nodeforce_dict.items():
-            G.nodes()[node]["R"] += force * self.dt
+        vel_dict = self.mobility.Mobility(G, nodeforce_dict)
 
-        # To do:
-        # apply nodeforce_dict to G
-        # mobility.MobilityLaw()
-        # timeint.TimeIntegration()
-        # collison.Collision()
+        #for node, vel in vel_dict.items():
+        #    G.nodes()[node]["R"] += vel * self.dt
+
+        # using a constant time step (for now)
+        self.timeint.dt = self.dt0
+        self.timeint.Update(G, vel_dict)
+
+        if hasattr(self, 'collision'):
+            self.collision.HandleCol(G)
 
     def run(self, G: DisNet):
         if self.plot_freq != None:
@@ -72,7 +82,7 @@ class SimulateNetwork:
 
             if self.print_freq != None:
                 if tstep % self.print_freq == 0:
-                    print("step = %d dt = %e"%(tstep, self.dt))
+                    print("step = %d dt = %e"%(tstep, self.timeint.dt))
 
             if self.plot_freq != None:
                 if tstep % self.plot_freq == 0:
