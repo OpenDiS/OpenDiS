@@ -5,7 +5,7 @@ Provide collision handling functions given a DisNet object
 """
 
 import numpy as np
-from disnet import DisNet
+from ..disnet import DisNet
 
 class Collision:
     """Collision: class for detecting and handling collisions

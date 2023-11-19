@@ -5,7 +5,7 @@ Provide plotting functions given a DisNet object
 """
 
 import numpy as np
-from disnet import DisNet
+from ..disnet import DisNet
 
 try:
     import matplotlib.pyplot as plt

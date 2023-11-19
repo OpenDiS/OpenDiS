@@ -3,14 +3,14 @@ import sys, os
 
 sys.path.extend([os.path.abspath('../../python'),os.path.abspath('../../lib')])
 
-from disnet import DisNet
-from calforce_disnet import CalForce
-from mobility_disnet import MobilityLaw
-from timeint_disnet import TimeIntegration
-from collision_disnet import Collision
-from remesh_disnet import Remesh
-from vis_disnet import VisualizeNetwork
-from sim_disnet import SimulateNetwork
+from pydis.disnet import DisNet
+from pydis.calforce.calforce_disnet import CalForce
+from pydis.mobility.mobility_disnet import MobilityLaw
+from pydis.timeint.timeint_disnet import TimeIntegration
+from pydis.collision.collision_disnet import Collision
+from pydis.remesh.remesh_disnet import Remesh
+from pydis.visualize.vis_disnet import VisualizeNetwork
+from pydis.simulate.sim_disnet import SimulateNetwork
 
 def init_circular_loop(radius=1.0, N=20, burg_vec=np.array([1.0,0.0,0.0])):
     print("init_circular_loop: radius = %f, N = %d" % (radius, N))

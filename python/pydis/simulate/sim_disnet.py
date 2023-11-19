@@ -5,11 +5,11 @@ Provide simulation functions based on other utlitity classes
 """
 
 import numpy as np
-from disnet import DisNet
-from calforce_disnet import CalForce
-from mobility_disnet import MobilityLaw
-from timeint_disnet import TimeIntegration
-from vis_disnet import VisualizeNetwork
+from ..disnet import DisNet
+from ..calforce.calforce_disnet import CalForce
+from ..mobility.mobility_disnet import MobilityLaw
+from ..timeint.timeint_disnet import TimeIntegration
+from ..visualize.vis_disnet import VisualizeNetwork
 
 try:
     import matplotlib.pyplot as plt

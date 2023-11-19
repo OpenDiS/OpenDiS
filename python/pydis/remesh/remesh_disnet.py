@@ -5,7 +5,7 @@ Provide remesh functions given a DisNet object
 """
 
 import numpy as np
-from disnet import DisNet
+from ..disnet import DisNet
 
 class Remesh:
     """Remesh: class for remeshing dislocation network

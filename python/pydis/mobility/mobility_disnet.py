@@ -5,7 +5,7 @@ Provide mobility law functions given a DisNet object
 """
 
 import numpy as np
-from disnet import DisNet
+from ..disnet import DisNet
 
 class MobilityLaw:
     """MobilityLaw: class for mobility laws

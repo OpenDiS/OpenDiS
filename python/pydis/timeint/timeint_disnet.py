@@ -5,7 +5,7 @@ Provide time integration functions given a DisNet object
 """
 
 import numpy as np
-from disnet import DisNet
+from ..disnet import DisNet
 
 class TimeIntegration:
     """TimeIntegration: class for time integration
