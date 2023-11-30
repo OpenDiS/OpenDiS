@@ -1,4 +1,4 @@
-LIB_OPENDIS = ../lib/libopendis.so
+LIB_OPENDIS = ../../../lib/libopendis.so
 
 all: $(LIB_OPENDIS)
 
