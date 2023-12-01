@@ -10,7 +10,8 @@
 
 CC_PREPROCESS   = ${CC} -E ${DEFS}
 
-HEADER_FILES = ../src/SegSegForce.h ../src/SegmentStress.h ../src/StressDueToSeg.h ../src/SegSegForce_SBN1.h ../src/SegSegForce_SBN1_SBA.h
+HEADER_PATH = ../core/paradis/calforce
+HEADER_FILES = $(HEADER_PATH)/SegSegForce.h $(HEADER_PATH)/SegmentStress.h $(HEADER_PATH)/StressDueToSeg.h $(HEADER_PATH)/SegSegForce_SBN1.h $(HEADER_PATH)/SegSegForce_SBN1_SBA.h
 LIB_OPENDIS  = ../lib/libopendis.so
 
 # Add _gpu to target name
