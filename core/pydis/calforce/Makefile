@@ -1,6 +1,6 @@
-LIB_PYDIS_SO = ../../../lib/libpydis.so
+LIB_PYDIS_CALFORCE = pydis_calforce.o
 
-all: $(LIB_PYDIS_SO)
+all: $(LIB_PYDIS_CALFORCE)
 
 SegSegForce.o: SegSegForce.c
 	gcc -c -O3 $^
@@ -17,8 +17,8 @@ SegmentStress.o: SegmentStress.c
 StressDueToSeg.o: StressDueToSeg.c
 	gcc -c -O3 $^
 
-$(LIB_PYDIS_SO): SegSegForce.o SegSegForce_SBN1.o SegSegForce_SBN1_SBA.o SegmentStress.o StressDueToSeg.o
-	gcc -shared $^ -o $@
+$(LIB_PYDIS_CALFORCE): SegSegForce.o SegSegForce_SBN1.o SegSegForce_SBN1_SBA.o SegmentStress.o StressDueToSeg.o
+	ar r $@ $^
 
 clean:
 	rm -f *.o
