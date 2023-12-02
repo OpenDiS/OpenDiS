@@ -3,11 +3,11 @@ from ctypes import c_double
 real8 = c_double
 
 try:
-    opendis_lib = __import__('opendis')
-    found_opendis = True
+    pydis_lib = __import__('pydis_lib')
+    found_pydis = True
 except ImportError:
-    found_opendis = False
-    print(' cannot find opendis.py                  ')
+    found_pydis = False
+    print(' cannot find pydis_lib.py                  ')
     print(' export PYTHONPATH=$HOME/OpenDiS.git/lib:')
 
 def compute_segseg_force_SBN1(p1, p2, p3, p4, b1, b2, mu, nu, a, quad_points, weights, seg12local=1, seg34local=1):
@@ -23,7 +23,7 @@ def compute_segseg_force_SBN1(p1, p2, p3, p4, b1, b2, mu, nu, a, quad_points, we
     Nint = quad_points.shape[0]
     quad_points_ptr=np.ctypeslib.as_ctypes(quad_points)
     weights_ptr=np.ctypeslib.as_ctypes(weights)
-    opendis_lib.SegSegForce_SBN1(
+    pydis_lib.SegSegForce_SBN1(
         *(p1[0], p1[1], p1[2]),
         *(p2[0], p2[1], p2[2]),
         *(p3[0], p3[1], p3[2]),
@@ -59,7 +59,7 @@ def compute_segseg_force_SBN1_SBA(p1, p2, p3, p4, b1, b2, mu, nu, a, quad_points
     Nint = quad_points.shape[0]
     quad_points_ptr=np.ctypeslib.as_ctypes(quad_points)
     weights_ptr=np.ctypeslib.as_ctypes(weights)
-    opendis_lib.SegSegForce_SBN1_SBA(
+    pydis_lib.SegSegForce_SBN1_SBA(
         *(p1[0], p1[1], p1[2]),
         *(p2[0], p2[1], p2[2]),
         *(p3[0], p3[1], p3[2]),
@@ -110,7 +110,7 @@ def compute_segseg_force(p1, p2, p3, p4, b1, b2, mu, nu, a, seg12local=1, seg34l
     f2x, f2y, f2z = real8(), real8(), real8()
     f3x, f3y, f3z = real8(), real8(), real8()
     f4x, f4y, f4z = real8(), real8(), real8()
-    opendis_lib.SegSegForce(
+    pydis_lib.SegSegForce(
         *(p1[0], p1[1], p1[2]),
         *(p2[0], p2[1], p2[2]),
         *(p3[0], p3[1], p3[2]),
