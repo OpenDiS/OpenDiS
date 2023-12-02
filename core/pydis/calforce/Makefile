@@ -18,7 +18,7 @@ StressDueToSeg.o: StressDueToSeg.c
 	gcc -c -O3 $^
 
 $(LIB_PYDIS_CALFORCE): SegSegForce.o SegSegForce_SBN1.o SegSegForce_SBN1_SBA.o SegmentStress.o StressDueToSeg.o
-	ar r $@ $^
+	ld -r $^ -o $@
 
 clean:
 	rm -f *.o

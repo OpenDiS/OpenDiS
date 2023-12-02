@@ -9,7 +9,7 @@ RemeshRule_2.o: RemeshRule_2.c
 	gcc -c -O3 $^ -I ../include
 
 $(LIB_PYDIS_REMESH): Remesh.o RemeshRule_2.o
-	ar r $@ $^ 
+	ld -r $^ -o $@
 
 clean:
 	rm -f *.o
