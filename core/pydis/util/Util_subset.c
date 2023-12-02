@@ -78,6 +78,44 @@ void NormalizeVec(real8 vec[3])
 
 /*-------------------------------------------------------------------------
  *
+ *      Function:     EncodeCellIdx
+ *      Description:  Given the indices of a cell in each of the X, Y
+ *                    and Z dimensions, return its ID encoded as
+ *                    a single number. 
+ *
+ *                    IMPORTANT!  The base set of cells is padded
+ *                    by 1 cell on each side of each dimension to
+ *                    allow for periodic boundaries.  The encoded
+ *                    index returned to the caller will have been
+ *                    adjusted to take this layer of ghost cells
+ *                    into account
+ *
+ *                    NOTE: It is assumed in the cell index encoding/
+ *                    decoding functions that cells are assigned in
+ *                    the 3D space varying first in Z and last in the
+ *                    X dimension.
+ *
+ *      Arguments:
+ *          xIndex    Base index of the cell in the X dimension
+ *          yIndex    Base index of the cell in the Y dimension
+ *          zIndex    Base index of the cell in the Z dimension
+ *
+ *      Returns:  Cell ID as single index into a 1-dimensional array.
+ *
+ *------------------------------------------------------------------------*/
+int EncodeCellIdx(Home_t *home, int xIndex, int yIndex, int zIndex)
+{
+        int cellID;
+
+        cellID = zIndex +
+                 yIndex * (home->param->nZcells+2) +
+                 xIndex * (home->param->nZcells+2) * (home->param->nYcells+2);
+
+        return(cellID);
+}
+
+/*-------------------------------------------------------------------------
+ *
  *      Function:     Connected
  *      Description:  Determines whether or not two nodes are connected
  *                    by a dislocation segment.
@@ -930,6 +968,508 @@ void InitOpList (Home_t *home)
         home->OpListLen = OpBlock_Count;
         home->rcvOpCount = 0;
         home->rcvOpList = 0;
+
+        return;
+}
+
+/* From Initialize.c */
+void SetBoxSize(Param_t *param){
+/*
+ *      Some of the parameters used in creating the nodal data file
+ *      used for this run may not match the values to be used for
+ *      this run.  We've completed processing the data file at this
+ *      point, so update the data file parameters to match the values
+ *      desired for this particular run.
+ */
+        param->dataDecompGeometry[X] = param->nXdoms;
+        param->dataDecompGeometry[Y] = param->nYdoms;
+        param->dataDecompGeometry[Z] = param->nZdoms;
+
+        param->dataDecompType = param->decompType;
+        param->dataFileVersion = NODEDATA_FILE_VERSION;
+        param->numFileSegments = param->numIOGroups;
+
+/*
+ *      Calculate the length of the problem space in each
+ *      of the dimensions
+ */
+        param->Lx = param->maxSideX - param->minSideX;
+        param->Ly = param->maxSideY - param->minSideY;
+        param->Lz = param->maxSideZ - param->minSideZ;
+
+        param->invLx = 1.0 / param->Lx;
+        param->invLy = 1.0 / param->Ly;
+        param->invLz = 1.0 / param->Lz;
+}
+
+/*---------------------------------------------------------------------------
+ *
+ *      Function:     SetRemainingDefaults
+ *      Description:  The default values of certain global parameters
+ *                    are special in that they depend on values of
+ *                    other global parameters.  If the user did not
+ *                    specify values for these special parameters,
+ *                    this function will calculate the necessary
+ *                    defaults (as well as do some additional sanity
+ *                    checks on some of the values).
+ *
+ *-------------------------------------------------------------------------*/
+void SetRemainingDefaults(Home_t *home)
+{
+        real8   tmp, eps;
+        real8   xCellSize, yCellSize, zCellSize, minCellSize;
+        Param_t *param;
+
+        param = home->param;
+
+        param->delSegLength = 0.0;
+
+        xCellSize = param->Lx / param->nXcells;
+        yCellSize = param->Ly / param->nYcells;
+        zCellSize = param->Lz / param->nZcells;
+
+        minCellSize = MIN(xCellSize, yCellSize);
+        minCellSize = MIN(minCellSize, zCellSize);
+
+        eps = 1.0e-02;
+
+/*
+ *      The core radius and maximum segment length are required
+ *      inputs.  If the user did not provide both values, abort
+ *      now.
+ */
+        if (home->myDomain == 0) {
+            if (param->rc < 0.0) {
+                Fatal("The <rc> parameter is required but was not \n"
+                      "    provided in the control file");
+            }
+
+            if (param->maxSeg < 0.0) {
+                Fatal("The <maxSeg> parameter is required but was not \n"
+                      "    provided in the control file");
+            }
+        }
+
+/*
+ *      If not provided, set position error tolerance based on <rc>
+ */
+        if (param->rTol <= 0.0) {
+            param->rTol = 0.25 * param->rc;
+        }
+
+/*
+ *      The deltaTT is set in the timestep integrator, but some
+ *      mobility functions now use the deltaTT value, so it must
+ *      be initialized before ParadisStep() is called since there
+ *      is an initial mobility calculation done *before* timestep
+ *      integration the first time into the function.
+ */
+        param->deltaTT = MIN(param->maxDT, param->nextDT);
+
+        if (param->deltaTT <= 0.0) {
+            param->deltaTT = param->maxDT;
+        }
+
+/*
+ *      Set annihilation distance based on <rc>
+ */
+#ifdef _RETROCOLLISIONS
+		if (param->rann<0) {
+        	param->rann = 2.0 * param->rTol;
+		}
+#else
+		param->rann = 2.0 * param->rTol;
+#endif
+
+/*
+ *      Minimum area criteria for remesh is dependent on maximum
+ *      and minumum segment lengths and position error tolerance.
+ */
+        param->remeshAreaMin = 2.0 * param->rTol * param->maxSeg;
+
+        if (param->minSeg > 0.0) {
+            param->remeshAreaMin = MIN(param->remeshAreaMin,
+                                       (param->minSeg * param->minSeg *
+                                        sqrt(3.0) / 4));
+        }
+
+/*
+ *      Maximum area criteria for remesh is dependent on minimum area,
+ *      and maximum segment length.
+ */
+        param->remeshAreaMax = 0.5 * ((4.0 * param->remeshAreaMin) +
+                                      (0.25 * sqrt(3)) *
+                                      (param->maxSeg*param->maxSeg));
+
+/*
+ *      If the user did not provide a minSeg length, calculate one
+ *      based on the remesh minimum area criteria.
+ */
+        if (param->minSeg <= 0.0) {
+            param->minSeg = sqrt(param->remeshAreaMin * (4.0 / sqrt(3)));
+        }
+
+
+/*
+ *      If the user did not provide an Ecore value, set the default
+ *      based on the shear modulus and rc values
+ */
+        if (param->Ecore < 0.0) {
+            param->Ecore = (param->shearModulus / (4*M_PI)) *
+                           log(param->rc/0.1);
+        }
+
+/*
+ *      Now do some additional sanity checks.
+ */
+        if (home->myDomain == 0) {
+
+/*
+ *          First check for some fatal errors...
+ */
+            if (param->maxSeg <= param->rTol * (32.0 / sqrt(3.0))) {
+                Fatal("Maximum segment length must be > rTol * 32 / sqrt(3)\n"
+                      "    Current maxSeg = %lf, rTol = %lf",
+                      param->maxSeg, param->rTol);
+            }
+
+            if (param->minSeg > (0.5 * param->maxSeg)) {
+                Fatal("Minimum segment length must be < (0.5 * maxSeg)\n"
+                      "    Current minSeg = %lf, maxSeg = %lf",
+                      param->minSeg, param->maxSeg);
+            }
+
+            if (param->maxSeg <= param->minSeg) {
+                Fatal("Max segment length (%e) must be greater than the\n"
+                      "    minimum segment length (%e)", param->maxSeg,
+                      param->minSeg);
+            }
+
+            if (param->maxSeg > (minCellSize * 0.9)) {
+                Fatal("The maxSeg length must be less than the "
+                      "minimum cell size * 0.9.  Current values:\n"
+                      "    maxSeg    = %.1f\n    cellWidth = %.1f",
+                      param->maxSeg, minCellSize);
+            }
+
+            if (param->remeshAreaMin > (0.25 * param->remeshAreaMax)) {
+                Fatal("remeshAreaMin must be less than 0.25*remeshAreaMax\n"
+                      "    Current remeshAreaMin = %lf, remeshAreaMax = %lf",
+                      param->remeshAreaMin, param->remeshAreaMax);
+            }
+
+/*
+ *          Now check for conditions that although not fatal, may result
+ *          in undesired behaviour, and warn the user.
+ */
+            if (param->rc < 0.1) {
+                fprintf(stderr, "WARNING: specified rc value (%e) will "
+                                "yield a \nnegative core energy\n", param->rc);
+            }
+
+            tmp = (param->maxSeg * param->maxSeg * param->maxSeg);
+
+            if (param->remeshAreaMax > (0.25 * sqrt(3) * tmp)) {
+                fprintf(stderr, "WARNING: Area criteria will be unused "
+                                "in remesh operations!\n");
+                fprintf(stderr, "         rmeshAreaMax = %lf, maxSeg = %lf\n",
+                                param->remeshAreaMax, param->maxSeg);
+            }
+
+            if (param->rann > (0.5 * param->rc + eps)) {
+                fprintf(stderr, "WARNING: Separation distance is larger "
+                                "than the core radius!\n");
+                fprintf(stderr, "         rann = %lf, rc = %lf\n",
+                                param->rann, param->rc);
+            }
+
+            if (param->rann > (2.0 * param->rTol)) {
+                fprintf(stderr, "WARNING: Collision distance is outside the "
+                                "position error tolerance!\n");
+                fprintf(stderr, "         rann = %lf, rTol = %lf\n",
+                                param->rann, param->rTol);
+            }
+
+#if 0
+            tmp = param->remeshAreaMin - (2.0 * param->rTol * param->maxSeg);
+
+            if (fabs(tmp) > eps) {
+                fprintf(stderr, "WARNING: remesh minimum area != "
+                                "2.0 * rTol * maxSeg\n");
+                fprintf(stderr, "         remeshAreaMin = %lf, rTol = %lf"
+                                "maxSeg = %lf\n", param->remeshAreaMin,
+                                param->rTol, param->maxSeg);
+            }
+#endif
+
+/*
+ *          If free suraces are used but the specified surfaces are
+ *          not within the primary bounding box, it's a problem.
+ */
+            if (((param->xBoundType == Free) &&
+                ((param->xBoundMin < param->minCoordinates[X]) ||
+                 (param->xBoundMax > param->maxCoordinates[X])))||
+                ((param->yBoundType == Free) &&
+                ((param->yBoundMin < param->minCoordinates[Y]) ||
+                 (param->yBoundMax > param->maxCoordinates[Y])))||
+                ((param->zBoundType == Free) &&
+                ((param->zBoundMin < param->minCoordinates[Z]) ||
+                 (param->zBoundMax > param->maxCoordinates[Z]))) ) {
+                Fatal("Free surfaces are not within main bounding box!\n"
+                      "    Surface min coordinates (%lf %lf %lf)\n"
+                      "    Surface max coordinates (%lf %lf %lf)\n",
+                      param->xBoundMin, param->yBoundMin, param->zBoundMin,
+                      param->xBoundMax, param->yBoundMax, param->zBoundMax);
+            }
+
+#if !defined _FEM & !defined _FEMIMGSTRESS
+/*
+ *          If free surfaces are enabled but the finite element code
+ *          is not linked in, results will not be accurate, so print
+ *          a warning.
+ */
+            if ((param->xBoundType == Free) ||
+                (param->yBoundType == Free) ||
+                (param->zBoundType == Free)) {
+                printf("***\n*** WARNING!  Use of free surfaces in ParaDiS "
+                       "without the\n*** FEM/ParaDiS coupling is not "
+                       "fully supported!\n***\n");
+            }
+#endif
+
+        }  /* if domain == 0 */
+
+
+/*
+ *      If there are a mix of free surfaces and periodic boundaries,
+ *      the boundary min/max values must default to the simulation
+ *      boundaries in the dimensions without free surfaces.
+ */
+        if ((param->xBoundType == Free) ||
+            (param->yBoundType == Free) ||
+            (param->zBoundType == Free)) {
+
+            if (param->xBoundType == Periodic) {
+                param->xBoundMin = param->minSideX;
+                param->xBoundMax = param->maxSideX;
+            }
+            if (param->yBoundType == Periodic) {
+                param->yBoundMin = param->minSideY;
+                param->yBoundMax = param->maxSideY;
+            }
+            if (param->zBoundType == Periodic) {
+                param->zBoundMin = param->minSideZ;
+                param->zBoundMax = param->maxSideZ;
+            }
+        }
+
+/*
+ *      Based on the mobility law selected in the control
+ *      parameter file, set:
+ *        1) the material type (BCC, FCC, etc.)
+ *        2) the specific mobility type
+ *        3) a pointer to the proper mobility function
+ *        4) number of burgers vector groups used in
+ *           tracking dislocation density per burgers vector
+ *
+ *      *************************************************
+ *      ***                                           ***
+ *      ***                  IMPORTANT!               ***
+ *      ***   If you change any numBurgGroups value   ***
+ *      ***   specified below, you must change the    ***
+ *      ***   DENSITY_FILE_VERSION number defined     ***
+ *      ***   in WriteProp.c!                         ***
+ *      ***                                           ***
+ *      *************************************************
+ */
+#if 0
+        if (strcmp(param->mobilityLaw, "BCC_0") == 0) {
+            param->materialType = MAT_TYPE_BCC;
+            param->mobilityType = MOB_BCC_0;
+            param->mobilityFunc = Mobility_BCC_0;
+            param->numBurgGroups = 5;
+        } else if (strcmp(param->mobilityLaw, "BCC_0b") == 0) {
+            param->materialType = MAT_TYPE_BCC;
+            param->mobilityType = MOB_BCC_0B;
+            param->mobilityFunc = Mobility_BCC_0b;
+            param->numBurgGroups = 5;
+        } else if (strcmp(param->mobilityLaw, "BCC_glide") == 0) {
+            param->materialType = MAT_TYPE_BCC;
+            param->mobilityType = MOB_BCC_GLIDE;
+            param->mobilityFunc = Mobility_BCC_glide;
+            param->numBurgGroups = 5;
+        } else if (strcmp(param->mobilityLaw, "BCC_glide_0") == 0) {
+            param->materialType = MAT_TYPE_BCC;
+            param->mobilityType = MOB_BCC_GLIDE_0;
+            param->mobilityFunc = Mobility_BCC_glide_0;
+            param->numBurgGroups = 5;
+        } else if (strcmp(param->mobilityLaw, "FCC_0") == 0) {
+            param->materialType = MAT_TYPE_FCC;
+            param->mobilityType = MOB_FCC_0;
+            param->mobilityFunc = Mobility_FCC_0;
+            param->numBurgGroups = 7;
+        } else if (strcmp(param->mobilityLaw, "FCC_0b") == 0) {
+            param->materialType = MAT_TYPE_FCC;
+            param->mobilityType = MOB_FCC_0B;
+            param->mobilityFunc = Mobility_FCC_0b;
+            param->numBurgGroups = 7;
+        } else if (strcmp(param->mobilityLaw, "FCC_climb") == 0) {
+            param->materialType = MAT_TYPE_FCC;
+            param->mobilityType = MOB_FCC_CLIMB;
+            param->mobilityFunc = Mobility_FCC_climb;
+            param->numBurgGroups = 7;
+            param->allowFuzzyGlidePlanes = 1;
+        } else if (strcmp(param->mobilityLaw, "RELAX") == 0) {
+            param->materialType = MAT_TYPE_BCC;
+            param->mobilityType = MOB_RELAX;
+            param->mobilityFunc = Mobility_Relax;
+            param->numBurgGroups = 7;
+        } else {
+            Fatal("Unknown mobility function %s", param->mobilityLaw);
+        }
+#endif
+
+#ifdef _GPU_SUBCYCLE
+		if (param->mobilityType == MOB_FCC_0) {
+			param->mobilityMatrixGPU = Mobility_FCC_0_matrix_GPU;
+		} else if (param->mobilityType == MOB_BCC_0B) {
+			// Don't do anything here.
+		} else {
+			Fatal("GPU mobility function is not available for %s", param->mobilityLaw);
+		}
+#endif
+
+        param->partialDisloDensity =
+                (real8 *)malloc(param->numBurgGroups * sizeof(real8));
+
+/*
+ *      Some types of mobility require the enforceGlidePlanes flag
+ *      to be set.  Handle that here.
+ */
+        switch (param->mobilityType) {
+            case MOB_BCC_GLIDE:
+            case MOB_BCC_GLIDE_0:
+            case MOB_FCC_0:
+            case MOB_FCC_0B:
+            case MOB_FCC_CLIMB:
+                if (param->enforceGlidePlanes == 0) {
+                    param->enforceGlidePlanes = 1;
+                    if (home->myDomain == 0) {
+                        printf("The specified mobility (%s) requires the "
+                               "enforceGlidePlanes\ncontrol parameter "
+                               "toggle to be set.  Enabling toggle now.\n",
+                               param->mobilityLaw);
+                    }
+                }
+                break;
+        }
+
+/*
+ *      If type 1 domain decompositionis enabled, the DLBfreq
+ *      value MUST be a multiple of 3.
+ */
+        if ((param->DLBfreq > 0) && (param->decompType == 1)) {
+            param->DLBfreq = (param->DLBfreq + 2) / 3 * 3;
+        }
+
+/*
+ *      If the cross slip flag has not been explicitly defined, give
+ *      it a default setting based on the mobility being used.
+ */
+        if (param->enableCrossSlip < 0) {
+            switch(param->mobilityType) {
+                case MOB_BCC_GLIDE:
+                case MOB_BCC_GLIDE_0:
+                case MOB_FCC_0:
+                case MOB_FCC_0B:
+                case MOB_FCC_CLIMB:
+                    param->enableCrossSlip = 1;
+                    break;
+                default:
+                    param->enableCrossSlip = 0;
+                    break;
+            }
+        }
+
+#ifdef _MOBILITY_FIELD
+	if (param->mobilityField || param->frictionField) {
+		ReadMobilityField(home);
+	}
+#endif
+
+	if (param->FricStress > 0.0 && param->mobilityType != MOB_FCC_0) {
+		Fatal("Option FricStress is only available for MOB_FCC_0!");
+	}
+/*
+ *      Several portions of the code need to calculate the total
+ *      volume of the simulation and a volume factor used for
+ *      converting dislocation length to density, so set those
+ *      factors now.
+ *
+ *      If the FEM code is linked in, this is going to depend
+ *      on the actual shape used within the primary image.  Otherwise
+ *      we use the volume based on the free surfaces (a rectagular
+ *      prism) or the full dimensions of the primary image.
+ */
+#ifdef _FEM
+        switch (param->mesh_type) {
+            case 1:
+/*
+ *              Shape is a rectangular prism
+ */
+                param->simVol = (param->xBoundMax-param->xBoundMin) *
+                                (param->yBoundMax-param->yBoundMin) *
+                                (param->zBoundMax-param->zBoundMin);
+                break;
+            case 2:
+/*
+ *              Shape is a cylinder
+ */
+                param->simVol = M_PI * param->fem_radius *
+                                param->fem_radius * param->fem_height;
+                break;
+            default:
+/*
+ *              Unknown shape, so treat it as a rectangular prism
+ */
+                param->simVol = (param->xBoundMax-param->xBoundMin) *
+                                (param->yBoundMax-param->yBoundMin) *
+                                (param->zBoundMax-param->zBoundMin);
+                break;
+        }
+#else
+        if ((param->zBoundType == Free) ||
+            (param->yBoundType == Free) ||
+            (param->xBoundType == Free)) {
+
+            param->simVol = (param->xBoundMax-param->xBoundMin) *
+                            (param->yBoundMax-param->yBoundMin) *
+                            (param->zBoundMax-param->zBoundMin);
+        } else {
+            param->simVol = param->Lx * param->Ly * param->Lz;
+        }
+#endif
+
+        param->burgVolFactor = 1.0 / (param->burgMag * param->burgMag *
+                                      param->simVol);
+
+#ifdef FULL_N2_FORCES
+/*
+ *      To do full n^2 force calculations without remote forces, we need
+ *      to explicitly set some flags.
+ */
+        param->elasticinteraction = 1;
+        param->fmEnabled = 0;
+        param->numDLBCycles = 0;
+        param->DLBfreq = 0;
+#endif
+
+/*
+ *      Deactivate FMM if line tension model
+ */
+		if (!param->elasticinteraction) {
+			param->fmEnabled = 0;
+		}
 
         return;
 }

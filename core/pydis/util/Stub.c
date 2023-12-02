@@ -4,6 +4,9 @@
 /* Functions to be implemented in the future */
 
 /* 
+   Initialize            -- Initialize.c
+   FMInit                -- FMComm.c
+   GetCellDomainList     -- Decomp.c
    EvaluateMobility      -- Topology.c
    MergeNode             -- Topology.c
    SplitNode             -- Topology.c
@@ -12,6 +15,93 @@
    FindPreciseGlidePlane -- FindPreciseGlidePlane.c
    PickScrewGlidePlane   -- PickScrewGlidePlane.c
 */
+
+/*---------------------------------------------------------------------------
+ *
+ *      Function:     Initialize
+ *      Description:  This is the driver routine for initialization,
+ *                    handling some of the general initializations and
+ *                    calling all the more specific initialization routines.
+ *
+ *      Last Modified:  01/09/08: Gregg Hommes - added call to
+ *                                VerifyBurgersVectors() as a sanity check.
+ *
+ *-------------------------------------------------------------------------*/
+void Initialize(Home_t *home,int argc, char *argv[])
+{
+    Param_t *param;
+    printf("Stub.c: Initialize being implemented\n");
+
+    home->ctrlParamList = (ParamList_t *)calloc(1,sizeof(ParamList_t));
+    home->dataParamList = (ParamList_t *)calloc(1,sizeof(ParamList_t));
+    //home->subcyc = (Subcyc_t *)calloc(1, sizeof(Subcyc_t));
+
+    home->param = (Param_t *)calloc(1, sizeof(Param_t));
+    param = home->param;
+
+    CtrlParamInit(param, home->ctrlParamList);
+    DataParamInit(param, home->dataParamList);
+
+    SetBoxSize(param);
+    SetRemainingDefaults(home);
+
+    if (home->myDomain == 0) {
+        DisableUnneededParams(home);
+    }
+
+    InitCellNatives(home);
+    InitCellNeighbors(home);
+    InitCellDomains(home);
+
+    InitOpList(home);
+    //InitOpRecList(home);
+
+    //ReadRijm(home);
+    //ReadRijmPBC(home);
+
+    //SortNativeNodes(home);
+    //if (param->useLabFrame) {}
+
+}
+
+/*---------------------------------------------------------------------------
+ *
+ *      Function:     FMInit
+ *      Description:  This function controls allocation and initialization
+ *                    of all the FM layers.  It should be called every
+ *                    time the dynamic load balancing is invoked.
+ *                    Some of the FM layer data is static and will
+ *                    be calculated only the first time into this function,
+ *                    the dynamic data will be recalculated as necessary.
+ *
+ *--------------------------------------------------------------------------*/
+void FMInit(Home_t *home)
+{
+    printf("Stub.c: FMInit not yet implemented\n");
+}
+
+/*-------------------------------------------------------------------------
+ *
+ *      Function:    GetCellDomainList
+ *      Description: Generic function to search the domain decomposition
+ *                   for the list of domains intersecting the specified
+ *                   cell.  This function will invoke the search function
+ *                   appropriate to the type of domain decomposition
+ *                   being used.
+ *
+ *      Arguments:
+ *          cellID    ID of cell as returned by EncodeCellIdx().
+ *          domCount  Location in which to return to caller the number of
+ *                    domains intersecting the specified cell.
+ *          domList   Location in which to return to caller the array
+ *                    containing the IDs of all domains intersecting the
+ *                    specified cell.
+ *
+ *------------------------------------------------------------------------*/
+void GetCellDomainList(Home_t *home, int cellID, int *domCount, int **domList)
+{
+    printf("Stub.c: GetCellDomainList not yet implemented\n");
+}
 
 /*---------------------------------------------------------------------------
  *
