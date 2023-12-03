@@ -17,6 +17,19 @@
 
 /*---------------------------------------------------------------------------
  *
+ *      Function:     Initialize
+ *      Description:  This is the driver routine for initialization,
+ *                    handling some of the general initializations and
+ *                    calling all the more specific initialization routines.
+ *
+ *-------------------------------------------------------------------------*/
+void Initialize(Home_t *home, int argc, char *argv[])
+{
+    printf("Stub.c: Initialize not yet implemented\n");
+}
+
+/*---------------------------------------------------------------------------
+ *
  *      Function:     FMInit
  *      Description:  This function controls allocation and initialization
  *                    of all the FM layers.  It should be called every

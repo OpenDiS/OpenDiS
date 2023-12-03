@@ -29,6 +29,12 @@ InitCellNeighbors.o: InitCellNeighbors.c
 Timer.o: Timer.c
 	gcc -c -O3 $^ -I ../include
 
+QueueOps.o: QueueOps.c
+	gcc -c -O3 $^ -I ../include
+
+SortNativeNodes.o: SortNativeNodes.c
+	gcc -c -O3 $^ -I ../include
+
 Util_modified.o: Util_modified.c
 	gcc -c -O3 $^ -I ../include
 
@@ -38,7 +44,7 @@ Util_subset.o: Util_subset.c
 Stub.o: Stub.c
 	gcc -c -O3 $^ -I ../include
 
-$(LIB_PYDIS_UTIL): InitHome.o ParadisInit.o Param.o Parse.o DisableUnneededParams.o InitCellDomains.o InitCellNatives.o InitCellNeighbors.o Timer.o Util_modified.o Util_subset.o Stub.o
+$(LIB_PYDIS_UTIL): InitHome.o ParadisInit.o Param.o Parse.o DisableUnneededParams.o InitCellDomains.o InitCellNatives.o InitCellNeighbors.o Timer.o QueueOps.o SortNativeNodes.o Util_modified.o Util_subset.o Stub.o
 	$(info --------------------------------------------------------------------)
 	$(info check Stub.c for functions still need to be implemented)
 	$(info --------------------------------------------------------------------)

@@ -174,6 +174,8 @@ Node_t *RequestNewNativeNodeTag(Home_t *home, Tag_t *tag);
 void AddNodesFromArray(Home_t *home, real8 *buf);
 void ReleaseMemory(Home_t *home);
 
+void ParadisInit_lean(Home_t **homeptr);
+void Initialize_lean(Home_t *home);
 #ifdef _GPU_SUBCYCLE
 #ifdef __cplusplus
 extern "C" {

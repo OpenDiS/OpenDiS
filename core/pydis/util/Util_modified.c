@@ -4,6 +4,41 @@
 /* Functions modified from ParaDiS to be used by pydis */
 
 /* 
+   ParadisInit            -- ParadisInit.c
+*/
+
+/*-------------------------------------------------------------------------
+ *
+ *      Function:    ParadisInit - (modified to not use argc, argv)
+ *      Description: Create the 'home' structure, setup timing categories
+ *                   and initialize MPI.
+ *
+ *------------------------------------------------------------------------*/
+void ParadisInit_lean(Home_t **homeptr)
+{
+       Home_t         *home;
+
+       home = InitHome();
+       *homeptr = home;
+    
+       TimerInit(home);
+    
+       home->myDomain = 0;
+       home->numDomains = 1;
+    
+       TimerStart(home, TOTAL_TIME);
+
+       TimerStart(home, INITIALIZE);
+       Initialize_lean(home);  
+       TimerStop(home, INITIALIZE);
+    
+       if (home->myDomain == 0) printf("ParadisInit finished\n");
+
+       return;
+}
+
+
+/* 
    Initialize            -- Initialize.c
 */
 
@@ -15,10 +50,10 @@
  *                    calling all the more specific initialization routines.
  *
  *-------------------------------------------------------------------------*/
-void Initialize(Home_t *home, int argc, char *argv[])
+void Initialize_lean(Home_t *home)
 {
     Param_t *param;
-    printf("Stub.c: Initialize being implemented\n");
+    printf("Initialize_lean:\n");
 
     home->ctrlParamList = (ParamList_t *)calloc(1,sizeof(ParamList_t));
     home->dataParamList = (ParamList_t *)calloc(1,sizeof(ParamList_t));
@@ -31,7 +66,9 @@ void Initialize(Home_t *home, int argc, char *argv[])
     DataParamInit(param, home->dataParamList);
 
     SetBoxSize(param);
-    SetRemainingDefaults(home);
+
+    // call this in python
+    //SetRemainingDefaults(home);
 
     if (home->myDomain == 0) {
         DisableUnneededParams(home);
@@ -39,7 +76,9 @@ void Initialize(Home_t *home, int argc, char *argv[])
 
     InitCellNatives(home);
     InitCellNeighbors(home);
-    InitCellDomains(home);
+
+    // call this in python
+    //InitCellDomains(home);
 
     InitOpList(home);
     //InitOpRecList(home);
@@ -50,4 +89,5 @@ void Initialize(Home_t *home, int argc, char *argv[])
     //SortNativeNodes(home);
     //if (param->useLabFrame) {}
 
+    printf("Initialize_lean: completed\n");
 }

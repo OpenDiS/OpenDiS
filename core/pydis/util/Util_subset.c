@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include "Home.h"
+#include "QueueOps.h"
 
 /* Functions from ParaDiS Util.c */
 
@@ -342,6 +343,41 @@ int GetArmID (Home_t *home, Node_t *node1, Node_t *node2)
 
 /*-------------------------------------------------------------------------
  *
+ *      Function:     FreeNodeArms
+ *      Description:  Release all the specified node's arm related
+ *                    arrays, zero out the pointers, and set the arm.
+ *                    count to zero.
+ *      Arguments:
+ *          node    Pointer to node structure in which to free
+ *                  all arm related arrays.
+ *
+ *------------------------------------------------------------------------*/
+void FreeNodeArms(Node_t *node)
+{
+        if (node->numNbrs == 0) {
+            return;
+        }
+
+        free(node->nbrTag);      node->nbrTag = (Tag_t *)NULL;
+        free(node->burgX);       node->burgX = (real8 *)NULL;
+        free(node->burgY);       node->burgY = (real8 *)NULL;
+        free(node->burgZ);       node->burgZ = (real8 *)NULL;
+        free(node->armfx);       node->armfx = (real8 *)NULL;
+        free(node->armfy);       node->armfy = (real8 *)NULL;
+        free(node->armfz);       node->armfz = (real8 *)NULL;
+        free(node->nx);          node->nx = (real8 *)NULL;
+        free(node->ny);          node->ny = (real8 *)NULL;
+        free(node->nz);          node->nz = (real8 *)NULL;
+        free(node->sigbLoc);     node->sigbLoc = (real8 *)NULL;
+        free(node->sigbRem);     node->sigbRem = (real8 *)NULL;
+
+        node->numNbrs = 0;
+
+        return;
+}
+
+/*-------------------------------------------------------------------------
+ *
  *      Function:     GetNeighborNode
  *      Description:  Given a node pointer, return the pointer to
  *                    the n'th neighbor of the node.
@@ -463,6 +499,83 @@ Node_t *GetNodeFromTag (Home_t *home, Tag_t tag)
             node = remDom->nodeKeys[tag.index];
             return(node);
         }
+}
+
+/*-------------------------------------------------------------------------
+ *
+ *      Function:     InitNodeArm
+ *      Description:  Initialize all components of the specified arm
+ *                    (segment) of a node.
+ *
+ *      Arguments:
+ *          node   Pointer to the node
+ *          armID  Index (0 offset) of the arm/segment to be initialized.
+ *
+ *------------------------------------------------------------------------*/
+static void InitNodeArm(Node_t *node, int armID)
+{
+        node->nbrTag[armID].domainID = -1;
+        node->nbrTag[armID].index = -1;
+        node->burgX[armID] = 0.0;
+        node->burgY[armID] = 0.0;
+        node->burgZ[armID] = 0.0;
+        node->armfx[armID] = 0.0;
+        node->armfy[armID] = 0.0;
+        node->armfz[armID] = 0.0;
+        node->nx[armID] = 0.0;
+        node->ny[armID] = 0.0;
+        node->nz[armID] = 0.0;
+        node->sigbLoc[3*armID  ] = 0.0;
+        node->sigbLoc[3*armID+1] = 0.0;
+        node->sigbLoc[3*armID+2] = 0.0;
+        node->sigbRem[3*armID  ] = 0.0;
+        node->sigbRem[3*armID+1] = 0.0;
+        node->sigbRem[3*armID+2] = 0.0;
+
+        return;
+}
+
+/*-------------------------------------------------------------------------
+ *
+ *      Function:    ReallocNodeArms
+ *      Description: Reallocate memory for 'n' arms in the specified 
+ *                   node structure preserving any previously 
+ *                   existing arm data.
+ *
+ *      Arguments:
+ *          node       Pointer to node for which to allocate arms
+ *
+ *------------------------------------------------------------------------*/
+void ReallocNodeArms(Node_t *node, int n)
+{
+        int i, origNbrCnt;
+
+        origNbrCnt = node->numNbrs;
+
+        node->numNbrs = n;
+
+        node->nbrTag = (Tag_t *) realloc(node->nbrTag, sizeof(Tag_t)*n);
+        node->burgX = (real8 *) realloc(node->burgX, sizeof(real8  )*n);
+        node->burgY = (real8 *) realloc(node->burgY, sizeof(real8  )*n);
+        node->burgZ = (real8 *) realloc(node->burgZ, sizeof(real8  )*n);
+        node->armfx = (real8 *) realloc(node->armfx, sizeof(real8  )*n);
+        node->armfy = (real8 *) realloc(node->armfy, sizeof(real8  )*n);
+        node->armfz = (real8 *) realloc(node->armfz, sizeof(real8  )*n);
+        node->nx = (real8 *) realloc(node->nx, sizeof(real8  )*n);
+        node->ny = (real8 *) realloc(node->ny, sizeof(real8  )*n);
+        node->nz = (real8 *) realloc(node->nz, sizeof(real8  )*n);
+        node->sigbLoc  = (real8 *) realloc(node->sigbLoc, n*3*sizeof(real8));
+        node->sigbRem  = (real8 *) realloc(node->sigbRem, n*3*sizeof(real8));
+
+/*
+ *      And just initialize the newly allocated arms only, leaving
+ *      the previously existing arms as they were.
+ */
+        for (i = origNbrCnt; i < node->numNbrs; i++) {
+            InitNodeArm(node, i);
+        }
+
+        return;
 }
 
 /*-------------------------------------------------------------------------
@@ -971,6 +1084,180 @@ void InitOpList (Home_t *home)
 
         return;
 }
+
+
+/* from OpRec.c */
+
+/*-------------------------------------------------------------------------
+ *
+ *      Function:     RequestNodeTag
+ *
+ *------------------------------------------------------------------------*/
+int RequestNodeTag(Home_t *home, Tag_t *tag)
+{
+        if (tag->index >= home->newNodeKeyMax) {
+/*
+ *          The node index is higher than the current size
+ *          of the node list. Reallocate the node list with
+ *          the new size to allow the node index to be requested.
+ */
+            int NUM_INC = ceil((tag->index-home->newNodeKeyMax-1)/NEW_NODEKEY_INC);
+
+            home->newNodeKeyMax += NUM_INC*NEW_NODEKEY_INC;
+            home->nodeKeys = (Node_t **) realloc(home->nodeKeys,
+            home->newNodeKeyMax * sizeof(Node_t *));
+
+            home->newNodeKeyPtr = tag->index+1;
+
+            return tag->index;
+
+        } else {
+/*
+ *          Check if the requested node index is already used. If not
+ *          make sure to update the newNodeKeyPtr variable if needed.
+ */
+            if (home->nodeKeys[tag->index] == (Node_t *)NULL) {
+
+                if (tag->index >= home->newNodeKeyPtr) {
+                    home->newNodeKeyPtr = tag->index+1;
+                }
+                return tag->index;
+
+            } else {
+                return -1;
+            }
+        }
+}
+
+/*-------------------------------------------------------------------------
+ *
+ *      Function:     RequestNewNativeNodeTag
+ *
+ *------------------------------------------------------------------------*/
+Node_t *RequestNewNativeNodeTag(Home_t *home, Tag_t *tag)
+{
+        int     newIdx;
+        Node_t *newNode;
+
+        newNode = PopFreeNodeQ(home);
+        newIdx = RequestNodeTag(home, tag);
+
+        if (newIdx < 0) {
+            Fatal("Cannot request node index (%d,%d)",
+            tag->domainID, tag->index);
+        }
+
+        home->nodeKeys[newIdx] = newNode;
+
+        newNode->myTag.domainID = home->myDomain;
+        newNode->myTag.index    = newIdx;
+        newNode->cellIdx        = -1;
+        newNode->cell2Idx       = -1;
+        newNode->cell2QentIdx   = -1;
+
+/*
+ *      Explicitly zero out velocity so we don't end up
+ *      with garbage when we are calculating the velocity
+ *      delta between timesteps.
+ */
+        newNode->vX = 0.0;
+        newNode->vY = 0.0;
+        newNode->vZ = 0.0;
+
+        newNode->oldvX = 0.0;
+        newNode->oldvY = 0.0;
+        newNode->oldvZ = 0.0;
+
+        newNode->flags = 0;
+
+#ifdef DEBUG_LOG_MULTI_NODE_SPLITS
+        newNode->multiNodeLife = 0;
+#endif
+
+#ifdef _FEM
+        newNode->fem_Surface[0] = 0;
+        newNode->fem_Surface[1] = 0;
+
+        newNode->fem_Surface_Norm[0] = 0.0;
+        newNode->fem_Surface_Norm[1] = 0.0;
+        newNode->fem_Surface_Norm[2] = 0.0;
+#endif
+
+        return(newNode);
+}
+
+
+/* from Util.c */
+
+void AddNodesFromArray(Home_t *home, real8 *buf)
+{
+        int        i, armID, numNbrs, nodesInBuf, bufIndex;
+        Tag_t      tag;
+        Node_t     *node;
+
+/*
+ *      Pull the node count out of the buffer then loop through
+ *      all the nodal data provided.
+ */
+        bufIndex   = 0;
+
+        nodesInBuf = (int)buf[bufIndex++];
+        printf("AddNodesFromArray: nodesInBuf = %d\n", nodesInBuf);
+
+        for (i = 0; i < nodesInBuf; i++) {
+
+            tag.domainID = (int)buf[bufIndex++];
+            tag.index    = (int)buf[bufIndex++];
+
+            //make sure -D_OP_REC is enabled in makefile.setup
+            node = RequestNewNativeNodeTag(home, &tag);
+
+            node->x = buf[bufIndex++];
+            node->y = buf[bufIndex++];
+            node->z = buf[bufIndex++];
+
+            numNbrs = (int)buf[bufIndex++];
+            node->constraint = (int)buf[bufIndex++];
+
+            ReallocNodeArms(node, numNbrs);
+            printf("AddNodesFromArray: node(%d,%d) x=%g, y=%g, z=%g numNbrs=%d\n", 
+                    node->myTag.domainID, node->myTag.index, node->x, node->y, node->z, node->numNbrs);
+
+            for (armID = 0; armID < numNbrs; armID++) {
+                node->nbrTag[armID].domainID = (int)buf[bufIndex++];
+                node->nbrTag[armID].index    = (int)buf[bufIndex++];
+                node->burgX[armID] = buf[bufIndex++];
+                node->burgY[armID] = buf[bufIndex++];
+                node->burgZ[armID] = buf[bufIndex++];
+                node->nx[armID] = buf[bufIndex++];
+                node->ny[armID] = buf[bufIndex++];
+                node->nz[armID] = buf[bufIndex++];
+            }
+
+            PushNativeNodeQ(home, node);
+        }  /* for (i = 0; i < nodesInBuf; ... ) */
+        SortNativeNodes(home);
+        printf("AddNodesFromArray: done\n");
+        return;
+}
+
+
+/* From ReadRestart.c */
+void FreeAllNodes(Home_t *home)
+{
+    Node_t       *node;
+    int i;
+    for (i = 0; i < home->newNodeKeyPtr; i++) {
+        if (home->nodeKeys[i] != (Node_t *)NULL) {
+            node =  home->nodeKeys[i];
+            FreeNodeArms(node);
+            /* node memory managed by NodeQ, not sure if this is going to cause memory leak */
+            home->nodeKeys[i] = NULL;
+        }
+    }
+    home->newNodeKeyPtr = 0;
+}
+
 
 /* From Initialize.c */
 void SetBoxSize(Param_t *param){
