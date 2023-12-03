@@ -1186,6 +1186,151 @@ Node_t *RequestNewNativeNodeTag(Home_t *home, Tag_t *tag)
         return(newNode);
 }
 
+/* from InitSendDomains.c */
+
+/*---------------------------------------------------------------------------
+ *
+ *      Function:     ExtendNodeKeys
+ *      Description:  
+ *
+ *-------------------------------------------------------------------------*/
+static void ExtendNodeKeys(Home_t *home, int newLength)
+{
+        int i, oldLength;
+
+        oldLength = home->newNodeKeyMax;
+        home->newNodeKeyMax = newLength;
+
+        home->nodeKeys = (Node_t **)realloc(home->nodeKeys,
+                                            newLength * sizeof(Node_t *));
+
+        for (i = oldLength; i < newLength; i++) {
+            home->nodeKeys[i] = (Node_t *)NULL;
+        }
+
+        return;
+}
+
+/*---------------------------------------------------------------------------
+ *
+ *      Function:     AddTagMapping
+ *      Description:  
+ *
+ *-------------------------------------------------------------------------*/
+void AddTagMapping(Home_t *home, Tag_t *oldTag, Tag_t *newTag)
+{
+        int      newSize;
+        TagMap_t *mapping;
+
+        if (home->tagMapEnts >= home->tagMapSize) {
+              home->tagMapSize += NEW_NODEKEY_INC;
+              newSize = home->tagMapSize * sizeof(TagMap_t);
+              home->tagMap = (TagMap_t *)realloc(home->tagMap, newSize);
+        }
+
+        mapping = &home->tagMap[home->tagMapEnts];
+
+        mapping->oldTag.domainID = oldTag->domainID;
+        mapping->oldTag.index    = oldTag->index;
+
+        mapping->newTag.domainID = newTag->domainID;
+        mapping->newTag.index    = newTag->index;
+
+        home->tagMapEnts++;
+
+        return;
+}
+
+/*---------------------------------------------------------------------------
+ *
+ *      Function:     GetNewTag
+ *      Description:  
+ *
+ *-------------------------------------------------------------------------*/
+static void GetNewTag(Home_t *home, Tag_t *oldTag, Tag_t *newTag,
+                      int *nextAvailableTag)
+{
+        int     nextTag, thisDomain;
+
+        nextTag    = *nextAvailableTag;
+        thisDomain = home->myDomain;
+
+/*
+ *      If the old tag belonged to a different domain, we must
+ *      give the node a new tag.
+ */
+        if (oldTag->domainID != thisDomain) {
+
+            for ( ; ; nextTag++) {
+
+/*
+ *              Extend the nodekeys array if necessary.
+ */
+                if (nextTag >= home->newNodeKeyMax) {
+                    ExtendNodeKeys(home, home->newNodeKeyMax + NEW_NODEKEY_INC);
+                }
+
+                if (home->nodeKeys[nextTag] == (Node_t *)NULL) {
+                    newTag->domainID = thisDomain;
+                    newTag->index = nextTag++;
+                    AddTagMapping(home, oldTag, newTag);
+                    break;
+                }
+            }
+        } else {
+/*
+ *          The old tag belonged to this domain...  check if that tag
+ *          is available for this run.
+ *
+ *          Extend the nodekeys array if necessary.
+ */
+            if (oldTag->index >= home->newNodeKeyMax) {
+                ExtendNodeKeys(home, oldTag->index + NEW_NODEKEY_INC);
+            }
+
+/*
+ *          If the old tag is still available, use it and return
+ *          to the caller.
+ */
+            if (home->nodeKeys[oldTag->index] == (Node_t *)NULL) {
+                newTag->domainID = oldTag->domainID;
+                newTag->index    = oldTag->index;
+                if (newTag->index >= home->newNodeKeyPtr) {
+                    home->newNodeKeyPtr = newTag->index + 1;
+                }
+                return;
+            }
+
+/*
+ *          The old tag is no longer available, so just use
+ *          the next available tag.
+ */
+            for ( ; ; nextTag++) {
+
+/*
+ *              Extend node keys array if necessary
+ */
+                if (nextTag >= home->newNodeKeyMax) {
+                    ExtendNodeKeys(home, home->newNodeKeyMax + NEW_NODEKEY_INC);
+                }
+
+                if (home->nodeKeys[nextTag] == (Node_t *)NULL) {
+                    newTag->domainID = thisDomain;
+                    newTag->index = nextTag++;
+                    AddTagMapping(home, oldTag, newTag);
+                    break;
+                }
+            }
+        }
+
+        if (newTag->index >= home->newNodeKeyPtr) {
+            home->newNodeKeyPtr = newTag->index + 1;
+        }
+
+        *nextAvailableTag = nextTag;
+
+        return;
+}
 
 /* from Util.c */
 
@@ -1210,7 +1355,11 @@ void AddNodesFromArray(Home_t *home, real8 *buf)
             tag.index    = (int)buf[bufIndex++];
 
             //make sure -D_OP_REC is enabled in makefile.setup
-            node = RequestNewNativeNodeTag(home, &tag);
+            //node = RequestNewNativeNodeTag(home, &tag);
+            Tag_t newTag; int nextAvailableTag;
+            GetNewTag(home, &tag, &newTag, &nextAvailableTag);
+            node->myTag.domainID = newTag.domainID;
+            node->myTag.index = newTag.index;
 
             node->x = buf[bufIndex++];
             node->y = buf[bufIndex++];
