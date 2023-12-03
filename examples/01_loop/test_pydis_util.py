@@ -47,7 +47,6 @@ def main():
                           print_freq=10, plot_freq=10, plot_pause_seconds=0.1)
 
     global home
-    #home = paradis_init()
     paradis = paradis_lib()
     home = paradis.paradis_init()
 
@@ -71,6 +70,13 @@ def main():
 
     paradis.FreeAllNodes(home)
     paradis.AddNodesFromArray(home, node_data.ctypes.data_as(POINTER(c_double)))
+
+    node0 = home.contents.nodeKeys[0].contents
+    node1 = home.contents.nodeKeys[1].contents
+    node2 = home.contents.nodeKeys[2].contents
+    print("node [0]: x = %g, y = %g, z = %g" %(node0.x, node0.y, node0.z))
+    print("node [1]: x = %g, y = %g, z = %g" %(node1.x, node1.y, node1.z))
+    print("node [2]: x = %g, y = %g, z = %g" %(node2.x, node2.y, node2.z))
 
     #sim.run(G)
 

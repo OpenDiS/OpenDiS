@@ -1247,7 +1247,7 @@ void AddTagMapping(Home_t *home, Tag_t *oldTag, Tag_t *newTag)
  *      Description:  
  *
  *-------------------------------------------------------------------------*/
-static void GetNewTag(Home_t *home, Tag_t *oldTag, Tag_t *newTag,
+void GetNewTag(Home_t *home, Tag_t *oldTag, Tag_t *newTag,
                       int *nextAvailableTag)
 {
         int     nextTag, thisDomain;
@@ -1349,17 +1349,15 @@ void AddNodesFromArray(Home_t *home, real8 *buf)
         nodesInBuf = (int)buf[bufIndex++];
         printf("AddNodesFromArray: nodesInBuf = %d\n", nodesInBuf);
 
+        printf("AddNodesFromArray: ExtendNodeKeys = %d, %d\n", home->newNodeKeyMax, NEW_NODEKEY_INC);
+        ExtendNodeKeys(home, home->newNodeKeyMax + NEW_NODEKEY_INC);
+
         for (i = 0; i < nodesInBuf; i++) {
 
             tag.domainID = (int)buf[bufIndex++];
             tag.index    = (int)buf[bufIndex++];
 
-            //make sure -D_OP_REC is enabled in makefile.setup
-            //node = RequestNewNativeNodeTag(home, &tag);
-            Tag_t newTag; int nextAvailableTag;
-            GetNewTag(home, &tag, &newTag, &nextAvailableTag);
-            node->myTag.domainID = newTag.domainID;
-            node->myTag.index = newTag.index;
+            node = RequestNewNativeNodeTag(home, &tag);
 
             node->x = buf[bufIndex++];
             node->y = buf[bufIndex++];
