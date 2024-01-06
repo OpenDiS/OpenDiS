@@ -26,4 +26,8 @@ class MobilityLaw:
         """Mobility_Relax: node velocity equal node force
         """
         vel_dict = nodeforce_dict.copy()
+        # set velocity of pinned nodes to zero
+        for tag in G.nodes():
+            if G.nodes()[tag]['flag'] == 7:
+                vel_dict[tag] = np.zeros(3)
         return vel_dict
