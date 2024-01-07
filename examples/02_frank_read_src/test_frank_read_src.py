@@ -14,10 +14,8 @@ from pydis.simulate.sim_disnet import SimulateNetwork
 
 def init_frank_read_src_loop(arm_length=1.0, burg_vec=np.array([1.0,0.0,0.0])):
     # To do:
-    # change to rectangular loop
-    # add flags (=7 for fixed nodes)
+    # add flags (=7 for fixed nodes) (done)
     # add plane_normal to DisEdge
-    # add node between node 0 and node 1    
     print("init_frank_read_src_loop: length = %f" % (arm_length))
     G = DisNet()
     rn    = np.array([[0.0, -arm_length/2.0, 0.0,         7],
@@ -35,28 +33,21 @@ def init_frank_read_src_loop(arm_length=1.0, burg_vec=np.array([1.0,0.0,0.0])):
 def main():
     G = init_frank_read_src_loop()
 
-    bounds = np.array([[-2.0, -2.0, -2.0], [2.0, 2.0, 2.0]])
+    bounds = np.array([[-4.0, -4.0, -4.0], [4.0, 4.0, 4.0]])
     vis = VisualizeNetwork(bounds=bounds)
-    # for debugging purposes
-    #vis.plot_disnet(G)
 
     calforce = CalForce(mu=160e9, nu=0.31, a=0.01, Ec=1.0e6,
-                        applied_stress=np.array([0.0, 0.0, 0.0, 0.0, -1.0e6, 0.0]),
+                        applied_stress=np.array([0.0, 0.0, 0.0, 0.0, -2.0e6, 0.0]),
                         force_mode='LineTension')
-    # for debugging purposes
-    #nodeforce_dict = calforce.NodeForce(G)
-    #lt_force_array = np.array([nodeforce_dict[node] for node in G.nodes()])
-    #np.savetxt("force.dat", lt_force_array)
-    #print("save force to 'force.dat'")
 
     mobility  = MobilityLaw(mobility_law='Relax')
     timeint   = TimeIntegration(integrator='EulerForward')
     collision = None #Collision(collision_mode='Proximity')
-    remesh    = None #Remesh(remesh_rule='LengthBased')
+    remesh    = Remesh(remesh_rule='LengthBased', Lmin=0.1, Lmax=0.3)
 
     sim = SimulateNetwork(calforce=calforce, mobility=mobility,
                           timeint=timeint, collision=collision, remesh=remesh, vis=vis,
-                          dt0 = 1.0e-8, max_step=200, 
+                          dt0 = 1.0e-8, max_step=800,
                           print_freq=10, plot_freq=10, plot_pause_seconds=0.1)
     sim.run(G)
 

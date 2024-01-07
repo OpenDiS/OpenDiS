@@ -101,6 +101,12 @@ class DisNet:
         """
         self._G.add_edge(node1, node2, **vars(edge_attr))
     
+    def _remove_node(self, node: Tag) -> None:
+        """remove_edge: remove a node from the network
+           user is not supposed to call this low level function, does not guarantee sanity
+        """
+        self._G.remove_node(node)
+
     def _remove_edge(self, node1: Tag, node2: Tag) -> None:
         """remove_edge: remove an edge from the network
            user is not supposed to call this low level function, does not guarantee sanity
@@ -134,13 +140,13 @@ class DisNet:
         """insert_node: insert a node between two existing nodes
            guarantees sanity after operation
         """
-        self._add_node(tag, R=R)
-        link12_attr = self.edges[(node1, node2)]
-        self._add_edge(node1, tag, **link12_attr)
-        self._add_edge(tag, node2, **link12_attr)
-        link21_attr = self.edges[(node2, node1)]
-        self._add_edge(node2, tag, **link21_attr)
-        self._add_edge(tag, node1, **link21_attr)
+        self._add_node(tag, DisNode(R=R, flag=0))
+        link12_attr = self.edges()[(node1, node2)]
+        self._add_edge(node1, tag, DisEdge(**link12_attr))
+        self._add_edge(tag, node2, DisEdge(**link12_attr))
+        link21_attr = self.edges()[(node2, node1)]
+        self._add_edge(node2, tag, DisEdge(**link21_attr))
+        self._add_edge(tag, node1, DisEdge(**link21_attr))
         self._remove_edge(node1, node2)
         self._remove_edge(node2, node1)
     
@@ -150,14 +156,14 @@ class DisNet:
         """
         if not self.has_node(tag):
             raise ValueError("remove_two_arm_node: Node %s does not exist" % str(tag))
-        if self.out_degree(tag) != 2:
+        if self._G.out_degree(tag) != 2:
             raise ValueError("remove_two_arm_node: Node %s does not have two arms" % str(tag))
 
-        node1, node2 = self.neighbors(node)
-        link12_attr = self.edges[(tag, node2)]
-        self._add_edge(node1, node2, **link12_attr)
-        link21_attr = self.edges[(tag, node1)]
-        self._add_edge(node2, node1, **link21_attr)
+        node1, node2 = self.neighbors(tag)
+        link12_attr = self.edges()[(tag, node2)]
+        self._add_edge(node1, node2, DisEdge(**link12_attr))
+        link21_attr = self.edges()[(tag, node1)]
+        self._add_edge(node2, node1, DisEdge(**link21_attr))
         self._remove_edge(tag, node1)
         self._remove_edge(node1, tag)
         self._remove_edge(tag, node2)
