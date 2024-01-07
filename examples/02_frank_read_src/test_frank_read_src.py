@@ -24,9 +24,14 @@ def init_frank_read_src_loop(arm_length=1.0, burg_vec=np.array([1.0,0.0,0.0])):
                       [0.0,  arm_length/2.0, -arm_length, 7],
                       [0.0, -arm_length/2.0, -arm_length, 7]])
     N = rn.shape[0]
-    links = np.zeros((N, 5))
+    links = np.zeros((N, 8))
     for i in range(N):
-        links[i,:] = np.array([i, (i+1)%N, burg_vec[0], burg_vec[1], burg_vec[2]])
+        links[i,:] = np.array([i, (i+1)%N, burg_vec[0], burg_vec[1], burg_vec[2], 0, 0, 0])
+    links[0,5:8] = np.array([0.0, 0.0, 1.0])
+    links[1,5:8] = np.array([0.0, 0.0, 1.0])
+    links[2,5:8] = np.array([0.0, 1.0, 0.0])
+    links[3,5:8] = np.array([0.0, 0.0, 1.0])
+    links[4,5:8] = np.array([0.0, 1.0, 0.0])
     G.add_nodes_links_from_list(rn, links)
     return G
 

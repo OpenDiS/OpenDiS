@@ -127,11 +127,16 @@ class DisNet:
             self._add_node((0,i), node)
         for j in range(num_links):
             seg = links[j, :2].astype(int)
-            bv  = links[j, 2:]
+            bv  = links[j, 2:5]
             tag = (0,seg[0])
             nbr_tag = (0, seg[1])
-            self._add_edge(tag, nbr_tag, DisEdge(burg_vec= bv))
-            self._add_edge(nbr_tag, tag, DisEdge(burg_vec=-bv))
+            if links.shape[1] > 5:
+                pn  = links[j, 5:8]
+                self._add_edge(tag, nbr_tag, DisEdge(burg_vec= bv, plane_normal=pn))
+                self._add_edge(nbr_tag, tag, DisEdge(burg_vec=-bv, plane_normal=pn))
+            else:
+                self._add_edge(tag, nbr_tag, DisEdge(burg_vec= bv))
+                self._add_edge(nbr_tag, tag, DisEdge(burg_vec=-bv))
 
         if not self.is_sane():
             raise ValueError("add_nodes_links_from_list: sanity check failed")
