@@ -48,7 +48,7 @@ def main():
 
     mobility  = MobilityLaw(mobility_law='SimpleGlide')
     timeint   = TimeIntegration(integrator='EulerForward')
-    collision = None #Collision(collision_mode='Proximity')
+    collision = Collision(collision_mode='Proximity')
     remesh    = Remesh(remesh_rule='LengthBased', Lmin=0.1, Lmax=0.3)
 
     sim = SimulateNetwork(calforce=calforce, mobility=mobility,
