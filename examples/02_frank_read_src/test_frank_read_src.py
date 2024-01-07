@@ -40,14 +40,14 @@ def main():
                         applied_stress=np.array([0.0, 0.0, 0.0, 0.0, -2.0e6, 0.0]),
                         force_mode='LineTension')
 
-    mobility  = MobilityLaw(mobility_law='Relax')
+    mobility  = MobilityLaw(mobility_law='SimpleGlide')
     timeint   = TimeIntegration(integrator='EulerForward')
     collision = None #Collision(collision_mode='Proximity')
     remesh    = Remesh(remesh_rule='LengthBased', Lmin=0.1, Lmax=0.3)
 
     sim = SimulateNetwork(calforce=calforce, mobility=mobility,
                           timeint=timeint, collision=collision, remesh=remesh, vis=vis,
-                          dt0 = 1.0e-8, max_step=800,
+                          dt0 = 1.0e-8, max_step=200,
                           print_freq=10, plot_freq=10, plot_pause_seconds=0.1)
     sim.run(G)
 
