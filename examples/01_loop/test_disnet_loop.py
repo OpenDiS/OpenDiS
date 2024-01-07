@@ -24,6 +24,7 @@ def init_circular_loop(radius=1.0, N=20, burg_vec=np.array([1.0,0.0,0.0])):
     return G
 
 def main():
+    global G, sim
     G = init_circular_loop()
 
     bounds = np.array([[-2.0, -2.0, -2.0], [2.0, 2.0, 2.0]])

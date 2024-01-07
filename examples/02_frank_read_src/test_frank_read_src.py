@@ -36,6 +36,7 @@ def init_frank_read_src_loop(arm_length=1.0, burg_vec=np.array([1.0,0.0,0.0])):
     return G
 
 def main():
+    global G, sim
     G = init_frank_read_src_loop()
 
     bounds = np.array([[-4.0, -4.0, -4.0], [4.0, 4.0, 4.0]])
