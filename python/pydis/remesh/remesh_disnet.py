@@ -68,4 +68,4 @@ class Remesh:
     def RemeshRule_2_ParaDiS(self, G: DisNet) -> None:
         """RemeshRule_2_ParaDiS: using RemeshRule_2 of ParaDiS
         """
-        print("RemeshRule_2_ParaDiS: not implemented yet")
+        raise NotImplementedError("RemeshRule_2_ParaDiS: not implemented yet")

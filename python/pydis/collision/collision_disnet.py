@@ -109,9 +109,9 @@ class Collision:
     def HandleCol_Proximity_ParaDiS(self, G: DisNet) -> None:
         """HandleCol_Proximity: using ProximityCollision of ParaDiS
         """
-        print("HandleCol_Proximity_ParaDiS: not implemented yet")
+        raise NotImplementedError("HandleCol_Proximity_ParaDiS: not implemented yet")
 
     def HandleCol_Retroactive_ParaDiS(self, G: DisNet) -> None:
         """HandleCol_Retroactive: using RetroactiveCollision of ParaDiS
         """
-        print("HandleCol_Retroactive_ParaDiS: not implemented yet")
+        raise NotImplementedError("HandleCol_Retroactive_ParaDiS: not implemented yet")
