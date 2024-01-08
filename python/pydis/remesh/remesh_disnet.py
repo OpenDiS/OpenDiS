@@ -38,15 +38,10 @@ class Remesh:
             L = np.linalg.norm(R2-R1)
             if (L < self.Lmin):
                 if len(G.edges()(tag1)) == 2 and node1["flag"] != 7:
-                    # remove node1
                     nodes_to_remove.append(tag1)
-                    #G.remove_two_arm_node(tag1)
                 elif len(G.edges()(tag2)) == 2 and node2["flag"] != 7:
-                    # remove node2
                     nodes_to_remove.append(tag2)
-                    #G.remove_two_arm_node(tag2)
         for tag in set(nodes_to_remove):
-            print("remove node %s to be implemented" % str(tag))
             G.remove_two_arm_node(tag)
 
         # mesh refine
@@ -58,8 +53,7 @@ class Remesh:
             L = np.linalg.norm(R2-R1)
             if (L > self.Lmax) and ((node1["flag"] != 7) or (node2["flag"] != 7)):
                 # insert new node on segment
-                max_tag = max(G.nodes())
-                new_tag = (max_tag[0], max_tag[1]+1)
+                new_tag = G.get_new_tag()
                 # To do: apply PBC here
                 R = (R1 + R2)/2.0
                 G.insert_node(tag1, tag2, new_tag, R)

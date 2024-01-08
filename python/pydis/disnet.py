@@ -7,6 +7,7 @@ Implements basic topological operations on dislocation networks
 import numpy as np
 import networkx as nx
 from typing import Tuple
+from copy import deepcopy
 
 Tag = Tuple[int, int]
 
@@ -42,6 +43,7 @@ class DisNet:
     """
     def __init__(self, data=None, **attr) -> None:
         self._G = nx.DiGraph(data, **attr)
+        self._recycled_tags = []
 
     def neighbors(self, tag: Tag):
         """neighbors: return neighbors (as iterator) of a node
@@ -106,12 +108,28 @@ class DisNet:
            user is not supposed to call this low level function, does not guarantee sanity
         """
         self._G.remove_node(node)
+        self._recycled_tags.append(node)
 
     def _remove_edge(self, node1: Tag, node2: Tag) -> None:
         """remove_edge: remove an edge from the network
            user is not supposed to call this low level function, does not guarantee sanity
         """
         self._G.remove_edge(node1, node2)
+
+    def _combine_edge(self, node1: Tag, node2: Tag, edge_attr: DisEdge) -> None:
+        """combine_edge: combine an edge with an existing edge
+           user is not supposed to call this low level function, does not guarantee sanity
+        """
+        if not self.has_edge(node1, node2):
+            self._add_edge(node1, node2, edge_attr)
+            return
+
+        print("combine edge (%s, %s) with bv=%s" % (str(node1), str(node2), str(edge_attr.burg_vec)))
+        print("before: ", self._G.edges[(node1, node2)]["burg_vec"])
+        self._G.edges[(node1, node2)]["burg_vec"] += edge_attr.burg_vec
+        print("after:  ", self._G.edges[(node1, node2)]["burg_vec"])
+
+        # To do: update glide plane normal
 
     def add_nodes_links_from_list(self, rn, links) -> None:
         """add_nodes_links_from_list: add nodes and edges stored in lists to network
@@ -124,7 +142,7 @@ class DisNet:
                 node = DisNode(R=rn[i,:3], flag=int(rn[i,3]))
             else:
                 node = DisNode(R=rn[i,:3])
-            self._add_node((0,i), node)
+            self._add_node((0,i), deepcopy(node))
         for j in range(num_links):
             seg = links[j, :2].astype(int)
             bv  = links[j, 2:5]
@@ -132,26 +150,39 @@ class DisNet:
             nbr_tag = (0, seg[1])
             if links.shape[1] > 5:
                 pn  = links[j, 5:8]
-                self._add_edge(tag, nbr_tag, DisEdge(burg_vec= bv, plane_normal=pn))
-                self._add_edge(nbr_tag, tag, DisEdge(burg_vec=-bv, plane_normal=pn))
+                self._add_edge(tag, nbr_tag, deepcopy(DisEdge(burg_vec= bv, plane_normal=pn)))
+                self._add_edge(nbr_tag, tag, deepcopy(DisEdge(burg_vec=-bv, plane_normal=pn)))
             else:
-                self._add_edge(tag, nbr_tag, DisEdge(burg_vec= bv))
-                self._add_edge(nbr_tag, tag, DisEdge(burg_vec=-bv))
+                self._add_edge(tag, nbr_tag, deepcopy(DisEdge(burg_vec= bv)))
+                self._add_edge(nbr_tag, tag, deepcopy(DisEdge(burg_vec=-bv)))
 
         if not self.is_sane():
             raise ValueError("add_nodes_links_from_list: sanity check failed")
     
+    def get_new_tag(self) -> Tag:
+        """get_new_tag: return a new tag for a new node
+           To do: implement algorithm to find first available tag
+                  e.g. use a list to store recycled node tags
+        """
+        if len(self._recycled_tags) > 0:
+            return self._recycled_tags.pop(0)
+        else:
+            max_tag = max(self.nodes())
+            return (max_tag[0], max_tag[1]+1)
+
     def insert_node(self, node1: Tag, node2: Tag, tag: Tag, R: np.ndarray) -> None:
         """insert_node: insert a node between two existing nodes
            guarantees sanity after operation
         """
-        self._add_node(tag, DisNode(R=R, flag=0))
+        # To do: update plastic strain if new node position is not on segment
+
+        self._add_node(tag, deepcopy(DisNode(R=R, flag=0)))
         link12_attr = self.edges()[(node1, node2)]
-        self._add_edge(node1, tag, DisEdge(**link12_attr))
-        self._add_edge(tag, node2, DisEdge(**link12_attr))
+        self._add_edge(node1, tag, deepcopy(DisEdge(**link12_attr)))
+        self._add_edge(tag, node2, deepcopy(DisEdge(**link12_attr)))
         link21_attr = self.edges()[(node2, node1)]
-        self._add_edge(node2, tag, DisEdge(**link21_attr))
-        self._add_edge(tag, node1, DisEdge(**link21_attr))
+        self._add_edge(node2, tag, deepcopy(DisEdge(**link21_attr)))
+        self._add_edge(tag, node1, deepcopy(DisEdge(**link21_attr)))
         self._remove_edge(node1, node2)
         self._remove_edge(node2, node1)
     
@@ -164,25 +195,110 @@ class DisNet:
         if self._G.out_degree(tag) != 2:
             raise ValueError("remove_two_arm_node: Node %s does not have two arms" % str(tag))
 
+        # To do: update plastic strain due to removed node operation
+
         node1, node2 = self.neighbors(tag)
         link12_attr = self.edges()[(tag, node2)]
-        self._add_edge(node1, node2, DisEdge(**link12_attr))
-        link21_attr = self.edges()[(tag, node1)]
-        self._add_edge(node2, node1, DisEdge(**link21_attr))
+        self._add_edge(node1, node2, deepcopy(DisEdge(**link12_attr)))
+        link21_attr = self.edges()[(tag, node1)].copy()
+        self._add_edge(node2, node1, deepcopy(DisEdge(**link21_attr)))
         self._remove_edge(tag, node1)
         self._remove_edge(node1, tag)
         self._remove_edge(tag, node2)
         self._remove_edge(node2, tag)
         self._remove_node(tag)
-    
-    def merge_node(self, node1: Tag, node2: Tag) -> None:
-        """merge_node: merge two nodes into one
+
+    def remove_empty_arms(self, tag: Tag) -> None:
+        """remove_empty_arms: remove any zero-Burgers vector arms between a node and any of its neighbors
            guarantees sanity after operation
 
-        Remove any links between node1 and node2
-        If node1 has double-links to any neighbor, combine them into one (or zero) link
+        Remove neighbor nodes if they become orphaned, but do not remove the node itself
         """
-        pass
+        nbr_list = list(self.neighbors(tag))
+        for nbr in nbr_list:
+            bv = self.edges()[(tag, nbr)]["burg_vec"]
+            if np.max(np.abs(bv)) < 1e-8:
+                print("remove zero-Burgers vector edge (%s, %s)" % (str(tag), str(nbr)))
+                self._remove_edge(tag, nbr)
+                self._remove_edge(nbr, tag)
+
+        for nbr in nbr_list:
+            if len(self.edges()(nbr)) == 0:
+                print("remove orphaned node %s" % str(nbr))
+                self._remove_node(nbr)
+    
+    def merge_node(self, tag1: Tag, tag2: Tag):
+        """merge_node: merge two nodes into one
+           guarantees sanity after operation
+           return mergedTag (tag1 or tag2) if merge is successful, None otherwise
+                  and status (MERGE_NOT_PERMITTED, MERGE_NODE_ORPHANED or MERGE_NODE_SUCCESS)
+
+        Remove any links between node1 and node2
+        If merged node has double-links to any neighbor, combine them into one (or zero) link
+        """
+        print("\n")
+        print("****************** merge_node *******************************")
+
+        node1Deletable = self.nodes()[tag1]["flag"] != 7
+        node2Deletable = self.nodes()[tag2]["flag"] != 7
+
+        if node1Deletable:
+            targetNode, deadNode = tag2, tag1
+        elif node2Deletable:
+            targetNode, deadNode = tag1, tag2
+        else:
+            mergedTag = None
+            status = 'MERGE_NOT_PERMITTED'
+            return mergedTag, status
+
+        # To do: update plastic strain due to merged node operation
+
+        # Remove any links between targetNode and deadNode
+        if self.has_edge(targetNode, deadNode):
+            self._remove_edge(targetNode, deadNode)
+        if self.has_edge(deadNode, targetNode):
+            self._remove_edge(deadNode, targetNode)
+
+        print("targetNode = %s deadNode = %s" % (str(targetNode), str(deadNode)))
+
+        # Move all connections from the dead node to the target node
+        # and add a new connection from the target node to each of the
+        # dead node's neighbors.
+        for edge in self.edges()(deadNode):
+            nbr = edge[1]
+            if nbr != targetNode:
+                link_attr = self.edges()[(deadNode, nbr)]
+                self._combine_edge(targetNode, nbr, deepcopy(DisEdge(**link_attr)))
+
+                link_attr = self.edges()[(nbr, deadNode)]
+                self._combine_edge(nbr, targetNode, deepcopy(DisEdge(**link_attr)))
+
+            # To do: reset seg forces
+
+        self._remove_node(deadNode)
+
+        #if not self.is_sane():
+        #    raise ValueError("sanity check failed 2")
+
+        self.remove_empty_arms(targetNode)
+
+        if not self.is_sane():
+            raise ValueError("sanity check failed 3")
+
+        # Remove target node if orphaned (i.e. no longer has any arms)
+        if len(self.edges()(targetNode)) == 0:
+            print("remove orphaned node %s" % str(targetNode))
+            self._remove_node(targetNode)
+            targetNode = None
+            status = 'MERGE_NODE_ORPHANED'
+        else:
+            mergedTag = targetNode
+            status = 'MERGE_NODE_SUCCESS'
+
+        print("*********** end of ******* merge_node ***********************")
+        print("\n")
+
+        return mergedTag, status
     
     def split_node(self, node: Tag, partition: list) -> None:
         """split_node: split a node into two nodes with neighbors split according to partition
@@ -211,7 +327,7 @@ class DisNet:
             for nbr_node in self.neighbors(node):
                 b_tot += self.edges()[(node, nbr_node)]['burg_vec']
             if np.max(np.abs(b_tot)) > tol:
-                print("Total Burgers vector from node %s is not zero" % (str(node), str(nbr_node), str(nbr_node), str(node)))
+                print("Total Burgers vector from node %s is not zero" % (str(node)))
                 return False
 
         return True
