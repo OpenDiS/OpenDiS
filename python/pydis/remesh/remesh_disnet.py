@@ -42,7 +42,11 @@ class Remesh:
                 elif len(G.edges()(tag2)) == 2 and node2["flag"] != 7:
                     nodes_to_remove.append(tag2)
         for tag in set(nodes_to_remove):
-            G.remove_two_arm_node(tag)
+            if G.has_node(tag):
+                G.remove_two_arm_node(tag)
+
+        if not G.is_sane():
+            raise ValueError("Remesh_LengthBased: sanity check failed 1")
 
         # mesh refine
         for segment in G.seg_list():
@@ -57,6 +61,9 @@ class Remesh:
                 # To do: apply PBC here
                 R = (R1 + R2)/2.0
                 G.insert_node(tag1, tag2, new_tag, R)
+
+        if not G.is_sane():
+            raise ValueError("Remesh_LengthBased: sanity check failed 2")
 
     def RemeshRule_2_ParaDiS(self, G: DisNet) -> None:
         """RemeshRule_2_ParaDiS: using RemeshRule_2 of ParaDiS

@@ -55,8 +55,8 @@ def main():
 
     sim = SimulateNetwork(calforce=calforce, mobility=mobility,
                           timeint=timeint, collision=collision, remesh=remesh, vis=vis,
-                          dt0 = 1.0e-8, max_step=138,
-                          print_freq=1, plot_freq=1, plot_pause_seconds=0.1)
+                          dt0 = 1.0e-8, max_step=200,
+                          print_freq=10, plot_freq=10, plot_pause_seconds=0.1)
     sim.run(G)
 
     return G.is_sane()

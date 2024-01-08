@@ -59,9 +59,6 @@ class Collision:
                     # To do: apply PBC here
                     dist2, ddist2dt, L1, L2 = GetMinDist2(p1, v1, p2, v2, p3, v3, p4, v4)
                     if dist2 < self.mindist2:
-                        print("collision detected: %s %s %s %s dist2 = %e L1 = %e L2 = %e" % (tag1, tag2, tag3, tag4, dist2, L1, L2))
-                        print("collided[i] = ", collided[i])
-                        print("collided[j] = ", collided[j])
                         collided[i] = True
                         collided[j] = True
 
@@ -97,17 +94,17 @@ class Collision:
 
                         # To do: determine precise position satisfying glide constraints
                         newPos = (newPos1 + newPos2)/2.0
-                        mergedTag, _ = G.merge_node(mergenode1, mergenode2)
+                        mergedTag, status = G.merge_node(mergenode1, mergenode2)
                         if mergedTag != None:
-                            print('oldPos = ', G.nodes()[mergedTag]['R'])
-                            print('newPos = ', newPos)
                             G.nodes()[mergedTag]['R'] = newPos
+                        else:
+                            print('mergedTag = None  status = %s', status)
 
         # In ParaDiS the hinge case (zipping) is handled separately
         # They are skipped here for simplicity
 
         if not G.is_sane():
-            raise ValueError("sanity check failed")
+            raise ValueError("HandleCol_Proximity: sanity check failed")
 
     def HandleCol_Proximity_ParaDiS(self, G: DisNet) -> None:
         """HandleCol_Proximity: using ProximityCollision of ParaDiS
