@@ -27,5 +27,5 @@ class TimeIntegration:
     def Update_EulerForward(self, G: DisNet, vel_dict: dict) -> None:
         """TimeIntegration_EulerForward: Euler forward time integration
         """
-        for node, vel in vel_dict.items():
-            G.nodes()[node]["R"] += vel * self.dt
+        for tag, vel in vel_dict.items():
+            G.nodes[tag]["R"] += vel * self.dt

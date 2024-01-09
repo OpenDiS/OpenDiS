@@ -37,7 +37,7 @@ def main():
                         force_mode='LineTension')
     # for debugging purposes
     #nodeforce_dict = calforce.NodeForce(G)
-    #lt_force_array = np.array([nodeforce_dict[node] for node in G.nodes()])
+    #lt_force_array = np.array([nodeforce_dict[node] for node in G.nodes])
     #np.savetxt("force.dat", lt_force_array)
     #print("save force to 'force.dat'")
 

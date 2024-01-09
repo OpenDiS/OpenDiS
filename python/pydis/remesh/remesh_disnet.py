@@ -32,14 +32,14 @@ class Remesh:
         nodes_to_remove = []
         for segment in G.seg_list():
             tag1, tag2 = segment["edge"][0], segment["edge"][1]
-            node1, node2 = G.nodes()[tag1], G.nodes()[tag2]
+            node1, node2 = G.nodes[tag1], G.nodes[tag2]
             R1, R2 = node1["R"], node2["R"]
             # To do: apply PBC here
             L = np.linalg.norm(R2-R1)
             if (L < self.Lmin):
-                if len(G.edges()(tag1)) == 2 and node1["flag"] != 7:
+                if len(G.edges(tag1)) == 2 and node1["flag"] != 7:
                     nodes_to_remove.append(tag1)
-                elif len(G.edges()(tag2)) == 2 and node2["flag"] != 7:
+                elif len(G.edges(tag2)) == 2 and node2["flag"] != 7:
                     nodes_to_remove.append(tag2)
         for tag in set(nodes_to_remove):
             if G.has_node(tag):
@@ -51,7 +51,7 @@ class Remesh:
         # mesh refine
         for segment in G.seg_list():
             tag1, tag2 = segment["edge"][0], segment["edge"][1]
-            node1, node2 = G.nodes()[tag1], G.nodes()[tag2]
+            node1, node2 = G.nodes[tag1], G.nodes[tag2]
             R1, R2 = node1["R"], node2["R"]
             # To do: apply PBC here
             L = np.linalg.norm(R2-R1)

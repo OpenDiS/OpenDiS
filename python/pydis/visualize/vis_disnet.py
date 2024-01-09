@@ -43,13 +43,13 @@ class VisualizeNetwork:
 
         plt.cla()
         if plot_links:
-            for my_tag, node_attr in G.nodes().items():
+            for my_tag, node_attr in G.nodes.items():
                 my_coords = node_attr['R']
-                for arm in G.edges()(my_tag):
+                for arm in G.edges(my_tag):
                     nbr_tag = arm[1]
                     if my_tag < nbr_tag:
                         r_link = np.zeros((2,3))
-                        nbr_coords = G.nodes()[nbr_tag]['R']
+                        nbr_coords = G.nodes[nbr_tag]['R']
                         r_link[0,:] = my_coords
                         # to do: extend to non-cubic box
                         r_link[1,:] = nbr_coords

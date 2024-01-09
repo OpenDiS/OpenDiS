@@ -88,7 +88,7 @@ class CalForce:
         fseg = np.hstack((fpk + fs0, fpk + fs1))
 
         nodeforce_dict = {}
-        for node in G.nodes():
+        for node in G.nodes:
             nodeforce_dict.update({node: np.array([0.0,0.0,0.0])})
         for idx, segment in enumerate(segments):
             node1 = segment["edge"][0]
@@ -110,7 +110,7 @@ class CalForce:
         fseg = np.hstack((fpk, fpk))
 
         nodeforce_dict = {}
-        for node in G.nodes():
+        for node in G.nodes:
             nodeforce_dict.update({node: np.array([0.0,0.0,0.0])})
         for idx, segment in enumerate(segments):
             node1 = segment["edge"][0]
@@ -163,7 +163,7 @@ class CalForce:
         fseg = np.hstack((fpk, fpk))
 
         nodeforce_dict = {}
-        for node in G.nodes():
+        for node in G.nodes:
             nodeforce_dict.update({node: np.array([0.0,0.0,0.0])})
         for idx, segment in enumerate(segments):
             node1 = segment["edge"][0]
