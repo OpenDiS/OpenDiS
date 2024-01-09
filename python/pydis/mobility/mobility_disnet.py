@@ -29,7 +29,7 @@ class MobilityLaw:
         vel_dict = nodeforce_dict.copy()
         # set velocity of pinned nodes to zero
         for tag in G.nodes:
-            if G.nodes[tag]['flag'] == 7:
+            if G.nodes[tag].get('flag') == 7:
                 vel_dict[tag] = np.zeros(3)
         return vel_dict
 
@@ -41,7 +41,7 @@ class MobilityLaw:
         for tag in G.nodes:
             node1 = G.nodes[tag]
             # set velocity of pinned nodes to zero
-            if node1['flag'] == 7:
+            if node1.get('flag') == 7:
                 vel_dict[tag] = np.zeros(3)
             else:
                 R1 = node1["R"]
