@@ -156,7 +156,7 @@ class DisNet:
         if not self.is_sane():
             raise ValueError("add_nodes_links_from_list: sanity check failed")
     
-    def get_new_tag(self, recycle = False) -> Tag:
+    def get_new_tag(self, recycle = True) -> Tag:
         """get_new_tag: return a new tag for a new node
            if recycle == True, then take from list of recycled node tags
            recycle == False makes it easier to debug as node tags are never reused
