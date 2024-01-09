@@ -7,8 +7,7 @@ try:
     found_pydis = True
 except ImportError:
     found_pydis = False
-    print(' cannot find pydis_lib.py                  ')
-    print(' export PYTHONPATH=$HOME/OpenDiS.git/lib:')
+    raise
 
 
 def compute_seg_stress_coord_dep(p1, p2, b, x, mu, nu, a):

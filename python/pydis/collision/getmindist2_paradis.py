@@ -7,8 +7,7 @@ try:
     found_pydis = True
 except ImportError:
     found_pydis = False
-    print(' cannot find pydis_lib.py                  ')
-    print(' export PYTHONPATH=$HOME/OpenDiS.git/lib:')
+    raise
 
 def GetMinDist2_paradis(p1, v1, p2, v2, p3, v3, p4, v4):
     """ this calculates the minimum distance between two line segments

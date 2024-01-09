@@ -285,13 +285,7 @@ class DisNet:
 
         self._remove_node(deadNode)
 
-        #if not self.is_sane():
-        #    raise ValueError("sanity check failed 2")
-
         self.remove_empty_arms(targetNode)
-
-        if not self.is_sane():
-            raise ValueError("sanity check failed 3")
 
         # Remove target node if orphaned (i.e. no longer has any arms)
         if len(self.edges(targetNode)) == 0:

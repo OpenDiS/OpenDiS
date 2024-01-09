@@ -7,8 +7,12 @@ Provide collision handling functions given a DisNet object
 import numpy as np
 from ..disnet import DisNet
 
-from .getmindist2_paradis import GetMinDist2_paradis as GetMinDist2
-#from pydis.collision.getmindist2_python  import GetMinDist2_python as GetMinDist2
+try:
+    from .getmindist2_paradis import GetMinDist2_paradis as GetMinDist2
+except ImportError:
+    # use python version instead
+    print("pydis_lib not found, using python version for GetMinDist2")
+    from pydis.collision.getmindist2_python  import GetMinDist2_python as GetMinDist2
 
 class Collision:
     """Collision: class for detecting and handling collisions

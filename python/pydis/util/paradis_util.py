@@ -7,8 +7,7 @@ try:
     found_pydis = True
 except ImportError:
     found_pydis = False
-    print(' cannot find pydis_lib.py                  ')
-    print(' export PYTHONPATH=$HOME/OpenDiS.git/lib:')
+    raise
 
 class paradis_lib:
     def __init__(self):

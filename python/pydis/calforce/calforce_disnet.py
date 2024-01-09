@@ -7,11 +7,17 @@ Provide force calculation functions given a DisNet object
 import numpy as np
 from ..disnet import DisNet
 
-from .compute_stress_force_analytic_paradis import compute_segseg_force_vec, compute_segseg_force
-from .compute_stress_force_analytic_paradis import compute_segseg_force_SBN1_vec, compute_segseg_force_SBN1
-from .compute_stress_force_analytic_paradis import compute_segseg_force_SBN1_SBA
+try:
+    from .compute_stress_force_analytic_paradis import compute_segseg_force_vec, compute_segseg_force
+    from .compute_stress_force_analytic_paradis import compute_segseg_force_SBN1_vec, compute_segseg_force_SBN1
+    from .compute_stress_force_analytic_paradis import compute_segseg_force_SBN1_SBA
+    from .compute_stress_analytic_paradis       import compute_seg_stress_coord_dep, compute_seg_stress_coord_indep
+except ImportError:
+    # use python version instead
+    # To do: put import commands here
+    print("pydis_lib not found, using python version for force calculation")
+
 from .compute_stress_force_analytic_python  import python_segseg_force_vec
-from .compute_stress_analytic_paradis       import compute_seg_stress_coord_dep, compute_seg_stress_coord_indep
 
 def voigt_vector_to_tensor(voigt_vector):
     return np.array([[voigt_vector[0], voigt_vector[5], voigt_vector[4]],

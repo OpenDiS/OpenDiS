@@ -7,8 +7,7 @@ try:
     found_pydis = True
 except ImportError:
     found_pydis = False
-    print(' cannot find pydis_lib.py                  ')
-    print(' export PYTHONPATH=$HOME/OpenDiS.git/lib:')
+    raise
 
 def compute_segseg_force_SBN1(p1, p2, p3, p4, b1, b2, mu, nu, a, quad_points, weights, seg12local=1, seg34local=1):
     """
