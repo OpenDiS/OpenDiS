@@ -201,28 +201,20 @@ class DisNet:
         # To do: update plastic strain due to removed node operation
 
         tag1, tag2 = self.neighbors(tag)
-        if not self.has_edge(tag1, tag2):
-            link12_attr = self.edges[(tag, tag2)]
-            self._add_edge(tag1, tag2, deepcopy(DisEdge(**link12_attr)))
-            link21_attr = self.edges[(tag, tag1)]
-            self._add_edge(tag2, tag1, deepcopy(DisEdge(**link21_attr)))
-            self._remove_edge(tag, tag1)
-            self._remove_edge(tag1, tag)
-            self._remove_edge(tag, tag2)
-            self._remove_edge(tag2, tag)
-            self._remove_node(tag)
-        else:
-            # To do: refactor this section
-            link12_attr = self.edges[(tag, tag2)]
-            self._combine_edge(tag1, tag2, deepcopy(DisEdge(**link12_attr)))
-            link21_attr = self.edges[(tag, tag1)]
-            self._combine_edge(tag2, tag1, deepcopy(DisEdge(**link21_attr)))
-            self._remove_edge(tag, tag1)
-            self._remove_edge(tag1, tag)
-            self._remove_edge(tag, tag2)
-            self._remove_edge(tag2, tag)
-            self._remove_node(tag)
+        end_nodes_connected = self.has_edge(tag1, tag2)
 
+        link12_attr = self.edges[(tag, tag2)]
+        self._combine_edge(tag1, tag2, deepcopy(DisEdge(**link12_attr)))
+        link21_attr = self.edges[(tag, tag1)]
+        self._combine_edge(tag2, tag1, deepcopy(DisEdge(**link21_attr)))
+        self._remove_edge(tag, tag1)
+        self._remove_edge(tag1, tag)
+        self._remove_edge(tag, tag2)
+        self._remove_edge(tag2, tag)
+        self._remove_node(tag)
+
+        if end_nodes_connected:
+            # cleaning up is needed if the two end nodes were connected
             self.remove_empty_arms(tag1)
             self.remove_empty_arms(tag2)
             if len(self.edges(tag1)) == 0:
