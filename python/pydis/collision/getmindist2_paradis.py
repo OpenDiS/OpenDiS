@@ -10,10 +10,27 @@ except ImportError:
     print(' cannot find pydis_lib.py                  ')
     print(' export PYTHONPATH=$HOME/OpenDiS.git/lib:')
 
-def GetMinDist2(p1, v1, p2, v2, p3, v3, p4, v4):
-    """
-    dislocation segment from p1 to p2 with Burgers vector b1
-    dislocation segment from p3 to p4 with Burgers vector b2
+def GetMinDist2_paradis(p1, v1, p2, v2, p3, v3, p4, v4):
+    """ this calculates the minimum distance between two line segments
+    input:
+        p1  Coordinates of the first endpoint of segment 1
+        v1  Velocity of the node at point p1
+        p2  Coordinates of the second endpoint of segment 1
+        v2  Velocity of the node at point p2
+        p3  Coordinates of the first endpoint of segment 2
+        v3  Velocity of the node at point p3
+        p4  Coordinates of the second endpoint of segment 2
+        v4  Velocity of the node at point p4
+    return:
+        dist2       pointer to location in which to return the square
+                    of the minimum distance between the two points
+        ddist2dt    pointter to the location in which to return the
+                    time rate of change of the distance between
+                    L1 and L2
+        L1          pointer to location at which to return the
+                    normalized position on seg 1 closest to segment 2
+        L2          pointer to location at which to return the
+                    normalized position on seg 2 closest to segment 1
     """
 
     dist2, ddist2dt, L1, L2 = real8(), real8(), real8(), real8()
