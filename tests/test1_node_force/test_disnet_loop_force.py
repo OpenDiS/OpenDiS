@@ -26,7 +26,7 @@ def main():
 
     calforce = CalForce(mu=50, nu=0.3, a=0.01, Ec=1.0e6)
     nodeforce_dict = calforce.NodeForce_LineTension(G)
-    lt_force_array = np.array([nodeforce_dict[node] for node in G.nodes])
+    lt_force_array = np.array([nodeforce_dict[tag] for tag in G.nodes])
 
     atol = 1e-4
     is_lt_force_close = compare_force("force_linetension.dat", lt_force_array, atol=atol)
@@ -36,7 +36,7 @@ def main():
         print("LineTension Test \033[31mFailed!\033[0m")
 
     nodeforce_dict = calforce.NodeForce_Elasticity_SBA(G)
-    elast_force_array = np.array([nodeforce_dict[node] for node in G.nodes])
+    elast_force_array = np.array([nodeforce_dict[tag] for tag in G.nodes])
 
     # for debugging purposes:
     # np.savetxt("force.dat", elast_force_array)

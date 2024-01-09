@@ -88,13 +88,13 @@ class CalForce:
         fseg = np.hstack((fpk + fs0, fpk + fs1))
 
         nodeforce_dict = {}
-        for node in G.nodes:
-            nodeforce_dict.update({node: np.array([0.0,0.0,0.0])})
+        for tag in G.nodes:
+            nodeforce_dict.update({tag: np.array([0.0,0.0,0.0])})
         for idx, segment in enumerate(segments):
-            node1 = segment["edge"][0]
-            node2 = segment["edge"][1]
-            nodeforce_dict[node1] += fseg[idx, 0:3]
-            nodeforce_dict[node2] += fseg[idx, 3:6]
+            tag1 = segment["edge"][0]
+            tag2 = segment["edge"][1]
+            nodeforce_dict[tag1] += fseg[idx, 0:3]
+            nodeforce_dict[tag2] += fseg[idx, 3:6]
 
         return nodeforce_dict
 
@@ -110,13 +110,13 @@ class CalForce:
         fseg = np.hstack((fpk, fpk))
 
         nodeforce_dict = {}
-        for node in G.nodes:
-            nodeforce_dict.update({node: np.array([0.0,0.0,0.0])})
+        for tag in G.nodes:
+            nodeforce_dict.update({tag: np.array([0.0,0.0,0.0])})
         for idx, segment in enumerate(segments):
-            node1 = segment["edge"][0]
-            node2 = segment["edge"][1]
-            nodeforce_dict[node1] += fseg[idx, 0:3]
-            nodeforce_dict[node2] += fseg[idx, 3:6]
+            tag1 = segment["edge"][0]
+            tag2 = segment["edge"][1]
+            nodeforce_dict[tag1] += fseg[idx, 0:3]
+            nodeforce_dict[tag2] += fseg[idx, 3:6]
 
         nseg = len(segments)
         for i in range(nseg):
@@ -130,24 +130,24 @@ class CalForce:
                 b12 = np.array(seg1["burg_vec"])
                 b34 = np.array(seg2["burg_vec"])
                 f1, f2, f3, f4 = compute_segseg_force(p1, p2, p3, p4, b12, b34, self.mu, self.nu, self.a)
-                node1 = seg1["edge"][0]
-                node2 = seg1["edge"][1]
-                node3 = seg2["edge"][0]
-                node4 = seg2["edge"][1]
+                tag1 = seg1["edge"][0]
+                tag2 = seg1["edge"][1]
+                tag3 = seg2["edge"][0]
+                tag4 = seg2["edge"][1]
                 if i == j:
                     fseg[i, 0:3] += f1
                     fseg[i, 3:6] += f2
-                    nodeforce_dict[node1] += f1
-                    nodeforce_dict[node2] += f2
+                    nodeforce_dict[tag1] += f1
+                    nodeforce_dict[tag2] += f2
                 else:
                     fseg[i, 0:3] += f1
                     fseg[i, 3:6] += f2
                     fseg[j, 0:3] += f3
                     fseg[j, 3:6] += f4
-                    nodeforce_dict[node1] += f1
-                    nodeforce_dict[node2] += f2
-                    nodeforce_dict[node3] += f3
-                    nodeforce_dict[node4] += f4
+                    nodeforce_dict[tag1] += f1
+                    nodeforce_dict[tag2] += f2
+                    nodeforce_dict[tag3] += f3
+                    nodeforce_dict[tag4] += f4
 
         return nodeforce_dict
 
@@ -163,13 +163,13 @@ class CalForce:
         fseg = np.hstack((fpk, fpk))
 
         nodeforce_dict = {}
-        for node in G.nodes:
-            nodeforce_dict.update({node: np.array([0.0,0.0,0.0])})
+        for tag in G.nodes:
+            nodeforce_dict.update({tag: np.array([0.0,0.0,0.0])})
         for idx, segment in enumerate(segments):
-            node1 = segment["edge"][0]
-            node2 = segment["edge"][1]
-            nodeforce_dict[node1] += fseg[idx, 0:3]
-            nodeforce_dict[node2] += fseg[idx, 3:6]
+            tag1 = segment["edge"][0]
+            tag2 = segment["edge"][1]
+            nodeforce_dict[tag1] += fseg[idx, 0:3]
+            nodeforce_dict[tag2] += fseg[idx, 3:6]
 
         """ hardcode force_nint = 3
         """
@@ -190,24 +190,24 @@ class CalForce:
                 b12 = np.array(seg1["burg_vec"])
                 b34 = np.array(seg2["burg_vec"])
                 f1, f2, f3, f4 = compute_segseg_force_SBN1_SBA(p1, p2, p3, p4, b12, b34, self.mu, self.nu, self.a, quad_points, weights)
-                node1 = seg1["edge"][0]
-                node2 = seg1["edge"][1]
-                node3 = seg2["edge"][0]
-                node4 = seg2["edge"][1]
+                tag1 = seg1["edge"][0]
+                tag2 = seg1["edge"][1]
+                tag3 = seg2["edge"][0]
+                tag4 = seg2["edge"][1]
                 if i == j:
                     fseg[i, 0:3] += f1
                     fseg[i, 3:6] += f2
-                    nodeforce_dict[node1] += f1
-                    nodeforce_dict[node2] += f2
+                    nodeforce_dict[tag1] += f1
+                    nodeforce_dict[tag2] += f2
                 else:
                     fseg[i, 0:3] += f1
                     fseg[i, 3:6] += f2
                     fseg[j, 0:3] += f3
                     fseg[j, 3:6] += f4
-                    nodeforce_dict[node1] += f1
-                    nodeforce_dict[node2] += f2
-                    nodeforce_dict[node3] += f3
-                    nodeforce_dict[node4] += f4
+                    nodeforce_dict[tag1] += f1
+                    nodeforce_dict[tag2] += f2
+                    nodeforce_dict[tag3] += f3
+                    nodeforce_dict[tag4] += f4
 
         return nodeforce_dict
 
