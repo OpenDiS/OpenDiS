@@ -97,6 +97,8 @@ class DisNet:
         """add_node: add a node to the network
            user is not supposed to call this low level function, does not guarantee sanity
         """
+        if self.has_node(tag):
+            raise ValueError("_add_node: node %s already exists" % (str(tag)))
         self._G.add_node(tag, **vars(node_attr))
     
     def _add_edge(self, tag1: Tag, tag2: Tag, edge_attr: DisEdge) -> None:
@@ -104,7 +106,7 @@ class DisNet:
            user is not supposed to call this low level function, does not guarantee sanity
         """
         if self.has_edge(tag1, tag2):
-            raise ValueError("add_edge: Edge (%s, %s) already exists" % (str(tag1), str(tag2)))
+            raise ValueError("_add_edge: Edge (%s, %s) already exists" % (str(tag1), str(tag2)))
         self._G.add_edge(tag1, tag2, **vars(edge_attr))
     
     def _remove_node(self, tag: Tag) -> None:
