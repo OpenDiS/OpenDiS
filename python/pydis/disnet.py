@@ -321,6 +321,7 @@ class DisNet:
                     return False
 
         for tag in self.nodes:
+            if self.nodes[tag]["flag"] == 7: continue
             b_tot = np.zeros(3)
             for nbr_tag in self.neighbors(tag):
                 b_tot += self.edges[(tag, nbr_tag)]['burg_vec']
