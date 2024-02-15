@@ -22,11 +22,15 @@ def init_two_disl_lines(z0=1.0, b1=np.array([-1.0,1.0,1.0]), b2=np.array([1.0,-1
                       [-z0,  0.0,-z0,  7],
                       [0.0,  0.0, 0.0, 0],
                       [ z0,  0.0, z0,  7]])
+    # To do: move calculation of glide plane normals to a separate function
+    xi1, xi2 = rn[2,:3] - rn[1,:3], rn[5,:3] - rn[4,:3]
+    n1,  n2 = np.cross(b1, xi1),  np.cross(b2, xi2)
+    n1,  n2 = n1 / np.linalg.norm(n1),  n2 / np.linalg.norm(n2)
     links = np.zeros((4, 8))
-    links[0,:] = np.array([0, 1, b1[0], b1[1], b1[2], 0, 0, 0])
-    links[1,:] = np.array([1, 2, b1[0], b1[1], b1[2], 0, 0, 0])
-    links[2,:] = np.array([3, 4, b2[0], b2[1], b2[2], 0, 0, 0])
-    links[3,:] = np.array([4, 5, b2[0], b2[1], b2[2], 0, 0, 0])
+    links[0,:] = np.array([0, 1, b1[0], b1[1], b1[2], n1[0], n1[1], n1[2]])
+    links[1,:] = np.array([1, 2, b1[0], b1[1], b1[2], n1[0], n1[1], n1[2]])
+    links[2,:] = np.array([3, 4, b2[0], b2[1], b2[2], n2[0], n2[1], n2[2]])
+    links[3,:] = np.array([4, 5, b2[0], b2[1], b2[2], n2[0], n2[1], n2[2]])
     G.add_nodes_links_from_list(rn, links)
     if not G.is_sane():
         raise ValueError("sanity check failed")

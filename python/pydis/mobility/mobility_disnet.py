@@ -33,6 +33,23 @@ class MobilityLaw:
                 vel_dict[tag] = np.zeros(3)
         return vel_dict
 
+    @staticmethod
+    def ortho_vel_glide_planes(vel: np.ndarray, normals: np.ndarray, eps_normal = 1.0e-10) -> np.ndarray:
+        """ortho_vel_glide_planes: project velocity onto glide planes
+        """
+        # first orthogonalize glide plane normals among themselves
+        for i in range(normals.shape[0]):
+            for j in range(i):
+                normals[i] -= np.dot(normals[i], normals[j]) * normals[j]
+            if np.linalg.norm(normals[i]) < eps_normal:
+                normals[i] = np.array([0.0, 0.0, 0.0])
+            else:
+                normals[i] /= np.linalg.norm(normals[i])
+
+        # then orthogonalize velocity with glide plane normals
+        vel -= np.dot( np.dot(vel, normals.T), normals )
+        return vel
+
     def Mobility_SimpleGlide(self, G: DisNet, nodeforce_dict: dict) -> dict:
         """Mobility_SimpleGlide: node velocity equal node force divided by sum of arm length / 2
            To do: add glide constraints
@@ -51,5 +68,7 @@ class MobilityLaw:
                     R2 = node2["R"]
                     # To do: apply PBC here
                     Lsum += np.linalg.norm(R2-R1)
-                vel_dict[tag] = vel_dict[tag] / (Lsum/2.0)
+                vel = vel_dict[tag] / (Lsum/2.0)
+                normals = np.array([G.edges[id]["plane_normal"] for id in G.edges(tag)])
+                vel_dict[tag] = self.ortho_vel_glide_planes(vel, normals)
         return vel_dict
