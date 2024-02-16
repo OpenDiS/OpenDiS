@@ -327,6 +327,7 @@ class DisNet:
             mergedTag = targetNode
             status = 'MERGE_NODE_SUCCESS'
 
+        #print("merge_node: %s + %s -> %s" % (str(tag1), str(tag2), str(mergedTag)))
         return mergedTag, status
     
     def find_precise_glide_plane(self, bv: np.ndarray, dirv: np.ndarray, dot_cutoff=0.9995) -> np.ndarray:
@@ -397,6 +398,7 @@ class DisNet:
             self._add_edge(split_node1, split_node2, deepcopy(DisEdge(burg_vec= bv, plane_normal=pn)))
             self._add_edge(split_node2, split_node1, deepcopy(DisEdge(burg_vec=-bv, plane_normal=pn)))
 
+        #print("split_node: original tag = %s -> new tags = %s, %s, bv = %s" % (str(tag), str(split_node1), str(split_node2)))
         return split_node1, split_node2
 
     def is_sane(self, tol: float=1e-8) -> bool:
@@ -445,7 +447,7 @@ class DisNet:
         return
 
     @staticmethod
-    def trial_split_multi_node(G, tag: Tag, vel_dict, nodeforce_dict, segforce_dict) -> None:
+    def trial_split_multi_node(G, tag: Tag, vel_dict, nodeforce_dict, segforce_dict, sim, power_th=1e-3) -> None:
         """trial_split_multi_node: try to split multi-arm node in different ways
             and select the way that maximizes the power dissipation
         """
@@ -462,7 +464,9 @@ class DisNet:
         nbrs = list(G.neighbors(tag))
         nbr_idx_list = DisNet.build_split_list(n_degree)
 
-        powerMax = np.dot(nodeforce_dict[tag], vel_dict[tag])
+        power0 = np.dot(nodeforce_dict[tag], vel_dict[tag])
+        #print("trial_split_multi_node (%s): power0 = %e"%(tag, power0))
+
         pos0 = G.nodes[tag]["R"]
         n_splits = len(nbr_idx_list)
         power_diss = np.zeros(n_splits)
@@ -471,38 +475,58 @@ class DisNet:
 
             # make a copy of the network G to make trial splits
             G_trial = deepcopy(G)
+            segforce_trial_dict = deepcopy(segforce_dict)
 
             # attempt to split node
             split_node1, split_node2 = G_trial.split_node(tag, pos0.copy(), pos0.copy(), nbrs_to_split)
 
-            # To do: calculate nodal forces and velocities for the trial split
-            #nodeforce_dict_trial = G_trial.calforce.NodeForce(G_trial)
-            #vel_dict_trial = G_trial.mobility.Mobility(G_trial, nodeforce_dict_trial)
-            #
-            #power_diss[k] = np.dot(nodeforce_dict_trial[split_node1], vel_dict_trial[split_node1])
-            #              + np.dot(nodeforce_dict_trial[split_node2], vel_dict_trial[split_node2])
-            power_diss[k] = 0.0
+            # modify the segforce_trial_dict to reflect the trial split
+            for segment in segforce_dict:
+                tag1, tag2 = segment
+                if tag1 == tag or tag2 == tag:
+                    if not G_trial.has_edge(tag1, tag2):
+                        #print("remove segment (%s, %s) from segforce_trial_dict" % (str(tag1), str(tag2)))
+                        segforce_trial_dict.pop(segment)
+                        if tag1 == tag and G_trial.has_edge(split_node2, tag2):
+                            new_segment = (split_node2, tag2)
+                        elif tag2 == tag and G_trial.has_edge(tag1, split_node2):
+                            new_segment = (tag1, split_node2)
+                        else:
+                            raise ValueError("trial_split_multi_node: cannot find corresponding segment (%s, %s) in G_trial" % (str(tag1), str(tag2)))
+                        
+                        #print("add segment %s to segforce_trial_dict" % str(new_segment))
+                        segforce_trial_dict[new_segment] = segforce_dict[segment]
 
-            # for now manually select the split that leads to non-zero Burgers vector between the two nodes
-            if G_trial.has_edge(split_node1, split_node2):
-                k_sel = k
-                do_split = True
-            else:
-                do_split = False
+            # calculate nodal forces and velocities for the trial split
+            nodeforce_dict_trial = sim.calforce.NodeForce_from_SegForce(G_trial, segforce_trial_dict)
+            vel_dict_trial = sim.mobility.Mobility(G_trial, nodeforce_dict_trial)
+
+            power_diss[k] = np.dot(nodeforce_dict_trial[split_node1], vel_dict_trial[split_node1]) \
+                          + np.dot(nodeforce_dict_trial[split_node2], vel_dict_trial[split_node2])
+
+            #print("trial_split_multi_node (%s): power_diss[%d] = %e"%(str(tag), k, power_diss[k]))
+
+        # To do: adjust power_th to be consistent with ParaDiS
+        if np.max(power_diss) - power0 > power_th:
+            # select the split that leads to the maximum power dissipation
+            k_sel = np.argmax(power_diss)
+            do_split = True
+            #print("trial_split_multi_node (%s): power0 = %e power_diss[%d] = %e"%(str(tag), power0, k_sel, power_diss[k_sel]))
+        else:
+            do_split = False
 
         # To do: perhaps we should just record which split is selected
         #        and do the actual split outside of this function
         if do_split:
             nbrs_to_split = [nbrs[i] for i in nbr_idx_list[k_sel]]
             split_node1, split_node2 = G.split_node(tag, pos0.copy(), pos0.copy(), nbrs_to_split)
-            # Mark both nodes involved in the split as 'exempt'
-			# from subsequent collisions this time step.
+            # Mark both nodes involved in the split as 'exempt' from subsequent collisions this time step
             G.nodes[split_node1]["flag"] |= DisNode.Flags.NO_COLLISIONS
             G.nodes[split_node2]["flag"] |= DisNode.Flags.NO_COLLISIONS
         return
 
     @staticmethod
-    def split_multi_nodes(G, vel_dict, nodeforce_dict, segforce_dict, max_degree=15) -> None:
+    def split_multi_nodes(G, vel_dict, nodeforce_dict, segforce_dict, sim, max_degree=15) -> None:
         """split_multi_nodes: examines all nodes with at least four arms and decides
            if the node should be split and some of the node's arms moved to a new node.
            guarantees sanity after operation
@@ -518,6 +542,6 @@ class DisNet:
             elif n_degree > max_degree:
                 raise ValueError("split_multi_node: Node %s has more than %d arms" % (str(tag), n_degree))
 
-            DisNet.trial_split_multi_node(G, tag, vel_dict, nodeforce_dict, segforce_dict)
+            DisNet.trial_split_multi_node(G, tag, vel_dict, nodeforce_dict, segforce_dict, sim)
 
         return

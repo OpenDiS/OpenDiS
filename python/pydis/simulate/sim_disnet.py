@@ -57,7 +57,7 @@ class SimulateNetwork:
         self.timeint.Update(G, vel_dict)
 
         DisNet.init_topology_exemptions(G)
-        DisNet.split_multi_nodes(G, vel_dict, nodeforce_dict, segforce_dict)
+        DisNet.split_multi_nodes(G, vel_dict, nodeforce_dict, segforce_dict, self)
 
         if self.collision is not None:
             self.collision.HandleCol(G)
