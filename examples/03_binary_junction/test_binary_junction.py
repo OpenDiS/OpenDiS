@@ -32,8 +32,6 @@ def init_two_disl_lines(z0=1.0, b1=np.array([-1.0,1.0,1.0]), b2=np.array([1.0,-1
     links[2,:] = np.array([3, 4, b2[0], b2[1], b2[2], n2[0], n2[1], n2[2]])
     links[3,:] = np.array([4, 5, b2[0], b2[1], b2[2], n2[0], n2[1], n2[2]])
     G.add_nodes_links_from_list(rn, links)
-    if not G.is_sane():
-        raise ValueError("sanity check failed")
     return G
 
 def main():

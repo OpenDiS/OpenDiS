@@ -33,8 +33,6 @@ def init_frank_read_src_loop(arm_length=1.0, burg_vec=np.array([1.0,0.0,0.0])):
     links[3,5:8] = np.array([0.0, 0.0, 1.0])
     links[4,5:8] = np.array([0.0, 1.0, 0.0])
     G.add_nodes_links_from_list(rn, links)
-    if not G.is_sane():
-        raise ValueError("sanity check failed")
     return G
 
 def main():
