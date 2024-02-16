@@ -56,6 +56,8 @@ class SimulateNetwork:
         self.timeint.dt = self.dt0
         self.timeint.Update(G, vel_dict)
 
+        DisNet.split_multi_nodes(G, vel_dict, nodeforce_dict)
+
         if self.collision is not None:
             self.collision.HandleCol(G)
 
