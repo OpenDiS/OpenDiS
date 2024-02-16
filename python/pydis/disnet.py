@@ -24,7 +24,7 @@ class DisNode:
         """
         UNCONSTRAINED = 0
         SURFACE_NODE  = 1
-        THINFILM_SURFACE_NODE = 5
+        THINFILM_SURFACE_NODE = 5 # To do: resolve this difference from ParaDiS
         CYLINDER_SURFACE_NODE = 6
         PINNED_NODE    = 7
 
