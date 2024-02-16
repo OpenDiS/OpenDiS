@@ -5,7 +5,7 @@ Provide collision handling functions given a DisNet object
 """
 
 import numpy as np
-from ..disnet import DisNet
+from ..disnet import DisNet, DisNode
 
 try:
     from .getmindist2_paradis import GetMinDist2_paradis as GetMinDist2
@@ -46,6 +46,10 @@ class Collision:
             tag1, tag2 = seg1["edge"][0], seg1["edge"][1]
             if not G.has_edge(tag1, tag2):
                 continue
+            if G.nodes[tag1].get('flag') & DisNode.Flags.NO_COLLISIONS:
+                continue
+            if G.nodes[tag2].get('flag') & DisNode.Flags.NO_COLLISIONS:
+                continue
             for j in range(i+1, nseg):
                 seg2 = segments[j]
                 if collided[i] or collided[j]:
@@ -54,6 +58,10 @@ class Collision:
                     continue
                 tag3, tag4 = seg2["edge"][0], seg2["edge"][1]
                 if not G.has_edge(tag3, tag4):
+                    continue
+                if G.nodes[tag3].get('flag') & DisNode.Flags.NO_COLLISIONS:
+                    continue
+                if G.nodes[tag4].get('flag') & DisNode.Flags.NO_COLLISIONS:
                     continue
                 p1, p2 = np.array(seg1["R1"]), np.array(seg1["R2"])
                 p3, p4 = np.array(seg2["R1"]), np.array(seg2["R2"])
