@@ -5,7 +5,7 @@ Provide remesh functions given a DisNet object
 """
 
 import numpy as np
-from ..disnet import DisNet
+from ..disnet import DisNet, DisNode
 
 class Remesh:
     """Remesh: class for remeshing dislocation network
@@ -37,9 +37,9 @@ class Remesh:
             # To do: apply PBC here
             L = np.linalg.norm(R2-R1)
             if (L < self.Lmin):
-                if len(G.edges(tag1)) == 2 and node1["flag"] != 7:
+                if G.out_degree(tag1) == 2 and node1["constraint"] != DisNode.Constraints.PINNED_NODE:
                     nodes_to_remove.append(tag1)
-                elif len(G.edges(tag2)) == 2 and node2["flag"] != 7:
+                elif G.out_degree(tag2) == 2 and node2["constraint"] != DisNode.Constraints.PINNED_NODE:
                     nodes_to_remove.append(tag2)
         for tag in set(nodes_to_remove):
             if G.has_node(tag):
@@ -55,7 +55,7 @@ class Remesh:
             R1, R2 = node1["R"], node2["R"]
             # To do: apply PBC here
             L = np.linalg.norm(R2-R1)
-            if (L > self.Lmax) and ((node1["flag"] != 7) or (node2["flag"] != 7)):
+            if (L > self.Lmax) and ((node1["constraint"] != DisNode.Constraints.PINNED_NODE) or (node2["constraint"] != DisNode.Constraints.PINNED_NODE)):
                 # insert new node on segment
                 new_tag = G.get_new_tag()
                 # To do: apply PBC here

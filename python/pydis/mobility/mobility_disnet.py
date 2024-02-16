@@ -5,7 +5,7 @@ Provide mobility law functions given a DisNet object
 """
 
 import numpy as np
-from ..disnet import DisNet
+from ..disnet import DisNet, DisNode
 
 class MobilityLaw:
     """MobilityLaw: class for mobility laws
@@ -58,7 +58,7 @@ class MobilityLaw:
         for tag in G.nodes:
             node1 = G.nodes[tag]
             # set velocity of pinned nodes to zero
-            if node1.get('flag') == 7:
+            if node1.get('constraint') == DisNode.Constraints.PINNED_NODE:
                 vel_dict[tag] = np.zeros(3)
             else:
                 R1 = node1["R"]
