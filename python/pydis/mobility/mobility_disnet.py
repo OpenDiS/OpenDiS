@@ -11,8 +11,9 @@ class MobilityLaw:
     """MobilityLaw: class for mobility laws
 
     """
-    def __init__(self, mobility_law: str='Relax', **kwargs) -> None:
+    def __init__(self, mobility_law: str='Relax', mob: float=1, **kwargs) -> None:
         self.mobility_law = mobility_law
+        self.mob = mob
 
         self.Mobility_Functions = {
             'Relax': self.Mobility_Relax,
@@ -68,7 +69,7 @@ class MobilityLaw:
                     R2 = node2["R"]
                     # To do: apply PBC here
                     Lsum += np.linalg.norm(R2-R1)
-                vel = vel_dict[tag] / (Lsum/2.0)
+                vel = vel_dict[tag] / (Lsum/2.0) * self.mob
                 normals = np.array([G.edges[id]["plane_normal"] for id in G.edges(tag)])
                 vel_dict[tag] = self.ortho_vel_glide_planes(vel, normals)
         return vel_dict

@@ -42,10 +42,10 @@ def main():
     vis = VisualizeNetwork(bounds=bounds)
 
     calforce = CalForce(mu=160e9, nu=0.31, a=0.1, Ec=1.0e6,
-                        applied_stress=np.array([0.0, 0.0, 0.0, 0.0, -2.0e6, 0.0]),
+                        applied_stress=np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
                         force_mode='LineTension')
 
-    mobility  = MobilityLaw(mobility_law='SimpleGlide')
+    mobility  = MobilityLaw(mobility_law='SimpleGlide', mob=1.0e6)
     timeint   = TimeIntegration(integrator='EulerForward')
     collision = Collision(collision_mode='Proximity', mindist2=0.1)
     remesh    = Remesh(remesh_rule='LengthBased', Lmin=500, Lmax=2000)
