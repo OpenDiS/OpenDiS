@@ -303,7 +303,6 @@ class DisNet:
         """find_precise_glide_plane: find glide plane normal given burgers vector and line direction
         """
         # following ParaDiS FindPreciseGlidePlane.c
-        print("find_precise_glide_plane: bv = ", bv, "dirv = ", dirv)
         if np.dot(dirv, dirv) < 1e-8:
             return np.zeros(3)
 
@@ -336,7 +335,6 @@ class DisNet:
         self.nodes[split_node1]['R'] = pos1.copy()
 
         bv = np.zeros(3)
-        print("bv = ", bv)
         for nbr in nbrs_to_split:
             if not self.has_edge(tag, nbr):
                 raise ValueError("split_node: Node %s and %s are not connected" % (str(tag), str(nbr)))
@@ -344,7 +342,6 @@ class DisNet:
             link_attr = self.edges[(tag, nbr)]
             self._add_edge(split_node2, nbr, deepcopy(DisEdge(**link_attr)))
             bv += np.array(link_attr['burg_vec'])
-            print("bv = ", bv)
 
             link_attr = self.edges[(nbr, tag)]
             self._add_edge(nbr, split_node2, deepcopy(DisEdge(**link_attr)))
@@ -429,7 +426,6 @@ class DisNet:
 
         powerMax = np.dot(nodeforce_dict[tag], vel_dict[tag])
         pos0 = G.nodes[tag]["R"]
-        print("pos0 = ", pos0)
         n_splits = len(nbr_idx_list)
         power_diss = np.zeros(n_splits)
         for k in range(n_splits):
