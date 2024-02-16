@@ -87,6 +87,12 @@ class DisNet:
         """
         return self._G.edges
     
+    @property
+    def out_degree(self):
+        """out_degree: return out degree of a node
+        """
+        return self._G.out_degree
+
     def pos_array(self) -> np.ndarray:
         """pos_array: return a numpy array of node positions
         """
@@ -167,7 +173,7 @@ class DisNet:
         num_links = links.shape[0]
         for i in range(N):
             if rn.shape[1] > 3:
-                node = DisNode(R=rn[i,:3], flag=int(rn[i,3]))
+                node = DisNode(R=rn[i,:3], constraint=int(rn[i,3]))
             else:
                 node = DisNode(R=rn[i,:3])
             self._add_node((0,i), deepcopy(node))
@@ -204,7 +210,7 @@ class DisNet:
         """
         # To do: update plastic strain if new node position is not on segment
 
-        self._add_node(tag, deepcopy(DisNode(R=R, flag=0)))
+        self._add_node(tag, deepcopy(DisNode(R=R)))
         link12_attr = self.edges[(tag1, tag2)]
         self._add_edge(tag1, tag, deepcopy(DisEdge(**link12_attr)))
         self._add_edge(tag, tag2, deepcopy(DisEdge(**link12_attr)))
@@ -274,8 +280,8 @@ class DisNet:
         If merged node has double-links to any neighbor, combine them into one (or zero) link
         """
 
-        node1Deletable = self.nodes[tag1]["flag"] != 7
-        node2Deletable = self.nodes[tag2]["flag"] != 7
+        node1Deletable = self.nodes[tag1]["constraint"] != DisNode.Constraints.PINNED_NODE
+        node2Deletable = self.nodes[tag2]["constraint"] != DisNode.Constraints.PINNED_NODE
 
         if node1Deletable:
             targetNode, deadNode = tag2, tag1
@@ -354,7 +360,7 @@ class DisNet:
         """
         split_node1 = tag
         split_node2 = self.get_new_tag()
-        self._add_node(split_node2, deepcopy(DisNode(R=pos2.copy(), flag=0)))
+        self._add_node(split_node2, deepcopy(DisNode(R=pos2.copy())))
 
         self.nodes[split_node1]['R'] = pos1.copy()
 
@@ -409,7 +415,7 @@ class DisNet:
                     return False
 
         for tag in self.nodes:
-            if self.nodes[tag]["flag"] == 7: continue
+            if self.nodes[tag]["constraint"] == DisNode.Constraints.PINNED_NODE: continue
             b_tot = np.zeros(3)
             for nbr_tag in self.neighbors(tag):
                 b_tot += self.edges[(tag, nbr_tag)]['burg_vec']
@@ -430,8 +436,16 @@ class DisNet:
         selected_list = [list(itertools.compress(indices,item)) for item in all_bool_list if item[0] and sum(item) >= 2 and sum(item) <= n-2]
         return selected_list
 
-    @classmethod
-    def trial_split_multi_node(cls, G, tag: Tag, vel_dict, nodeforce_dict) -> None:
+    @staticmethod
+    def init_topology_exemptions(G) -> None:
+        """init_topology_exemptions: initialize the topology exemptions
+        """
+        for tag in G.nodes:
+            G.nodes[tag]["flag"] &= ~(DisNode.Flags.NO_COLLISIONS | DisNode.Flags.NO_MESH_COARSEN)
+        return
+
+    @staticmethod
+    def trial_split_multi_node(G, tag: Tag, vel_dict, nodeforce_dict, segforce_dict) -> None:
         """trial_split_multi_node: try to split multi-arm node in different ways
             and select the way that maximizes the power dissipation
         """
@@ -444,9 +458,9 @@ class DisNet:
             velocities (and hence significantly impacting the timestep)
         """
 
-        n_degree = G._G.out_degree(tag)
+        n_degree = G.out_degree(tag)
         nbrs = list(G.neighbors(tag))
-        nbr_idx_list = cls.build_split_list(n_degree)
+        nbr_idx_list = DisNet.build_split_list(n_degree)
 
         powerMax = np.dot(nodeforce_dict[tag], vel_dict[tag])
         pos0 = G.nodes[tag]["R"]
@@ -481,11 +495,14 @@ class DisNet:
         if do_split:
             nbrs_to_split = [nbrs[i] for i in nbr_idx_list[k_sel]]
             split_node1, split_node2 = G.split_node(tag, pos0.copy(), pos0.copy(), nbrs_to_split)
-
+            # Mark both nodes involved in the split as 'exempt'
+			# from subsequent collisions this time step.
+            G.nodes[split_node1]["flag"] |= DisNode.Flags.NO_COLLISIONS
+            G.nodes[split_node2]["flag"] |= DisNode.Flags.NO_COLLISIONS
         return
 
-    @classmethod
-    def split_multi_nodes(cls, G, vel_dict, nodeforce_dict, max_degree=15) -> None:
+    @staticmethod
+    def split_multi_nodes(G, vel_dict, nodeforce_dict, segforce_dict, max_degree=15) -> None:
         """split_multi_nodes: examines all nodes with at least four arms and decides
            if the node should be split and some of the node's arms moved to a new node.
            guarantees sanity after operation
@@ -501,6 +518,6 @@ class DisNet:
             elif n_degree > max_degree:
                 raise ValueError("split_multi_node: Node %s has more than %d arms" % (str(tag), n_degree))
 
-            cls.trial_split_multi_node(G, tag, vel_dict, nodeforce_dict)
+            DisNet.trial_split_multi_node(G, tag, vel_dict, nodeforce_dict, segforce_dict)
 
         return
