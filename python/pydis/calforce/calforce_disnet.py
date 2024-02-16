@@ -33,7 +33,7 @@ def pkforcevec(sigext, segments):
         fpk[idx] = np.cross(sigb, dR)
     return fpk
 
-def selfforcevec_LineTension(MU, NU, Ec, segments):
+def selfforcevec_LineTension(MU, NU, Ec, segments, eps_L=1e-6):
     # to do: vectorize the calculations
     nseg = len(segments)
     fs0 = np.zeros((nseg, 3))
@@ -42,6 +42,8 @@ def selfforcevec_LineTension(MU, NU, Ec, segments):
     for idx, segment in enumerate(segments):
         dR = segment["R2"] - segment["R1"]
         L = np.linalg.norm(dR)
+        if L < eps_L:
+            continue
         t = dR / L
         bs = np.dot(segment["burg_vec"], t)
         bs2 = bs*bs
@@ -86,11 +88,10 @@ class CalForce:
         nodeforce_dict = {}
         for tag in G.nodes:
             nodeforce_dict.update({tag: np.array([0.0,0.0,0.0])})
-        for segment in G.seg_list():
-            tag1 = segment["edge"][0]
-            tag2 = segment["edge"][1]
-            nodeforce_dict[tag1] += segforce_dict[segment["edge"]][0:3]
-            nodeforce_dict[tag2] += segforce_dict[segment["edge"]][3:6]
+        for segment in segforce_dict:
+            tag1, tag2 = segment
+            nodeforce_dict[tag1] += segforce_dict[segment][0:3]
+            nodeforce_dict[tag2] += segforce_dict[segment][3:6]
 
         return nodeforce_dict
 
