@@ -25,7 +25,7 @@ def main():
     G = init_loop_from_file(rn_file = "loop_rn.dat", links_file = "loop_links.dat")
 
     calforce = CalForce(mu=50, nu=0.3, a=0.01, Ec=1.0e6)
-    nodeforce_dict = calforce.NodeForce_LineTension(G)
+    nodeforce_dict, segforce_dict = calforce.NodeForce_LineTension(G)
     lt_force_array = np.array([nodeforce_dict[tag] for tag in G.nodes])
 
     atol = 1e-4
@@ -35,7 +35,15 @@ def main():
     else:
         print("LineTension Test \033[31mFailed!\033[0m")
 
-    nodeforce_dict = calforce.NodeForce_Elasticity_SBA(G)
+    nodeforce_from_segforce_dict = calforce.NodeForce_from_SegForce(G, segforce_dict)
+    lt_force_array = np.array([nodeforce_from_segforce_dict[tag] for tag in G.nodes])
+    is_lt_force_from_seg_close = compare_force("force_linetension.dat", lt_force_array, atol=atol)
+    if is_lt_force_from_seg_close:
+        print("LineTension (from segforce) Test \033[32mPassed!\033[0m")
+    else:
+        print("LineTension (from segforce) Test \033[31mFailed!\033[0m")
+
+    nodeforce_dict, segforce_dict = calforce.NodeForce_Elasticity_SBA(G)
     elast_force_array = np.array([nodeforce_dict[tag] for tag in G.nodes])
 
     # for debugging purposes:
@@ -47,7 +55,15 @@ def main():
     else:
         print("Elasticity Test \033[31mFailed!\033[0m")
 
-    is_force_close = is_lt_force_close and is_elast_force_close
+    nodeforce_from_segforce_dict = calforce.NodeForce_from_SegForce(G, segforce_dict)
+    elast_force_array = np.array([nodeforce_from_segforce_dict[tag] for tag in G.nodes])
+    is_elast_force_from_seg_close = compare_force("force_stress_analytic_python.dat", elast_force_array, atol=atol)
+    if is_elast_force_from_seg_close:
+        print("Elasticity (from segforce) Test \033[32mPassed!\033[0m")
+    else:
+        print("Elasticity (from segforce) Test \033[31mFailed!\033[0m")
+
+    is_force_close = is_lt_force_close and is_lt_force_from_seg_close and is_elast_force_close and is_elast_force_from_seg_close
     return is_force_close
 
 

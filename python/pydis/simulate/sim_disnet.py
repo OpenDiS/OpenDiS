@@ -48,7 +48,7 @@ class SimulateNetwork:
     def step(self, G: DisNet):
         """step: take a time step of DD simulation on DisNet G
         """
-        nodeforce_dict = self.calforce.NodeForce(G)
+        nodeforce_dict, segforce_dict = self.calforce.NodeForce(G)
 
         vel_dict = self.mobility.Mobility(G, nodeforce_dict)
 
@@ -56,6 +56,7 @@ class SimulateNetwork:
         self.timeint.dt = self.dt0
         self.timeint.Update(G, vel_dict)
 
+        DisNet.init_topology_exemptions(G)
         DisNet.split_multi_nodes(G, vel_dict, nodeforce_dict)
 
         if self.collision is not None:

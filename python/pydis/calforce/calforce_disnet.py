@@ -73,14 +73,28 @@ class CalForce:
             'Elasticity_SBA': self.NodeForce_Elasticity_SBA,
             'Elasticity_SBN1_SBA': self.NodeForce_Elasticity_SBN1_SBA }
 
-    def NodeForce(self, G: DisNet) -> dict:
+    def NodeForce(self, G: DisNet) -> (dict, dict):
         """NodeForce: return nodal forces in a dictionary
 
         Using different force calculation functions depending on force_mode
         """
         return self.NodeForce_Functions[self.force_mode](G)
 
-    def NodeForce_LineTension(self, G: DisNet) -> dict:
+    def NodeForce_from_SegForce(self, G: DisNet, segforce_dict: dict) -> dict:
+        """NodeForce_from_SegForce: return nodal forces by assembling segment forces
+        """
+        nodeforce_dict = {}
+        for tag in G.nodes:
+            nodeforce_dict.update({tag: np.array([0.0,0.0,0.0])})
+        for segment in G.seg_list():
+            tag1 = segment["edge"][0]
+            tag2 = segment["edge"][1]
+            nodeforce_dict[tag1] += segforce_dict[segment["edge"]][0:3]
+            nodeforce_dict[tag2] += segforce_dict[segment["edge"]][3:6]
+
+        return nodeforce_dict
+
+    def NodeForce_LineTension(self, G: DisNet) -> (dict, dict):
         """NodeForce: return nodal forces from line tension in a dictionary
 
         Only Peach-Koehler force from external stress and line tension forces
@@ -93,7 +107,7 @@ class CalForce:
         fs0, fs1 = selfforcevec_LineTension(self.mu, self.nu, self.Ec, segments)
         fseg = np.hstack((fpk + fs0, fpk + fs1))
 
-        nodeforce_dict = {}
+        nodeforce_dict, segforce_dict = {}, {}
         for tag in G.nodes:
             nodeforce_dict.update({tag: np.array([0.0,0.0,0.0])})
         for idx, segment in enumerate(segments):
@@ -101,21 +115,21 @@ class CalForce:
             tag2 = segment["edge"][1]
             nodeforce_dict[tag1] += fseg[idx, 0:3]
             nodeforce_dict[tag2] += fseg[idx, 3:6]
+            segforce_dict[segment["edge"]] = fseg[idx, :]
 
-        return nodeforce_dict
+        return nodeforce_dict, segforce_dict
 
-    def NodeForce_Elasticity_SBA(self, G: DisNet) -> dict:
+    def NodeForce_Elasticity_SBA(self, G: DisNet) -> (dict, dict):
         """NodeForce: return nodal forces from external stress and elastic interactions
 
         (from ParaDiS)
-        To do: fseg can be return if needed
         """
         segments = G.seg_list()
         sigext = voigt_vector_to_tensor(self.applied_stress)
         fpk = pkforcevec(sigext, segments)
         fseg = np.hstack((fpk, fpk))
 
-        nodeforce_dict = {}
+        nodeforce_dict, segforce_dict = {}, {}
         for tag in G.nodes:
             nodeforce_dict.update({tag: np.array([0.0,0.0,0.0])})
         for idx, segment in enumerate(segments):
@@ -155,20 +169,22 @@ class CalForce:
                     nodeforce_dict[tag3] += f3
                     nodeforce_dict[tag4] += f4
 
-        return nodeforce_dict
+        for idx, segment in enumerate(segments):
+            segforce_dict[segment["edge"]] = fseg[idx, :]
 
-    def NodeForce_Elasticity_SBN1_SBA(self, G: DisNet) -> dict:
+        return nodeforce_dict, segforce_dict
+
+    def NodeForce_Elasticity_SBN1_SBA(self, G: DisNet) -> (dict, dict):
         """NodeForce: return nodal forces from external stress and elastic interactions
 
         (from ParaDiS)
-        To do: fseg can be return if needed
         """
         segments = G.seg_list()
         sigext = voigt_vector_to_tensor(self.applied_stress)
         fpk = pkforcevec(sigext, segments)
         fseg = np.hstack((fpk, fpk))
 
-        nodeforce_dict = {}
+        nodeforce_dict, segforce_dict = {}, {}
         for tag in G.nodes:
             nodeforce_dict.update({tag: np.array([0.0,0.0,0.0])})
         for idx, segment in enumerate(segments):
@@ -215,5 +231,8 @@ class CalForce:
                     nodeforce_dict[tag3] += f3
                     nodeforce_dict[tag4] += f4
 
-        return nodeforce_dict
+        for idx, segment in enumerate(segments):
+            segforce_dict[segment["edge"]] = fseg[idx, :]
+
+        return nodeforce_dict, segforce_dict
 
