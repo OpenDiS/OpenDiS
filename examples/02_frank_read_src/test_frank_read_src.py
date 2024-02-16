@@ -3,7 +3,7 @@ import sys, os
 
 sys.path.extend([os.path.abspath('../../python'),os.path.abspath('../../lib')])
 
-from pydis.disnet import DisNet
+from pydis.disnet import DisNet, DisNode
 from pydis.calforce.calforce_disnet import CalForce
 from pydis.mobility.mobility_disnet import MobilityLaw
 from pydis.timeint.timeint_disnet import TimeIntegration
@@ -18,11 +18,11 @@ def init_frank_read_src_loop(arm_length=1.0, burg_vec=np.array([1.0,0.0,0.0])):
     # add plane_normal to DisEdge
     print("init_frank_read_src_loop: length = %f" % (arm_length))
     G = DisNet()
-    rn    = np.array([[0.0, -arm_length/2.0, 0.0,         7],
-                      [0.0,  0.0,            0.0,         0],
-                      [0.0,  arm_length/2.0, 0.0,         7],
-                      [0.0,  arm_length/2.0, -arm_length, 7],
-                      [0.0, -arm_length/2.0, -arm_length, 7]])
+    rn    = np.array([[0.0, -arm_length/2.0, 0.0,         DisNode.Constraints.PINNED_NODE],
+                      [0.0,  0.0,            0.0,         DisNode.Constraints.UNCONSTRAINED],
+                      [0.0,  arm_length/2.0, 0.0,         DisNode.Constraints.PINNED_NODE],
+                      [0.0,  arm_length/2.0, -arm_length, DisNode.Constraints.PINNED_NODE],
+                      [0.0, -arm_length/2.0, -arm_length, DisNode.Constraints.PINNED_NODE]])
     N = rn.shape[0]
     links = np.zeros((N, 8))
     for i in range(N):

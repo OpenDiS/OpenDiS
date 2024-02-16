@@ -29,7 +29,7 @@ class MobilityLaw:
         vel_dict = nodeforce_dict.copy()
         # set velocity of pinned nodes to zero
         for tag in G.nodes:
-            if G.nodes[tag].get('flag') == 7:
+            if G.nodes[tag].get('constraint') == DisNode.Constraints.PINNED_NODE:
                 vel_dict[tag] = np.zeros(3)
         return vel_dict
 

@@ -3,7 +3,7 @@ import sys, os
 
 sys.path.extend([os.path.abspath('../../python'),os.path.abspath('../../lib')])
 
-from pydis.disnet import DisNet
+from pydis.disnet import DisNet, DisNode
 from pydis.calforce.calforce_disnet import CalForce
 from pydis.mobility.mobility_disnet import MobilityLaw
 from pydis.timeint.timeint_disnet import TimeIntegration
@@ -16,12 +16,12 @@ def init_two_disl_lines(z0=1.0, b1=np.array([-1.0,1.0,1.0]), b2=np.array([1.0,-1
     # To do:
     print("init_two_disl_lines: z0 = %f" % (z0))
     G = DisNet()
-    rn    = np.array([[0.0, -z0, -z0,  7],
-                      [0.0,  0.0, 0.0, 0],
-                      [0.0,  z0,  z0,  7],
-                      [-z0,  0.0,-z0,  7],
-                      [0.0,  0.0, 0.0, 0],
-                      [ z0,  0.0, z0,  7]])
+    rn    = np.array([[0.0, -z0, -z0,  DisNode.Constraints.PINNED_NODE],
+                      [0.0,  0.0, 0.0, DisNode.Constraints.UNCONSTRAINED],
+                      [0.0,  z0,  z0,  DisNode.Constraints.PINNED_NODE],
+                      [-z0,  0.0,-z0,  DisNode.Constraints.PINNED_NODE],
+                      [0.0,  0.0, 0.0, DisNode.Constraints.UNCONSTRAINED],
+                      [ z0,  0.0, z0,  DisNode.Constraints.PINNED_NODE]])
     # To do: move calculation of glide plane normals to a separate function
     xi1, xi2 = rn[2,:3] - rn[1,:3], rn[5,:3] - rn[4,:3]
     n1,  n2 = np.cross(b1, xi1),  np.cross(b2, xi2)

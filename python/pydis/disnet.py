@@ -8,6 +8,7 @@ import numpy as np
 import networkx as nx
 from typing import Tuple
 from copy import deepcopy
+from enum import IntEnum
 import itertools
 
 Tag = Tuple[int, int]
@@ -17,15 +18,38 @@ class DisNode:
 
     Defines the basic attributes on a node
     """
+
+    class Constraints(IntEnum):
+        """Constraints: enum class for node constraints
+        """
+        UNCONSTRAINED = 0
+        SURFACE_NODE  = 1
+        THINFILM_SURFACE_NODE = 5
+        CYLINDER_SURFACE_NODE = 6
+        PINNED_NODE    = 7
+
+    class Flags(IntEnum):
+        """Flags: enum class for node flags
+        """
+        CLEAR              = 0x00
+        NODE_RESET_FORCES  = 0x01
+        NODE_OUTSIDE_SURF  = 0x02
+        NO_COLLISIONS      = 0x04
+        NO_MESH_COARSEN    = 0x08
+        NODE_CHK_DBL_LINK  = 0x10
+
     def __init__(self, R: np.ndarray, F: np.ndarray=None,
-                v: np.ndarray=None, flag: np.ndarray=None) -> None:
+                v: np.ndarray=None, flag: int=Flags.CLEAR,
+                constraint: int=Constraints.UNCONSTRAINED) -> None:
         self.R = R
         if F is not None:
             self.F = F
         if v is not None:
             self.v = v
         if flag is not None:
-            self.flag = flag
+            self.flag = int(flag)
+        if constraint is not None:
+            self.constraint = int(constraint)
 
 class DisEdge:
     """DisEdge: class for dislocation edge
