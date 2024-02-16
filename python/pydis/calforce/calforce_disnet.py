@@ -5,6 +5,7 @@ Provide force calculation functions given a DisNet object
 """
 
 import numpy as np
+from typing import Tuple
 from ..disnet import DisNet
 
 try:
@@ -75,7 +76,7 @@ class CalForce:
             'Elasticity_SBA': self.NodeForce_Elasticity_SBA,
             'Elasticity_SBN1_SBA': self.NodeForce_Elasticity_SBN1_SBA }
 
-    def NodeForce(self, G: DisNet) -> (dict, dict):
+    def NodeForce(self, G: DisNet) -> Tuple[dict, dict]:
         """NodeForce: return nodal forces in a dictionary
 
         Using different force calculation functions depending on force_mode
@@ -95,7 +96,7 @@ class CalForce:
 
         return nodeforce_dict
 
-    def NodeForce_LineTension(self, G: DisNet) -> (dict, dict):
+    def NodeForce_LineTension(self, G: DisNet) -> Tuple[dict, dict]:
         """NodeForce: return nodal forces from line tension in a dictionary
 
         Only Peach-Koehler force from external stress and line tension forces
@@ -120,7 +121,7 @@ class CalForce:
 
         return nodeforce_dict, segforce_dict
 
-    def NodeForce_Elasticity_SBA(self, G: DisNet) -> (dict, dict):
+    def NodeForce_Elasticity_SBA(self, G: DisNet) -> Tuple[dict, dict]:
         """NodeForce: return nodal forces from external stress and elastic interactions
 
         (from ParaDiS)
@@ -175,7 +176,7 @@ class CalForce:
 
         return nodeforce_dict, segforce_dict
 
-    def NodeForce_Elasticity_SBN1_SBA(self, G: DisNet) -> (dict, dict):
+    def NodeForce_Elasticity_SBN1_SBA(self, G: DisNet) -> Tuple[dict, dict]:
         """NodeForce: return nodal forces from external stress and elastic interactions
 
         (from ParaDiS)
