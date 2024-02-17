@@ -3,7 +3,7 @@ import sys, os
 
 sys.path.extend([os.path.abspath('../../python'),os.path.abspath('../../lib')])
 
-from pydis.disnet import DisNet, DisNode
+from pydis.disnet import DisNet, DisNode, Cell
 from pydis.calforce.calforce_disnet import CalForce
 from pydis.mobility.mobility_disnet import MobilityLaw
 from pydis.timeint.timeint_disnet import TimeIntegration
@@ -12,12 +12,13 @@ from pydis.remesh.remesh_disnet import Remesh
 from pydis.visualize.vis_disnet import VisualizeNetwork
 from pydis.simulate.sim_disnet import SimulateNetwork
 
-def init_frank_read_src_loop(arm_length=1.0, burg_vec=np.array([1.0,0.0,0.0])):
+def init_frank_read_src_loop(arm_length=1.0, box_length=8.0, burg_vec=np.array([1.0,0.0,0.0]), pbc=False):
     # To do:
     # add flags (=7 for fixed nodes) (done)
     # add plane_normal to DisEdge
     print("init_frank_read_src_loop: length = %f" % (arm_length))
-    G = DisNet()
+    cell = Cell(h=box_length*np.eye(3), is_periodic=[pbc,pbc,pbc])
+    G = DisNet(cell=cell)
     rn    = np.array([[0.0, -arm_length/2.0, 0.0,         DisNode.Constraints.PINNED_NODE],
                       [0.0,  0.0,            0.0,         DisNode.Constraints.UNCONSTRAINED],
                       [0.0,  arm_length/2.0, 0.0,         DisNode.Constraints.PINNED_NODE],
@@ -26,20 +27,18 @@ def init_frank_read_src_loop(arm_length=1.0, burg_vec=np.array([1.0,0.0,0.0])):
     N = rn.shape[0]
     links = np.zeros((N, 8))
     for i in range(N):
-        links[i,:] = np.array([i, (i+1)%N, burg_vec[0], burg_vec[1], burg_vec[2], 0, 0, 0])
-    links[0,5:8] = np.array([0.0, 0.0, 1.0])
-    links[1,5:8] = np.array([0.0, 0.0, 1.0])
-    links[2,5:8] = np.array([0.0, 1.0, 0.0])
-    links[3,5:8] = np.array([0.0, 0.0, 1.0])
-    links[4,5:8] = np.array([0.0, 1.0, 0.0])
+        pn = np.cross(burg_vec, rn[(i+1)%N,:3]-rn[i,:3])
+        pn = pn / np.linalg.norm(pn)
+        links[i,:] = np.concatenate(([i, (i+1)%N], burg_vec, pn))
+
     G.add_nodes_links_from_list(rn, links)
     return G
 
 def main():
     global G, sim
-    G = init_frank_read_src_loop()
+    G = init_frank_read_src_loop(pbc=False)
 
-    bounds = np.array([[-4.0, -4.0, -4.0], [4.0, 4.0, 4.0]])
+    bounds = np.array([-0.5*np.diag(G.cell.h), 0.5*np.diag(G.cell.h)])
     vis = VisualizeNetwork(bounds=bounds)
 
     calforce = CalForce(mu=160e9, nu=0.31, a=0.01, Ec=1.0e6,

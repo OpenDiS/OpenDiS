@@ -69,7 +69,10 @@ class Collision:
                 v3, v4 = np.zeros(3), np.zeros(3)
                 if tag1 != tag3 and tag1 != tag4 and tag2 != tag3 and tag2 != tag4:
                     # no nodes are shared
-                    # To do: apply PBC here
+                    # apply PBC
+                    p2 = G.cell.map_to(p2, p1)
+                    p3 = G.cell.map_to(p3, p1)
+                    p4 = G.cell.map_to(p4, p3)
                     dist2, ddist2dt, L1, L2 = GetMinDist2(p1, v1, p2, v2, p3, v3, p4, v4)
                     if dist2 < self.mindist2:
                         collided[i] = True

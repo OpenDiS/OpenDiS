@@ -101,7 +101,7 @@ class CalForce:
 
         Only Peach-Koehler force from external stress and line tension forces
         (from DDLab/src/segforcevec.m)
-        Note: PBC not handled
+        Note: assuming G.seg_list already accounts for PBC
         """
         segments = G.seg_list()
         sigext = voigt_vector_to_tensor(self.applied_stress)
@@ -125,6 +125,7 @@ class CalForce:
         """NodeForce: return nodal forces from external stress and elastic interactions
 
         (from ParaDiS)
+        Note: assuming G.seg_list already accounts for PBC
         """
         segments = G.seg_list()
         sigext = voigt_vector_to_tensor(self.applied_stress)
@@ -151,6 +152,10 @@ class CalForce:
                 p4 = np.array(seg2["R2"])
                 b12 = np.array(seg1["burg_vec"])
                 b34 = np.array(seg2["burg_vec"])
+                # apply PBC
+                p2 = G.cell.map_to(p2, p1)
+                p3 = G.cell.map_to(p3, p1)
+                p4 = G.cell.map_to(p4, p3)
                 f1, f2, f3, f4 = compute_segseg_force(p1, p2, p3, p4, b12, b34, self.mu, self.nu, self.a)
                 tag1 = seg1["edge"][0]
                 tag2 = seg1["edge"][1]
@@ -180,6 +185,7 @@ class CalForce:
         """NodeForce: return nodal forces from external stress and elastic interactions
 
         (from ParaDiS)
+        Note: assuming G.seg_list already accounts for PBC
         """
         segments = G.seg_list()
         sigext = voigt_vector_to_tensor(self.applied_stress)
@@ -213,6 +219,10 @@ class CalForce:
                 p4 = np.array(seg2["R2"])
                 b12 = np.array(seg1["burg_vec"])
                 b34 = np.array(seg2["burg_vec"])
+                # apply PBC
+                p2 = G.cell.map_to(p2, p1)
+                p3 = G.cell.map_to(p3, p1)
+                p4 = G.cell.map_to(p4, p3)
                 f1, f2, f3, f4 = compute_segseg_force_SBN1_SBA(p1, p2, p3, p4, b12, b34, self.mu, self.nu, self.a, quad_points, weights)
                 tag1 = seg1["edge"][0]
                 tag2 = seg1["edge"][1]

@@ -3,7 +3,7 @@ import sys, os
 
 sys.path.extend([os.path.abspath('../../python'),os.path.abspath('../../lib')])
 
-from pydis.disnet import DisNet, DisNode
+from pydis.disnet import DisNet, DisNode, Cell
 from pydis.calforce.calforce_disnet import CalForce
 from pydis.mobility.mobility_disnet import MobilityLaw
 from pydis.timeint.timeint_disnet import TimeIntegration
@@ -12,10 +12,11 @@ from pydis.remesh.remesh_disnet import Remesh
 from pydis.visualize.vis_disnet import VisualizeNetwork
 from pydis.simulate.sim_disnet import SimulateNetwork
 
-def init_two_disl_lines(z0=1.0, b1=np.array([-1.0,1.0,1.0]), b2=np.array([1.0,-1.0,1.0])):
+def init_two_disl_lines(z0=1.0, box_length=8.0, b1=np.array([-1.0,1.0,1.0]), b2=np.array([1.0,-1.0,1.0]), pbc=False):
     # To do:
     print("init_two_disl_lines: z0 = %f" % (z0))
-    G = DisNet()
+    cell = Cell(h=box_length*np.eye(3), is_periodic=[pbc,pbc,pbc])
+    G = DisNet(cell=cell)
     rn    = np.array([[0.0, -z0, -z0,  DisNode.Constraints.PINNED_NODE],
                       [0.0,  0.0, 0.0, DisNode.Constraints.UNCONSTRAINED],
                       [0.0,  z0,  z0,  DisNode.Constraints.PINNED_NODE],
@@ -27,18 +28,18 @@ def init_two_disl_lines(z0=1.0, b1=np.array([-1.0,1.0,1.0]), b2=np.array([1.0,-1
     n1,  n2 = np.cross(b1, xi1),  np.cross(b2, xi2)
     n1,  n2 = n1 / np.linalg.norm(n1),  n2 / np.linalg.norm(n2)
     links = np.zeros((4, 8))
-    links[0,:] = np.array([0, 1, b1[0], b1[1], b1[2], n1[0], n1[1], n1[2]])
-    links[1,:] = np.array([1, 2, b1[0], b1[1], b1[2], n1[0], n1[1], n1[2]])
-    links[2,:] = np.array([3, 4, b2[0], b2[1], b2[2], n2[0], n2[1], n2[2]])
-    links[3,:] = np.array([4, 5, b2[0], b2[1], b2[2], n2[0], n2[1], n2[2]])
+    links[0,:] = np.concatenate(([0, 1], b1, n1))
+    links[1,:] = np.concatenate(([1, 2], b1, n1))
+    links[2,:] = np.concatenate(([3, 4], b2, n2))
+    links[3,:] = np.concatenate(([4, 5], b2, n2))
     G.add_nodes_links_from_list(rn, links)
     return G
 
 def main():
     global G, sim
-    G = init_two_disl_lines(z0=4000)
+    G = init_two_disl_lines(z0=4000, box_length=3.5e4, pbc=False)
 
-    bounds = np.array([[-1.75e4, -1.75e4, -1.75e4], [1.75e4, 1.75e4, 1.75e4]])
+    bounds = np.array([-0.5*np.diag(G.cell.h), 0.5*np.diag(G.cell.h)])
     vis = VisualizeNetwork(bounds=bounds)
 
     calforce = CalForce(mu=160e9, nu=0.31, a=0.1, Ec=1.0e6,

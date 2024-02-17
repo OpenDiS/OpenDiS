@@ -61,13 +61,42 @@ class DisEdge:
         if plane_normal is not None:
             self.plane_normal = plane_normal
 
+class Cell:
+    """Cell: class for simulation cell in which dislocation network is embedded
+
+    Defines periodic or non-periodic boundary conditions in each direction
+    """
+    def __init__(self, h: np.ndarray=np.eye(3), is_periodic: list=[False,False,False]) -> None:
+        self.h = h
+        self.hinv = np.linalg.inv(h)
+        self.is_periodic = is_periodic
+
+    def map(self, dr: np.ndarray) -> np.ndarray:
+        """map: map a vector to the simulation cell
+        """
+        if not any(self.is_periodic):
+            return dr
+        ds = np.dot(self.hinv, dr.T).T
+        ds -= self.is_periodic * np.round(ds)
+        return np.dot(self.h, ds.T).T
+
+    def map_to(self, r2: np.ndarray, r1: np.ndarray) -> np.ndarray:
+        """map: map r2 to the nearest image of r1 (if PBC is applied)
+        """
+        if not any(self.is_periodic):
+            return r2
+        ds = np.dot(self.hinv, (r2-r1).T).T
+        ds -= self.is_periodic * np.round(ds)
+        return np.dot(self.h, ds.T).T + r1
+
 class DisNet:
     """DisNet: class for dislocation network
 
     Implements basic topological operations on dislocation networks
     """
-    def __init__(self, data=None, **attr) -> None:
+    def __init__(self, data=None, cell=None, **attr) -> None:
         self._G = nx.DiGraph(data, **attr)
+        self.cell = Cell() if cell is None else cell
         self._recycled_tags = []
 
     def neighbors(self, tag: Tag):
@@ -108,10 +137,14 @@ class DisNet:
             tag1 = edge[0]
             tag2 = edge[1]
             if tag1 < tag2:
+                r1 = self._G.nodes[tag1]["R"]
+                r2 = self._G.nodes[tag2]["R"]
+                # apply PBC
+                r2 = self.cell.map_to(r2, r1)
                 segments.append({"edge":edge,
                                  "burg_vec":self._G.edges[edge]["burg_vec"],
-                                 "R1":self._G.nodes[tag1]["R"],
-                                 "R2":self._G.nodes[tag2]["R"]})
+                                 "R1":r1,
+                                 "R2":r2})
         return segments
     
     def has_node(self, tag: Tag) -> bool:

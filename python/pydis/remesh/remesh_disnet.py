@@ -34,7 +34,8 @@ class Remesh:
             tag1, tag2 = segment["edge"][0], segment["edge"][1]
             node1, node2 = G.nodes[tag1], G.nodes[tag2]
             R1, R2 = node1["R"], node2["R"]
-            # To do: apply PBC here
+            # apply PBC
+            R2 = G.cell.map_to(R2, R1)
             L = np.linalg.norm(R2-R1)
             if (L < self.Lmin):
                 if G.out_degree(tag1) == 2 and node1["constraint"] != DisNode.Constraints.PINNED_NODE:
@@ -53,7 +54,8 @@ class Remesh:
             tag1, tag2 = segment["edge"][0], segment["edge"][1]
             node1, node2 = G.nodes[tag1], G.nodes[tag2]
             R1, R2 = node1["R"], node2["R"]
-            # To do: apply PBC here
+            # apply PBC
+            R2 = G.cell.map_to(R2, R1)
             L = np.linalg.norm(R2-R1)
             if (L > self.Lmax) and ((node1["constraint"] != DisNode.Constraints.PINNED_NODE) or (node2["constraint"] != DisNode.Constraints.PINNED_NODE)):
                 # insert new node on segment
