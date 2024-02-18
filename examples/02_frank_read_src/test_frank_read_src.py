@@ -3,7 +3,7 @@ import sys, os
 
 sys.path.extend([os.path.abspath('../../python'),os.path.abspath('../../lib')])
 
-from pydis.disnet import DisNet, DisNode, Cell
+from pydis.disnet import DisNet, DisNode, Cell, CellList
 from pydis.calforce.calforce_disnet import CalForce
 from pydis.mobility.mobility_disnet import MobilityLaw
 from pydis.timeint.timeint_disnet import TimeIntegration
@@ -18,7 +18,8 @@ def init_frank_read_src_loop(arm_length=1.0, box_length=8.0, burg_vec=np.array([
     # add plane_normal to DisEdge
     print("init_frank_read_src_loop: length = %f" % (arm_length))
     cell = Cell(h=box_length*np.eye(3), is_periodic=[pbc,pbc,pbc])
-    G = DisNet(cell=cell)
+    cell_list = CellList(cell=cell, n_div=[8,8,8])
+    G = DisNet(cell=cell, cell_list=cell_list)
     rn    = np.array([[0.0, -arm_length/2.0, 0.0,         DisNode.Constraints.PINNED_NODE],
                       [0.0,  0.0,            0.0,         DisNode.Constraints.UNCONSTRAINED],
                       [0.0,  arm_length/2.0, 0.0,         DisNode.Constraints.PINNED_NODE],

@@ -35,22 +35,23 @@ class Collision:
            This is a much simplified version of Proximity collision handling in ParaDiS
         """
         # loop through all segment pairs to check for collision
-        # To do: implement cell list to speed up
         segments = G.seg_list()
+        midpoints = G.get_segments_midpoint(segments)
+        G.cell_list.sort_points_to_list(midpoints)
+
         collided = np.zeros(len(segments), dtype=bool)
-        nseg = len(segments)
-        for i in range(nseg):
-            seg1 = segments[i]
-            if collided[i]:
-                continue
-            tag1, tag2 = seg1["edge"][0], seg1["edge"][1]
-            if not G.has_edge(tag1, tag2):
-                continue
-            if G.nodes[tag1].get('flag') & DisNode.Flags.NO_COLLISIONS:
-                continue
-            if G.nodes[tag2].get('flag') & DisNode.Flags.NO_COLLISIONS:
-                continue
-            for j in range(i+1, nseg):
+        for i, j in G.cell_list.iterate_nbr_pairs(use_cell_list=all(G.cell.is_periodic)):
+                seg1 = segments[i]
+                if collided[i]:
+                    continue
+                tag1, tag2 = seg1["edge"][0], seg1["edge"][1]
+                if not G.has_edge(tag1, tag2):
+                    continue
+                if G.nodes[tag1].get('flag') & DisNode.Flags.NO_COLLISIONS:
+                    continue
+                if G.nodes[tag2].get('flag') & DisNode.Flags.NO_COLLISIONS:
+                    continue
+
                 seg2 = segments[j]
                 if collided[i] or collided[j]:
                     continue
