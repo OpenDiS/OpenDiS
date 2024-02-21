@@ -144,6 +144,8 @@ class CellList:
 
     def iterate_nbr_pairs(self, use_cell_list: bool=True):
         """iterate_nbr_pairs: iterate over all pairs of segments in the same cell and all neighbor cells
+
+        Note: self pairs (i, i) not included
         """
         if not use_cell_list:
             n = len(self._cell_indices)
