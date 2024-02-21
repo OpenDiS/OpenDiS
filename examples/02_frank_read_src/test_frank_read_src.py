@@ -1,7 +1,7 @@
 import numpy as np
 import sys, os
 
-sys.path.extend([os.path.abspath('../../python'),os.path.abspath('../../lib')])
+sys.path.extend([os.path.abspath('../../python'),os.path.abspath('../../lib'),os.path.abspath('../../core/pydis/python')])
 
 from pydis.disnet import DisNet, DisNode, Cell, CellList
 from pydis.calforce.calforce_disnet import CalForce

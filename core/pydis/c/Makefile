@@ -1,4 +1,4 @@
-LIB_PYDIS_SO = ../../lib/libpydis.so
+LIB_PYDIS_SO = ../../../lib/libpydis.so
 
 all: $(LIB_PYDIS_SO)
 

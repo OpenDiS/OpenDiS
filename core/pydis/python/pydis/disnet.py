@@ -11,6 +11,8 @@ from copy import deepcopy
 from enum import IntEnum
 import itertools
 
+from base_classes.disnet_base import DisNet_BASE
+
 Tag = Tuple[int, int]
 
 class DisNode:
@@ -159,7 +161,7 @@ class CellList:
                 for j in nbr_ids:
                     if i < j: yield i, j
 
-class DisNet:
+class DisNet(DisNet_BASE):
     """DisNet: class for dislocation network
 
     Implements basic topological operations on dislocation networks
@@ -187,6 +189,17 @@ class DisNet:
         """
         return self._G.edges
     
+    # To do: rename function edges
+    def segments(self):
+        """segments: return segment view of the network
+        """
+        return self.edges()
+
+    def segments(self, tag_pair: Tuple[Tag, Tag]):
+        """segments: return segment view of the network
+        """
+        return self.edges(tag_pair)
+
     @property
     def out_degree(self):
         """out_degree: return out degree of a node
@@ -198,6 +211,18 @@ class DisNet:
         """
         return np.array([node_attr["R"] for node, node_attr in self._G.nodes.items()])
     
+    # To do: implement function node_prop_list
+    def node_prop_list(self) -> list:
+        """node_prop_list: return a list of node properties
+        """
+        return [node_attr for node, node_attr in self._G.nodes.items()]
+
+    # To do: implement function seg_prop_list
+    def seg_prop_list(self) -> list:
+        """seg_prop_list: return a list of segment properties
+        """
+        return [edge_attr for edge, edge_attr in self._G.edges.items()]
+
     def seg_list(self) -> list:
         """seg_list: return a list of segments
 
@@ -250,6 +275,10 @@ class DisNet:
         """
         return self._G.has_node(tag)
     
+    # To do: rename function has_edge
+    def has_segment(self, tag1: Tag, tag2: Tag) -> bool:
+        return self.has_edge(tag1, tag2)
+
     def has_edge(self, tag1: Tag, tag2: Tag) -> bool:
         """has_edge: check if an edge exists in the network
         """
@@ -295,6 +324,10 @@ class DisNet:
         self._G.edges[(tag1, tag2)]["burg_vec"] += edge_attr.burg_vec
 
         # To do: update glide plane normal
+
+    # To do: rename function add_nodes_links_from_list
+    def add_nodes_segments_from_list(self, rn, links) -> None:
+        return self.add_nodes_links_from_list(rn, links)
 
     def add_nodes_links_from_list(self, rn, links) -> None:
         """add_nodes_links_from_list: add nodes and edges stored in lists to network
