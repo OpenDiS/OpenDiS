@@ -26,6 +26,8 @@ def voigt_vector_to_tensor(voigt_vector):
                      [voigt_vector[4], voigt_vector[3], voigt_vector[2]]])
 
 def pkforcevec(sigext, segments):
+    # return Peach-Koehler force vector for each segment
+    # half of it should be assigned to each node
     nseg = len(segments)
     fpk = np.zeros((nseg, 3))
     for idx, segment in enumerate(segments):
@@ -130,7 +132,7 @@ class CalForce:
         segments = G.seg_list()
         sigext = voigt_vector_to_tensor(self.applied_stress)
         fpk = pkforcevec(sigext, segments)
-        fseg = np.hstack((fpk, fpk))
+        fseg = np.hstack((fpk*0.5, fpk*0.5))
 
         nodeforce_dict, segforce_dict = {}, {}
         for tag in G.nodes:
@@ -190,7 +192,7 @@ class CalForce:
         segments = G.seg_list()
         sigext = voigt_vector_to_tensor(self.applied_stress)
         fpk = pkforcevec(sigext, segments)
-        fseg = np.hstack((fpk, fpk))
+        fseg = np.hstack((fpk*0.5, fpk*0.5))
 
         nodeforce_dict, segforce_dict = {}, {}
         for tag in G.nodes:
