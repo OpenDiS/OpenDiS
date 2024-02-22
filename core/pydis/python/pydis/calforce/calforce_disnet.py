@@ -31,7 +31,7 @@ def pkforcevec(sigext, segments):
     for idx, segment in enumerate(segments):
         sigb = sigext @ segment["burg_vec"]
         dR = segment["R2"] - segment["R1"]
-        fpk[idx] = np.cross(sigb, dR)
+        fpk[idx] = np.cross(sigb, dR) * 0.5
     return fpk
 
 def selfforcevec_LineTension(MU, NU, Ec, segments, eps_L=1e-6):
