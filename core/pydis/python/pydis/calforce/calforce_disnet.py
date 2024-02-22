@@ -31,7 +31,7 @@ def pkforcevec(sigext, segments):
     for idx, segment in enumerate(segments):
         sigb = sigext @ segment["burg_vec"]
         dR = segment["R2"] - segment["R1"]
-        fpk[idx] = np.cross(sigb, dR) * 0.5
+        fpk[idx] = np.cross(sigb, dR)
     return fpk
 
 def selfforcevec_LineTension(MU, NU, Ec, segments, eps_L=1e-6):
@@ -107,7 +107,7 @@ class CalForce:
         sigext = voigt_vector_to_tensor(self.applied_stress)
         fpk = pkforcevec(sigext, segments)
         fs0, fs1 = selfforcevec_LineTension(self.mu, self.nu, self.Ec, segments)
-        fseg = np.hstack((fpk + fs0, fpk + fs1))
+        fseg = np.hstack((fpk*0.5 + fs0, fpk*0.5 + fs1))
 
         nodeforce_dict, segforce_dict = {}, {}
         for tag in G.nodes:
