@@ -37,7 +37,7 @@ def init_frank_read_src_loop(arm_length=1.0, box_length=8.0, burg_vec=np.array([
 
 def main():
     global G, sim
-    G = init_frank_read_src_loop(pbc=False)
+    G = init_frank_read_src_loop(pbc=True)
 
     bounds = np.array([-0.5*np.diag(G.cell.h), 0.5*np.diag(G.cell.h)])
     vis = VisualizeNetwork(bounds=bounds)

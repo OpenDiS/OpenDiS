@@ -411,11 +411,12 @@ class DisNet(DisNet_BASE):
         if end_nodes_connected:
             # cleaning up is needed if the two end nodes were connected
             self.remove_empty_arms(tag1)
-            self.remove_empty_arms(tag2)
             if len(self.edges(tag1)) == 0:
                 self._remove_node(tag1)
-            if len(self.edges(tag2)) == 0:
-                self._remove_node(tag2)
+            if self.has_node(tag2):
+                self.remove_empty_arms(tag2)
+                if len(self.edges(tag2)) == 0:
+                    self._remove_node(tag2)
 
     def remove_empty_arms(self, tag: Tag) -> None:
         """remove_empty_arms: remove any zero-Burgers vector arms between a node and any of its neighbors
