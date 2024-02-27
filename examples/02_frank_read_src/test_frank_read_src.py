@@ -43,7 +43,7 @@ def main():
     vis = VisualizeNetwork(bounds=bounds)
 
     calforce = CalForce(mu=160e9, nu=0.31, a=0.01, Ec=1.0e6,
-                        applied_stress=np.array([0.0, 0.0, 0.0, 0.0, -2.0e6, 0.0]),
+                        applied_stress=np.array([0.0, 0.0, 0.0, 0.0, -4.0e6, 0.0]),
                         force_mode='LineTension')
 
     mobility  = MobilityLaw(mobility_law='SimpleGlide')
