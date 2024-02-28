@@ -20,8 +20,8 @@ class DisNetManager:
     """
     def __init__(self, disnet_dict: dict={}):
         self.disnet_dict = disnet_dict
-        self.active_type = None
-        self.last_active_type = None
+        self._active_type = None
+        self._last_active_type = None
 
     def add_disnet(self, disnet):
         """Add DisNet object of disnet_type
@@ -39,17 +39,17 @@ class DisNetManager:
 
         #G_des.import_data(G_src.export_data())
 
-        self.last_active_type = disnet_des
+        self._last_active_type = disnet_des
 
     def get_disnet(self, disnet_type):
         """Get DisNet object of disnet_type
         """
-        self.active_type = disnet_type
-        if self.last_active_type is not None and self.last_active_type != self.active_type:
-            self.synchronize_disnet(self.last_active_type, self.active_type)
+        self._active_type = disnet_type
+        if self._last_active_type is not None and self._last_active_type != self._active_type:
+            self.synchronize_disnet(self._last_active_type, self._active_type)
         return self.disnet_dict[disnet_type]
     
-    def is_active(self):
+    def get_active_type(self):
         """Return the type of DisNet that is active
         """
-        return True
+        return self._active_type
