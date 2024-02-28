@@ -1,8 +1,9 @@
 import numpy as np
 import sys, os
 
-sys.path.extend([os.path.abspath('../../python'),os.path.abspath('../../lib')])
+sys.path.extend([os.path.abspath('../../python'),os.path.abspath('../../lib'),os.path.abspath('../../core/pydis/python')])
 
+from framework.disnet_manager import DisNetManager
 from pydis.disnet import DisNet, DisNode, Cell, CellList
 from pydis.calforce.calforce_disnet import CalForce
 from pydis.mobility.mobility_disnet import MobilityLaw
@@ -34,11 +35,13 @@ def init_two_disl_lines(z0=1.0, box_length=8.0, b1=np.array([-1.0,1.0,1.0]), b2=
     links[2,:] = np.concatenate(([3, 4], b2, n2))
     links[3,:] = np.concatenate(([4, 5], b2, n2))
     G.add_nodes_links_from_list(rn, links)
-    return G
+    DM = DisNetManager({type(G): G})
+    return DM
 
 def main():
     global G, sim
-    G = init_two_disl_lines(z0=4000, box_length=3.5e4, pbc=False)
+    DM = init_two_disl_lines(z0=4000, box_length=3.5e4, pbc=False)
+    G = DM.get_disnet(DisNet)
 
     bounds = np.array([-0.5*np.diag(G.cell.h), 0.5*np.diag(G.cell.h)])
     vis = VisualizeNetwork(bounds=bounds)
@@ -56,7 +59,7 @@ def main():
                           timeint=timeint, collision=collision, remesh=remesh, vis=vis,
                           dt0 = 1.0e-8, max_step=200,
                           print_freq=10, plot_freq=10, plot_pause_seconds=0.1)
-    sim.run(G)
+    sim.run(DM)
 
     return G.is_sane()
 

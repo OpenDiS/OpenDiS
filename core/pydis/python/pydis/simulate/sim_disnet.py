@@ -10,6 +10,7 @@ from ..calforce.calforce_disnet import CalForce
 from ..mobility.mobility_disnet import MobilityLaw
 from ..timeint.timeint_disnet import TimeIntegration
 from ..visualize.vis_disnet import VisualizeNetwork
+from framework.disnet_manager import DisNetManager
 
 try:
     import matplotlib.pyplot as plt
@@ -65,7 +66,8 @@ class SimulateNetwork:
         if self.remesh is not None:
             self.remesh.Remesh(G)
 
-    def run(self, G: DisNet):
+    def run(self, DM: DisNetManager):
+        G = DM.get_disnet(DisNet)
         if self.plot_freq != None:
             try: 
                 fig = plt.figure(figsize=(8,8))
