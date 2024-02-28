@@ -20,15 +20,33 @@ class DisNetManager:
     """
     def __init__(self, disnet_dict: dict={}):
         self.disnet_dict = disnet_dict
+        self.active_type = None
+        self.last_active_type = None
 
     def add_disnet(self, disnet):
         """Add DisNet object of disnet_type
         """
         self.disnet_dict[type(disnet)] = disnet
 
+    def synchronize_disnet(self, disnet_src, disnet_des):
+        """Synchronize DisNet between disnet_src and disnet_des
+        """
+        if disnet_src == disnet_des:
+            raise ValueError("synchronize_disnet: disnet_src and disnet_des are the same")
+
+        G_src = self.disnet_dict[disnet_from]
+        G_des = self.disnet_dict[disnet_to]
+
+        #G_des.import_data(G_src.export_data())
+
+        self.last_active_type = disnet_des
+
     def get_disnet(self, disnet_type):
         """Get DisNet object of disnet_type
         """
+        self.active_type = disnet_type
+        if self.last_active_type is not None and self.last_active_type != self.active_type:
+            self.synchronize_disnet(self.last_active_type, self.active_type)
         return self.disnet_dict[disnet_type]
     
     def is_active(self):

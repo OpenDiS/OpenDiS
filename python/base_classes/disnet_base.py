@@ -54,6 +54,18 @@ class DisNet_BASE(ABC):
            (each item of the list is a dictionary)
         """
         pass
+
+    @abstractmethod
+    def export_data(self):
+        """export_data: export network to data
+        """
+        pass
+
+    @abstractmethod
+    def import_data(self, data):
+        """import_data: import network from data
+        """
+        pass
     
     @abstractmethod
     def has_node(self, tag) -> bool:

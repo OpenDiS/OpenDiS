@@ -255,6 +255,22 @@ class DisNet(DisNet_BASE):
             mp[i,:] = 0.5*(r1+r2)
         return mp
 
+    def export_data(self):
+        """export_data: export network to data
+        """
+        data = {"cell" : self.cell,
+                "nodes": self.nodes_array(),
+                "segs" : self.segs_array() }
+        return data
+
+    def import_data(self, data):
+        """import_data: import network from data
+        """
+        # To do: deepcopy in set_nodes_array and set_segs_array
+        self.cell = deepcopy(data.get("cell"))
+        self.set_nodes_array(data.get("nodes"))
+        self.set_segs_array(data.get("segs"))
+
     def sort_segments_to_cell_list(self, segments):
         """sort_segments_to_cell: sort segments to cell list
         """
