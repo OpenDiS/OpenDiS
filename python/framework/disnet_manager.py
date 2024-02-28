@@ -34,10 +34,19 @@ class DisNetManager:
         if disnet_src == disnet_des:
             raise ValueError("synchronize_disnet: disnet_src and disnet_des are the same")
 
-        G_src = self.disnet_dict[disnet_from]
-        G_des = self.disnet_dict[disnet_to]
+        if disnet_src in self.disnet_dict:
+            G_src = self.disnet_dict[disnet_src]
+        else:
+            raise ValueError("synchronize_disnet: disnet_src not found")
 
-        #G_des.import_data(G_src.export_data())
+        if disnet_des in self.disnet_dict:
+            G_des = self.disnet_dict[disnet_des]
+        else:
+            # call constructor to create default DisNet object
+            G_des = disnet_des()
+            self.add_disnet(G_des)
+
+        G_des.import_data(G_src.export_data())
 
         self._last_active_type = disnet_des
 
