@@ -6,6 +6,7 @@ Provide mobility law functions given a DisNet object
 
 import numpy as np
 from ..disnet import DisNet, DisNode
+from framework.disnet_manager import DisNetManager
 
 class MobilityLaw:
     """MobilityLaw: class for mobility laws
@@ -19,9 +20,10 @@ class MobilityLaw:
             'Relax': self.Mobility_Relax,
             'SimpleGlide': self.Mobility_SimpleGlide }
         
-    def Mobility(self, G: DisNet, nodeforce_dict: dict):
+    def Mobility(self, DM: DisNetManager, nodeforce_dict: dict):
         """Mobility: calculate node velocity according to mobility law function
         """
+        G = DM.get_disnet(DisNet)
         return self.Mobility_Functions[self.mobility_law](G, nodeforce_dict)
 
     def Mobility_Relax(self, G: DisNet, nodeforce_dict: dict) -> dict:

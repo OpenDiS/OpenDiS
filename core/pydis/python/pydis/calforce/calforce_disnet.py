@@ -7,6 +7,7 @@ Provide force calculation functions given a DisNet object
 import numpy as np
 from typing import Tuple
 from ..disnet import DisNet
+from framework.disnet_manager import DisNetManager
 
 try:
     from .compute_stress_force_analytic_paradis import compute_segseg_force_vec, compute_segseg_force
@@ -78,11 +79,12 @@ class CalForce:
             'Elasticity_SBA': self.NodeForce_Elasticity_SBA,
             'Elasticity_SBN1_SBA': self.NodeForce_Elasticity_SBN1_SBA }
 
-    def NodeForce(self, G: DisNet) -> Tuple[dict, dict]:
+    def NodeForce(self, DM: DisNetManager) -> Tuple[dict, dict]:
         """NodeForce: return nodal forces in a dictionary
 
         Using different force calculation functions depending on force_mode
         """
+        G = DM.get_disnet(DisNet)
         return self.NodeForce_Functions[self.force_mode](G)
 
     def NodeForce_from_SegForce(self, G: DisNet, segforce_dict: dict) -> dict:
@@ -249,4 +251,3 @@ class CalForce:
             segforce_dict[segment["edge"]] = fseg[idx, :]
 
         return nodeforce_dict, segforce_dict
-

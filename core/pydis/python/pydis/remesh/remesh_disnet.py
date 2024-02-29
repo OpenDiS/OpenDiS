@@ -6,6 +6,7 @@ Provide remesh functions given a DisNet object
 
 import numpy as np
 from ..disnet import DisNet, DisNode
+from framework.disnet_manager import DisNetManager
 
 class Remesh:
     """Remesh: class for remeshing dislocation network
@@ -20,9 +21,10 @@ class Remesh:
             'LengthBased': self.Remesh_LengthBased,
             'RemeshRule_2_ParaDiS': self.RemeshRule_2_ParaDiS }
         
-    def Remesh(self, G: DisNet) -> None:
+    def Remesh(self, DM: DisNetManager) -> None:
         """Remesh: remesh dislocation network according to remesh_rule
         """
+        G = DM.get_disnet(DisNet)
         return self.Remesh_Functions[self.remesh_rule](G)
 
     def Remesh_LengthBased(self, G: DisNet) -> None:

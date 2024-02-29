@@ -254,22 +254,54 @@ class DisNet(DisNet_BASE):
             r2 = self.cell.map_to(r2, r1)
             mp[i,:] = 0.5*(r1+r2)
         return mp
-
+        
+    def nodes_array(self) -> list:
+        """nodes_array: pack nodes into an array for export
+        Node format: x,y,z,constraint
+        """
+        nodes = []
+        ntags = {}
+        for i, tag in enumerate(self._G.nodes()):
+            r = self._G.nodes[tag]["R"]
+            constraint = self._G.nodes[tag]["constraint"]
+            nodes.append([r[0], r[1], r[2], constraint])
+            ntags[tag] = i
+        return nodes, ntags
+    
+    def segs_array(self, ntags: dict) -> list:
+        """segs_array: pack segments into an array for export
+        Seg format: node1,node2,burg,plane
+        """
+        segments = []
+        for edge in self._G.edges():
+            n1, n2 = ntags[edge[0]], ntags[edge[1]]
+            if n1 < n2:
+                b = self._G.edges[edge]["burg_vec"]
+                p = self._G.edges[edge]["plane_normal"]
+                segments.append([n1, n2, b[0], b[1], b[2], p[0], p[1], p[2]])
+        return segments
+        
     def export_data(self):
         """export_data: export network to data
         """
-        data = {"cell" : self.cell,
-                "nodes": self.nodes_array(),
-                "segs" : self.segs_array() }
+        cell = {"h": self.cell.h, "is_periodic": self.cell.is_periodic}
+        nodes, ntags = self.nodes_array()
+        segs = self.segs_array(ntags)
+        data = {"cell" : cell,
+                "nodes": nodes,
+                "segs" : segs }
         return data
-
+    
     def import_data(self, data):
         """import_data: import network from data
         """
-        # To do: deepcopy in set_nodes_array and set_segs_array
-        self.cell = deepcopy(data.get("cell"))
-        self.set_nodes_array(data.get("nodes"))
-        self.set_segs_array(data.get("segs"))
+        cell = data.get("cell")
+        self.cell = Cell(h=cell.get("h"), is_periodic=cell.get("is_periodic"))
+        self._G.clear()
+        self._recycled_tags = []
+        rn = data.get("nodes")
+        segs = data.get("segs")
+        self.add_nodes_links_from_list(rn, segs)
 
     def sort_segments_to_cell_list(self, segments):
         """sort_segments_to_cell: sort segments to cell list

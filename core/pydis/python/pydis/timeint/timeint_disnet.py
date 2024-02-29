@@ -6,6 +6,7 @@ Provide time integration functions given a DisNet object
 
 import numpy as np
 from ..disnet import DisNet
+from framework.disnet_manager import DisNetManager
 
 class TimeIntegration:
     """TimeIntegration: class for time integration
@@ -19,9 +20,10 @@ class TimeIntegration:
         self.Update_Functions = {
             'EulerForward': self.Update_EulerForward }
         
-    def Update(self, G: DisNet, vel_dict: dict) -> None:
+    def Update(self, DM: DisNetManager, vel_dict: dict) -> None:
         """TimeIntegration: update node position given velocity
         """
+        G = DM.get_disnet(DisNet)
         return self.Update_Functions[self.integrator](G, vel_dict)
 
     def Update_EulerForward(self, G: DisNet, vel_dict: dict) -> None:

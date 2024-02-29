@@ -20,8 +20,8 @@ class DisNetManager:
     """
     def __init__(self, disnet_dict: dict={}):
         self.disnet_dict = disnet_dict
+        self._last_active_type = list(self.disnet_dict)[0]
         self._active_type = None
-        self._last_active_type = None
 
     def add_disnet(self, disnet):
         """Add DisNet object of disnet_type

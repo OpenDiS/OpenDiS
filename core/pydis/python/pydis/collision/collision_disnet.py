@@ -6,6 +6,7 @@ Provide collision handling functions given a DisNet object
 
 import numpy as np
 from ..disnet import DisNet, DisNode
+from framework.disnet_manager import DisNetManager
 
 try:
     from .getmindist2_paradis import GetMinDist2_paradis as GetMinDist2
@@ -25,9 +26,10 @@ class Collision:
         self.HandleCol_Functions = {
             'Proximity': self.HandleCol_Proximity }
         
-    def HandleCol(self, G: DisNet) -> None:
+    def HandleCol(self, DM: DisNetManager) -> None:
         """HandleCol: handle collision according to collision_mode
         """
+        G = DM.get_disnet(DisNet)
         return self.HandleCol_Functions[self.collision_mode](G)
 
     def HandleCol_Proximity(self, G: DisNet) -> None:
