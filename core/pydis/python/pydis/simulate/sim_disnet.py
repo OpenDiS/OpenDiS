@@ -46,25 +46,26 @@ class SimulateNetwork:
         self.plot_pause_seconds = plot_pause_seconds
         pass
 
-    def step(self, G: DisNet):
+    def step(self, DM: DisNetManager):
         """step: take a time step of DD simulation on DisNet G
         """
-        nodeforce_dict, segforce_dict = self.calforce.NodeForce(G)
+        nodeforce_dict, segforce_dict = self.calforce.NodeForce(DM)
 
-        vel_dict = self.mobility.Mobility(G, nodeforce_dict)
+        vel_dict = self.mobility.Mobility(DM, nodeforce_dict)
 
         # using a constant time step (for now)
         self.timeint.dt = self.dt0
-        self.timeint.Update(G, vel_dict)
+        self.timeint.Update(DM, vel_dict)
 
+        G = DM.get_disnet(DisNet)
         DisNet.init_topology_exemptions(G)
         DisNet.split_multi_nodes(G, vel_dict, nodeforce_dict, segforce_dict, self)
 
         if self.collision is not None:
-            self.collision.HandleCol(G)
+            self.collision.HandleCol(DM)
 
         if self.remesh is not None:
-            self.remesh.Remesh(G)
+            self.remesh.Remesh(DM)
 
     def run(self, DM: DisNetManager):
         G = DM.get_disnet(DisNet)
@@ -77,15 +78,17 @@ class SimulateNetwork:
             self.vis.plot_disnet(G, fig=fig, ax=ax, trim=True, block=False)
 
         for tstep in range(self.max_step):
-            self.step(G)
+            self.step(DM)
 
             if self.print_freq != None:
                 if tstep % self.print_freq == 0:
                     print("step = %d dt = %e"%(tstep, self.timeint.dt))
 
+            G = DM.get_disnet(DisNet)
             if self.plot_freq != None:
                 if tstep % self.plot_freq == 0:
                     self.vis.plot_disnet(G, fig=fig, ax=ax, trim=True, block=False, pause_seconds=self.plot_pause_seconds)
 
         # plot final configuration
+        G = DM.get_disnet(DisNet)
         self.vis.plot_disnet(G, fig=fig, ax=ax, trim=True, block=False)

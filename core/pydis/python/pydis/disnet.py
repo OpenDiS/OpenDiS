@@ -12,6 +12,7 @@ from enum import IntEnum
 import itertools
 
 from base_classes.disnet_base import DisNet_BASE
+from framework.disnet_manager import DisNetManager
 
 Tag = Tuple[int, int]
 
@@ -712,7 +713,8 @@ class DisNet(DisNet_BASE):
 
             # calculate nodal forces and velocities for the trial split
             nodeforce_dict_trial = sim.calforce.NodeForce_from_SegForce(G_trial, segforce_trial_dict)
-            vel_dict_trial = sim.mobility.Mobility(G_trial, nodeforce_dict_trial)
+            DM_trial = DisNetManager({type(G_trial): G_trial})
+            vel_dict_trial = sim.mobility.Mobility(DM_trial, nodeforce_dict_trial)
 
             power_diss[k] = np.dot(nodeforce_dict_trial[split_node1], vel_dict_trial[split_node1]) \
                           + np.dot(nodeforce_dict_trial[split_node2], vel_dict_trial[split_node2])
