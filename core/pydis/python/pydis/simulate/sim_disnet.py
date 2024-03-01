@@ -26,7 +26,8 @@ class SimulateNetwork:
 
     """
     def __init__(self, calforce,
-                 mobility=None, timeint=None, collision=None, remesh=None, vis=None,
+                 mobility=None, timeint=None, topology=None,
+                 collision=None, remesh=None, vis=None,
                  dt0: float=1.0e-8,
                  max_step: int=10,
                  print_freq: int=None,
@@ -36,6 +37,7 @@ class SimulateNetwork:
         self.calforce = calforce
         self.mobility = mobility
         self.timeint = timeint
+        self.topology = topology
         self.collision = collision
         self.remesh = remesh
         self.vis = vis
@@ -57,9 +59,7 @@ class SimulateNetwork:
         self.timeint.dt = self.dt0
         self.timeint.Update(DM, vel_dict)
 
-        G = DM.get_disnet(DisNet)
-        DisNet.init_topology_exemptions(G)
-        DisNet.split_multi_nodes(G, vel_dict, nodeforce_dict, segforce_dict, self)
+        self.topology.Handle(DM, vel_dict, nodeforce_dict, segforce_dict, self)
 
         if self.collision is not None:
             self.collision.HandleCol(DM)

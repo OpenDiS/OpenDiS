@@ -8,6 +8,7 @@ from pydis.disnet import DisNet, DisNode, Cell, CellList
 from pydis.calforce.calforce_disnet import CalForce
 from pydis.mobility.mobility_disnet import MobilityLaw
 from pydis.timeint.timeint_disnet import TimeIntegration
+from pydis.topology.topology_disnet import Topology
 from pydis.collision.collision_disnet import Collision
 from pydis.remesh.remesh_disnet import Remesh
 from pydis.visualize.vis_disnet import VisualizeNetwork
@@ -48,11 +49,12 @@ def main():
 
     mobility  = MobilityLaw(mobility_law='SimpleGlide')
     timeint   = TimeIntegration(integrator='EulerForward')
+    topology  = Topology(split_mode='MaxDiss')
     collision = Collision(collision_mode='Proximity')
     remesh    = Remesh(remesh_rule='LengthBased', Lmin=0.1, Lmax=0.3)
 
     sim = SimulateNetwork(calforce=calforce, mobility=mobility,
-                          timeint=timeint, collision=collision, remesh=remesh, vis=vis,
+                          timeint=timeint, topology=topology, collision=collision, remesh=remesh, vis=vis,
                           dt0 = 1.0e-8, max_step=200,
                           print_freq=10, plot_freq=10, plot_pause_seconds=0.1)
     sim.run(net)
