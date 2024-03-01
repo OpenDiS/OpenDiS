@@ -14,13 +14,10 @@ from pydis.visualize.vis_disnet import VisualizeNetwork
 from pydis.simulate.sim_disnet import SimulateNetwork
 
 def init_frank_read_src_loop(arm_length=1.0, box_length=8.0, burg_vec=np.array([1.0,0.0,0.0]), pbc=False):
-    # To do:
-    # add flags (=7 for fixed nodes) (done)
-    # add plane_normal to DisEdge
     print("init_frank_read_src_loop: length = %f" % (arm_length))
     cell = Cell(h=box_length*np.eye(3), is_periodic=[pbc,pbc,pbc])
     cell_list = CellList(cell=cell, n_div=[8,8,8])
-    G = DisNet(cell=cell, cell_list=cell_list)
+
     rn    = np.array([[0.0, -arm_length/2.0, 0.0,         DisNode.Constraints.PINNED_NODE],
                       [0.0,  0.0,            0.0,         DisNode.Constraints.UNCONSTRAINED],
                       [0.0,  arm_length/2.0, 0.0,         DisNode.Constraints.PINNED_NODE],
@@ -33,16 +30,16 @@ def init_frank_read_src_loop(arm_length=1.0, box_length=8.0, burg_vec=np.array([
         pn = pn / np.linalg.norm(pn)
         links[i,:] = np.concatenate(([i, (i+1)%N], burg_vec, pn))
 
-    G.add_nodes_links_from_list(rn, links)
-    DM = DisNetManager({type(G): G})
-    return DM
+    net = DisNetManager()
+    net.add_disnet(DisNet(cell=cell, cell_list=cell_list))
+    net.add_nodes_links_from_list(rn, links, DisNet)
+    return net
 
 def main():
-    global G, DM, sim
-    DM = init_frank_read_src_loop(pbc=True)
-    G = DM.get_disnet(DisNet)
+    global net, sim
+    net = init_frank_read_src_loop(pbc=True)
 
-    bounds = np.array([-0.5*np.diag(G.cell.h), 0.5*np.diag(G.cell.h)])
+    bounds = np.array([-0.5*np.diag(net.cell(DisNet).h), 0.5*np.diag(net.cell(DisNet).h)])
     vis = VisualizeNetwork(bounds=bounds)
 
     calforce = CalForce(mu=160e9, nu=0.31, a=0.01, Ec=1.0e6,
@@ -58,9 +55,9 @@ def main():
                           timeint=timeint, collision=collision, remesh=remesh, vis=vis,
                           dt0 = 1.0e-8, max_step=200,
                           print_freq=10, plot_freq=10, plot_pause_seconds=0.1)
-    sim.run(DM)
+    sim.run(net)
 
-    return G.is_sane()
+    return net.is_sane(DisNet)
 
 
 if __name__ == "__main__":
