@@ -12,10 +12,6 @@ from enum import IntEnum
 
 from base_classes.disnet_base import DisNet_BASE
 
-# To do: do not import disnet_manager here, so that we can avoid circular import
-#        move split_multi_nodes outside of DisNet class into a new module
-from framework.disnet_manager import DisNetManager
-
 Tag = Tuple[int, int]
 
 class DisNode:

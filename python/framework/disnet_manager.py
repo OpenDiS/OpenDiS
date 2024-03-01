@@ -11,10 +11,7 @@ from copy import deepcopy
 from enum import IntEnum
 import itertools
 
-from base_classes.disnet_base import DisNet_BASE
-
-# import DisNet here as default disnet_type
-#from pydis.disnet import DisNet
+from pydis.disnet import DisNet
 
 class DisNetManager:
     """Class for managing multiple implementations of dislocation network
@@ -26,9 +23,14 @@ class DisNetManager:
         self._last_active_type = list(self.disnet_dict)[0] if self.disnet_dict else None
         self._active_type = None
 
-    def add_disnet(self, disnet):
+    def add_disnet(self, disnet=None, cell=None, cell_list=None):
         """Add DisNet object of disnet_type
         """
+        if disnet is None:
+            disnet = DisNet(cell=cell, cell_list=cell_list)
+        elif cell is not None or cell_list is not None:
+            raise ValueError("add_disnet: cell or cell_list should not be provided if disnet is not None")
+
         self.disnet_dict[type(disnet)] = disnet
 
     def synchronize_disnet(self, disnet_src, disnet_des):
@@ -70,28 +72,30 @@ class DisNetManager:
         return self._active_type
 
     # To do: make disnet_type=DisNet as default
-    def add_nodes_links_from_list(self, rn, links, disnet_type):
+    def add_nodes_links_from_list(self, rn, links, disnet_type=DisNet):
         """Add nodes and links from list
         """
         G = self.get_disnet(disnet_type)
         G.add_nodes_links_from_list(rn, links)
 
     # To do: make this into a property with disnet_type=DisNet as default
-    def G(self, disnet_type):
+    @property
+    def G(self, disnet_type=DisNet):
         """Return networkx graph of DisNet
         """
         G = self.get_disnet(disnet_type)
         return G
 
     # To do: make this into a property with disnet_type=DisNet as default
-    def cell(self, disnet_type):
+    @property
+    def cell(self, disnet_type=DisNet):
         """Return cell of DisNet
         """
         G = self.get_disnet(disnet_type)
         return G.cell
 
     # To do: make this into a property with disnet_type=DisNet as default
-    def is_sane(self, disnet_type):
+    def is_sane(self, disnet_type=DisNet):
         """Check if DisNet is sane
         """
         G = self.get_disnet(disnet_type)

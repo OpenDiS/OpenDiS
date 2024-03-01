@@ -4,7 +4,7 @@ import sys, os
 sys.path.extend([os.path.abspath('../../python'),os.path.abspath('../../lib'),os.path.abspath('../../core/pydis/python')])
 
 from framework.disnet_manager import DisNetManager
-from pydis.disnet import DisNet, DisNode, Cell, CellList
+from pydis.disnet import DisNode, Cell, CellList
 from pydis.calforce.calforce_disnet import CalForce
 from pydis.mobility.mobility_disnet import MobilityLaw
 from pydis.timeint.timeint_disnet import TimeIntegration
@@ -19,7 +19,6 @@ def init_two_disl_lines(z0=1.0, box_length=8.0, b1=np.array([-1.0,1.0,1.0]), b2=
     print("init_two_disl_lines: z0 = %f" % (z0))
     cell = Cell(h=box_length*np.eye(3), is_periodic=[pbc,pbc,pbc])
     cell_list = CellList(cell=cell, n_div=[4,4,4])
-    G = DisNet(cell=cell, cell_list=cell_list)
     rn    = np.array([[0.0, -z0, -z0,  DisNode.Constraints.PINNED_NODE],
                       [0.0,  0.0, 0.0, DisNode.Constraints.UNCONSTRAINED],
                       [0.0,  z0,  z0,  DisNode.Constraints.PINNED_NODE],
@@ -35,16 +34,16 @@ def init_two_disl_lines(z0=1.0, box_length=8.0, b1=np.array([-1.0,1.0,1.0]), b2=
     links[1,:] = np.concatenate(([1, 2], b1, n1))
     links[2,:] = np.concatenate(([3, 4], b2, n2))
     links[3,:] = np.concatenate(([4, 5], b2, n2))
-    G.add_nodes_links_from_list(rn, links)
-    DM = DisNetManager({type(G): G})
-    return DM
+    net = DisNetManager()
+    net.add_disnet(cell=cell, cell_list=cell_list)
+    net.add_nodes_links_from_list(rn, links)
+    return net
 
 def main():
-    global G, sim
-    DM = init_two_disl_lines(z0=4000, box_length=3.5e4, pbc=False)
-    G = DM.get_disnet(DisNet)
+    global net, sim
+    net = init_two_disl_lines(z0=4000, box_length=3.5e4, pbc=False)
 
-    bounds = np.array([-0.5*np.diag(G.cell.h), 0.5*np.diag(G.cell.h)])
+    bounds = np.array([-0.5*np.diag(net.cell.h), 0.5*np.diag(net.cell.h)])
     vis = VisualizeNetwork(bounds=bounds)
 
     calforce = CalForce(mu=160e9, nu=0.31, a=0.1, Ec=1.0e6,
@@ -61,9 +60,9 @@ def main():
                           timeint=timeint, topology=topology, collision=collision, remesh=remesh, vis=vis,
                           dt0 = 1.0e-8, max_step=200,
                           print_freq=10, plot_freq=10, plot_pause_seconds=0.1)
-    sim.run(DM)
+    sim.run(net)
 
-    return G.is_sane()
+    return net.is_sane()
 
 
 if __name__ == "__main__":

@@ -4,7 +4,7 @@ import sys, os
 sys.path.extend([os.path.abspath('../../python'),os.path.abspath('../../lib'),os.path.abspath('../../core/pydis/python')])
 
 from framework.disnet_manager import DisNetManager
-from pydis.disnet import DisNet, DisNode, Cell, CellList
+from pydis.disnet import DisNode, Cell, CellList
 from pydis.calforce.calforce_disnet import CalForce
 from pydis.mobility.mobility_disnet import MobilityLaw
 from pydis.timeint.timeint_disnet import TimeIntegration
@@ -32,15 +32,15 @@ def init_frank_read_src_loop(arm_length=1.0, box_length=8.0, burg_vec=np.array([
         links[i,:] = np.concatenate(([i, (i+1)%N], burg_vec, pn))
 
     net = DisNetManager()
-    net.add_disnet(DisNet(cell=cell, cell_list=cell_list))
-    net.add_nodes_links_from_list(rn, links, DisNet)
+    net.add_disnet(cell=cell, cell_list=cell_list)
+    net.add_nodes_links_from_list(rn, links)
     return net
 
 def main():
     global net, sim
     net = init_frank_read_src_loop(pbc=True)
 
-    bounds = np.array([-0.5*np.diag(net.cell(DisNet).h), 0.5*np.diag(net.cell(DisNet).h)])
+    bounds = np.array([-0.5*np.diag(net.cell.h), 0.5*np.diag(net.cell.h)])
     vis = VisualizeNetwork(bounds=bounds)
 
     calforce = CalForce(mu=160e9, nu=0.31, a=0.01, Ec=1.0e6,
@@ -59,7 +59,7 @@ def main():
                           print_freq=10, plot_freq=10, plot_pause_seconds=0.1)
     sim.run(net)
 
-    return net.is_sane(DisNet)
+    return net.is_sane()
 
 
 if __name__ == "__main__":
