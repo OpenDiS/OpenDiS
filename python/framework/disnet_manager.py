@@ -4,13 +4,6 @@ DisNetManager: class for managing multiple implementations of dislocation networ
 Implements synchronization between different implementations of DisNet
 """
 
-import numpy as np
-import networkx as nx
-from typing import Tuple
-from copy import deepcopy
-from enum import IntEnum
-import itertools
-
 from pydis.disnet import DisNet
 
 class DisNetManager:
@@ -55,7 +48,7 @@ class DisNetManager:
 
         self._last_active_type = disnet_des
 
-    def get_disnet(self, disnet_type):
+    def get_disnet(self, disnet_type=DisNet):
         """Get DisNet object of disnet_type
         """
         if disnet_type not in self.disnet_dict:
@@ -71,30 +64,26 @@ class DisNetManager:
         """
         return self._active_type
 
-    # To do: make disnet_type=DisNet as default
     def add_nodes_links_from_list(self, rn, links, disnet_type=DisNet):
         """Add nodes and links from list
         """
         G = self.get_disnet(disnet_type)
         G.add_nodes_links_from_list(rn, links)
 
-    # To do: make this into a property with disnet_type=DisNet as default
     @property
-    def G(self, disnet_type=DisNet):
+    def G(self):
         """Return networkx graph of DisNet
         """
-        G = self.get_disnet(disnet_type)
+        G = self.get_disnet()
         return G
 
-    # To do: make this into a property with disnet_type=DisNet as default
     @property
-    def cell(self, disnet_type=DisNet):
+    def cell(self):
         """Return cell of DisNet
         """
-        G = self.get_disnet(disnet_type)
+        G = self.get_disnet()
         return G.cell
 
-    # To do: make this into a property with disnet_type=DisNet as default
     def is_sane(self, disnet_type=DisNet):
         """Check if DisNet is sane
         """
