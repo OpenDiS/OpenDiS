@@ -51,8 +51,8 @@ class DisNetManager:
     def get_disnet(self, disnet_type=DisNet):
         """Get DisNet object of disnet_type
         """
-        if disnet_type not in self.disnet_dict:
-            raise ValueError("get_disnet: disnet_type=%s not found"%(disnet_type.__name__))
+        #if disnet_type not in self.disnet_dict:
+        #    raise ValueError("get_disnet: disnet_type=%s not found"%(disnet_type.__name__))
 
         self._active_type = disnet_type
         if self._last_active_type is not None and self._last_active_type != self._active_type:
