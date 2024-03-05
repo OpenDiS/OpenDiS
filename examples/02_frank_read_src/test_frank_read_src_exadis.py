@@ -2,6 +2,8 @@ import os, sys
 import numpy as np
 from typing import Tuple
 
+from test_frank_read_src import init_frank_read_src_loop
+
 # Import pydis
 sys.path.extend([
     os.path.abspath('../../python'),
@@ -10,7 +12,7 @@ sys.path.extend([
 ])
 try:
     from framework.disnet_manager import DisNetManager
-    from pydis.disnet import DisNet, Cell, DisNode
+    from pydis.disnet import DisNet, Cell, CellList, DisNode
     from pydis.calforce.calforce_disnet import CalForce
     from pydis.mobility.mobility_disnet import MobilityLaw
     from pydis.timeint.timeint_disnet import TimeIntegration
@@ -121,35 +123,13 @@ class SimulateNetwork:
         t1 = time.perf_counter()
         print('RUN TIME: %f sec' % (t1-t0))
 
-
-def init_frank_read_src_loop(arm_length=1.0, box_length=8.0, burg_vec=np.array([1.0,0.0,0.0]), pbc=False):
-    print("init_frank_read_src_loop: length = %f" % (arm_length))
-    cell = Cell(h=box_length*np.eye(3), is_periodic=[pbc,pbc,pbc])
-    G = DisNet(cell=cell)
-    rn    = np.array([[0.0, -arm_length/2.0, 0.0,         DisNode.Constraints.PINNED_NODE],
-                      [0.0,  0.0,            0.0,         DisNode.Constraints.UNCONSTRAINED],
-                      [0.0,  arm_length/2.0, 0.0,         DisNode.Constraints.PINNED_NODE],
-                      [0.0,  arm_length/2.0, -arm_length, DisNode.Constraints.PINNED_NODE],
-                      [0.0, -arm_length/2.0, -arm_length, DisNode.Constraints.PINNED_NODE]])
-    N = rn.shape[0]
-    links = np.zeros((N, 8))
-    for i in range(N):
-        pn = np.cross(burg_vec, rn[(i+1)%N,:3]-rn[i,:3])
-        pn = pn / np.linalg.norm(pn)
-        links[i,:] = np.concatenate(([i, (i+1)%N], burg_vec, pn))
-
-    G.add_nodes_links_from_list(rn, links)
-    return G
-    
-
 def main():
-    
+    global net, sim
     pyexadis.initialize()
     
-    G = init_frank_read_src_loop(pbc=False)
-    N = DisNetManager({type(G): G})
+    net = init_frank_read_src_loop(pbc=False)
 
-    bounds = np.array([-0.5*np.diag(G.cell.h), 0.5*np.diag(G.cell.h)])
+    bounds = np.array([-0.5*np.diag(net.cell.h), 0.5*np.diag(net.cell.h)])
     vis = VisualizeNetwork(bounds=bounds)
     
     calforce = CalForce1(mu=160e9, nu=0.31, a=0.01, Ec=1.0e6,
@@ -165,7 +145,7 @@ def main():
                           collision=collision, topology=topology, remesh=remesh, vis=vis,
                           dt0 = 1.0e-8, max_step=200,
                           print_freq=10, plot_freq=10, plot_pause_seconds=0.0001)
-    sim.run(N)
+    sim.run(net)
     
     pyexadis.finalize()
 

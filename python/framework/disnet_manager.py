@@ -69,6 +69,7 @@ class DisNetManager:
         """
         G = self.get_disnet(disnet_type)
         G.add_nodes_links_from_list(rn, links)
+        self._last_active_type = disnet_type
 
     @property
     def G(self):
