@@ -1,0 +1,3 @@
+[submodule "core/exadis"]
+	path = core/exadis
+	url = https://github.com/LLNL/exadis
