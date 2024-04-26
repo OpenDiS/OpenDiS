@@ -1,0 +1,3 @@
+set(Kokkos_ENABLE_CUDA On)
+set(Kokkos_ENABLE_CUDA_LAMBDA On)
+set(Kokkos_ARCH_VOLTA70 On)
