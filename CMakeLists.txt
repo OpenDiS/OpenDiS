@@ -10,8 +10,8 @@ set(CMAKE_INSTALL_PREFIX install)
 
 option(Kokkos_ENABLE_SERIAL "kokkos enable serial" On)
 option(Kokkos_ENABLE_OPENMP "kokkos enable openmp" On)
-option(Kokkos_ENABLE_CUDA "kokkos enable cuda" On)
-option(Kokkos_ENABLE_CUDA_LAMBDA "kokkos enable cuda lambda" On)
+option(Kokkos_ENABLE_CUDA "kokkos enable cuda" Off)
+option(Kokkos_ENABLE_CUDA_LAMBDA "kokkos enable cuda lambda" Off)
 option(Kokkos_ENABLE_HIP "kokkos enable hip" Off)
 
 include(cmake/sys.cmake.ext OPTIONAL)
