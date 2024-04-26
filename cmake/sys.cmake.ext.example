@@ -1,0 +1,5 @@
+# create a file called sys.cmake.ext that contains lines like the following to modify the KOKKOS build setting
+
+option(Kokkos_ENABLE_CUDA "kokkos enable cuda" On)
+option(Kokkos_ENABLE_CUDA_LAMBDA "kokkos enable cuda lambda" On)
+option(Kokkos_ARCH_VOLTA70 "kokkos arch volta70" On)

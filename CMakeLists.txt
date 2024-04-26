@@ -14,6 +14,7 @@ option(Kokkos_ENABLE_CUDA "kokkos enable cuda" Off)
 option(Kokkos_ENABLE_CUDA_LAMBDA "kokkos enable cuda lambda" Off)
 option(Kokkos_ENABLE_HIP "kokkos enable hip" Off)
 
+# the options can be modified by the following file if it exists
 include(cmake/sys.cmake.ext OPTIONAL)
 
 #add_subdirectory(core/exadis)
