@@ -14,6 +14,10 @@ option(Kokkos_ENABLE_CUDA "kokkos enable cuda" Off)
 option(Kokkos_ENABLE_CUDA_LAMBDA "kokkos enable cuda lambda" Off)
 option(Kokkos_ENABLE_HIP "kokkos enable hip" Off)
 
+add_subdirectory(core/exadis)
+#add_subdirectory(core/exadis/kokkos)
+
+# this section has to be after core/exadis or core/exadis/kokkos to avoid infinite loop
 message("***************************************")
 if(DEFINED SYS)
   if(EXISTS "${PROJECT_SOURCE_DIR}/cmake/sys.cmake.${SYS}")
@@ -31,10 +35,8 @@ else()
     message(" cmake/sys.cmake.ext does not exist")
   endif()
 endif()
+message(" CMAKE_CXX_COMPILER = ${CMAKE_CXX_COMPILER}")
 message("***************************************")
-
-add_subdirectory(core/exadis)
-#add_subdirectory(core/exadis/kokkos)
 
 #enable_testing()
 #add_subdirectory(ctests)
