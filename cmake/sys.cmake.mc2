@@ -1,0 +1,8 @@
+set(FFTW_LIB_DIR $ENV{HOME}/usr/lib)
+set(FFTW_INC_DIR $ENV{HOME}/usr/include)
+
+message("FFTW_LIB_DIR = ${FFTW_LIB_DIR}")
+message("FFTW_INC_DIR = ${FFTW_INC_DIR}")
+
+set(Kokkos_ENABLE_CUDA Off)
+set(Kokkos_ENABLE_CUDA_LAMBDA Off)
