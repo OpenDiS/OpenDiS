@@ -6,3 +6,6 @@ message("FFTW_INC_DIR = ${FFTW_INC_DIR}")
 
 set(Kokkos_ENABLE_CUDA Off)
 set(Kokkos_ENABLE_CUDA_LAMBDA Off)
+
+set(PYTHON_BINDING On)
+set(PYTHON_EXECUTABLE /usr/bin/python3)
