@@ -10,5 +10,5 @@ cmake $@ -S ..
 
 echo ""
 echo "to build and install:"
-echo "  cmake --build build -j 4 ; cmake --build build --target install"
+echo "  cmake --build build -j 8 ; cmake --build build --target install"
 echo ""
