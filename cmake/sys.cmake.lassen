@@ -1,4 +1,4 @@
-set(CMAKE_CXX_COMPILER, {PROJECT_SOURCE_DIR}/core/exadis/kokkos/bin/nvcc_wrapper)
+set(CMAKE_CXX_COMPILER ${PROJECT_SOURCE_DIR}/core/exadis/kokkos/bin/nvcc_wrapper)
 
 set(Kokkos_ENABLE_CUDA On)
 set(Kokkos_ENABLE_CUDA_LAMBDA On)
