@@ -1,0 +1,12 @@
+set(Kokkos_ENABLE_CUDA Off)
+set(Kokkos_ENABLE_CUDA_LAMBDA Off)
+
+set(FFTW_LIB_DIR /share/software/user/open/fftw/3.3.10/lib)
+set(FFTW_INC_DIR /share/software/user/open/fftw/3.3.10/include)
+
+message("FFTW_LIB_DIR = ${FFTW_LIB_DIR}")
+message("FFTW_INC_DIR = ${FFTW_INC_DIR}")
+
+set(PYTHON_BINDING On)
+set(PYTHON_EXECUTABLE /share/software/user/open/python/3.9.0/bin/python3)
+
