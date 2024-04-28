@@ -8,7 +8,5 @@ message("FFTW_LIB_DIR = ${FFTW_LIB_DIR}")
 message("FFTW_INC_DIR = ${FFTW_INC_DIR}")
 
 set(PYTHON_BINDING On)
-set(PYTHON_EXECUTABLE /usr/bin/python3)
-set(PYTHON_DEV_INC_DIR $ENV{HOME}/usr/include/python3.6m)
+set(PYTHON_EXECUTABLE /opt/intel/2020.4/intelpython3/bin/python)
 
-message("PYTHON_DEV_INC_DIR = ${PYTHON_DEV_INC_DIR}")
