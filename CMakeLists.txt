@@ -28,7 +28,9 @@ if(Kokkos_ENABLE_CUDA STREQUAL "On")
     set(CMAKE_CXX_COMPILER ${CMAKE_CURRENT_SOURCE_DIR}/core/exadis/kokkos/bin/nvcc_wrapper)
 endif()
 
-message(" CMAKE_CXX_COMPILER = ${CMAKE_CXX_COMPILER}")
+if(DEFINED CMAKE_CXX_COMPILER)
+    message(" CMAKE_CXX_COMPILER = ${CMAKE_CXX_COMPILER}")
+endif()
 message("***************************************")
 
 
