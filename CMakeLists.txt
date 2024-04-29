@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16.8)
+cmake_minimum_required(VERSION 3.16)
 
 option(Kokkos_ENABLE_SERIAL "kokkos enable serial" On)
 option(Kokkos_ENABLE_OPENMP "kokkos enable openmp" On)
