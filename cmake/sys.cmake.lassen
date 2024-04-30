@@ -2,5 +2,5 @@ set(Kokkos_ENABLE_CUDA On)
 set(Kokkos_ENABLE_CUDA_LAMBDA On)
 set(Kokkos_ARCH_VOLTA70 On)
 
-set(PYTHON_BINDING On)
+set(EXADIS_PYTHON_BINDING On)
 set(PYTHON_EXECUTABLE /usr/tcetmp/bin/python3)

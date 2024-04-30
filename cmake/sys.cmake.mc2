@@ -7,7 +7,7 @@ set(FFTW_INC_DIR $ENV{HOME}/usr/include)
 message("FFTW_LIB_DIR = ${FFTW_LIB_DIR}")
 message("FFTW_INC_DIR = ${FFTW_INC_DIR}")
 
-set(PYTHON_BINDING On)
+set(EXADIS_PYTHON_BINDING On)
 set(PYTHON_EXECUTABLE /usr/bin/python3)
 set(PYTHON_DEV_INC_DIR $ENV{HOME}/usr/include/python3.6m)
 
