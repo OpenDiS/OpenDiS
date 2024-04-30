@@ -1,0 +1,12 @@
+set(Kokkos_ENABLE_CUDA On)
+set(Kokkos_ENABLE_CUDA_LAMBDA On)
+
+set(FFTW_LIB_DIR $ENV{HOME}/usr/lib)
+set(FFTW_INC_DIR $ENV{HOME}/usr/include)
+
+message("FFTW_LIB_DIR = ${FFTW_LIB_DIR}")
+message("FFTW_INC_DIR = ${FFTW_INC_DIR}")
+
+set(EXADIS_PYTHON_BINDING On)
+set(PYTHON_EXECUTABLE /opt/intel/2020.4/intelpython3/bin/python)
+
