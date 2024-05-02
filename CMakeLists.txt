@@ -45,6 +45,10 @@ set(CMAKE_INSTALL_PREFIX install)
 add_subdirectory(core/exadis)
 #add_subdirectory(core/exadis/kokkos)
 
+if(DEFINED cpython_lib_fix_cmd)
+    add_custom_target(cpython_lib_fix DEPENDS pyexadis)
+    add_custom_command(TARGET cpython_lib_fix POST_BUILD COMMAND ${cpython_lib_fix_cmd})
+endif()
 
 #enable_testing()
 #add_subdirectory(ctests)

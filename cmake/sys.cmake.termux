@@ -1,0 +1,11 @@
+set(Kokkos_ENABLE_OPENMP On)
+set(Kokkos_ENABLE_CUDA Off)
+set(Kokkos_ENABLE_CUDA_LAMBDA Off)
+
+set(Kokkos_ENABLE_LIBDL Off CACHE STRING "")
+
+set(EXADIS_PYTHON_BINDING On)
+#set(PYTHON_EXECUTABLE /data/data/com.termux/files/usr/bin/python3)
+
+set(EXADIS_LINK_OPTIONS -lpython3 -lpthread)
+set(cpython_lib_fix_cmd patchelf --add-needed /data/data/com.termux/files/usr/lib/libpython3.so ${CMAKE_CURRENT_SOURCE_DIR}/core/exadis/python/pyexadis.cpython-311.so)
