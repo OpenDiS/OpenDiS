@@ -1,22 +1,20 @@
 # Documentation Instructions 
 
 
-To add a page, create a markdown file in the docs directory.
-
-
+## Add a section to an existing page 
+To add a new section to examples, navigate to the examples directory and add a file titled 
 
 ```bash
-docs/<page_title_here>.md
+examples/<example_title_here>.md
 ```
 
-After you create the page, open ```docs/index.rst```
+After you create the page, open ```examples/index.rst```
 
-in ```docs/index.rst```, add ```<page_title_here>.md``` in your desired order. 
+in ```examples/index.rst```, add ```<example_title_here>.md``` in your desired order. 
 
 
 ```bash
-.. docs/index.rst   
-.. include:: ../README.rst
+.. examples/index.rst   
 
 Welcome to Open Dis documentation!
 ===================================
@@ -25,6 +23,15 @@ Welcome to Open Dis documentation!
    :maxdepth: 2
    :caption: Contents:
 
-   examples.md
-   installation.md
+   frank_read.md
+   <example_title_here>.md
 ```
+
+```{Note}
+I have already added the markdown files for the examples in the google docs. These can simply be edited.
+```
+
+There is a similar structure for the installations folder. 
+
+## Create a new page 
+
