@@ -11,3 +11,5 @@ Welcome to Open Dis documentation!
    documentation.md
    examples.md
    installation.md
+   tutorials/index
+   
