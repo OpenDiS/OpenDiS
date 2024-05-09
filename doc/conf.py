@@ -1,4 +1,4 @@
-# Configuration file for the Sphinx documentation builder.
+# Configuration file for the Sphinx documentation builder .
 #
 # This file only contains a selection of the most common options. For a full
 # list see the documentation:
@@ -46,5 +46,18 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = "sphinx_rtd_theme"
+# html_theme_options = {
+#     "announcement": " ",
+# }
+
+# change theme color 
+html_theme_options = {
+    "light_css_variables": {
+        "color-brand-primary": "#7C4DFF",
+        "color-brand-content": "#7C4DFF",
+        "color-background-secondary": "#FCF8F8",
+    },
+}
+
+html_theme =  "furo"
 html_static_path = ['_static']
