@@ -18,11 +18,8 @@ To do: how to examine the data structure of the dislocation network (DisNet) in 
 
 
 ```{important} Add more here
-It looks different though.
+You can add whatever info you want here 
 ```
-
-> [!NOTE]  
-> Highlights information that users should take into account, even when skimming.
 
 - item 1
 
