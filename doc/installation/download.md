@@ -1,4 +1,4 @@
-# Installation 
+# Download 
 
 ## How to get the code
 
