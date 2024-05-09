@@ -9,8 +9,8 @@ python3 -i test_frank_read_src.py
 ```
 
 ```{important}
-describe this simulation.  Initial condition.  Boundary condition.  Behavior of the dislocation.
-To do: how to examine the data structure of the dislocation network (DisNet) in python interactive
+1. describe this simulation.  Initial condition.  Boundary condition.  Behavior of the dislocation.
+2. how to examine the data structure of the dislocation network (DisNet) in python interactive
 ```
 
 ## Frank-Read Source by Python calling ExaDiS
@@ -31,13 +31,13 @@ This is from Markdown.
 
 
 ```{important}
-describe this simulation.  Initial condition.  Boundary condition.  Behavior of the dislocation.
+1. describe this simulation.  Initial condition.  Boundary condition.  Behavior of the dislocation.
 
-To do: can we make the remesh rules consistent between pydis and exadis, no mesh_refine on segments with both ends fixed? Or at least have an option to get to this behavior?
+2. can we make the remesh rules consistent between pydis and exadis, no mesh_refine on segments with both ends fixed? Or at least have an option to get to this behavior?
 
-To do: describe this simulation.  Initial condition.  Boundary condition.  Behavior of the dislocation.  How is this simulation different (e.g. time) from 3.1.1?
+3. describe this simulation.  Initial condition.  Boundary condition.  Behavior of the dislocation.  How is this simulation different (e.g. time) from 3.1.1?
 
-To do: how to examine the data structure of the dislocation network (DisNet) in python interactive
+4. how to examine the data structure of the dislocation network (DisNet) in python interactive
 
 
 ```
