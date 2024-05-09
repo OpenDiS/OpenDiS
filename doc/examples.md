@@ -6,7 +6,8 @@
 
 
 Run OpenDiS in pure python mode (PyDiS) -- no compilation needed
-```bash cd ~/Codes/OpenDiS.git/examples/02_frank_read_src
+```bash
+cd ~/Codes/OpenDiS.git/examples/02_frank_read_src
 python3 -i test_frank_read_src.py
 ```
 
