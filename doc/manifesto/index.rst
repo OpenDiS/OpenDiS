@@ -1,3 +1,5 @@
+.. include:: manifesto.rst
+
 =================
 OpenDis Manifesto
 =================
