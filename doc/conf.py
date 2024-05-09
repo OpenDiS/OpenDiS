@@ -47,7 +47,7 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_theme_options = {
-    "announcement": "<em>Important</em> Welcome to Open Dis :) ",
+    "announcement": "<em>Welcome to Open Dis :)</em>  ",
 }
 
 # change theme color 
