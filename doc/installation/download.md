@@ -1,3 +1,5 @@
+# Installation 
+
 ## How to get the code
 
 ### Include ExaDiS as submodule
