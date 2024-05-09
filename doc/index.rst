@@ -8,8 +8,8 @@ Welcome to Open Dis documentation!
    :maxdepth: 2
    :caption: Contents:
 
-   ../README.rst
-   documentation.md
+   manifesto/index
    installation/index
    tutorials/index
+   documentation.md
    
