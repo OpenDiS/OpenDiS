@@ -1,6 +1,3 @@
-Welcome To OpenDiS!
-===================
-
 OpenDiS Manifesto
 -----------------
 
