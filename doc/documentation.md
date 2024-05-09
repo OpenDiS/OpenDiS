@@ -44,8 +44,7 @@ emacs index.rst
 ```
 
 ```bash
-.. <new page>/index.rst   
-
+ 
 Welcome to Open Dis documentation!
 ===================================
 
