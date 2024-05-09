@@ -8,6 +8,23 @@ OpenDiS Manifesto
 
 The OpenDiS Project is a community-driven initiative aimed at developing a robust open-source code framework and a code development platform for dislocation dynamics (DD) simulations. Our mission is to provide a high-performance, accessible, configurable, and extensible tool enabling researchers to explore the intricate world of dislocation lines and their impact on materials behavior.
 
+
+.. sidebar:: Open Access
+   :subtitle: Embrace openness
+
+   We maintain a public Git repository that welcomes all to download and use the code.
+
+.. sidebar:: Community Development
+   :subtitle: Build together
+
+   We prioritize ease of development for all, making it accessible for anyone to create extension modules and contribute to the expanding OpenDiS repository.
+
+.. sidebar:: Embracing Innovation
+   :subtitle: Lead with innovation
+
+   We constantly strive to adapt and harness the power of existing and emerging computing architectures, including GPU acceleration and distributed massively parallel computing, thus ensuring that OpenDiS stays at the forefront of computational efficiency.
+
+
 Our Goals
 ~~~~~~~~~
 
