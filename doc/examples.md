@@ -1,6 +1,15 @@
-# Put examples on how to run the code here
+#  Tutorial for Users
 
-## Subsection
+## Frank-Read Source
+
+### Frank-Read Source by Pure Python
+
+
+Run OpenDiS in pure python mode (PyDiS) -- no compilation needed
+```bash cd ~/Codes/OpenDiS.git/examples/02_frank_read_src
+python3 -i test_frank_read_src.py
+```
+
 
 
 - item 1
