@@ -9,5 +9,6 @@ Compilation
    :caption: Contents:
 
    compile_on_mac
+   compile_on_ubuntu
 
    
