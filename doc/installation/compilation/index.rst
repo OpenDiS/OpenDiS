@@ -10,5 +10,6 @@ Compilation
 
    compile_on_mac
    compile_on_ubuntu
+   compile_on_sherlock
 
    
