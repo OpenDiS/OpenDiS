@@ -47,16 +47,16 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_theme_options = {
-    "announcement": "<em>Welcome to Open Dis :)</em>  ",
+    "announcement": "welcome!",
 }
 
-# change theme color 
-html_theme_options = {
-    "light_css_variables": {
-        "color-brand-primary": "#7C4DFF",
-        "color-brand-content": "#7C4DFF",
-    },
-}
+# # change theme color 
+# html_theme_options = {
+#     "light_css_variables": {
+#         "color-brand-primary": "#7C4DFF",
+#         "color-brand-content": "#7C4DFF",
+#     },
+# }
 
 html_theme =  "furo"
 html_static_path = ['_static']
