@@ -1,4 +1,4 @@
-.. docs/index.rst   
+.. landing_page.rst   
 .. include:: ../README.rst
 
 Welcome to Open Dis documentation!
