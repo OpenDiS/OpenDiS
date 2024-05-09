@@ -5,6 +5,7 @@ Tutorials
 .. toctree::
    :maxdepth: 5
 
-   example1
-   example2
-   example3
+   frank_read
+   binary_junction
+   strain_hardening
+
