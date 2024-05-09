@@ -1,6 +1,6 @@
-## Compile on Mac
+### Compile on Mac
 
-### Build ExaDiS/KOKKOS
+#### Build ExaDiS/KOKKOS
 
 ```bash
 cd ~/Codes/OpenDiS.git/
@@ -18,7 +18,7 @@ cmake --build build -j 8 ; cmake --build build --target install
 
 When compilation is successful, you should see a file like ``pyexadis.cpython*.so`` in the ``core/exadis/python`` folder.
 
-## Run test case (OMP version)
+#### Run test case (OMP version)
 
 ```bash
 export OMP_NUM_THREADS=8
