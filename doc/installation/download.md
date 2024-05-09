@@ -1,6 +1,6 @@
-# How to get the code
+## How to get the code
 
-## Include ExaDiS as submodule
+### Include ExaDiS as submodule
 
 To include ExaDiS as a submodule of OpenDiS, use the following steps:
 
@@ -16,7 +16,7 @@ git clone https://gitlab.com/micronano/OpenDiS.git OpenDiS.git
 git submodule update --init --recursive
 ```
 
-## Getting them separately
+### Getting them separately
 
 If you prefer to get the submodules separately, follow these steps:
 
