@@ -1,67 +1,34 @@
-# OpenDiS
+Welcome To OpenDiS!
+===================
 
+OpenDiS Manifesto
+-----------------
 
+**Open Dislocation Simulator - Revolutionizing Dislocation Dynamics Simulations Through Open Source Collaboration**
 
-## OpenDiS Manifesto
+The OpenDiS Project is a community-driven initiative aimed at developing a robust open-source code framework and a code development platform for dislocation dynamics (DD) simulations. Our mission is to provide a high-performance, accessible, configurable, and extensible tool enabling researchers to explore the intricate world of dislocation lines and their impact on materials behavior.
 
-Open Dislocation Simulator - Revolutionizing Dislocation Dynamics Simulations Through Open Source Collaboration
+Our Goals
+~~~~~~~~~
 
-The OpenDiS Project is a community-driven initiative aimed at developing a robust open-source code framework and a code development platform for dislocation dynamics (DD) simulations. Our mission is to provide a high-performance, accessible, configurable and extensible tool enabling researchers to explore the intricate world of dislocation lines and their impact on materials behavior.
- 
+- **Open Access**: We maintain a public Git repository that welcomes all to download and use the code.
+- **Community Development**: We prioritize ease of development for all, making it accessible for anyone to create extension modules and contribute to the expanding OpenDiS repository.
+- **Embracing Innovation**: We constantly strive to adapt and harness the power of existing and emerging computing architectures, including GPU acceleration and distributed massively parallel computing thus ensuring that OpenDiS stays at the forefront of computational efficiency.
 
-```
-cd existing_repo
-git remote add origin https://gitlab.com/micronano/OpenDiS.git
-git branch -M main
-git push -uf origin main
-```
+Our Motivation
+~~~~~~~~~~~~~~
 
+We believe our field of study has reached the point where now it is the right time to initiate a community-shared method development and code writing effort intended to fully harness the progress made over the last several decades in dislocation theory, simulation algorithms, and computational paradigms. Democratizing DD development will accelerate the pace of scientific discovery for the benefit of all. Standardized code and data management practices will facilitate traceability of provenance of contributed code elements and associated data.
 
-***
+Key Features
+~~~~~~~~~~~~
 
-# Editing this README
+- **Modular Design with Extensive Extensions:** OpenDiS will feature a modular architecture that facilitates the development and integration of new extension modules, catering to a wide range of research applications.
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thank you to [makeareadme.com](https://www.makeareadme.com/) for this template.
+- **Built-in Python Interface:** A new Python interface will streamline simulation setup and enable easy interfacing with other programs and high-performance compute modules. This interface will simultaneously serve as a driver integrating high-performance compute modules into an efficient DD simulation as well as an easy to learn and experiment with development prototype.
 
-## Suggestions for a good README
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+- **Replaceable HPC modules:** Compute intensive elements of the dislocation dynamics method will be delegated to swappable code modules specifically written to maximally accelerate DD simulations.
 
-## Name
-Choose a self-explaining name for your project.
+- **Rigorous Testing and Continuous Integration:** Unit tests and continuous integration practices will ensure the code's stability and reliability, providing users with confidence in their simulation results.
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
-
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
-
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
-
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
-
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
-
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
-
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
-
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
-
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
-
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
-
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
-
-## License
-For open source projects, say how it is licensed.
-
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+We invite you to join the OpenDiS project to shape the future of dislocation dynamics. Together, we can build an open-source code and develop an open collaboration platform for accelerating scientific innovation.
