@@ -1,7 +1,7 @@
 .. include:: manifesto.rst
 
 =================
-OpenDis Manifesto
+OpenDiS Manifesto
 =================
 
 .. toctree::
