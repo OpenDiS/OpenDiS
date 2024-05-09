@@ -46,9 +46,9 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme_options = {
-    "announcement": " ",
-}
+# html_theme_options = {
+#     "announcement": " ",
+# }
 
 # change theme color 
 html_theme_options = {
