@@ -8,9 +8,8 @@ cd ~/Codes/OpenDiS.git/examples/02_frank_read_src
 python3 -i test_frank_read_src.py
 ```
 
-```{TODO}
+```{important}
 describe this simulation.  Initial condition.  Boundary condition.  Behavior of the dislocation.
-
 To do: how to examine the data structure of the dislocation network (DisNet) in python interactive
 ```
 
@@ -31,7 +30,7 @@ frank-read dislocation (fix caption)
 This is from Markdown.
 
 
-```{TODO}
+```{important}
 describe this simulation.  Initial condition.  Boundary condition.  Behavior of the dislocation.
 
 To do: can we make the remesh rules consistent between pydis and exadis, no mesh_refine on segments with both ends fixed? Or at least have an option to get to this behavior?
