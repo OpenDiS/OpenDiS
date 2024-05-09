@@ -1,9 +1,9 @@
 # Installation 
 
 
-# How to get the code
+## How to get the code
 
-## Include ExaDiS as submodule
+### Include ExaDiS as submodule
 
 To include ExaDiS as a submodule of OpenDiS, use the following steps:
 
@@ -19,7 +19,7 @@ git clone https://gitlab.com/micronano/OpenDiS.git OpenDiS.git
 git submodule update --init --recursive
 ```
 
-## Getting them separately
+### Getting them separately
 
 If you prefer to get the submodules separately, follow these steps:
 
@@ -33,23 +33,44 @@ git clone https://github.com/kokkos/kokkos.git --branch 4.2.00
 cd kokkos
 ```
 
-# System Requirements
+## System Requirements
 
-## Running Python examples in OpenDiS
+### Running Python examples in OpenDiS
 
 You can run some OpenDiS examples that do not require any compilation, as long as you have Python3 installed. Refer to *Section 3.1* for more details.
 
 ## Requirements for high performance
+ 
 
-For high-performance applications, you will need to compile ExaDiS and KOKKOS. Ensure the following packages are installed on your system before beginning to build ExaDiS/KOKKOS:
+Before you begin the installation of ExaDiS/KOKKOS, make sure the following software packages are installed on your system:
 
-- **cmake**: version ?? or higher
-- **gcc**: version ?? or higher
-- **cuda**: version ?? or higher (if you want to run on GPU)
-- **Python development package**
+- **CMake**
+  - Version: 3.18 or higher
+  - [Download CMake](https://cmake.org/download/)
+
+- **GCC**
+  - Version: 9.0 or higher
+  - GCC can be installed via your package manager on Linux systems (e.g., `sudo apt install gcc` for Ubuntu).
+
+- **CUDA**
+  - Version: 11.0 or higher (optional, for GPU support)
+  - [Download CUDA](https://developer.nvidia.com/cuda-downloads)
+
+- **Python Development Package**
+  - Ensure Python and the development headers are installed (e.g., `sudo apt install python3-dev` for Ubuntu).
+
 - **FFTW**
+  - Install FFTW for handling discrete Fourier transforms.
+  - It can typically be installed via your package manager (e.g., `sudo apt install libfftw3-dev`).
 
-# Compile and Install
+## Installation Steps
+
+1. **Clone the Repository**
+   ```bash
+   git clone https://example.com/exadis-kokkos.git
+   cd exadis-kokkos
+
+## Compile and Install
 
 ## Compile on Mac
 
