@@ -74,8 +74,7 @@ When compilation is successful, you should see a file like ``pyexadis.cpython*.s
 # Run test case (OMP version)
 
 
-``` code-block:: bash
-
+```bash
 export OMP_NUM_THREADS=8
 cd examples/02_frank_read_src
 python3 -i test_frank_read_src_exadis.py
