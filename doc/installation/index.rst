@@ -6,6 +6,6 @@ Installation
    :maxdepth: 5
 
    download
-   requirement
+   requirements
    compile
  
