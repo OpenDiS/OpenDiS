@@ -12,6 +12,12 @@ python3 -i test_frank_read_src.py
 ```
 
 
+To do: describe this simulation.  Initial condition.  Boundary condition.  Behavior of the dislocation.
+
+To do: how to examine the data structure of the dislocation network (DisNet) in python interactive
+
+> [!NOTE]  
+> Highlights information that users should take into account, even when skimming.
 
 - item 1
 
