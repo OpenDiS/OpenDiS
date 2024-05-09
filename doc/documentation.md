@@ -39,6 +39,7 @@ Follow the same procedure for installation instructions.
 
 ```bash 
 mkdir <new page>
+cd <new page> 
 emacs index.rst
 ```
 
@@ -52,7 +53,9 @@ Welcome to Open Dis documentation!
    :maxdepth: 2
    :caption: Contents:
 
-   frank_read
-   <example_title_here>
+   <section file name>
 ```
+next, navigate up one directory into ```docs```
+
+open ```docs/index.rst``` and add ```<new page>/index``` 
 
