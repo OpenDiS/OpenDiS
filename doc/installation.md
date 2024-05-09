@@ -92,7 +92,7 @@ cmake --build build -j 8 ; cmake --build build --target install
 
 When compilation is successful, you should see a file like ``pyexadis.cpython*.so`` in the ``core/exadis/python`` folder.
 
-# Run test case (OMP version)
+## Run test case (OMP version)
 
 
 ```bash
@@ -101,7 +101,7 @@ cd examples/02_frank_read_src
 python3 -i test_frank_read_src_exadis.py
 ```
 
-# Compile on Sherlock.stanford.edu (Linux cluster - CentOS)
+## Compile on Sherlock.stanford.edu (Linux cluster - CentOS)
 
 
 Put the following lines in your ``~/.bash_profile`` file, exit and login again:
