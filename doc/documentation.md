@@ -16,16 +16,16 @@ in ```examples/index.rst```, add ```<example_title_here>``` in the desired order
 
 
 ```bash
-.. examples/index.rst   
-
-Welcome to Open Dis documentation!
-===================================
+===============
+Tutorials
+===============
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+   :maxdepth: 5
 
    frank_read
+   binary_junction
+   strain_hardening
    <example_title_here>
 ```
 
