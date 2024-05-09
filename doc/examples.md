@@ -16,6 +16,11 @@ To do: describe this simulation.  Initial condition.  Boundary condition.  Behav
 
 To do: how to examine the data structure of the dislocation network (DisNet) in python interactive
 
+
+```{warning} Look ma! A custom title.
+It looks different though.
+```
+
 > [!NOTE]  
 > Highlights information that users should take into account, even when skimming.
 
