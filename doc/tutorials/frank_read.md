@@ -21,14 +21,12 @@ export OMP_NUM_THREADS=8
 python3 -i test_frank_read_src_exadis.py
 ```
 
-
-Markdown (MyST)
+ 
 ```{figure} frank_read_ex.png
 frank-read dislocation (fix caption)
 ```
 
-This is from Markdown.
-
+ 
 
 ```{important}
 1. describe this simulation.  Initial condition.  Boundary condition.  Behavior of the dislocation.
