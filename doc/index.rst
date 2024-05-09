@@ -8,5 +8,6 @@ Welcome to Open Dis documentation!
    :maxdepth: 2
    :caption: Contents:
 
+   documentation.md
    examples.md
    installation.md
