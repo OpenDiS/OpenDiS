@@ -9,7 +9,6 @@ Welcome to Open Dis documentation!
    :caption: Contents:
 
    documentation.md
-   examples.md
-   installation.md
+   installation/index
    tutorials/index
    
