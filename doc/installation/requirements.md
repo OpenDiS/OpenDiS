@@ -1,12 +1,11 @@
-# System Requirements
+## System Requirements
 
-## Running Python examples in OpenDiS
+### Running Python examples in OpenDiS
 
 You can run some OpenDiS examples that do not require any compilation, as long as you have Python3 installed. Refer to *Section 3.1* for more details.
 
-## Requirements for high performance
+### Requirements for high performance
  
-
 Before you begin the installation of ExaDiS/KOKKOS, make sure the following software packages are installed on your system:
 
 - **CMake**
