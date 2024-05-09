@@ -7,6 +7,5 @@ Installation
 
    download
    requirements
-   compile
    compilation/index
  
