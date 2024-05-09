@@ -76,9 +76,9 @@ When compilation is successful, you should see a file like ``pyexadis.cpython*.s
 
 ``` code-block:: bash
 
-   export OMP_NUM_THREADS=8
-   cd examples/02_frank_read_src
-   python3 -i test_frank_read_src_exadis.py
+export OMP_NUM_THREADS=8
+cd examples/02_frank_read_src
+python3 -i test_frank_read_src_exadis.py
 ```
 
 # Compile on Sherlock.stanford.edu (Linux cluster - CentOS)
@@ -87,10 +87,9 @@ When compilation is successful, you should see a file like ``pyexadis.cpython*.s
 Put the following lines in your ``~/.bash_profile`` file, exit and login again:
 
 ``` bash
-
-   module load cmake/3.24.2
-   module load cuda/11.0.3
-   module load gcc/9.1.0
-   module load fftw/3.3.10 
-   module load py-numpy/1.24.2_py39
+module load cmake/3.24.2
+module load cuda/11.0.3
+module load gcc/9.1.0
+module load fftw/3.3.10 
+module load py-numpy/1.24.2_py39
 ```
