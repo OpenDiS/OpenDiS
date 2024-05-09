@@ -7,5 +7,5 @@ OpenDis Manifesto
 .. toctree::
    :maxdepth: 3
 
-   manifesto
+
  
