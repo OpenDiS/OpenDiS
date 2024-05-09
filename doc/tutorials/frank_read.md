@@ -21,6 +21,16 @@ cd ~/Codes/OpenDiS.git/examples/02_frank_read_src/
 export OMP_NUM_THREADS=8
 python3 -i test_frank_read_src_exadis.py
 ```
+
+
+Markdown (MyST)
+```{figure} frank_read_ex.png
+frank-read dislocation (fix caption)
+```
+
+This is from Markdown.
+
+
 ```{TODO}
 describe this simulation.  Initial condition.  Boundary condition.  Behavior of the dislocation.
 
