@@ -58,3 +58,22 @@ next, navigate up one directory into ```docs```
 
 open ```docs/index.rst``` and add ```<new page>/index``` 
 
+
+Testing inline tabs 
+.. tab:: Section 1
+
+    write something here
+
+.. tab:: Section 2
+
+    write something here
+
+.. tab:: Section 3
+
+    write something here
+
+.. tab:: Section 4
+
+   write something here
+
+Text text text text
