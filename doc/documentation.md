@@ -63,20 +63,39 @@ open ```docs/index.rst``` and add ```<new page>/index```
 
 You can add a tab as follows:
 
+```bash
+
 ```{tab} One
-Add text here
+ Text one
 ```
 
 ```{tab} Two
-Add text here
+Text two
 ```
 
 ```{tab} Three
-Add text here
+Text three
 ```
 
 ```{tab} Four
-Add text here
+Text four
+```
+```
+
+```{tab} One
+ Text one
+```
+
+```{tab} Two
+Text two
+```
+
+```{tab} Three
+Text three
+```
+
+```{tab} Four
+Text four
 ```
 
 Text text text
