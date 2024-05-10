@@ -1,3 +1,2 @@
 ### Strain Hardening Simulation on CPU
-
-<mark>to do</mark>
+This is for strain hardening simulation.
