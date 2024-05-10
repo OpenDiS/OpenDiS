@@ -10,7 +10,6 @@ cmake --build build -j 8 ; cmake --build build --target install
 
 ```{Error}
 the error is on this line ```./configure.sh -DSYS=mac```
-
 ```Could NOT find OpenMP_CXX (missing: OpenMP_CXX_FLAGS OpenMP_CXX_LIB_NAMES)```
 ```
 
