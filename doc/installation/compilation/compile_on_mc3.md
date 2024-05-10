@@ -10,7 +10,14 @@ conda init
 conda create --name opendis python=3.7.7
 conda activate opendis
 conda install matplotlib
-````
+```
+
+```{hint}
+After the above operations, intel/python should be unloaded. 
+```bash
+module unload intel/python
+```
+```
 
 #### Load modules 
 
