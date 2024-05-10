@@ -24,5 +24,5 @@ Before you begin the installation of ExaDiS/KOKKOS, make sure the following soft
   - Ensure Python and the development headers are installed (e.g., `sudo apt install python3-dev` for Ubuntu).
 
 - **FFTW**
-  - Install FFTW for handling discrete Fourier transforms.
+  - Install [FFTW](https://www.fftw.org/) for handling discrete Fourier transforms.
   - It can typically be installed via your package manager (e.g., `sudo apt install libfftw3-dev`).
