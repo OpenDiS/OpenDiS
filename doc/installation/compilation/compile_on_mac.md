@@ -17,14 +17,16 @@ Need to write ``` rm -rf build/; ./configure.sh -DSYS=mac -DKokkos_ENABLE_OPENMP
 
 additionally make sure to ```conda deactivate```
 ```
+
+
 ```{Hint}
 Alternatively, you can also copy the ``cmake/sys.cmake.ubuntu`` file to ``cmake/sys.cmake.ext`` and configure without -DSYS. The ``cmake/sys.cmake.ext`` file is not tracked by git so you can feel free to experiment with the settings.
-
 ```bash
 cp cmake/sys.cmake.mac cmake/sys.cmake.ext
 rm -rf build/; ./configure.sh 
 cmake --build build -j 8 ; cmake --build build --target install
 ```
+
 ```
 
 When compilation is successful, you should see a file like ``pyexadis.cpython*.so`` in the ``core/exadis/python`` folder.
