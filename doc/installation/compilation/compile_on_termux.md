@@ -48,5 +48,5 @@ python3 -i test_frank_read_src_exadis.py
 
 ```{figure} frank_read_src_on_termux.png
 :alt: Screenshot of OpenDiS running on Android phone
-:width: 1104px
+:width: 552px
 ```
