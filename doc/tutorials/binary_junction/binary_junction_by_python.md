@@ -8,6 +8,9 @@ cd ~/Codes/OpenDiS.git/examples/03_binary_junction
 python3 -i test_binary_junction.py
 ```
 
+the code will produce animation of binary junction formation process.
+
+![Binary junction using pure python](binary_junction_python.png)
 
 
 Run OpenDiS in pure python mode (PyDiS) -- no compilation needed
