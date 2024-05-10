@@ -25,7 +25,11 @@ git clone https://gitlab.com/micronano/OpenDiS.git OpenDiS.git
 cd OpenDiS.git
 cd core
 git clone https://github.com/LLNL/exadis exadis
+cd pydis/python
+git clone https://github.com/davidjamesca/ctypesgen.git
+cd ../..
 cd exadis
 git clone https://github.com/kokkos/kokkos.git --branch 4.2.00
-cd kokkos
+cd python
+git clone https://github.com/pybind/pybind11.git
 ```
