@@ -11,6 +11,13 @@ python3 -i test_frank_read_src.py
 2. how to examine the data structure of the dislocation network (DisNet) in python interactive
 ```
 
+**Initial condition:** 
+
+
+**Boundary condition:**
+
+
+
 ```{figure} frank_read_schematic.png
 :alt: Screenshot of the final configuration
 :width: 552px
