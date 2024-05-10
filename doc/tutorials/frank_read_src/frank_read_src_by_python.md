@@ -10,8 +10,8 @@ python3 -i test_frank_read_src.py
 1. describe this simulation.  Initial condition.  Boundary condition.  Behavior of the dislocation.
 2. how to examine the data structure of the dislocation network (DisNet) in python interactive
 ```
-
+<img src="frank_read_schematic.png" height="350" width="320" >
 
 ```{hint}
-In case the windows for the visualization is not showing up, please do ```ssh -Y mckim@mc3-login.stanford.edu```
+In case the window for the visualization is not showing up, please do ```ssh -Y <your_account>@your.address```
 ```
