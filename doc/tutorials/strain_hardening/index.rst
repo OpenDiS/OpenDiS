@@ -8,7 +8,5 @@ Strain Hardening
    :maxdepth: 2
    :caption: Contents:
 
-   strain_hardening_by_python
-   strain_hardening_by_pyexadis
-   strain_hardening_by_pydis_pyexadis
-   strain_hardening_by_exadis
+   strain_hardening_on_cpu
+   strain_hardening_on_gpu
