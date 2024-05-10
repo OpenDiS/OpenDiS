@@ -14,7 +14,7 @@ conda install matplotlib
 
 ```{hint}
 After the above operations, intel/python should be unloaded. 
-```bash
+
 module unload intel/python
 ```
 
