@@ -46,4 +46,6 @@ cd examples/02_frank_read_src
 python3 -i test_frank_read_src_exadis.py
 ```
 
-![Screenshot OpenDiS running on Android phone](frank_read_src_on_termux.png)
+```{figure} frank_read_src_on_termux.png
+Screenshot OpenDiS running on Android phone
+```
