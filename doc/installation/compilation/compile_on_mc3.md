@@ -13,7 +13,7 @@ conda install matplotlib
 ```
 
 ```{hint}
-After the above operations, intel/python should be unloaded. Please do
+After setting up the conda environment, we need to log out and log in to the computer cluster again, so that intel/python is no longer loaded.  Alternatively, we can unload intel/python explicitly using
 ```bash
 module unload intel/python
 ```
