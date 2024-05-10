@@ -1,7 +1,7 @@
 OpenDiS Manifesto
 -----------------
 
-**Open Dislocation Simulator - Revolutionizing Dislocation Dynamics Simulations Through Open Source Collaboration**
+**Open Dislocation Simulator -- Revolutionizing Dislocation Dynamics Simulations Through Open Source Collaboration**
 
 The OpenDiS Project is a community-driven initiative aimed at developing a robust open-source code framework and a code development platform for dislocation dynamics (DD) simulations. Our mission is to provide a high-performance, accessible, configurable, and extensible tool enabling researchers to explore the intricate world of dislocation lines and their impact on materials behavior.
 
