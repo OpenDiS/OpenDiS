@@ -1,4 +1,4 @@
-### Compile on Linux (Ubuntu) Desktop
+### Compile on Linux (Ubuntu)
 
 #### Install required packages
 ```bash
