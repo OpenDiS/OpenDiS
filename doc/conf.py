@@ -66,9 +66,9 @@ extensions = [
 
 ### option to copy code blocks ###
 extensions = [
-    ...
+    ...,
     'sphinx_copybutton'
-    ...
+    ...,
 ]
 
 html_theme =  "furo"
