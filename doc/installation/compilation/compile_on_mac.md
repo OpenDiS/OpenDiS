@@ -38,7 +38,13 @@ rm -rf build/; ./configure.sh
 cmake --build build -j 8 ; cmake --build build --target install
 ```
 
-
+```{Hint}
+If your Mac does not have OpenMP enabled, you can try this.
+```bash
+brew list
+brew update
+xcode-select --install
+```
 
 When compilation is successful, you should see a file like ```pyexadis.cpython*.so``` in the ```core/exadis/python``` folder.
 
