@@ -1,6 +1,6 @@
-# Frank-Read Docs
+## Frank-Read Source
 
-## Frank-Read Source by Pure Python
+### Frank-Read Source by Pure Python
 Run OpenDiS in pure python mode (PyDiS) -- no compilation needed
 
 ```bash
@@ -13,7 +13,7 @@ python3 -i test_frank_read_src.py
 2. how to examine the data structure of the dislocation network (DisNet) in python interactive
 ```
 
-## Frank-Read Source by Python calling ExaDiS
+### Frank-Read Source by Python calling ExaDiS
 
 ```bash
 cd ~/Codes/OpenDiS.git/examples/02_frank_read_src/
@@ -23,7 +23,7 @@ python3 -i test_frank_read_src_exadis.py
 
  
 ```{figure} frank_read_ex.png
-frank-read dislocation (fix caption)
+frank-read source (fix caption)
 ```
 
  
