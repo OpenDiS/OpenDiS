@@ -59,21 +59,24 @@ next, navigate up one directory into ```docs```
 open ```docs/index.rst``` and add ```<new page>/index``` 
 
 
-Testing inline tabs 
-.. tab:: Section 1
+## Special features 
 
-    write something here
+You can add a tab as follows:
 
-.. tab:: Section 2
+```{tab} One
+Add text here
+```
 
-    write something here
+```{tab} Two
+Add text here
+```
 
-.. tab:: Section 3
+```{tab} Three
+Add text here
+```
 
-    write something here
+```{tab} Four
+Add text here
+```
 
-.. tab:: Section 4
-
-   write something here
-
-Text text text text
+Text text text
