@@ -37,7 +37,7 @@ release = 'x.x.x'
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = ['myst_parser']
+extensions = ['myst_parser','sphinx_inline_tabs','sphinx_copybutton']
 
 templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
@@ -57,19 +57,8 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 #         "color-brand-content": "#7C4DFF",
 #     },
 # }
-### inline tabs ### 
-extensions = [
-    ...,
-    "sphinx_inline_tabs",
-    ...,
-]
 
-### option to copy code blocks ###
-extensions = [
-    ...,
-    'sphinx_copybutton',
-    ...,
-]
+
 
 html_theme =  "furo"
 html_static_path = ['_static']
