@@ -1,3 +1,6 @@
 [submodule "core/exadis"]
 	path = core/exadis
 	url = https://github.com/LLNL/exadis
+[submodule "core/pydis/python/ctypesgen"]
+	path = core/pydis/python/ctypesgen
+	url = https://github.com/davidjamesca/ctypesgen.git

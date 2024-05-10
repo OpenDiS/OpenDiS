@@ -23,13 +23,15 @@ LIB_PYDIS_SO  = libpydis.so
 
 PYDIS_LIB_PY = pydis_lib.py
 
-ifndef CTYPESGEN_DIR
-  $(info Install Ctypesgen by)
-  $(info   git clone https://github.com/davidjamesca/ctypesgen.git ${HOME}/Codes/Ctypesgen.git)
-  $(info Add the following to ~/.bash_profile)
-  $(info   export CTYPESGEN_DIR=${HOME}/Codes/Ctypesgen.git)
-  $(error CTYPESGEN_DIR is not set)
-endif
+CTYPESGEN_DIR = ./ctypesgen
+
+#ifndef CTYPESGEN_DIR
+#  $(info Install Ctypesgen by)
+#  $(info   git clone https://github.com/davidjamesca/ctypesgen.git ${HOME}/Codes/Ctypesgen.git)
+#  $(info Add the following to ~/.bash_profile)
+#  $(info   export CTYPESGEN_DIR=${HOME}/Codes/Ctypesgen.git)
+#  $(error CTYPESGEN_DIR is not set)
+#endif
 
 .PHONY: all clean
 
