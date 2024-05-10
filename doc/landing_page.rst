@@ -1,5 +1,5 @@
-====================
-Welcome to Open DiS!
-====================
+=======================
+Landing Page Goes Here
+=======================
 
 Insert cool simulation here?
