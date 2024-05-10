@@ -1,5 +1,7 @@
 ### Binary Junction by Pure Python
 
+This example shows a binary junction formation simulation. The code can be run by
+
 ```bash
 Run OpenDiS in pure python mode (PyDiS) -- no compilation needed
 cd ~/Codes/OpenDiS.git/examples/03_binary_junction
