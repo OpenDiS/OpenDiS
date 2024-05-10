@@ -10,7 +10,8 @@ cmake --build build -j 8 ; cmake --build build --target install
 
 ```{Error} ./configure.sh -DSYS=mac
 This is not working!!!
-Could NOT find OpenMP_CXX (missing: OpenMP_CXX_FLAGS OpenMP_CXX_LIB_NAMES)
+
+```Could NOT find OpenMP_CXX (missing: OpenMP_CXX_FLAGS OpenMP_CXX_LIB_NAMES)```
 ```
 
 Alternatively, you can also copy the ``cmake/sys.cmake.ubuntu`` file to ``cmake/sys.cmake.ext`` and configure without -DSYS. The ``cmake/sys.cmake.ext`` file is not tracked by git so you can feel free to experiment with the settings.
