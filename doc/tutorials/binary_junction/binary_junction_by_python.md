@@ -1,14 +1,13 @@
 ### Binary Junction by Pure Python
 
-This example shows a binary junction formation simulation. The code can be run by
+This example shows a binary junction formation simulation. Binary junctions are formed when shear stresses are applied to a slip plane whereas other slip plane is free of stresses. The code can be simply run by PyDis in pure Python mode.
 
 ```bash
-Run OpenDiS in pure python mode (PyDiS) -- no compilation needed
 cd ~/Codes/OpenDiS.git/examples/03_binary_junction
 python3 -i test_binary_junction.py
 ```
 
-the code will produce animation of binary junction formation process.
+The code will produce animation of binary junction formation process.
 
 <img src=./figures/binary_junction_python_initial.png width="300" /> <img src=./figures/binary_junction_python.png width="300" />
 
