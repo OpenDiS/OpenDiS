@@ -13,5 +13,5 @@ python3 -i test_frank_read_src.py
 
 
 ```{hint}
-prof. myungchul
+In case the windows for the visualization is not showing up, please do ssh -Y
 ```
