@@ -57,6 +57,12 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 #         "color-brand-content": "#7C4DFF",
 #     },
 # }
+### inline tabs ### 
+extensions = [
+    ...,
+    "sphinx_inline_tabs",
+    ...,
+]
 
 html_theme =  "furo"
 html_static_path = ['_static']
