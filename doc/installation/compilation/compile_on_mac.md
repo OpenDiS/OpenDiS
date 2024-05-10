@@ -27,9 +27,9 @@ rm -rf build/; ./configure.sh
 cmake --build build -j 8 ; cmake --build build --target install
 ```
 
-```
 
-When compilation is successful, you should see a file like ``pyexadis.cpython*.so`` in the ``core/exadis/python`` folder.
+
+When compilation is successful, you should see a file like ```pyexadis.cpython*.so``` in the ```core/exadis/python``` folder.
 
 #### Run test case (OMP version)
 
