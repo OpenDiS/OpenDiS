@@ -3,7 +3,6 @@
 
 Welcome to Open Dis documentation!
 ===================================
-
 .. include:: landing_page.rst
 
 .. toctree::
