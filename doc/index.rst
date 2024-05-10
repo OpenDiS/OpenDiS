@@ -8,8 +8,8 @@ Welcome to OpenDiS!
    :maxdepth: 3
    :caption: Contents:
 
-   manifesto
+   manifesto.rst
    installation/index
    tutorials/index
-   documentation
+   documentation.md
    
