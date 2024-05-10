@@ -1,6 +1,6 @@
 .. doc/index.rst   
 
-Welcome to Open Dis documentation!
+Welcome to OpenDiS!
 ===================================
 .. include:: landing_page.rst
 
