@@ -60,5 +60,5 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 
 
-html_theme =  "furo"
+html_theme =  "press"
 html_static_path = ['_static']
