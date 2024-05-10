@@ -16,9 +16,9 @@ in ```examples/index.rst```, add ```<example_title_here>``` in the desired order
 
 
 ```bash
-===============
+=========
 Tutorials
-===============
+=========
 
 .. toctree::
    :maxdepth: 5
@@ -45,7 +45,7 @@ emacs index.rst
 
 ```bash
  
-Welcome to Open Dis documentation!
+Welcome to OpenDiS documentation!
 ===================================
 
 .. toctree::
