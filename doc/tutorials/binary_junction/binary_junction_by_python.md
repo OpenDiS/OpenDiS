@@ -10,7 +10,7 @@ python3 -i test_binary_junction.py
 
 the code will produce animation of binary junction formation process.
 
-![Binary junction using pure python](./figures/binary_junction_python.png)
+![alt-text-1](./figures/binary_junction_python_initial.png) ![alt-text-2](./figures/binary_junction_python.png)
 
 Run OpenDiS in pure python mode (PyDiS) -- no compilation needed
 
