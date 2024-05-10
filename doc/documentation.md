@@ -62,25 +62,7 @@ open ```docs/index.rst``` and add ```<new page>/index```
 ## Special features 
 
 You can add a tab as follows:
-
-```bash
-
-```{tab} One
- Text one
-```
-
-```{tab} Two
-Text two
-```
-
-```{tab} Three
-Text three
-```
-
-```{tab} Four
-Text four
-```
-```
+(press the eye on the top right to see the original markdown)
 
 ```{tab} One
  Text one
