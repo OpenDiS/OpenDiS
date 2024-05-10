@@ -1,5 +1,10 @@
 ### Frank-Read Source by Python calling ExaDiS
 
+
+Open you OpenDiS and open the corresponding example directory:
+
+
+
 ```bash
 cd ~/Codes/OpenDiS.git/examples/02_frank_read_src/
 export OMP_NUM_THREADS=8
