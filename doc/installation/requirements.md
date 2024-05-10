@@ -2,7 +2,7 @@
 
 ### Running Python examples in OpenDiS
 
-You can run some OpenDiS examples that do not require any compilation, as long as you have Python3 installed. Refer to [Python tutorial](compile) for more details.
+You can run some OpenDiS examples that do not require any compilation, as long as you have Python3 installed. Refer to [Python tutorial](tutorials/frank_read_src/frank_read_src_by_python.md) for more details.
 
 ### Requirements for high performance
  
