@@ -2,6 +2,8 @@
 
 [Template Document Formatting](https://pradyunsg.me/furo/)
 
+[Markdown guide](https://www.markdownguide.org/basic-syntax/)
+
 
 ## Add a section to an existing page 
 To add a new section to examples, navigate to the examples directory and add a file titled 
