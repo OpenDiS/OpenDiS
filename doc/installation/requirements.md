@@ -13,14 +13,15 @@ Before you begin the installation of ExaDiS/KOKKOS, make sure the following soft
   - [Download CMake](https://cmake.org/download/)
 
 - **GCC**
-  - Version: 9.0 or higher
+  - Version: 8.3 or higher
   - GCC can be installed via your package manager on Linux systems (e.g., `sudo apt install gcc` for Ubuntu).
 
 - **CUDA**
-  - Version: 11.0 or higher (optional, for GPU support)
+  - Version: 11.5 or higher (optional, for GPU support)
   - [Download CUDA](https://developer.nvidia.com/cuda-downloads)
 
 - **Python Development Package**
+  - Version: 3.6 or higher
   - Ensure Python and the development headers are installed (e.g., `sudo apt install python3-dev` for Ubuntu).
 
 - **FFTW**
