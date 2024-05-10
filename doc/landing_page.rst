@@ -8,4 +8,4 @@ The OpenDiS Project is a community-driven initiative aimed at developing a robus
 
 We invite you to join the OpenDiS project to shape the future of dislocation dynamics. Together, we can build an open-source code and develop an open collaboration platform for accelerating scientific innovation.
 
-**Read the full :ref:`manifesto<manifesto.rst>`**
+**Read the full :doc:`manifesto <manifesto>`**
