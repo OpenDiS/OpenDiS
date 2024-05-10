@@ -20,8 +20,8 @@ import sys
 # -- Project information -----------------------------------------------------
 
 project = 'OpenDiS'
-copyright = '2024, MicroNano'
-author = 'MicroNano'
+copyright = '2024, OpenDiS'
+# author = 'MicroNano'
 
 from datetime import datetime
 year = datetime.now().year
