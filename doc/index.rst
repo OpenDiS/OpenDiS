@@ -6,7 +6,6 @@ Welcome to OpenDiS!
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
 
    manifesto.rst
    installation/index
