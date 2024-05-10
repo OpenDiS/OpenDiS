@@ -9,7 +9,7 @@ You can run some OpenDiS examples that do not require any compilation, as long a
 Before you begin the installation of ExaDiS/KOKKOS, make sure the following software packages are installed on your system:
 
 - **CMake**
-  - Version: 3.18 or higher
+  - Version: 3.16 or higher
   - [Download CMake](https://cmake.org/download/)
 
 - **GCC**
