@@ -1,5 +1,16 @@
 ### Compile on Mac
 
+```{Error}
+# 1. Specify fftw directory
+set(FFTW_LIB_DIR $ENV{HOME}/usr/lib)
+set(FFTW_INC_DIR $ENV{HOME}/usr/include)
+
+message("FFTW_LIB_DIR = ${FFTW_LIB_DIR}")
+message("FFTW_INC_DIR = ${FFTW_INC_DIR}")
+
+# 2. 
+```
+
 #### Build ExaDiS/KOKKOS
 
 ```bash
