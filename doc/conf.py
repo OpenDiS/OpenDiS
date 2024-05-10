@@ -31,7 +31,7 @@ else:
     copyright = f'2024, {author}'
 
 # The full version, including alpha/beta/rc tags
-release = 'x.x.x'
+release = '0.0.1'
 
 
 # -- General configuration ---------------------------------------------------
@@ -59,6 +59,6 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # }
 
 
-
+html_logo = "open-box-symbol.jpeg"
 html_theme =  "furo"
 html_static_path = ['_static']
