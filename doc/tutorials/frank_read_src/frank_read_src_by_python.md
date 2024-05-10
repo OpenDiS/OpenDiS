@@ -1,5 +1,3 @@
-## Frank-Read Source
-
 ### Frank-Read Source by Pure Python
 Run OpenDiS in pure python mode (PyDiS) -- no compilation needed
 
