@@ -59,6 +59,6 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # }
 
 
-html_logo = "open-box-transp.png"
+html_logo = "open-box-s-curve.png"
 html_theme =  "furo"
 html_static_path = ['_static']
