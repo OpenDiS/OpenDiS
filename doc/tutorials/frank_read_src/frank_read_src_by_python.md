@@ -16,6 +16,13 @@ python3 -i test_frank_read_src.py
 :width: 552px
 ```
 
+```{figure} frank_read_vid.gif
+:alt: Video of the whole simulation
+:width: 552px
+```
+
+
+
 ```{hint}
 In case the window for the visualization is not showing up, please do ```ssh -Y <your_account>@your.address```
 ```
