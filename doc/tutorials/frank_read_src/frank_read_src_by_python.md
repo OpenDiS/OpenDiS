@@ -13,5 +13,5 @@ python3 -i test_frank_read_src.py
 
 
 ```{hint}
-In case the windows for the visualization is not showing up, please do ssh -Y
+In case the windows for the visualization is not showing up, please do ```ssh -Y mckim@mc3-login.stanford.edu```
 ```
