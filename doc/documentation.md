@@ -9,13 +9,14 @@
 
 
 ```{Hint}
-Alternatively, you can also copy the ``cmake/sys.cmake.mac`` file to ``cmake/sys.cmake.ext`` and configure without -DSYS. The ``cmake/sys.cmake.ext`` file is not tracked by git so you can feel free to experiment with the settings.
+Alternatively, you can also copy the ``cmake/sys.cmake.mac`` file to ```cmake/sys.cmake.ext``` and configure without -DSYS. The ``cmake/sys.cmake.ext`` file is not tracked by git so you can feel free to experiment with the settings.
 ```bash
 cp cmake/sys.cmake.mac cmake/sys.cmake.ext
 rm -rf build/; ./configure.sh 
 cmake --build build -j 8 ; cmake --build build --target install
 ```
-```
+
+
 
 here here 
 
