@@ -67,7 +67,7 @@ extensions = [
 ### option to copy code blocks ###
 extensions = [
     ...,
-    'sphinx_copybutton'
+    'sphinx_copybutton',
     ...,
 ]
 
