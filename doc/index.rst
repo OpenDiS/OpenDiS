@@ -1,5 +1,5 @@
-.. landing_page.rst   
-.. include:: ../landing_page.rst
+.. doc/index.rst   
+.. include:: landing_page.rst
 
 Welcome to Open Dis documentation!
 ===================================
