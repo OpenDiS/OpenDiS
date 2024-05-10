@@ -1,8 +1,10 @@
 .. doc/index.rst   
-.. include:: landing_page.rst
+
 
 Welcome to Open Dis documentation!
 ===================================
+
+.. include:: landing_page.rst
 
 .. toctree::
    :maxdepth: 3
