@@ -6,7 +6,6 @@ Binary Junction
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
 
    binary_junction_by_python
    binary_junction_by_pyexadis
