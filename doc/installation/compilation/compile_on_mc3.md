@@ -22,7 +22,7 @@ module load cuda/11.8
 ````
 
 #### Install FFTW
-Follow the instructions at <mark>this wiki page</mark> to install FFW in your home directory.  The library and include files should be put in paths consistent with what’s specified in the ``cmake/sys.cmake.mc3_cpu`` file.
+Follow the instructions at this [wiki page](http://micro.stanford.edu/wiki/Install_FFTW3) to install FFW in your home directory.  The library and include files should be put in paths consistent with what’s specified in the ``cmake/sys.cmake.mc3_cpu`` file.
   
 #### Build ExaDiS/KOKKOS (OMP version)
 
