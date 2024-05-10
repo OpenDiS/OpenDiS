@@ -64,5 +64,12 @@ extensions = [
     ...,
 ]
 
+### option to copy code blocks ###
+extensions = [
+    ...
+    'sphinx_copybutton'
+    ...
+]
+
 html_theme =  "furo"
 html_static_path = ['_static']
