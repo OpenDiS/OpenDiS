@@ -66,6 +66,6 @@ html_theme_options = {
 html_logo = "logo_box_upright.png"
 html_theme =  "furo"
 html_static_path = ['_static']
-html_favicons = ['logo_box_upright.png']
-favicons = ['logo_box_upright.png']
+html_favicons = ['euler2.png']
+favicons = ['euler2.png']
 
