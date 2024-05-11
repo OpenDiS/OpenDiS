@@ -10,6 +10,8 @@ class DisNetManager:
     Implements synchronization between different implementations of DisNet
     """
     def __init__(self, disnet_dict: dict={}, disnet=None):
+        if type(disnet_dict) is not dict:
+            raise ValueError("DisNetManager: disnet_dict should be a dictionary")
         self.disnet_dict = disnet_dict
         if disnet_dict == {} and disnet is not None:
             self.disnet_dict[type(disnet)] = disnet
@@ -55,9 +57,6 @@ class DisNetManager:
     def get_disnet(self, disnet_type=None):
         """Get DisNet object of disnet_type
         """
-        #if disnet_type not in self.disnet_dict:
-        #    raise ValueError("get_disnet: disnet_type=%s not found"%(disnet_type.__name__))
-
         if not disnet_type is None:
             self._active_type = disnet_type
         else:

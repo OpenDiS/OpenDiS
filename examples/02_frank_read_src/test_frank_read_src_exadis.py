@@ -1,12 +1,12 @@
 import numpy as np
 import sys, os
 
-# Import pyexadis
-pyexadis_path = os.path.abspath('../../core/exadis/python/')
-if not pyexadis_path in sys.path: sys.path.append(pyexadis_path)
+pyexadis_paths = [os.path.abspath('../../python'),os.path.abspath('../../core/exadis/python')]
+[sys.path.append(path) for path in pyexadis_paths if not path in sys.path]
 try:
     import pyexadis
-    from pyexadis_base import ExaDisNet, NodeConstraints, DisNetManager, SimulateNetwork, VisualizeNetwork
+    from framework.disnet_manager import DisNetManager
+    from pyexadis_base import ExaDisNet, NodeConstraints, SimulateNetwork, VisualizeNetwork
     from pyexadis_base import CalForce, MobilityLaw, TimeIntegration, Collision, Remesh
 except ImportError:
     raise ImportError('Cannot import pyexadis')
@@ -32,9 +32,7 @@ def init_frank_read_src_loop(arm_length=1.0, box_length=8.0, burg_vec=np.array([
         pn = pn / np.linalg.norm(pn)
         links[i,:] = np.concatenate(([i, (i+1)%N], burg_vec, pn))
 
-    G = ExaDisNet(cell, rn, links)
-    net = DisNetManager({type(G): G})
-    return net
+    return DisNetManager(disnet=ExaDisNet(cell, rn, links))
     
 def main():
     global net, sim
