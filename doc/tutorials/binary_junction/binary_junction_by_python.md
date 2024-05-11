@@ -20,7 +20,7 @@ The first figure shows the initial configuration of the simulation.
 
 
 ### Boundary condition
-<img src=./figures/binary_junction_python.png alt="" width="300" />
+
 
 
 
