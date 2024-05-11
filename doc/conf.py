@@ -58,14 +58,11 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 #     "show_breadcrumbs": True
 # }
 
-
-html_theme_options = {
-      "show_breadcrumbs": True
-}
+html_static_path = ['_static']
 
 html_logo = "logo_box_upright.png"
 html_theme =  "furo"
 html_static_path = ['_static']
 
-favicons = [{"href":"logo_16x16.png"}]
+favicons = [{"href":"euler2.png"}]
 
