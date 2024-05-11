@@ -14,6 +14,15 @@ The code will produce animation of binary junction formation process. The follow
 The first figure shows the initial configuration of the simulation. 
 
 
+### Initial condition
+<img src=./figures/binary_junction_python_init.png alt="" width="300" />
+
+
+
+### BOUNDARY CONDITION
+<img src=./figures/binary_junction_python.png alt="" width="300" />
+
+
 
 <mark>To do: describe this simulation.  Initial condition.  Boundary condition.  Behavior of the dislocation.</mark>
 <mark>Done: describe this simulation.  Initial condition.  Boundary condition.  Behavior of the dislocation.</mark>
