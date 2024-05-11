@@ -37,7 +37,10 @@ cp cmake/sys.cmake.mac cmake/sys.cmake.ext
 rm -rf build/; ./configure.sh 
 cmake --build build -j 8 ; cmake --build build --target install
 ```
-
+```{Error}
+CMake Error at /usr/local/Cellar/cmake/3.29.3/share/cmake/Modules/FindPackageHandleStandardArgs.cmake:230 (message):
+  Could NOT find OpenMP_CXX (missing: OpenMP_CXX_FLAGS OpenMP_CXX_LIB_NAMES)
+```
 ```{Hint}
 If your Mac does not have OpenMP enabled, you can try this.
 ```bash
