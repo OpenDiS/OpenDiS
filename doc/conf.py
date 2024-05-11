@@ -63,9 +63,9 @@ html_theme_options = {
       "show_breadcrumbs": True
 }
 
-html_logo = "euler2.png"
+html_logo = "logo_box_upright.png"
 html_theme =  "furo"
 html_static_path = ['_static']
-html_favicons = ['euler2.png']
-favicons = ['euler2.png']
+html_favicons = ['logo_box_upright.png']
+favicons = ['logo_box_upright.png']
 
