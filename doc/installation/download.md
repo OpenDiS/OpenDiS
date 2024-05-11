@@ -1,10 +1,11 @@
 ## How to get the code
 
-### Include ExaDiS as submodule
+### Download OpenDiS together with all submodules
 
-To include ExaDiS as a submodule of OpenDiS, use the following steps:
+Use the following steps to download OpenDiS in your ``${HOME}/Codes`` folder:
 
 ```bash
+mkdir -p ~/Codes
 cd ~/Codes
 git clone --recurse-submodule https://gitlab.com/micronano/OpenDiS.git OpenDiS.git
 ```
@@ -18,9 +19,11 @@ git submodule update --init --recursive
 
 ### Getting them separately
 
-If you prefer to get the submodules separately, follow these steps:
+While we do not recommend the following approach, you could download OpenDiS without the submodules and then download its submodules individually, e.g. using the following commands.
 
 ```bash
+mkdir -p ~/Codes
+cd ~/Codes
 git clone https://gitlab.com/micronano/OpenDiS.git OpenDiS.git
 cd OpenDiS.git
 cd core
