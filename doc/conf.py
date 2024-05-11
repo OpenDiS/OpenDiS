@@ -37,7 +37,7 @@ release = '0.1.0'
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = ['myst_parser','sphinx_inline_tabs','sphinx_copybutton']
+extensions = ['myst_parser','sphinx_inline_tabs','sphinx_copybutton','sphinx_favicon']
 
 templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
@@ -67,5 +67,5 @@ html_logo = "logo_box_upright.png"
 html_theme =  "furo"
 html_static_path = ['_static']
 html_favicons = ['logo_16x16.png']
-#favicons = ['logo.ico']
+favicons = ['logo_16x16.png']
 
