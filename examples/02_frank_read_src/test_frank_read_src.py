@@ -1,20 +1,17 @@
 import numpy as np
 import sys, os
 
-sys.path.extend([os.path.abspath('../../python'),os.path.abspath('../../lib'),os.path.abspath('../../core/pydis/python')])
+pydis_paths = [os.path.abspath('../../python'),os.path.abspath('../../lib'),os.path.abspath('../../core/pydis/python')]
+[sys.path.append(path) for path in pydis_paths if not path in sys.path]
 
 from framework.disnet_manager import DisNetManager
-from pydis.disnet import DisNode, Cell, CellList
-from pydis.calforce.calforce_disnet import CalForce
-from pydis.mobility.mobility_disnet import MobilityLaw
-from pydis.timeint.timeint_disnet import TimeIntegration
-from pydis.topology.topology_disnet import Topology
-from pydis.collision.collision_disnet import Collision
-from pydis.remesh.remesh_disnet import Remesh
-from pydis.visualize.vis_disnet import VisualizeNetwork
-from pydis.simulate.sim_disnet import SimulateNetwork
+from pydis import DisNode, DisNet, Cell, CellList
+from pydis import CalForce, MobilityLaw, TimeIntegration, Topology
+from pydis import Collision, Remesh, VisualizeNetwork, SimulateNetwork
 
 def init_frank_read_src_loop(arm_length=1.0, box_length=8.0, burg_vec=np.array([1.0,0.0,0.0]), pbc=False):
+    '''Generate an initial Frank-Read source configuration
+    '''
     print("init_frank_read_src_loop: length = %f" % (arm_length))
     cell = Cell(h=box_length*np.eye(3), is_periodic=[pbc,pbc,pbc])
     cell_list = CellList(cell=cell, n_div=[8,8,8])
@@ -31,9 +28,13 @@ def init_frank_read_src_loop(arm_length=1.0, box_length=8.0, burg_vec=np.array([
         pn = pn / np.linalg.norm(pn)
         links[i,:] = np.concatenate(([i, (i+1)%N], burg_vec, pn))
 
-    net = DisNetManager()
-    net.add_disnet(cell=cell, cell_list=cell_list)
-    net.add_nodes_links_from_list(rn, links)
+    net = DisNetManager(disnet=DisNet(cell=cell, cell_list=cell_list, rn=rn, links=links))
+    #G = DisNet(cell=cell, cell_list=cell_list, rn=rn, links=links)
+    #G.add_nodes_links_from_list(rn, links)
+    #net = DisNetManager({type(G): G})
+    #net = DisNetManager(disnet=G)
+    #net.add_disnet(G)
+    #net.add_nodes_links_from_list(rn, links, disnet_type=type(G))
     return net
 
 def main():

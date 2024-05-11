@@ -165,11 +165,13 @@ class DisNet(DisNet_BASE):
 
     Implements basic topological operations on dislocation networks
     """
-    def __init__(self, data=None, cell=None, cell_list=None, **attr) -> None:
+    def __init__(self, data=None, cell=None, cell_list=None, rn=None, links=None, **attr) -> None:
         self._G = nx.DiGraph(data, **attr)
         self.cell = Cell() if cell is None else cell
         self.cell_list = CellList(cell=self.cell) if cell_list is None else cell_list
         self._recycled_tags = []
+        if rn is not None or links is not None:
+            self.add_nodes_links_from_list(rn, links)
 
     def neighbors(self, tag: Tag):
         """neighbors: return neighbors (as iterator) of a node

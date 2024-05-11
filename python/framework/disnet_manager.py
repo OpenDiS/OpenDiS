@@ -4,31 +4,35 @@ DisNetManager: class for managing multiple implementations of dislocation networ
 Implements synchronization between different implementations of DisNet
 """
 
-from pydis.disnet import DisNet
-
 class DisNetManager:
     """Class for managing multiple implementations of dislocation network
 
     Implements synchronization between different implementations of DisNet
     """
-    def __init__(self, disnet_dict: dict={}):
+    def __init__(self, disnet_dict: dict={}, disnet=None):
         self.disnet_dict = disnet_dict
+        if disnet_dict == {} and disnet is not None:
+            self.disnet_dict[type(disnet)] = disnet
         self._last_active_type = list(self.disnet_dict)[0] if self.disnet_dict else None
         self._active_type = None
 
     def add_disnet(self, disnet=None, cell=None, cell_list=None):
         """Add DisNet object of disnet_type
         """
-        if disnet is None:
-            disnet = DisNet(cell=cell, cell_list=cell_list)
-        elif cell is not None or cell_list is not None:
-            raise ValueError("add_disnet: cell or cell_list should not be provided if disnet is not None")
+        if disnet is not None:
+            if cell is not None or cell_list is not None:
+                raise ValueError("add_disnet: cell or cell_list should not be provided if disnet is not None")
 
         self.disnet_dict[type(disnet)] = disnet
+        self._last_active_type = type(disnet)
 
     def synchronize_disnet(self, disnet_src, disnet_des):
         """Synchronize DisNet between disnet_src and disnet_des
         """
+        if disnet_src is None:
+            raise ValueError("synchronize_disnet: disnet_src is None")
+        if disnet_des is None:
+            raise ValueError("synchronize_disnet: disnet_des is None")
         if disnet_src == disnet_des:
             raise ValueError("synchronize_disnet: disnet_src and disnet_des are the same")
 
@@ -48,14 +52,17 @@ class DisNetManager:
 
         self._last_active_type = disnet_des
 
-    def get_disnet(self, disnet_type=DisNet):
+    def get_disnet(self, disnet_type=None):
         """Get DisNet object of disnet_type
         """
         #if disnet_type not in self.disnet_dict:
         #    raise ValueError("get_disnet: disnet_type=%s not found"%(disnet_type.__name__))
 
-        self._active_type = disnet_type
-        if self._last_active_type is not None and self._last_active_type != self._active_type:
+        if not disnet_type is None:
+            self._active_type = disnet_type
+        else:
+            disnet_type = self._last_active_type
+        if self._last_active_type is not None and self._active_type is not None and self._last_active_type != self._active_type:
             self.synchronize_disnet(self._last_active_type, self._active_type)
         return self.disnet_dict[disnet_type]
     
@@ -64,7 +71,7 @@ class DisNetManager:
         """
         return self._active_type
 
-    def add_nodes_links_from_list(self, rn, links, disnet_type=DisNet):
+    def add_nodes_links_from_list(self, rn, links, disnet_type=None):
         """Add nodes and links from list
         """
         G = self.get_disnet(disnet_type)
@@ -85,7 +92,7 @@ class DisNetManager:
         G = self.get_disnet()
         return G.cell
 
-    def is_sane(self, disnet_type=DisNet):
+    def is_sane(self, disnet_type=None):
         """Check if DisNet is sane
         """
         G = self.get_disnet(disnet_type)
