@@ -9,7 +9,7 @@ python3 -i test_binary_junction.py
 
 The code will produce animation of binary junction formation process. The following two figures shows the result of the simulation.
 
-<img src=./figures/binary_junction_python_initial.png alt="" width="300" /> <img src=./figures/binary_junction_python.png alt="" width="300" />
+<img src=./figures/binary_junction_python_init.png alt="" width="300" /> <img src=./figures/binary_junction_python.png alt="" width="300" />
 
 The first figure shows the initial configuration of the simulation. 
 
