@@ -1,6 +1,6 @@
 ## How to get the code
 
-### Download OpenDiS together with all submodules
+### Download OpenDiS together with submodules
 
 Use the following steps to download OpenDiS in your ``${HOME}/Codes`` folder:
 
