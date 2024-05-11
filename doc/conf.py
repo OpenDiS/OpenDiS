@@ -63,8 +63,7 @@ html_theme_options = {
       "show_breadcrumbs": True
 }
 
-
 html_logo = "box_logo_upright.png"
 html_theme =  "furo"
 html_static_path = ['_static']
-favicons = ['box_logo.png']
+favicons = ['box_logo_upright.png']
