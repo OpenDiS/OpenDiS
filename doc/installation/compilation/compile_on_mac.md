@@ -1,14 +1,13 @@
 ### Compile on Mac
 
 ```{Error}
-# 1. Specify fftw directory
+If CMake is having problem finding the FFTW package, you can add the following line to your ``cmake/sys.cmake.ext`` file.
+```cmake
 set(FFTW_LIB_DIR $ENV{HOME}/usr/lib)
 set(FFTW_INC_DIR $ENV{HOME}/usr/include)
 
 message("FFTW_LIB_DIR = ${FFTW_LIB_DIR}")
 message("FFTW_INC_DIR = ${FFTW_INC_DIR}")
-
-# 2. 
 ```
 
 #### Build ExaDiS/KOKKOS
