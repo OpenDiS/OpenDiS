@@ -63,9 +63,9 @@ html_theme_options = {
       "show_breadcrumbs": True
 }
 
-html_logo = "logo_box_upright.png"
+html_logo = "open-box-s-curve.png"
 html_theme =  "furo"
 html_static_path = ['_static']
 html_favicons = ['open-box-s-curve.png']
-favicons = ['open-box-s-curve.png']
+# favicons = ['open-box-s-curve.png']
 
