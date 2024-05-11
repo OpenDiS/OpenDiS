@@ -48,6 +48,13 @@ brew update
 xcode-select --install
 ```
 
+```{Hint}
+An alternative way to install OpenMP on Mac.
+```bash
+brew install llvm
+brew install libomp
+```
+
 When compilation is successful, you should see a file like ```pyexadis.cpython*.so``` in the ```core/exadis/python``` folder.
 
 #### Run test case (OMP version)
