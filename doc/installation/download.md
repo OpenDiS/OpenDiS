@@ -13,11 +13,13 @@ git clone --recurse-submodule https://gitlab.com/micronano/OpenDiS.git OpenDiS.g
 Alternatively, you can use the following commands to achieve the same:
 
 ```bash
+mkdir -p ~/Codes
+cd ~/Codes
 git clone https://gitlab.com/micronano/OpenDiS.git OpenDiS.git
 git submodule update --init --recursive
 ```
 
-### Getting them separately
+### Getting OpenDiS and submodules separately
 
 While we do not recommend the following approach, you could download OpenDiS without the submodules and then download its submodules individually, e.g. using the following commands.
 
