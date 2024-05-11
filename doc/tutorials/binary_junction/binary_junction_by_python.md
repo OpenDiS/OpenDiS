@@ -2,6 +2,10 @@
 
 This example shows a binary junction formation simulation. Binary junctions are formed when shear stresses are applied to a slip plane whereas other slip plane is free of stresses. The code can be simply run by PyDis in pure Python mode where no compilation is needed.
 
+Two dislocation lines becomes into three dislocation lines.
+This is part of the energy minimization process.
+Two dislocation is merged when they are in contact --> junction.
+
 ```bash
 cd ~/Codes/OpenDiS.git/examples/03_binary_junction
 python3 -i test_binary_junction.py
