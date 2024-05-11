@@ -1,7 +1,7 @@
 ### Compile on Mac
 
 ```{Error}
-If CMake is having problem finding the FFTW package, you can add the following line to your ``cmake/sys.cmake.ext`` file.
+If CMake is having problem finding the FFTW package, you can add the following line to your ``cmake/sys.cmake.ext`` file. In this example, we are assuming that you installed FFTW in your home directory.
 ```cmake
 set(FFTW_LIB_DIR $ENV{HOME}/usr/lib)
 set(FFTW_INC_DIR $ENV{HOME}/usr/include)
