@@ -18,12 +18,12 @@ The code will produce animation of binary junction formation process. The follow
 The first figure shows the initial configuration of the simulation. 
 
 
-### Initial condition
+#### Initial condition
 <img src=./figures/binary_junction_python_init.png alt="" width="300" />
 
 
 
-### Boundary condition
+#### Boundary condition
 
 
 
