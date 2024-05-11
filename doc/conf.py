@@ -56,7 +56,13 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 #         "color-brand-primary": "#7C4DFF",
 #         "color-brand-content": "#7C4DFF",
 #     },
+#     "show_breadcrumbs": True
 # }
+
+
+html_theme_options = {
+      "show_breadcrumbs": True
+}
 
 
 html_logo = "box_logo.png"
