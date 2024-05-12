@@ -20,11 +20,12 @@ class Topology:
         self.Handle_Functions = {
             'MaxDiss': self.Handle_MaxDiss }
         
-    def Handle(self, DM: DisNetManager, vel_dict, nodeforce_dict, segforce_dict, sim) -> None:
+    def Handle(self, DM: DisNetManager, vel_dict, nodeforce_dict, segforce_dict, sim, **kwargs) -> None:
         """Handle: handle topology according to split_mode
         """
+        dt = kwargs.get('dt', 0.0)
         G = DM.get_disnet(DisNet)
-        return self.Handle_Functions[self.split_mode](G, vel_dict, nodeforce_dict, segforce_dict, sim)
+        return self.Handle_Functions[self.split_mode](G, vel_dict, nodeforce_dict, segforce_dict, sim, dt=dt)
 
     @staticmethod
     def build_split_list(n: int) -> list:
@@ -145,7 +146,7 @@ class Topology:
             Topology.trial_split_multi_node(G, tag, vel_dict, nodeforce_dict, segforce_dict, sim)
 
         return
-    def Handle_MaxDiss(self, G: DisNet, vel_dict, nodeforce_dict, segforce_dict, sim) -> None:
+    def Handle_MaxDiss(self, G: DisNet, vel_dict, nodeforce_dict, segforce_dict, sim, dt) -> None:
         """Handle_MaxDiss: split_multi_nodes
         """
         Topology.init_topology_exemptions(G)
