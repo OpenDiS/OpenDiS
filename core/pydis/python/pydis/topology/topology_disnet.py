@@ -14,7 +14,7 @@ from framework.disnet_manager import DisNetManager
 class Topology:
     """Topology: class for selecting and handling multi node splitting
     """
-    def __init__(self, split_mode: str='MaxDiss', **kwargs) -> None:
+    def __init__(self, params: dict={}, split_mode: str='MaxDiss') -> None:
         self.split_mode = split_mode
 
         self.Handle_Functions = {

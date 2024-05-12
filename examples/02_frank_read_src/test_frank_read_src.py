@@ -37,20 +37,21 @@ def main():
     bounds = np.array([-0.5*np.diag(net.cell.h), 0.5*np.diag(net.cell.h)])
     vis = VisualizeNetwork(bounds=bounds)
 
-    calforce = CalForce(mu=160e9, nu=0.31, a=0.01, Ec=1.0e6,
-                        applied_stress=np.array([0.0, 0.0, 0.0, 0.0, -4.0e6, 0.0]),
-                        force_mode='LineTension')
+    # "burgmag" not yet used in pydis
+    params = {"burgmag": 3e-10, "mu": 160e9, "nu": 0.31, "a": 0.01, "maxseg": 0.3, "minseg": 0.1, "rann": 0.0316}
+    calforce = CalForce(force_mode='LineTension', params=params, Ec=1.0e6)
+    mobility  = MobilityLaw(mobility_law='SimpleGlide', params=params)
+    timeint   = TimeIntegration(integrator='EulerForward', dt=1.0e-8, params=params)
+    topology  = Topology(split_mode='MaxDiss', params=params)
+    collision = Collision(collision_mode='Proximity', params=params)
+    remesh    = Remesh(remesh_rule='LengthBased', params=params)
 
-    mobility  = MobilityLaw(mobility_law='SimpleGlide')
-    timeint   = TimeIntegration(integrator='EulerForward')
-    topology  = Topology(split_mode='MaxDiss')
-    collision = Collision(collision_mode='Proximity')
-    remesh    = Remesh(remesh_rule='LengthBased', Lmin=0.1, Lmax=0.3)
-
-    sim = SimulateNetwork(calforce=calforce, mobility=mobility,
-                          timeint=timeint, topology=topology, collision=collision, remesh=remesh, vis=vis,
-                          dt0 = 1.0e-8, max_step=200,
-                          print_freq=10, plot_freq=10, plot_pause_seconds=0.1)
+    sim = SimulateNetwork(calforce=calforce, mobility=mobility, timeint=timeint,
+                          topology=topology, collision=collision, remesh=remesh, vis=vis,
+                          max_step=200, loading_mode="stress",
+                          applied_stress=np.array([0.0, 0.0, 0.0, 0.0, -4.0e6, 0.0]),
+                          print_freq=10, plot_freq=10, plot_pause_seconds=0.1,
+                          write_freq=10, write_dir='output')
     sim.run(net)
 
     return net.is_sane()

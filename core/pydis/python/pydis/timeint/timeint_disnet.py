@@ -12,8 +12,8 @@ class TimeIntegration:
     """TimeIntegration: class for time integration
 
     """
-    def __init__(self, integrator: str='EulerForward', 
-                 dt: float=1e-8, **kwargs) -> None:
+    def __init__(self, params: dict={}, integrator: str='EulerForward',
+                 dt: float=1e-8) -> None:
         self.integrator = integrator
         self.dt = dt
 

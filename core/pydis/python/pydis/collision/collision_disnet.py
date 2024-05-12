@@ -19,9 +19,9 @@ class Collision:
     """Collision: class for detecting and handling collisions
 
     """
-    def __init__(self, collision_mode: str='Proximity', **kwargs) -> None:
+    def __init__(self, params: dict={}, collision_mode: str='Proximity') -> None:
         self.collision_mode = collision_mode
-        self.mindist2 = kwargs.get('mindist2', 1.0e-3)
+        self.mindist2 = params.get("rann", np.sqrt(1.0e-3))**2
 
         self.HandleCol_Functions = {
             'Proximity': self.HandleCol_Proximity }

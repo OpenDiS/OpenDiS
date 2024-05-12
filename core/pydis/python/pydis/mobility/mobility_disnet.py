@@ -12,9 +12,9 @@ class MobilityLaw:
     """MobilityLaw: class for mobility laws
 
     """
-    def __init__(self, mobility_law: str='Relax', mob: float=1, **kwargs) -> None:
+    def __init__(self, params: dict={}, mobility_law: str='Relax') -> None:
         self.mobility_law = mobility_law
-        self.mob = mob
+        self.mob = params.get("mob", 1.0)
 
         self.Mobility_Functions = {
             'Relax': self.Mobility_Relax,
