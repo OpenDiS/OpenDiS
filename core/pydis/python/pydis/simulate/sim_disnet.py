@@ -64,7 +64,7 @@ class SimulateNetwork:
         vel_dict = self.mobility.Mobility(DM, nodeforce_dict)
 
         # using a constant time step (for now)
-        self.timeint.Update(DM, vel_dict)
+        self.timeint.Update(DM, vel_dict, self.applied_stress)
 
         self.topology.Handle(DM, vel_dict, nodeforce_dict, segforce_dict, self)
 
