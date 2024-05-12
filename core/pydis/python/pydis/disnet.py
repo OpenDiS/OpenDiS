@@ -81,14 +81,14 @@ class Cell:
         ds -= self.is_periodic * np.round(ds)
         return np.dot(self.h, ds.T).T
 
-    def map_to(self, r2: np.ndarray, r1: np.ndarray) -> np.ndarray:
-        """map: map r2 to the nearest image of r1 (if PBC is applied)
+    def closet_image(self, Rref: np.ndarray, R: np.ndarray) -> np.ndarray:
+        """map: map R to the nearest image of Rref (if PBC is applied)
         """
         if not any(self.is_periodic):
-            return r2
-        ds = np.dot(self.hinv, (r2-r1).T).T
+            return R
+        ds = np.dot(self.hinv, (R-Rref).T).T
         ds -= self.is_periodic * np.round(ds)
-        return np.dot(self.h, ds.T).T + r1
+        return np.dot(self.h, ds.T).T + Rref
 
 class CellList:
     """CellList: class for cell list
@@ -237,7 +237,7 @@ class DisNet(DisNet_BASE):
                 r1 = self._G.nodes[tag1]["R"]
                 r2 = self._G.nodes[tag2]["R"]
                 # apply PBC
-                r2 = self.cell.map_to(r2, r1)
+                r2 = self.cell.closet_image(Rref=r1, R=r2)
                 segments.append({"edge":edge,
                                  "burg_vec":self._G.edges[edge]["burg_vec"],
                                  "R1":r1,
@@ -252,7 +252,7 @@ class DisNet(DisNet_BASE):
             r1 = seg["R1"]
             r2 = seg["R2"]
             # apply PBC
-            r2 = self.cell.map_to(r2, r1)
+            r2 = self.cell.closet_image(Rref=r1, R=r2)
             mp[i,:] = 0.5*(r1+r2)
         return mp
         
@@ -314,7 +314,7 @@ class DisNet(DisNet_BASE):
             r1 = self._G.nodes[tag1]["R"]
             r2 = self._G.nodes[tag2]["R"]
             # apply PBC
-            r2 = self.cell.map_to(r2, r1)
+            r2 = self.cell.closet_image(Rref=r1, R=r2)
             self._G.edges[edge]["R1"] = r1
             self._G.edges[edge]["R2"] = r2
         return cell_list
