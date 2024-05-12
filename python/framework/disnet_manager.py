@@ -77,6 +77,12 @@ class DisNetManager:
         G.add_nodes_links_from_list(rn, links)
         self._last_active_type = disnet_type
 
+    def export_data(self):
+        """Export DisNet data
+        """
+        G = self.get_disnet()
+        return G.export_data()
+
     @property
     def G(self):
         """Return networkx graph of DisNet
