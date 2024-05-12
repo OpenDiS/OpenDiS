@@ -16,7 +16,18 @@ python3 -i test_frank_read_src.py
 
 **Boundary condition:**
 
+**Explore dislocation data:**
 
+```python
+net.G.nodes
+```
+```python
+net.G.edges
+```
+
+```python
+net.export_data()
+```
 
 ```{figure} frank_read_schematic.png
 :alt: Screenshot of the final configuration
