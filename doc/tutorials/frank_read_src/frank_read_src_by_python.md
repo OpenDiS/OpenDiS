@@ -9,7 +9,7 @@ cd ~/Codes/OpenDiS.git/examples/02_frank_read_src
 python3 -i test_frank_read_src.py
 ```
 
-In the simulation, there are two dislocation jogs pinning the four dislocation nodes. The bottom two nodes are fixed so that the dislocation line glides on the top plane. The propagation of the dislocation subsumes force calculation, collision, mobility law, remeshing rules, time integration and topolgical operation, as defined in ```pydis``` ([Bulatov & Cai](https://core.ac.uk/reader/44178170)).
+In the simulation, there are two dislocation jogs pinning the four dislocation nodes. The bottom two nodes are fixed so that the dislocation line glides on the top plane. The propagation of the dislocation subsumes force calculation, collision, mobility law, re-meshing rules, time integration, and topological operation, as defined in ```pydis``` (Chap. 10 of [Bulatov & Cai, 2006](https://core.ac.uk/reader/44178170)). The dislocation source propagates and interacts with itself, resulting in a dislocation loop and regeneration of a dislocation that can repeat the sequence ([MAE 324, Princeton University](https://www.princeton.edu/~maelabs/mae324/glos324/frankreed.htm))
 
 ```{important}
 1. describe this simulation.  Initial condition.  Boundary condition.  Behavior of the dislocation.
@@ -27,7 +27,7 @@ In this example, the periodic boundary condition (PBC) is being implemented. One
 
 **Explore dislocation data:**
 
-The pydis stores the simulated dislocation networks as graphs. One can explore the properties of this graph by checking its nodes
+The ```pydis``` module stores the simulated dislocation networks as graphs. One can explore the properties of this graph by checking its nodes
 
 ```python
 net.G.nodes
