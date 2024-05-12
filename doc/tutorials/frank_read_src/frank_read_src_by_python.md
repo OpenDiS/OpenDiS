@@ -1,10 +1,15 @@
 ### Frank-Read Source by Pure Python
-Run OpenDiS in pure python mode (PyDiS) -- no compilation needed
+
+Frank-Read Source is a mechanism of the generation of dislocations during the plastic deformation of solids. It explains the increase of dislocation density during the material's deformation process. This simple example demonstrates how to simulate Frank-Read Source in pure python mode (PyDiS) using OpenDiS.
+
+To run the simulation, simply execute:
 
 ```bash
 cd ~/Codes/OpenDiS.git/examples/02_frank_read_src
 python3 -i test_frank_read_src.py
 ```
+
+In the simulation, there are two dislocation jogs pinning the four dislocation nodes. The bottom two nodes are fixed so that the dislocation line glides on the top plane. The propagation of the dislocation subsumes force calculation, collision, mobility law, remeshing rules, time integration and topolgical operation, as defined in ```pydis``` ([https://core.ac.uk/reader/44178170](Bulatov & Cai)).
 
 ```{important}
 1. describe this simulation.  Initial condition.  Boundary condition.  Behavior of the dislocation.
