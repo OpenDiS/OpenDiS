@@ -26,13 +26,16 @@ class Collision:
         self.HandleCol_Functions = {
             'Proximity': self.HandleCol_Proximity }
         
-    def HandleCol(self, DM: DisNetManager) -> None:
+    def HandleCol(self, DM: DisNetManager, **kwargs) -> None:
         """HandleCol: handle collision according to collision_mode
         """
         G = DM.get_disnet(DisNet)
-        return self.HandleCol_Functions[self.collision_mode](G)
+        oldpos_dict = kwargs.get('oldpos_dict')
+        dt = kwargs.get('dt', 0.0)
+        xold = np.array(list(oldpos_dict.values())) if oldpos_dict != None else None
+        return self.HandleCol_Functions[self.collision_mode](G, xold, dt)
 
-    def HandleCol_Proximity(self, G: DisNet) -> None:
+    def HandleCol_Proximity(self, G: DisNet, xold=None, dt=None) -> None:
         """HandleCol_Proximity: handle collision using Proximity criterion
            This is a much simplified version of Proximity collision handling in ParaDiS
         """
@@ -125,12 +128,12 @@ class Collision:
         if not G.is_sane():
             raise ValueError("HandleCol_Proximity: sanity check failed")
 
-    def HandleCol_Proximity_ParaDiS(self, G: DisNet) -> None:
+    def HandleCol_Proximity_ParaDiS(self, G: DisNet, xold=None, dt=None) -> None:
         """HandleCol_Proximity: using ProximityCollision of ParaDiS
         """
         raise NotImplementedError("HandleCol_Proximity_ParaDiS: not implemented yet")
 
-    def HandleCol_Retroactive_ParaDiS(self, G: DisNet) -> None:
+    def HandleCol_Retroactive_ParaDiS(self, G: DisNet, xold=None, dt=None) -> None:
         """HandleCol_Retroactive: using RetroactiveCollision of ParaDiS
         """
         raise NotImplementedError("HandleCol_Retroactive_ParaDiS: not implemented yet")
