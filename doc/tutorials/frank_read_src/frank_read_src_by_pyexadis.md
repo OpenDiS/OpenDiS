@@ -11,6 +11,11 @@ export OMP_NUM_THREADS=8
 python3 -i test_frank_read_src_exadis.py
 ```
 
+**Explore dislocation data:**
+
+```python
+net.export_data()
+```
  
 ```{figure} frank_read_ex.png
 frank-read source (fix caption)
