@@ -16,6 +16,14 @@ python3 -i test_frank_read_src_exadis.py
 ```python
 net.export_data()
 ```
+```python
+net.export_data().get("nodes")
+```
+
+```python
+net.export_data().get("segs")
+```
+
  
 ```{figure} frank_read_ex.png
 frank-read source (fix caption)
