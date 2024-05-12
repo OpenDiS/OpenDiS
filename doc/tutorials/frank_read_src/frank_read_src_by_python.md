@@ -13,8 +13,12 @@ python3 -i test_frank_read_src.py
 
 **Initial condition:** 
 
+The initial condition is described in the function ```init_frank_read_src_loop()```. The initial nodes are described in the ```cell_list```, where the ```CellList``` function is being imported from the DisNet manager to initialize the simulation cell. One defines the simulation cell (```cell = ```). The initial nodal positions are introduced in the variable ```rn```.
+
 
 **Boundary condition:**
+
+In this example, the periodic boundary condition (PBC) is being implemented. One can turn the ```pbc``` option on or off by setting ```init_frank_read_src_loop(pbc=True)```.
 
 **Explore dislocation data:**
 
