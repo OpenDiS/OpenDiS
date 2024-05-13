@@ -15,6 +15,9 @@ python3 -i test_binary_junction.py
 
 <img src=./figures/binary_junction_python_init.png alt="" width="500" />
 
+At the beginning, two dislocations with disticnt burgers vectors are created. Both of those dislocations are initially represented by three nodes where they share ```(0, 0, 0)```. 
+
+
 Initial node positions are assigned to variable ```rn``` as
 ```
 rn    = np.array([[0.0, -z0, -z0,  DisNode.Constraints.PINNED_NODE],
