@@ -2,7 +2,7 @@
 
 **Introduction**
 
-This example shows how to simulate a binary junction formation process. Binary junctions are formed when two different dislocations overlap each other. It is a result of an energy relaxation process where the two dislocations with disticnt burgers vector are merged. More information about binary junctions can be found in [Bulatov & Cai, 2006](https://core.ac.uk/reader/44178170). The code can be simply run by PyDis in pure Python mode where no compilation is needed.
+This example shows how to simulate a binary junction formation process. Binary junctions are formed when two different dislocations overlap each other. It results from an energy relaxation process where the two dislocations with distinct burgers vectors are merged. More information about binary junctions can be found in [Bulatov & Cai, 2006](https://core.ac.uk/reader/44178170). The code can be run by PyDis in pure Python mode, where no compilation is needed.
 
 ```bash
 cd ~/Codes/OpenDiS.git/examples/03_binary_junction
@@ -15,7 +15,7 @@ python3 -i test_binary_junction.py
 
 <img src=./figures/binary_junction_python_init.png alt="" width="500" />
 
-At the beginning, two dislocations with disticnt burgers vectors are created. Both of those dislocations are initially represented by three nodes. The initial positions of the nodes of the dislocations are assigned inside of ```init_two_disl_lines()``` function to variable ```rn``` as
+In the beginning, two dislocations with distinct burgers vectors are created. Both of those dislocations are initially represented by three nodes. The initial positions of the nodes of the dislocations are assigned inside of ```init_two_disl_lines()``` function to variable ```rn``` as
 
 ```python
 rn    = np.array([[0.0, -z0, -z0,  DisNode.Constraints.PINNED_NODE],
@@ -44,7 +44,7 @@ calforce = CalForce(mu=160e9, nu=0.31, a=0.1, Ec=1.0e6,
 
 **Boundary conditions**
 
-By default, the simulation is set to ```pbc=False``` which does not use the periodic boundary condition. You can easily set ```pbc=True``` by
+By default, the simulation is set to ```pbc=False```, which does not use the periodic boundary condition. You can easily set ```pbc=True``` by
 
 ```python
 net = init_two_disl_lines(z0=4000, box_length=3.5e4, pbc=False)
@@ -64,17 +64,17 @@ inside the ```init_two_disl_lines()``` function.
 
 <img src=./figures/binary_junction_python.png alt="" width="500" />
 
-Two different dislocations forms a binary junction near the region where they intersect each other. As a result, three different dislocation lines are formed, wich have distinct burgers vectors. Simulation result after ```max_step=200``` with time step size ```dt0 = 1.0e-8``` is shown in the figure above.
+Two different dislocations form a binary junction near the region where they intersect each other. As a result, three different dislocation lines are formed, which have distinct burgers vectors. The figure above shows the simulation result after ```max_step=200``` with time step size ```dt0 = 1.0e-8```.
 
  
 
-The code will produce animation of binary junction formation process. The following two figures shows the result of the simulation.
+The code will produce an animation of the binary junction formation process. The following two figures show the simulation's result.
 
 
 
 The first figure shows the initial configuration of the simulation. 
 
 
-```{hint}
+```{attention}
 Climate change is real.
 ```
