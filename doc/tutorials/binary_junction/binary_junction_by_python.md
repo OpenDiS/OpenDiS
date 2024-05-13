@@ -44,7 +44,7 @@ calforce = CalForce(mu=160e9, nu=0.31, a=0.1, Ec=1.0e6,
 
 **Boundary conditions**
 
-By default, the boundary condition is set to ```pbc=False``` which does not use the periodic boundary condition. You can easily set ```pbc=True``` by
+By default, the simulation is set to ```pbc=False``` which does not use the periodic boundary condition. You can easily set ```pbc=True``` by
 
 ```python
 net = init_two_disl_lines(z0=4000, box_length=3.5e4, pbc=False)
