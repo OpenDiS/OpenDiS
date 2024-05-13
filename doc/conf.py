@@ -63,5 +63,8 @@ html_static_path = ['_static']
 html_logo = "logo_box_upright.png"
 html_theme =  "furo"
  
-favicons = ["logo_box_upright.png"]
+favicons = [
+    "https://picsum.photos/16/16",
+    "https://picsum.photos/32/32",
+]
 
