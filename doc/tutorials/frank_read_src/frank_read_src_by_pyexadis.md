@@ -32,7 +32,8 @@ net.G.export_data().get("segs")
 
  
 ```{figure} frank_read_schematic.png
-frank-read source (fix caption)
+Final simulation snapshot of the Frank-Read Source.
+:width: 552px
 ```
 
  
