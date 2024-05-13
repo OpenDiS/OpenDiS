@@ -17,6 +17,15 @@ python3 -i test_binary_junction.py
 
 <img src=./figures/binary_junction_python_init.png alt="" width="300" />
 
+Initial node positions is assigned by
+```
+rn    = np.array([[0.0, -z0, -z0,  DisNode.Constraints.PINNED_NODE],
+                      [0.0,  0.0, 0.0, DisNode.Constraints.UNCONSTRAINED],
+                      [0.0,  z0,  z0,  DisNode.Constraints.PINNED_NODE],
+                      [-z0,  0.0,-z0,  DisNode.Constraints.PINNED_NODE],
+                      [0.0,  0.0, 0.0, DisNode.Constraints.UNCONSTRAINED],
+                      [ z0,  0.0, z0,  DisNode.Constraints.PINNED_NODE]])
+```
 
 
 **Boundary condition**
