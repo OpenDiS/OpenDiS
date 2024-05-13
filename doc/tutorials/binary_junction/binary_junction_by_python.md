@@ -11,11 +11,6 @@ cd ~/Codes/OpenDiS.git/examples/03_binary_junction
 python3 -i test_binary_junction.py
 ```
 
-The code will produce animation of binary junction formation process. The following two figures shows the result of the simulation.
-
-<img src=./figures/binary_junction_python_init.png alt="" width="300" /> <img src=./figures/binary_junction_python.png alt="" width="300" />
-
-The first figure shows the initial configuration of the simulation. 
 
 
 **Initial condition**
@@ -31,6 +26,13 @@ The first figure shows the initial configuration of the simulation.
 <mark>To do: describe this simulation.  Initial condition.  Boundary condition.  Behavior of the dislocation.</mark>
 <mark>Done: describe this simulation.  Initial condition.  Boundary condition.  Behavior of the dislocation.</mark>
 
+
+
+The code will produce animation of binary junction formation process. The following two figures shows the result of the simulation.
+
+<img src=./figures/binary_junction_python.png alt="" width="300" />
+
+The first figure shows the initial configuration of the simulation. 
 
 
 ```{attention}
