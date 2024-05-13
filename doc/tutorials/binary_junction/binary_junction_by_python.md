@@ -15,7 +15,7 @@ python3 -i test_binary_junction.py
 
 **Initial condition**
 
-<img src=./figures/binary_junction_python_init.png alt="" width="300" />
+<img src=./figures/binary_junction_python_init.png alt="" width="500" />
 
 Initial node positions are assigned to variable ```rn``` as
 ```
