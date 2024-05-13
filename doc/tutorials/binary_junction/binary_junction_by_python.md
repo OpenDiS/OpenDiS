@@ -48,9 +48,17 @@ while initialization process.
 
 
 
+**Expected result**
+
+<img src=./figures/binary_junction_python.png alt="" width="500" />
+
+Two different dislocations forms a binary junction where they intersect with each other, which results in three distinct burgers vecctors. Simulation result after ```max_step=200``` with time step size ```dt0 = 1.0e-8``` is shown in the figure above.
+
+it has an independent burgers vector. 
+
 The code will produce animation of binary junction formation process. The following two figures shows the result of the simulation.
 
-<img src=./figures/binary_junction_python.png alt="" width="300" />
+
 
 The first figure shows the initial configuration of the simulation. 
 
