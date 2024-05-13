@@ -19,11 +19,11 @@ At the beginning, two dislocations with disticnt burgers vectors are created. Bo
 
 ```
 rn    = np.array([[0.0, -z0, -z0,  DisNode.Constraints.PINNED_NODE],
-                      [0.0,  0.0, 0.0, DisNode.Constraints.UNCONSTRAINED],
-                      [0.0,  z0,  z0,  DisNode.Constraints.PINNED_NODE],
-                      [-z0,  0.0,-z0,  DisNode.Constraints.PINNED_NODE],
-                      [0.0,  0.0, 0.0, DisNode.Constraints.UNCONSTRAINED],
-                      [ z0,  0.0, z0,  DisNode.Constraints.PINNED_NODE]])
+                  [0.0,  0.0, 0.0, DisNode.Constraints.UNCONSTRAINED],
+                  [0.0,  z0,  z0,  DisNode.Constraints.PINNED_NODE],
+                  [-z0,  0.0,-z0,  DisNode.Constraints.PINNED_NODE],
+                  [0.0,  0.0, 0.0, DisNode.Constraints.UNCONSTRAINED],
+                  [ z0,  0.0, z0,  DisNode.Constraints.PINNED_NODE]])
 ```
 
 
