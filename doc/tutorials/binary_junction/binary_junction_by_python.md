@@ -17,7 +17,7 @@ python3 -i test_binary_junction.py
 
 At the beginning, two dislocations with disticnt burgers vectors are created. Both of those dislocations are initially represented by three nodes. The initial positions of the nodes of the dislocations are assigned to variable ```rn``` as
 
-```
+```python
 rn    = np.array([[0.0, -z0, -z0,  DisNode.Constraints.PINNED_NODE],
                   [0.0,  0.0, 0.0, DisNode.Constraints.UNCONSTRAINED],
                   [0.0,  z0,  z0,  DisNode.Constraints.PINNED_NODE],
@@ -28,13 +28,13 @@ rn    = np.array([[0.0, -z0, -z0,  DisNode.Constraints.PINNED_NODE],
 
 Specific values related to the positions of the nodes, simulation box size, and boundary condition are set inside the ```main()``` function by
 
-```
+```python
 net = init_two_disl_lines(z0=4000, box_length=3.5e4, pbc=False)
 ```
 
 Also, other initial conditions such as Young's modulus, Poisson ratio, or external stress conditions can be set within the ```main()``` function as
 
-```
+```python
 calforce = CalForce(mu=160e9, nu=0.31, a=0.1, Ec=1.0e6,
                     applied_stress=np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
                     force_mode='LineTension')
