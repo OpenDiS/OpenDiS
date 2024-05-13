@@ -50,17 +50,17 @@ By default, the simulation is set to ```pbc=False``` which does not use the peri
 net = init_two_disl_lines(z0=4000, box_length=3.5e4, pbc=False)
 ```
 
-while initialization process. 
+inside the ```main()``` function. Moreover, it is possible to choose boundary conditions for each direction (x, y, z) by modifying 
 
+```python
+cell = Cell(h=box_length*np.eye(3), is_periodic=[pbc,pbc,pbc])
+```
 
+inside the ```init_two_disl_lines()``` function.
 
+</br>
 
-<mark>To do: describe this simulation.  Initial condition.  Boundary condition.  Behavior of the dislocation.</mark>
-<mark>Done: describe this simulation.  Initial condition.  Boundary condition.  Behavior of the dislocation.</mark>
-
-
-
-**Expected result**
+**Expected behavior of the dislocation**
 
 <img src=./figures/binary_junction_python.png alt="" width="500" />
 
