@@ -68,11 +68,7 @@ Two different dislocations form a binary junction near the region where they int
 
  
 
-The code will produce an animation of the binary junction formation process. The following two figures show the simulation's result.
-
-
-
-The first figure shows the initial configuration of the simulation. 
+Above is an animation of the simulation result during the simulation for ```max_step=200``` with time step size ```dt0 = 1.0e-8```.
 
 
 ```{attention}
