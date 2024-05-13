@@ -10,5 +10,4 @@ export OMP_NUM_THREADS=8
 python3 -i test_binary_junction_exadis.py (to be created)
 ```
 
-The initial conditions, boundary conditions, and expected dislocation behaviors are identical to those written in section 
-<mark>To do: create this test case – copy from the similar folder in core/exadis/examples</mark>
+The initial conditions, boundary conditions, and expected dislocation behaviors are identical to those written in [Sec. 3.2.1](https://caiwei-stanford.github.io/opendis-doc/tutorials/binary_junction/binary_junction_by_python.html). In fact, you will be able to observe significant speed increase since nunber of computing threads has increased to 8 via ```export OMP_NUM_THREADS=8```.
