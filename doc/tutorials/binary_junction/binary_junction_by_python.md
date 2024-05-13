@@ -26,10 +26,18 @@ rn    = np.array([[0.0, -z0, -z0,  DisNode.Constraints.PINNED_NODE],
                   [ z0,  0.0, z0,  DisNode.Constraints.PINNED_NODE]])
 ```
 
-Specific values related to the positions of the nodes, simulation box size, and boundary condition are set by
+Specific values related to the positions of the nodes, simulation box size, and boundary condition are set inside the ```main()``` function by
 
 ```
 net = init_two_disl_lines(z0=4000, box_length=3.5e4, pbc=False)
+```
+
+Also, other initial conditions such as Young's modulus, Poisson ratio, or external stress conditions can be set within the ```main()``` function as
+
+```
+calforce = CalForce(mu=160e9, nu=0.31, a=0.1, Ec=1.0e6,
+                    applied_stress=np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+                    force_mode='LineTension')
 ```
 
 </br>
