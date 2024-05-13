@@ -2,7 +2,11 @@
 
 **Introduction**
 
-This example shows a binary junction formation simulation. Binary junctions are formed when two different dislocations overlap each other. The code can be simply run by PyDis in pure Python mode where no compilation is needed.
+This example shows a binary junction formation simulation. Binary junctions are formed when two different dislocations overlap each other. It is a result of an energy relaxation process where the two dislocations with disticnt burgers vector are merged. More information about binary junctions can be found in ([Bulatov & Cai, 2006](https://core.ac.uk/reader/44178170)). 
+
+it produces additional dislocation line with distinct burgers vector
+
+The code can be simply run by PyDis in pure Python mode where no compilation is needed.
 
 Two dislocation lines becomes into three dislocation lines.
 This is part of the energy minimization process.
