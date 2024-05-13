@@ -11,7 +11,7 @@ python3 -i test_binary_junction.py
 
 </br>
 
-**Initial condition**
+**Initial conditions**
 
 <img src=./figures/binary_junction_python_init.png alt="" width="500" />
 
@@ -42,7 +42,7 @@ calforce = CalForce(mu=160e9, nu=0.31, a=0.1, Ec=1.0e6,
 
 </br>
 
-**Boundary condition**
+**Boundary conditions**
 
 By default, the boundary condition is set to ```pbc=False``` which disables the periodic boundary condition. You can easily set ```pbc=True``` by
 
