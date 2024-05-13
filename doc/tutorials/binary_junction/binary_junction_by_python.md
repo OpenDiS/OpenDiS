@@ -69,8 +69,3 @@ Two different dislocations form a binary junction near the region where they int
 <img src=./figures/binary_junction_animation.gif alt="" width="500" />
 
 Above is an animation of the simulation result during the simulation for ```max_step=200``` with time step size ```dt0 = 1.0e-8```.
-
-
-```{attention}
-Climate change is real.
-```
