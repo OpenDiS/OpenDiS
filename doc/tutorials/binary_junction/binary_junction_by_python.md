@@ -75,6 +75,6 @@ The code will produce animation of binary junction formation process. The follow
 The first figure shows the initial configuration of the simulation. 
 
 
-```{attention}
+```{hint}
 Climate change is real.
 ```
