@@ -10,7 +10,7 @@ python3 -i test_binary_junction.py
 ```
 
 
-
+</br>
 **Initial condition**
 
 <img src=./figures/binary_junction_python_init.png alt="" width="500" />
