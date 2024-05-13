@@ -15,7 +15,7 @@ python3 -i test_binary_junction.py
 
 <img src=./figures/binary_junction_python_init.png alt="" width="500" />
 
-At the beginning, two dislocations with disticnt burgers vectors are created. Both of those dislocations are initially represented by three nodes. The initial positions of the nodes of the dislocations are assigned to variable ```rn``` as
+At the beginning, two dislocations with disticnt burgers vectors are created. Both of those dislocations are initially represented by three nodes. The initial positions of the nodes of the dislocations are assigned inside of ```init_two_disl_lines()``` function to variable ```rn``` as
 
 ```python
 rn    = np.array([[0.0, -z0, -z0,  DisNode.Constraints.PINNED_NODE],
@@ -44,9 +44,9 @@ calforce = CalForce(mu=160e9, nu=0.31, a=0.1, Ec=1.0e6,
 
 **Boundary conditions**
 
-By default, the boundary condition is set to ```pbc=False``` which disables the periodic boundary condition. You can easily set ```pbc=True``` by
+By default, the boundary condition is set to ```pbc=False``` which does not use the periodic boundary condition. You can easily set ```pbc=True``` by
 
-```
+```python
 net = init_two_disl_lines(z0=4000, box_length=3.5e4, pbc=False)
 ```
 
