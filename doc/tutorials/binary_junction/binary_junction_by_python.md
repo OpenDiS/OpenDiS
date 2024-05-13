@@ -1,6 +1,6 @@
 ### Binary Junction by Pure Python
 
-This example shows a binary junction formation simulation. Binary junctions are formed when shear stresses are applied to a slip plane whereas other slip plane is free of stresses. The code can be simply run by PyDis in pure Python mode where no compilation is needed.
+This example shows a binary junction formation simulation. Binary junctions are formed when two different dislocations overlap each other. The code can be simply run by PyDis in pure Python mode where no compilation is needed.
 
 Two dislocation lines becomes into three dislocation lines.
 This is part of the energy minimization process.
