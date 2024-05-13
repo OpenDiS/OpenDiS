@@ -26,6 +26,13 @@ rn    = np.array([[0.0, -z0, -z0,  DisNode.Constraints.PINNED_NODE],
                   [ z0,  0.0, z0,  DisNode.Constraints.PINNED_NODE]])
 ```
 
+Specific values related to the positions of the nodes, simulation box size, and boundary condition are set by
+
+```
+net = init_two_disl_lines(z0=4000, box_length=3.5e4, pbc=False)
+```
+
+
 
 **Boundary condition**
 
