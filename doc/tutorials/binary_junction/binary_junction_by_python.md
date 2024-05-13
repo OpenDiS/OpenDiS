@@ -17,7 +17,7 @@ python3 -i test_binary_junction.py
 
 <img src=./figures/binary_junction_python_init.png alt="" width="300" />
 
-Initial node positions is assigned to variable ```rn``` as
+Initial node positions are assigned to variable ```rn``` as
 ```
 rn    = np.array([[0.0, -z0, -z0,  DisNode.Constraints.PINNED_NODE],
                       [0.0,  0.0, 0.0, DisNode.Constraints.UNCONSTRAINED],
@@ -29,6 +29,14 @@ rn    = np.array([[0.0, -z0, -z0,  DisNode.Constraints.PINNED_NODE],
 
 
 **Boundary condition**
+
+By default, the boundary condition is set to ```pbc=False``` which disables the periodic boundary condition. You can easily set ```pbc=True``` by
+
+```
+net = init_two_disl_lines(z0=4000, box_length=3.5e4, pbc=False)
+```
+
+while initialization process. 
 
 
 
