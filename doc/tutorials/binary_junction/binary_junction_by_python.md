@@ -62,11 +62,11 @@ inside the ```init_two_disl_lines()``` function.
 
 **Expected behavior of the dislocation**
 
-<img src=./figures/binary_junction_python.png alt="" width="500" />
+<img src=./figures/binary_junction_python_final.png alt="" width="500" />
 
 Two different dislocations form a binary junction near the region where they intersect each other. As a result, three different dislocation lines are formed, which have distinct burgers vectors. The figure above shows the simulation result after ```max_step=200``` with time step size ```dt0 = 1.0e-8```.
 
- 
+<img src=./figures/binary_junction_animation.gif alt="" width="500" />
 
 Above is an animation of the simulation result during the simulation for ```max_step=200``` with time step size ```dt0 = 1.0e-8```.
 
