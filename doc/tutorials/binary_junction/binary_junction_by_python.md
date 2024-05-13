@@ -9,7 +9,6 @@ cd ~/Codes/OpenDiS.git/examples/03_binary_junction
 python3 -i test_binary_junction.py
 ```
 
-
 </br>
 
 **Initial condition**
@@ -33,7 +32,7 @@ Specific values related to the positions of the nodes, simulation box size, and 
 net = init_two_disl_lines(z0=4000, box_length=3.5e4, pbc=False)
 ```
 
-
+</br>
 
 **Boundary condition**
 
