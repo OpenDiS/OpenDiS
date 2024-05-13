@@ -12,25 +12,24 @@ Similarly, one obtains the simulation visualization snapshots as shown in [Sec. 
 
 **Explore dislocation data:**
 
-Similarly, you can also check the ```export_data()``` of the dislocation graph structure with DisNetManager. 
-
-```python
-net.G.export_data()
+In the examples provided, both ```pydis``` and ```exadis``` utilized the length-based remesh rule. For the pure Python case, the rule is implemented via 
+```{python}
+remesh    = Remesh(remesh_rule='LengthBased', Lmin=0.1, Lmax=0.3)
 ```
-You will see something like:
-```python
-
+and in ```exadis``` it's implemented from 
+```{python}
+remesh    = Remesh(remesh_rule='LengthBased', params=params)
 ```
-
-```python
-net.G.export_data().get("nodes")
+Note that in the ```exadis``` case, the parameters can be specified in detail as in line #79:
+```{python}
+params = {"burgmag": 3e-10, "mu": 160e9, "nu": 0.31, "a": 0.01, "maxseg": 0.3, "minseg": 0.1, "rann": 0.02}
 ```
-
-```python
-net.G.export_data().get("segs")
+Note that this simulation is different from [3.1.1](https://caiwei-stanford.github.io/opendis-doc/tutorials/frank_read_src/frank_read_src_by_python.html) as it turns the PBC option off
+```{python}
+G = init_frank_read_src_loop(pbc=False)
 ```
+By setting it back in, the two simulations are identical w.r.t. initial and boundary conditions.
 
- 
 ```{figure} frank_read_schematic.png
 Final simulation snapshot of the Frank-Read Source.
 :width: 552px
