@@ -4,10 +4,6 @@
 
 This example shows how to simulate a binary junction formation process. Binary junctions are formed when two different dislocations overlap each other. It is a result of an energy relaxation process where the two dislocations with disticnt burgers vector are merged. More information about binary junctions can be found in [Bulatov & Cai, 2006](https://core.ac.uk/reader/44178170). The code can be simply run by PyDis in pure Python mode where no compilation is needed.
 
-Two dislocation lines becomes into three dislocation lines.
-This is part of the energy minimization process.
-Two dislocation is merged when they are in contact --> junction.
-
 ```bash
 cd ~/Codes/OpenDiS.git/examples/03_binary_junction
 python3 -i test_binary_junction.py
