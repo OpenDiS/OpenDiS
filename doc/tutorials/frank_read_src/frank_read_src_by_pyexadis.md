@@ -31,7 +31,7 @@ G = init_frank_read_src_loop(pbc=False)
 By setting it back in, the two simulations are identical w.r.t. initial and boundary conditions.
 
 ```{figure} frank_read_schematic.png
-Final simulation snapshot of the Frank-Read Source.
+:alt: Final simulation snapshot of the Frank-Read Source.
 :width: 552px
 ```
 
