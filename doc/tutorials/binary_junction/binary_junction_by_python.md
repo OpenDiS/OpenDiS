@@ -13,10 +13,7 @@ python3 -i test_binary_junction.py
 
 **Initial conditions**
 
-```{figure} ./figures/binary_junction_python_init.png
-:alt: Screenshot of the final configuration
-:width: 500px
-```
+<img src=./figures/binary_junction_python_init.png alt="" width="500" />
 
 In the beginning, two dislocations with distinct burgers vectors are created. Both of those dislocations are initially represented by three nodes. The initial positions of the nodes of the dislocations are assigned inside of ```init_two_disl_lines()``` function to variable ```rn``` as
 
