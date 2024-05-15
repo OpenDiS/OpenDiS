@@ -64,4 +64,4 @@ html_logo = "logo_box_upright.png"
 html_theme =  "furo"
  
 #favicons = ["logo_box_upright.png",]
-favicons = [{"href": "euler2.png"},]
+favicons = [{"href": "euler.png"},]
