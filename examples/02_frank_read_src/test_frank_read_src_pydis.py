@@ -1,8 +1,9 @@
 import numpy as np
 import sys, os
 
-pydis_paths = [os.path.abspath('../../python'),os.path.abspath('../../lib'),os.path.abspath('../../core/pydis/python')]
-[sys.path.append(path) for path in pydis_paths if not path in sys.path]
+pydis_paths = ['../../python', '../../lib', '../../core/pydis/python']
+[sys.path.append(os.path.abspath(path)) for path in pydis_paths if not path in sys.path]
+np.set_printoptions(threshold=20, edgeitems=5)
 
 from framework.disnet_manager import DisNetManager
 from pydis import DisNode, DisNet, Cell, CellList
@@ -37,7 +38,7 @@ def main():
     bounds = np.array([-0.5*np.diag(net.cell.h), 0.5*np.diag(net.cell.h)])
     vis = VisualizeNetwork(bounds=bounds)
 
-    # "burgmag" not yet used in pydis
+    # "burgmag" not yet used in pydis, make parameters (Ec) more physical
     params = {"burgmag": 3e-10, "mu": 160e9, "nu": 0.31, "a": 0.01, "maxseg": 0.3, "minseg": 0.1, "rann": 0.0316}
     calforce = CalForce(force_mode='LineTension', params=params, Ec=1.0e6)
     mobility  = MobilityLaw(mobility_law='SimpleGlide', params=params)

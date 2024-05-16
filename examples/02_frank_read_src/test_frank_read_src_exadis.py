@@ -1,8 +1,10 @@
 import numpy as np
 import sys, os
 
-pyexadis_paths = [os.path.abspath('../../python'),os.path.abspath('../../core/exadis/python')]
-[sys.path.append(path) for path in pyexadis_paths if not path in sys.path]
+pyexadis_paths = ['../../python', '../../lib', '../../core/exadis/python','../../core/pydis/python']
+[sys.path.append(os.path.abspath(path)) for path in pyexadis_paths if not path in sys.path]
+np.set_printoptions(threshold=20, edgeitems=5)
+
 try:
     import pyexadis
     from framework.disnet_manager import DisNetManager
@@ -10,6 +12,9 @@ try:
     from pyexadis_base import CalForce, MobilityLaw, TimeIntegration, Collision, Remesh
 except ImportError:
     raise ImportError('Cannot import pyexadis')
+
+# for demonstrating how to convert data between pydis and pyexadis
+from pydis import DisNet
 
 def init_frank_read_src_loop(arm_length=1.0, box_length=8.0, burg_vec=np.array([1.0,0.0,0.0]), pbc=False):
     '''Generate an initial Frank-Read source configuration
@@ -58,8 +63,8 @@ def main():
                           print_freq=10, plot_freq=10, plot_pause_seconds=0.0001,
                           write_freq=10, write_dir='output')
     sim.run(net)
-    
-    pyexadis.finalize()
+    # do not finalize pyexadis here if we want to interact with the network after simulation
+    #pyexadis.finalize()
 
 
 if __name__ == "__main__":
