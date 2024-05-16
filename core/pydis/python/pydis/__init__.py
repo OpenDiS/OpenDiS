@@ -1,7 +1,5 @@
 #__init__.py
 
-from framework.disnet_manager import DisNetManager
-
 from pydis.disnet import *
 
 from pydis.calforce.calforce_disnet import CalForce

@@ -289,8 +289,8 @@ class DisNet(DisNet_BASE):
         nodes, ntags = self.nodes_array()
         segs = self.segs_array(ntags)
         data = {"cell" : cell,
-                "nodes": nodes,
-                "segs" : segs }
+                "nodes": np.array(nodes),
+                "segs" : np.array(segs) }
         return data
     
     def import_data(self, data):
