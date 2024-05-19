@@ -69,3 +69,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+    # explore the network after simulation
+    G1 = net.get_disnet(ExaDisNet)
+    G  = net.get_disnet(DisNet)

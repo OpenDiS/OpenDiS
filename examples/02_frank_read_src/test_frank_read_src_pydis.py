@@ -60,3 +60,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+    # explore the network after simulation
+    G  = net.get_disnet()
