@@ -1,12 +1,12 @@
 #__init__.py
 
-from pydis.disnet import *
+from .disnet import DisNode, DisEdge, Cell, CellList, DisNet
 
-from pydis.calforce.calforce_disnet import CalForce
-from pydis.mobility.mobility_disnet import MobilityLaw
-from pydis.timeint.timeint_disnet import TimeIntegration
-from pydis.topology.topology_disnet import Topology
-from pydis.collision.collision_disnet import Collision
-from pydis.remesh.remesh_disnet import Remesh
-from pydis.visualize.vis_disnet import VisualizeNetwork
-from pydis.simulate.sim_disnet import SimulateNetwork
+from .calforce.calforce_disnet import CalForce
+from .mobility.mobility_disnet import MobilityLaw
+from .timeint.timeint_disnet import TimeIntegration
+from .topology.topology_disnet import Topology
+from .collision.collision_disnet import Collision
+from .remesh.remesh_disnet import Remesh
+from .visualize.vis_disnet import VisualizeNetwork
+from .simulate.sim_disnet import SimulateNetwork
