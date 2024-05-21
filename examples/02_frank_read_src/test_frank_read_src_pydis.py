@@ -29,7 +29,7 @@ def init_frank_read_src_loop(arm_length=1.0, box_length=8.0, burg_vec=np.array([
         pn = pn / np.linalg.norm(pn)
         links[i,:] = np.concatenate(([i, (i+1)%N], burg_vec, pn))
 
-    return DisNetManager(disnet=DisNet(cell=cell, cell_list=cell_list, rn=rn, links=links))
+    return DisNetManager(DisNet(cell=cell, cell_list=cell_list, rn=rn, links=links))
 
 def main():
     global net, sim

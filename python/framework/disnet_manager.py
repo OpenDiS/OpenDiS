@@ -9,11 +9,9 @@ class DisNetManager:
 
     Implements synchronization between different implementations of DisNet
     """
-    def __init__(self, disnet_dict: dict={}, disnet=None):
-        if type(disnet_dict) is not dict:
-            raise ValueError("DisNetManager: disnet_dict should be a dictionary")
-        self.disnet_dict = disnet_dict
-        if disnet_dict == {} and disnet is not None:
+    def __init__(self, disnet=None):
+        self.disnet_dict = {}
+        if disnet is not None:
             self.disnet_dict[type(disnet)] = disnet
         self._last_active_type = list(self.disnet_dict)[0] if self.disnet_dict else None
         self._active_type = None
