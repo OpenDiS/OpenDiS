@@ -81,7 +81,7 @@ class Cell:
         ds -= self.is_periodic * np.round(ds)
         return np.dot(self.h, ds.T).T
 
-    def closet_image(self, Rref: np.ndarray, R: np.ndarray) -> np.ndarray:
+    def closest_image(self, Rref: np.ndarray, R: np.ndarray) -> np.ndarray:
         """map: map R to the nearest image of Rref (if PBC is applied)
         """
         if not any(self.is_periodic):
