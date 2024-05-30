@@ -42,21 +42,21 @@ class VisualizeNetwork:
         p_link = np.empty((0,6))
 
         # apply PBC
-        rn = G.cell.closet_image(Rref=np.array([0,0,0]), R=rn)
+        rn = G.cell.closest_image(Rref=np.array([0,0,0]), R=rn)
 
         plt.cla()
         if plot_links:
             for my_tag, node_attr in G.nodes.items():
                 my_coords = node_attr['R']
                 # apply PBC
-                my_coords = G.cell.closet_image(Rref=np.array([0,0,0]), R=my_coords)
+                my_coords = G.cell.closest_image(Rref=np.array([0,0,0]), R=my_coords)
                 for arm in G.edges(my_tag):
                     nbr_tag = arm[1]
                     if my_tag < nbr_tag:
                         r_link = np.zeros((2,3))
                         nbr_coords = G.nodes[nbr_tag]['R']
                         # apply PBC
-                        nbr_coords = G.cell.closet_image(Rref=my_coords, R=nbr_coords)
+                        nbr_coords = G.cell.closest_image(Rref=my_coords, R=nbr_coords)
                         r_link[0,:] = my_coords
                         # to do: extend to non-cubic box
                         r_link[1,:] = nbr_coords

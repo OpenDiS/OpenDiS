@@ -237,7 +237,7 @@ class DisNet(DisNet_BASE):
                 r1 = self._G.nodes[tag1]["R"]
                 r2 = self._G.nodes[tag2]["R"]
                 # apply PBC
-                r2 = self.cell.closet_image(Rref=r1, R=r2)
+                r2 = self.cell.closest_image(Rref=r1, R=r2)
                 segments.append({"edge":edge,
                                  "burg_vec":self._G.edges[edge]["burg_vec"],
                                  "R1":r1,
@@ -252,7 +252,7 @@ class DisNet(DisNet_BASE):
             r1 = seg["R1"]
             r2 = seg["R2"]
             # apply PBC
-            r2 = self.cell.closet_image(Rref=r1, R=r2)
+            r2 = self.cell.closest_image(Rref=r1, R=r2)
             mp[i,:] = 0.5*(r1+r2)
         return mp
         
@@ -314,7 +314,7 @@ class DisNet(DisNet_BASE):
             r1 = self._G.nodes[tag1]["R"]
             r2 = self._G.nodes[tag2]["R"]
             # apply PBC
-            r2 = self.cell.closet_image(Rref=r1, R=r2)
+            r2 = self.cell.closest_image(Rref=r1, R=r2)
             self._G.edges[edge]["R1"] = r1
             self._G.edges[edge]["R2"] = r2
         return cell_list

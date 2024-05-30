@@ -70,7 +70,7 @@ class MobilityLaw:
                     node2 = G.nodes[nbr_tag]
                     R2 = node2["R"]
                     # apply PBC
-                    R2 = G.cell.closet_image(Rref=R1, R=R2)
+                    R2 = G.cell.closest_image(Rref=R1, R=R2)
                     Lsum += np.linalg.norm(R2-R1)
                 vel = vel_dict[tag] / (Lsum/2.0) * self.mob
                 normals = np.array([G.edges[id]["plane_normal"] for id in G.edges(tag)])

@@ -37,7 +37,7 @@ class Remesh:
             node1, node2 = G.nodes[tag1], G.nodes[tag2]
             R1, R2 = node1["R"], node2["R"]
             # apply PBC
-            R2 = G.cell.closet_image(Rref=R1, R=R2)
+            R2 = G.cell.closest_image(Rref=R1, R=R2)
             L = np.linalg.norm(R2-R1)
             if (L < self.minseg):
                 if G.out_degree(tag1) == 2 and node1["constraint"] != DisNode.Constraints.PINNED_NODE:
@@ -57,7 +57,7 @@ class Remesh:
             node1, node2 = G.nodes[tag1], G.nodes[tag2]
             R1, R2 = node1["R"], node2["R"]
             # apply PBC
-            R2 = G.cell.closet_image(Rref=R1, R=R2)
+            R2 = G.cell.closest_image(Rref=R1, R=R2)
             L = np.linalg.norm(R2-R1)
             if (L > self.maxseg) and ((node1["constraint"] != DisNode.Constraints.PINNED_NODE) or (node2["constraint"] != DisNode.Constraints.PINNED_NODE)):
                 # insert new node on segment
