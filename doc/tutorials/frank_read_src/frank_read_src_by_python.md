@@ -6,7 +6,7 @@ To run the simulation, simply execute:
 
 ```bash
 cd ~/Codes/OpenDiS.git/examples/02_frank_read_src
-python3 -i test_frank_read_src.py
+python3 -i test_frank_read_src_pydis.py
 ```
 
 In the simulation, there are two dislocation jogs pinning the four dislocation nodes. The bottom two nodes are fixed so that the dislocation line glides on the top plane. The propagation of the dislocation subsumes force calculation, collision, mobility law, re-meshing rules, time integration, and topological operation, as defined in ```pydis``` (Chap. 10 of [Bulatov & Cai, 2006](https://core.ac.uk/reader/44178170)). The dislocation source propagates and interacts with itself, resulting in a dislocation loop and regeneration of a dislocation that can repeat the sequence ([MAE 324, Princeton University](https://www.princeton.edu/~maelabs/mae324/glos324/frankreed.htm))
