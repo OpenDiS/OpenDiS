@@ -14,17 +14,18 @@ from framework.disnet_manager import DisNetManager
 class Topology:
     """Topology: class for selecting and handling multi node splitting
     """
-    def __init__(self, split_mode: str='MaxDiss', **kwargs) -> None:
+    def __init__(self, params: dict={}, split_mode: str='MaxDiss') -> None:
         self.split_mode = split_mode
 
         self.Handle_Functions = {
             'MaxDiss': self.Handle_MaxDiss }
         
-    def Handle(self, DM: DisNetManager, vel_dict, nodeforce_dict, segforce_dict, sim) -> None:
+    def Handle(self, DM: DisNetManager, vel_dict, nodeforce_dict, segforce_dict, sim, **kwargs) -> None:
         """Handle: handle topology according to split_mode
         """
+        dt = kwargs.get('dt', 0.0)
         G = DM.get_disnet(DisNet)
-        return self.Handle_Functions[self.split_mode](G, vel_dict, nodeforce_dict, segforce_dict, sim)
+        return self.Handle_Functions[self.split_mode](G, vel_dict, nodeforce_dict, segforce_dict, sim, dt=dt)
 
     @staticmethod
     def build_split_list(n: int) -> list:
@@ -98,7 +99,7 @@ class Topology:
 
             # calculate nodal forces and velocities for the trial split
             nodeforce_dict_trial = sim.calforce.NodeForce_from_SegForce(G_trial, segforce_trial_dict)
-            DM_trial = DisNetManager({type(G_trial): G_trial})
+            DM_trial = DisNetManager(G_trial)
             vel_dict_trial = sim.mobility.Mobility(DM_trial, nodeforce_dict_trial)
 
             power_diss[k] = np.dot(nodeforce_dict_trial[split_node1], vel_dict_trial[split_node1]) \
@@ -145,7 +146,7 @@ class Topology:
             Topology.trial_split_multi_node(G, tag, vel_dict, nodeforce_dict, segforce_dict, sim)
 
         return
-    def Handle_MaxDiss(self, G: DisNet, vel_dict, nodeforce_dict, segforce_dict, sim) -> None:
+    def Handle_MaxDiss(self, G: DisNet, vel_dict, nodeforce_dict, segforce_dict, sim, dt) -> None:
         """Handle_MaxDiss: split_multi_nodes
         """
         Topology.init_topology_exemptions(G)

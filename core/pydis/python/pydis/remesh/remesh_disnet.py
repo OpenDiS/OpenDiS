@@ -12,10 +12,10 @@ class Remesh:
     """Remesh: class for remeshing dislocation network
 
     """
-    def __init__(self, remesh_rule: str='LengthBased', **kwargs) -> None:
+    def __init__(self, params: dict={}, remesh_rule: str='LengthBased') -> None:
         self.remesh_rule = remesh_rule
-        self.Lmin = kwargs.get('Lmin', None)
-        self.Lmax = kwargs.get('Lmax', None)
+        self.maxseg = params.get("maxseg", None)
+        self.minseg = params.get("minseg", None)
 
         self.Remesh_Functions = {
             'LengthBased': self.Remesh_LengthBased,
@@ -37,9 +37,9 @@ class Remesh:
             node1, node2 = G.nodes[tag1], G.nodes[tag2]
             R1, R2 = node1["R"], node2["R"]
             # apply PBC
-            R2 = G.cell.map_to(R2, R1)
+            R2 = G.cell.closest_image(Rref=R1, R=R2)
             L = np.linalg.norm(R2-R1)
-            if (L < self.Lmin):
+            if (L < self.minseg):
                 if G.out_degree(tag1) == 2 and node1["constraint"] != DisNode.Constraints.PINNED_NODE:
                     nodes_to_remove.append(tag1)
                 elif G.out_degree(tag2) == 2 and node2["constraint"] != DisNode.Constraints.PINNED_NODE:
@@ -57,9 +57,9 @@ class Remesh:
             node1, node2 = G.nodes[tag1], G.nodes[tag2]
             R1, R2 = node1["R"], node2["R"]
             # apply PBC
-            R2 = G.cell.map_to(R2, R1)
+            R2 = G.cell.closest_image(Rref=R1, R=R2)
             L = np.linalg.norm(R2-R1)
-            if (L > self.Lmax) and ((node1["constraint"] != DisNode.Constraints.PINNED_NODE) or (node2["constraint"] != DisNode.Constraints.PINNED_NODE)):
+            if (L > self.maxseg) and ((node1["constraint"] != DisNode.Constraints.PINNED_NODE) or (node2["constraint"] != DisNode.Constraints.PINNED_NODE)):
                 # insert new node on segment
                 new_tag = G.get_new_tag()
                 # To do: apply PBC here

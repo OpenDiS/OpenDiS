@@ -19,20 +19,23 @@ class Collision:
     """Collision: class for detecting and handling collisions
 
     """
-    def __init__(self, collision_mode: str='Proximity', **kwargs) -> None:
+    def __init__(self, params: dict={}, collision_mode: str='Proximity') -> None:
         self.collision_mode = collision_mode
-        self.mindist2 = kwargs.get('mindist2', 1.0e-3)
+        self.mindist2 = params.get("rann", np.sqrt(1.0e-3))**2
 
         self.HandleCol_Functions = {
             'Proximity': self.HandleCol_Proximity }
         
-    def HandleCol(self, DM: DisNetManager) -> None:
+    def HandleCol(self, DM: DisNetManager, **kwargs) -> None:
         """HandleCol: handle collision according to collision_mode
         """
         G = DM.get_disnet(DisNet)
-        return self.HandleCol_Functions[self.collision_mode](G)
+        oldpos_dict = kwargs.get('oldpos_dict')
+        dt = kwargs.get('dt', 0.0)
+        xold = np.array(list(oldpos_dict.values())) if oldpos_dict != None else None
+        return self.HandleCol_Functions[self.collision_mode](G, xold, dt)
 
-    def HandleCol_Proximity(self, G: DisNet) -> None:
+    def HandleCol_Proximity(self, G: DisNet, xold=None, dt=None) -> None:
         """HandleCol_Proximity: handle collision using Proximity criterion
            This is a much simplified version of Proximity collision handling in ParaDiS
         """
@@ -73,9 +76,9 @@ class Collision:
                 if tag1 != tag3 and tag1 != tag4 and tag2 != tag3 and tag2 != tag4:
                     # no nodes are shared
                     # apply PBC
-                    p2 = G.cell.map_to(p2, p1)
-                    p3 = G.cell.map_to(p3, p1)
-                    p4 = G.cell.map_to(p4, p3)
+                    p2 = G.cell.closest_image(Rref=p1, R=p2)
+                    p3 = G.cell.closest_image(Rref=p1, R=p3)
+                    p4 = G.cell.closest_image(Rref=p3, R=p4)
                     dist2, ddist2dt, L1, L2 = GetMinDist2(p1, v1, p2, v2, p3, v3, p4, v4)
                     if dist2 < self.mindist2:
                         collided[i] = True
@@ -125,12 +128,12 @@ class Collision:
         if not G.is_sane():
             raise ValueError("HandleCol_Proximity: sanity check failed")
 
-    def HandleCol_Proximity_ParaDiS(self, G: DisNet) -> None:
+    def HandleCol_Proximity_ParaDiS(self, G: DisNet, xold=None, dt=None) -> None:
         """HandleCol_Proximity: using ProximityCollision of ParaDiS
         """
         raise NotImplementedError("HandleCol_Proximity_ParaDiS: not implemented yet")
 
-    def HandleCol_Retroactive_ParaDiS(self, G: DisNet) -> None:
+    def HandleCol_Retroactive_ParaDiS(self, G: DisNet, xold=None, dt=None) -> None:
         """HandleCol_Retroactive: using RetroactiveCollision of ParaDiS
         """
         raise NotImplementedError("HandleCol_Retroactive_ParaDiS: not implemented yet")

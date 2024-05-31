@@ -63,15 +63,12 @@ def selfforcevec_LineTension(MU, NU, Ec, segments, eps_L=1e-6):
 class CalForce:
     """CalForce_DisNet: class for calculating forces on dislocation network
     """
-    def __init__(self, mu: float, nu: float, a: float, Ec: float=0,
-                 applied_stress: np.ndarray=np.zeros(6),
-                 force_mode: str='Elasticity_SBA',
-                 **kwargs) -> None:
-        self.mu = mu
-        self.nu = nu
-        self.a = a
+    def __init__(self, params: dict={}, Ec: float=0,
+                 force_mode: str='Elasticity_SBA') -> None:
+        self.mu = params.get("mu", 1.0)
+        self.nu = params.get("nu", 0.3)
+        self.a =  params.get("a", 0.01)
         self.Ec = Ec
-        self.applied_stress = applied_stress
         self.force_mode = force_mode
 
         self.NodeForce_Functions = {
@@ -79,13 +76,13 @@ class CalForce:
             'Elasticity_SBA': self.NodeForce_Elasticity_SBA,
             'Elasticity_SBN1_SBA': self.NodeForce_Elasticity_SBN1_SBA }
 
-    def NodeForce(self, DM: DisNetManager) -> Tuple[dict, dict]:
+    def NodeForce(self, DM: DisNetManager, applied_stress: np.ndarray) -> Tuple[dict, dict]:
         """NodeForce: return nodal forces in a dictionary
 
         Using different force calculation functions depending on force_mode
         """
         G = DM.get_disnet(DisNet)
-        return self.NodeForce_Functions[self.force_mode](G)
+        return self.NodeForce_Functions[self.force_mode](G, applied_stress)
 
     def NodeForce_from_SegForce(self, G: DisNet, segforce_dict: dict) -> dict:
         """NodeForce_from_SegForce: return nodal forces by assembling segment forces
@@ -100,7 +97,7 @@ class CalForce:
 
         return nodeforce_dict
 
-    def NodeForce_LineTension(self, G: DisNet) -> Tuple[dict, dict]:
+    def NodeForce_LineTension(self, G: DisNet, applied_stress: np.ndarray) -> Tuple[dict, dict]:
         """NodeForce: return nodal forces from line tension in a dictionary
 
         Only Peach-Koehler force from external stress and line tension forces
@@ -108,7 +105,7 @@ class CalForce:
         Note: assuming G.seg_list already accounts for PBC
         """
         segments = G.seg_list()
-        sigext = voigt_vector_to_tensor(self.applied_stress)
+        sigext = voigt_vector_to_tensor(applied_stress)
         fpk = pkforcevec(sigext, segments)
         fs0, fs1 = selfforcevec_LineTension(self.mu, self.nu, self.Ec, segments)
         fseg = np.hstack((fpk*0.5 + fs0, fpk*0.5 + fs1))
@@ -125,14 +122,14 @@ class CalForce:
 
         return nodeforce_dict, segforce_dict
 
-    def NodeForce_Elasticity_SBA(self, G: DisNet) -> Tuple[dict, dict]:
+    def NodeForce_Elasticity_SBA(self, G: DisNet, applied_stress: np.ndarray) -> Tuple[dict, dict]:
         """NodeForce: return nodal forces from external stress and elastic interactions
 
         (from ParaDiS)
         Note: assuming G.seg_list already accounts for PBC
         """
         segments = G.seg_list()
-        sigext = voigt_vector_to_tensor(self.applied_stress)
+        sigext = voigt_vector_to_tensor(applied_stress)
         fpk = pkforcevec(sigext, segments)
         fseg = np.hstack((fpk*0.5, fpk*0.5))
 
@@ -185,14 +182,14 @@ class CalForce:
 
         return nodeforce_dict, segforce_dict
 
-    def NodeForce_Elasticity_SBN1_SBA(self, G: DisNet) -> Tuple[dict, dict]:
+    def NodeForce_Elasticity_SBN1_SBA(self, G: DisNet, applied_stress: np.ndarray) -> Tuple[dict, dict]:
         """NodeForce: return nodal forces from external stress and elastic interactions
 
         (from ParaDiS)
         Note: assuming G.seg_list already accounts for PBC
         """
         segments = G.seg_list()
-        sigext = voigt_vector_to_tensor(self.applied_stress)
+        sigext = voigt_vector_to_tensor(applied_stress)
         fpk = pkforcevec(sigext, segments)
         fseg = np.hstack((fpk*0.5, fpk*0.5))
 

@@ -30,9 +30,13 @@ class SimulateNetwork:
                  collision=None, remesh=None, vis=None,
                  dt0: float=1.0e-8,
                  max_step: int=10,
+                 loading_mode: str=None,
+                 applied_stress: np.ndarray=None,
                  print_freq: int=None,
                  plot_freq: int=None,
                  plot_pause_seconds: float=None,
+                 write_freq: int=None,
+                 write_dir: str=".",
                  **kwargs) -> None:
         self.calforce = calforce
         self.mobility = mobility
@@ -43,21 +47,24 @@ class SimulateNetwork:
         self.vis = vis
         self.dt0 = dt0
         self.max_step = max_step
+        self.loading_mode = loading_mode
+        self.applied_stress = np.array(applied_stress)
         self.print_freq = print_freq
         self.plot_freq = plot_freq
         self.plot_pause_seconds = plot_pause_seconds
+        self.write_freq = write_freq
+        self.write_dir = write_dir
         pass
 
     def step(self, DM: DisNetManager):
         """step: take a time step of DD simulation on DisNet G
         """
-        nodeforce_dict, segforce_dict = self.calforce.NodeForce(DM)
+        nodeforce_dict, segforce_dict = self.calforce.NodeForce(DM, self.applied_stress)
 
         vel_dict = self.mobility.Mobility(DM, nodeforce_dict)
 
         # using a constant time step (for now)
-        self.timeint.dt = self.dt0
-        self.timeint.Update(DM, vel_dict)
+        self.timeint.Update(DM, vel_dict, self.applied_stress)
 
         self.topology.Handle(DM, vel_dict, nodeforce_dict, segforce_dict, self)
 

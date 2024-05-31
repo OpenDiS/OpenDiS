@@ -81,14 +81,14 @@ class Cell:
         ds -= self.is_periodic * np.round(ds)
         return np.dot(self.h, ds.T).T
 
-    def map_to(self, r2: np.ndarray, r1: np.ndarray) -> np.ndarray:
-        """map: map r2 to the nearest image of r1 (if PBC is applied)
+    def closest_image(self, Rref: np.ndarray, R: np.ndarray) -> np.ndarray:
+        """map: map R to the nearest image of Rref (if PBC is applied)
         """
         if not any(self.is_periodic):
-            return r2
-        ds = np.dot(self.hinv, (r2-r1).T).T
+            return R
+        ds = np.dot(self.hinv, (R-Rref).T).T
         ds -= self.is_periodic * np.round(ds)
-        return np.dot(self.h, ds.T).T + r1
+        return np.dot(self.h, ds.T).T + Rref
 
 class CellList:
     """CellList: class for cell list
@@ -165,11 +165,13 @@ class DisNet(DisNet_BASE):
 
     Implements basic topological operations on dislocation networks
     """
-    def __init__(self, data=None, cell=None, cell_list=None, **attr) -> None:
+    def __init__(self, data=None, cell=None, cell_list=None, rn=None, links=None, **attr) -> None:
         self._G = nx.DiGraph(data, **attr)
         self.cell = Cell() if cell is None else cell
         self.cell_list = CellList(cell=self.cell) if cell_list is None else cell_list
         self._recycled_tags = []
+        if rn is not None or links is not None:
+            self.add_nodes_links_from_list(rn, links)
 
     def neighbors(self, tag: Tag):
         """neighbors: return neighbors (as iterator) of a node
@@ -235,7 +237,7 @@ class DisNet(DisNet_BASE):
                 r1 = self._G.nodes[tag1]["R"]
                 r2 = self._G.nodes[tag2]["R"]
                 # apply PBC
-                r2 = self.cell.map_to(r2, r1)
+                r2 = self.cell.closest_image(Rref=r1, R=r2)
                 segments.append({"edge":edge,
                                  "burg_vec":self._G.edges[edge]["burg_vec"],
                                  "R1":r1,
@@ -250,7 +252,7 @@ class DisNet(DisNet_BASE):
             r1 = seg["R1"]
             r2 = seg["R2"]
             # apply PBC
-            r2 = self.cell.map_to(r2, r1)
+            r2 = self.cell.closest_image(Rref=r1, R=r2)
             mp[i,:] = 0.5*(r1+r2)
         return mp
         
@@ -287,8 +289,8 @@ class DisNet(DisNet_BASE):
         nodes, ntags = self.nodes_array()
         segs = self.segs_array(ntags)
         data = {"cell" : cell,
-                "nodes": nodes,
-                "segs" : segs }
+                "nodes": np.array(nodes),
+                "segs" : np.array(segs) }
         return data
     
     def import_data(self, data):
@@ -312,7 +314,7 @@ class DisNet(DisNet_BASE):
             r1 = self._G.nodes[tag1]["R"]
             r2 = self._G.nodes[tag2]["R"]
             # apply PBC
-            r2 = self.cell.map_to(r2, r1)
+            r2 = self.cell.closest_image(Rref=r1, R=r2)
             self._G.edges[edge]["R1"] = r1
             self._G.edges[edge]["R2"] = r2
         return cell_list
