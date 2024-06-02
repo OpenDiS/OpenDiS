@@ -1,24 +1,22 @@
+import os, sys
 import numpy as np
-import sys, os
 
-pyexadis_paths = ['../../python', '../../lib', '../../core/exadis/python','../../core/pydis/python']
-[sys.path.append(os.path.abspath(path)) for path in pyexadis_paths if not path in sys.path]
-np.set_printoptions(threshold=20, edgeitems=5)
-
+# Import pyexadis
+pyexadis_path = '../../core/exadis/python/'
+if not pyexadis_path in sys.path: sys.path.append(pyexadis_path)
 try:
     import pyexadis
-    from framework.disnet_manager import DisNetManager
-    from pyexadis_base import ExaDisNet, NodeConstraints, SimulateNetwork, VisualizeNetwork
+    from pyexadis_base import ExaDisNet, NodeConstraints, DisNetManager, SimulateNetwork, VisualizeNetwork
     from pyexadis_base import CalForce, MobilityLaw, TimeIntegration, Collision, Remesh
 except ImportError:
     raise ImportError('Cannot import pyexadis')
 
-# for demonstrating how to convert data between pydis and pyexadis
-from pydis import DisNet
 
+'''
+Example of a function to generate an initial
+Frank-Read source configuration
+'''
 def init_frank_read_src_loop(arm_length=1.0, box_length=8.0, burg_vec=np.array([1.0,0.0,0.0]), pbc=False):
-    '''Generate an initial Frank-Read source configuration
-    '''
     print("init_frank_read_src_loop: length = %f" % (arm_length))
     cell = pyexadis.Cell(h=box_length*np.eye(3), is_periodic=[pbc,pbc,pbc])
     center = np.array(cell.center())
@@ -37,13 +35,44 @@ def init_frank_read_src_loop(arm_length=1.0, box_length=8.0, burg_vec=np.array([
         pn = pn / np.linalg.norm(pn)
         links[i,:] = np.concatenate(([i, (i+1)%N], burg_vec, pn))
 
-    return DisNetManager(ExaDisNet(cell, rn, links))
+    G = ExaDisNet(cell, rn, links)
+    return G
     
-def main():
-    global net, sim
+
+'''
+Example of a function to compute nodal forces using
+the pyexadis binding to ExaDiS
+'''
+def test_force():
     pyexadis.initialize()
     
-    net = init_frank_read_src_loop(pbc=False)
+    G = init_frank_read_src_loop(pbc=False)
+    N = DisNetManager({type(G): G})
+    
+    mu, nu = 160e9, 0.31
+    a, Ec = 0.01, 1.0e6
+    applied_stress = np.array([0.0, 0.0, 0.0, 0.0, -2.0e6, 0.0])
+    
+    # exadis
+    params = {"burgmag": 1.0, "mu": mu, "nu": nu, "a": a, "maxseg": 0.3, "minseg": 0.1}
+    calforce = CalForce(params=params, Ec=Ec, force_mode='LineTension')
+    nodeforce_dict = calforce.NodeForce(N, applied_stress=applied_stress)
+    f_pyexadis = np.array(list(nodeforce_dict.values()))
+    print('f_pyexadis',f_pyexadis)
+
+    pyexadis.finalize()
+    
+
+'''
+Example of a script to perform a simple Frank-Read source
+simulation using the pyexadis binding to ExaDiS
+'''
+def main():
+    
+    pyexadis.initialize()
+    
+    G = init_frank_read_src_loop(pbc=False)
+    N = DisNetManager({type(G): G})
 
     vis = VisualizeNetwork()
     
@@ -62,14 +91,11 @@ def main():
                           applied_stress=np.array([0.0, 0.0, 0.0, 0.0, -4.0e6, 0.0]),
                           print_freq=10, plot_freq=10, plot_pause_seconds=0.0001,
                           write_freq=10, write_dir='output')
-    sim.run(net)
-    # do not finalize pyexadis here if we want to interact with the network after simulation
-    #pyexadis.finalize()
+    sim.run(N)
+    
+    pyexadis.finalize()
 
 
 if __name__ == "__main__":
+    #test_force()
     main()
-
-    # explore the network after simulation
-    G1 = net.get_disnet(ExaDisNet)
-    G  = net.get_disnet(DisNet)
