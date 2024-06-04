@@ -37,7 +37,7 @@ def main():
 
     params = {"burgmag": 3e-10, "mu": 160e9, "nu": 0.31, "a": 0.01, "maxseg": 0.3, "minseg": 0.1, "rann": 0.0316}
     calforce = CalForce(force_mode='LineTension', params=params, Ec=1.0e6)
-    applied_stress=np.array([0.0, 0.0, 0.0, 0.0, 1.0e5, 0.0])
+    applied_stress=np.array([0.0, 0.0, 0.0, 0.0, -2.0e6, 0.0])
     nodeforce_dict = calforce.NodeForce(G, applied_stress=applied_stress)
     # lt_force_array = np.array([nodeforce_dict[node] for node in G.nodes])
     node_force = [array for array in nodeforce_dict[0].values()] # force at nodes
