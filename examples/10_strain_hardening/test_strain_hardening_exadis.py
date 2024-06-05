@@ -1,0 +1,63 @@
+import os, sys
+import numpy as np
+
+# Import pyexadis
+pyexadis_path = '../../core/exadis/python/'
+if not pyexadis_path in sys.path: sys.path.append(pyexadis_path)
+try:
+    import pyexadis
+    from pyexadis_base import ExaDisNet, DisNetManager, SimulateNetworkPerf
+    from pyexadis_base import CalForce, MobilityLaw, TimeIntegration, Collision, Topology, Remesh
+except ImportError:
+    raise ImportError('Cannot import pyexadis')
+
+
+def example_fcc_Cu_15um_1e3():
+    """example_fcc_Cu_15um_1e3:
+    Example of a 15um simulation of fcc Cu loaded at a
+    strain rate of 1e3/s using the subcycling integrator.
+    E.g. see Bertin et al., MSMSE 27 (7), 075014 (2019)
+    """
+    
+    pyexadis.initialize()
+    
+    params = {
+        "crystal": 'fcc',
+        "burgmag": 2.55e-10,
+        "mu": 54.6e9,
+        "nu": 0.324,
+        "a": 6.0,
+        "maxseg": 2000.0,
+        "minseg": 300.0,
+        "rtol": 10.0,
+        "rann": 10.0,
+        "nextdt": 1e-10,
+        "maxdt": 1e-9,
+    }
+    
+    G = ExaDisNet()
+    G.read_paradis('180chains_16.10e.data')
+    net = DisNetManager({type(G): G})
+    
+    vis = None
+    
+    calforce  = CalForce(force_mode='SUBCYCLING_MODEL', params=params, Ngrid=64, cell=G.cell)
+    mobility  = MobilityLaw(mobility_law='FCC_0', params=params, Medge=64103.0, Mscrew=64103.0, vmax=4000.0)
+    timeint   = TimeIntegration(integrator='Subcycling', rgroups=[0.0, 100.0, 600.0, 1600.0], params=params, force=calforce, mobility=mobility)
+    collision = Collision(collision_mode='Retroactive', params=params)
+    topology  = Topology(topology_mode='TopologyParallel', params=params, force=calforce, mobility=mobility)
+    remesh    = Remesh(remesh_rule='LengthBased', params=params)
+    
+    sim = SimulateNetworkPerf(calforce=calforce, mobility=mobility, timeint=timeint, 
+                              collision=collision, topology=topology, remesh=remesh, vis=vis,
+                              loading_mode='strain_rate', erate=1e3, edir=np.array([0.,0.,1.]),
+                              max_step=100, burgmag=params["burgmag"],
+                              print_freq=1, plot_freq=10, plot_pause_seconds=0.0001,
+                              write_freq=100, write_dir='output_fcc_Cu_15um_1e3')
+    sim.run(net)
+    
+    pyexadis.finalize()
+    
+
+if __name__ == "__main__":
+    example_fcc_Cu_15um_1e3()
