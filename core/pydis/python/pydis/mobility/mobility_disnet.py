@@ -12,9 +12,9 @@ class MobilityLaw:
     """MobilityLaw: class for mobility laws
 
     """
-    def __init__(self, mobility_law: str='Relax', mob: float=1, **kwargs) -> None:
+    def __init__(self, params: dict={}, mobility_law: str='Relax') -> None:
         self.mobility_law = mobility_law
-        self.mob = mob
+        self.mob = params.get("mob", 1.0)
 
         self.Mobility_Functions = {
             'Relax': self.Mobility_Relax,
@@ -70,7 +70,7 @@ class MobilityLaw:
                     node2 = G.nodes[nbr_tag]
                     R2 = node2["R"]
                     # apply PBC
-                    R2 = G.cell.map_to(R2, R1)
+                    R2 = G.cell.closest_image(Rref=R1, R=R2)
                     Lsum += np.linalg.norm(R2-R1)
                 vel = vel_dict[tag] / (Lsum/2.0) * self.mob
                 normals = np.array([G.edges[id]["plane_normal"] for id in G.edges(tag)])

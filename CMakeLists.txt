@@ -42,6 +42,7 @@ set(CMAKE_DISABLE_IN_SOURCE_BUILD ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_INSTALL_PREFIX install)
 
+add_subdirectory(core/pydis)
 add_subdirectory(core/exadis)
 #add_subdirectory(core/exadis/kokkos)
 
