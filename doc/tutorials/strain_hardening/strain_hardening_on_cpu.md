@@ -1,4 +1,5 @@
 ### Strain Hardening Simulation on CPU
+**Introduction**
 Strain hardening, also known as work hardening, in single crystals is a process that increases the strength and hardness of a material by plastic deformation. This phenomenon occurs due to the movement and interaction of dislocations within the crystal structure. This is an example demonstrating how to simulate strain hardening with ExaDiS on CPU.
 
 To run the simulation, execute the following commands in the corresponding example directory:
@@ -7,7 +8,7 @@ cd ~/Codes/OpenDiS.git/examples/10_strain_hardening/
 export OMP_NUM_THREADS=8
 python3 test_strain_hardening_exadis.py
 ```
-
+**Explanation**
 The information of all dislocation nodes is stored in the data file “180chains_16.10e.data”, which can be read using
 ```bash
 G = ExaDisNet()
