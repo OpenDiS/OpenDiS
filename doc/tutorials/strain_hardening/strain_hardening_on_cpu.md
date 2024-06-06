@@ -1,5 +1,5 @@
 ### Strain Hardening Simulation on CPU
-Strain hardening, also known as work hardening, in single crystals is a process that increases the strength and hardness of a material by plastic deformation. This phenomenon occurs due to the movement and interaction of dislocations within the crystal structure. This is an example demonstrating how to simulate strain hardening with ExaDiS on GPU.
+Strain hardening, also known as work hardening, in single crystals is a process that increases the strength and hardness of a material by plastic deformation. This phenomenon occurs due to the movement and interaction of dislocations within the crystal structure. This is an example demonstrating how to simulate strain hardening with ExaDiS on CPU.
 
 To run the simulation, execute the following commands in the corresponding example directory:
 ```bash
