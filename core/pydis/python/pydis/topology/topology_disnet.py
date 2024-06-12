@@ -47,7 +47,7 @@ class Topology:
         return
 
     @staticmethod
-    def trial_split_multi_node(G, tag: Tag, vel_dict, nodeforce_dict, segforce_dict, sim, power_th=1e-3) -> None:
+    def trial_split_multi_node(G, tag: Tag, vel_dict, nodeforce_dict, segforce_dict, sim, power_th=1e-3) -> dict:
         """trial_split_multi_node: try to split multi-arm node in different ways
             and select the way that maximizes the power dissipation
         """
@@ -66,6 +66,7 @@ class Topology:
 
         power0 = np.dot(nodeforce_dict[tag], vel_dict[tag])
         #print("trial_split_multi_node (%s): power0 = %e"%(tag, power0))
+        #print("edges = %s"%(str(G.edges(tag))))
 
         pos0 = G.nodes[tag]["R"]
         n_splits = len(nbr_idx_list)
@@ -79,6 +80,7 @@ class Topology:
 
             # attempt to split node
             split_node1, split_node2 = G_trial.split_node(tag, pos0.copy(), pos0.copy(), nbrs_to_split)
+            #print("split_node1 = %s, split_node2 = %s"%(str(split_node1), str(split_node2)))
 
             # modify the segforce_trial_dict to reflect the trial split
             for segment in segforce_dict:
@@ -124,7 +126,11 @@ class Topology:
             # Mark both nodes involved in the split as 'exempt' from subsequent collisions this time step
             G.nodes[split_node1]["flag"] |= DisNode.Flags.NO_COLLISIONS
             G.nodes[split_node2]["flag"] |= DisNode.Flags.NO_COLLISIONS
-        return
+
+            # Update segforce_dict to segforce_trial_dict
+            return segforce_trial_dict
+        else:
+            return segforce_dict
 
     @staticmethod
     def split_multi_nodes(G, vel_dict, nodeforce_dict, segforce_dict, sim, max_degree=15) -> None:
@@ -143,7 +149,7 @@ class Topology:
             elif n_degree > max_degree:
                 raise ValueError("split_multi_node: Node %s has more than %d arms" % (str(tag), n_degree))
 
-            Topology.trial_split_multi_node(G, tag, vel_dict, nodeforce_dict, segforce_dict, sim)
+            segforce_dict = Topology.trial_split_multi_node(G, tag, vel_dict, nodeforce_dict, segforce_dict, sim)
 
         return
     def Handle_MaxDiss(self, G: DisNet, vel_dict, nodeforce_dict, segforce_dict, sim, dt) -> None:
