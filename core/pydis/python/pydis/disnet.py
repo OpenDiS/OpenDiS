@@ -535,7 +535,7 @@ class DisNet(DisNet_BASE):
         # Remove target node if orphaned (i.e. no longer has any arms)
         if len(self.edges(targetNode)) == 0:
             self._remove_node(targetNode)
-            targetNode = None
+            mergedTag = None
             status = 'MERGE_NODE_ORPHANED'
         else:
             mergedTag = targetNode
