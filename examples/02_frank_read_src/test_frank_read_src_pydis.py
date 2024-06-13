@@ -33,14 +33,17 @@ def init_frank_read_src_loop(arm_length=1.0, box_length=8.0, burg_vec=np.array([
 
 def main():
     global net, sim
-    net = init_frank_read_src_loop(pbc=True)
+
+    Lbox = 1000.0
+    net = init_frank_read_src_loop(box_length=Lbox, arm_length=0.125*Lbox, pbc=True)
 
     bounds = np.array([-0.5*np.diag(net.cell.h), 0.5*np.diag(net.cell.h)])
     vis = VisualizeNetwork(bounds=bounds)
 
     # "burgmag" not yet used in pydis, make parameters (Ec) more physical
-    params = {"burgmag": 3e-10, "mu": 160e9, "nu": 0.31, "a": 0.01, "maxseg": 0.3, "minseg": 0.1, "rann": 0.0316}
-    calforce = CalForce(force_mode='LineTension', params=params, Ec=1.0e6)
+    params = {"burgmag": 3e-10, "mu": 50e9, "nu": 0.3, "a": 1.0, "maxseg": 0.04*Lbox, "minseg": 0.01*Lbox, "rann": 2.0}
+    # To do: remove Ec from CalForce input arguments
+    calforce = CalForce(force_mode='LineTension', params=params, Ec=params["mu"]/4.0/np.pi*np.log(params["a"]/0.1))
     mobility  = MobilityLaw(mobility_law='SimpleGlide', params=params)
     timeint   = TimeIntegration(integrator='EulerForward', dt=1.0e-8, params=params)
     topology  = Topology(split_mode='MaxDiss', params=params)
@@ -50,7 +53,7 @@ def main():
     sim = SimulateNetwork(calforce=calforce, mobility=mobility, timeint=timeint,
                           topology=topology, collision=collision, remesh=remesh, vis=vis,
                           max_step=200, loading_mode="stress",
-                          applied_stress=np.array([0.0, 0.0, 0.0, 0.0, -4.0e6, 0.0]),
+                          applied_stress=np.array([0.0, 0.0, 0.0, 0.0, -4.0e8, 0.0]),
                           print_freq=10, plot_freq=10, plot_pause_seconds=0.1,
                           write_freq=10, write_dir='output')
     sim.run(net)
