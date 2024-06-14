@@ -63,12 +63,12 @@ def selfforcevec_LineTension(MU, NU, Ec, segments, eps_L=1e-6):
 class CalForce:
     """CalForce_DisNet: class for calculating forces on dislocation network
     """
-    def __init__(self, params: dict={},
+    def __init__(self, params: dict={}, Ec: float=None,
                  force_mode: str='Elasticity_SBA') -> None:
         self.mu = params.get("mu", 1.0)
         self.nu = params.get("nu", 0.3)
         self.a =  params.get("a", 0.01)
-        self.Ec = params.get("Ec", self.mu/4.0/np.pi*np.log(self.a/0.1))
+        self.Ec = self.mu/4.0/np.pi*np.log(self.a/0.1) if Ec is None else Ec
         self.force_mode = force_mode
 
         self.NodeForce_Functions = {

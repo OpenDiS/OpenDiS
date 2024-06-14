@@ -40,10 +40,9 @@ def main():
     bounds = np.array([-0.5*np.diag(net.cell.h), 0.5*np.diag(net.cell.h)])
     vis = VisualizeNetwork(bounds=bounds)
 
-    # "burgmag" not yet used in pydis, make parameters (Ec) more physical
-    params = {"burgmag": 3e-10, "mu": 50e9, "nu": 0.3, "a": 1.0, "maxseg": 0.04*Lbox, "minseg": 0.01*Lbox, "rann": 2.0}
-    # To do: remove Ec from CalForce input arguments
-    calforce = CalForce(force_mode='LineTension', params=params)
+    params = {"burgmag": 3e-10, "mu": 50e9, "nu": 0.3, "a": 1.0, "maxseg": 0.04*Lbox, "minseg": 0.01*Lbox, "rann": 3.0}
+
+    calforce  = CalForce(force_mode='LineTension', params=params)
     mobility  = MobilityLaw(mobility_law='SimpleGlide', params=params)
     timeint   = TimeIntegration(integrator='EulerForward', dt=1.0e-8, params=params)
     topology  = Topology(split_mode='MaxDiss', params=params)
