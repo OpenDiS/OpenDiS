@@ -43,7 +43,7 @@ def main():
     # "burgmag" not yet used in pydis, make parameters (Ec) more physical
     params = {"burgmag": 3e-10, "mu": 50e9, "nu": 0.3, "a": 1.0, "maxseg": 0.04*Lbox, "minseg": 0.01*Lbox, "rann": 2.0}
     # To do: remove Ec from CalForce input arguments
-    calforce = CalForce(force_mode='LineTension', params=params, Ec=params["mu"]/4.0/np.pi*np.log(params["a"]/0.1))
+    calforce = CalForce(force_mode='LineTension', params=params)
     mobility  = MobilityLaw(mobility_law='SimpleGlide', params=params)
     timeint   = TimeIntegration(integrator='EulerForward', dt=1.0e-8, params=params)
     topology  = Topology(split_mode='MaxDiss', params=params)
