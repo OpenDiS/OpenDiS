@@ -12,8 +12,10 @@ class DisNetManager:
     """
     def __init__(self, disnet=None):
         self.disnet_dict = {}
-        if disnet is not None:
+        if disnet is not None and not isinstance(disnet, type):
             self.disnet_dict[type(disnet)] = disnet
+        else:
+            raise ValueError("DisNetManager: user need to provide a disnet object (not class)")
         self._last_active_type = list(self.disnet_dict)[0] if self.disnet_dict else None
         self._active_type = None
 
@@ -112,6 +114,8 @@ class DisNetManager:
         import json
         with open(filename, 'r') as f:
             data = json.load(f)
+        if data['version'] != '1.0':
+            raise ValueError("read_json: version not supported")
         data['cell']['h'] = np.array(data['cell']['h'])
         data['cell']['origin'] = np.array(data['cell']['origin'])
         data['nodes'] = np.array(data['nodes'])
