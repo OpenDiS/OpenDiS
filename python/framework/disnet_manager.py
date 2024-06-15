@@ -3,6 +3,7 @@ DisNetManager: class for managing multiple implementations of dislocation networ
 
 Implements synchronization between different implementations of DisNet
 """
+import numpy as np
 
 class DisNetManager:
     """Class for managing multiple implementations of dislocation network
@@ -80,6 +81,42 @@ class DisNetManager:
         """
         G = self.get_disnet()
         return G.export_data()
+
+    def import_data(self, data):
+        """import DisNet data
+        """
+        G = self.get_disnet()
+        return G.import_data(data)
+
+    def write_json(self, filename):
+        """Write DisNetManager data to JSON file
+        """
+        data = self.export_data()
+        data['version'] = '1.0'
+        data['nodes_attr'] = ['domain', 'index', 'x', 'y', 'z', 'constraint']
+        data['segs_attr'] = ['node1', 'node2', 'bx', 'by', 'bz', 'nx', 'ny', 'nz']
+
+        import json
+        class NumpyEncoder(json.JSONEncoder):
+            def default(self, obj):
+                if isinstance(obj, np.ndarray):
+                    return obj.tolist()
+                return json.JSONEncoder.default(self, obj)
+
+        with open(filename, 'w') as f:
+            json.dump(data, f, cls=NumpyEncoder, indent=4)
+
+    def read_json(self, filename):
+        """Read DisNetManager data to JSON file
+        """
+        import json
+        with open(filename, 'r') as f:
+            data = json.load(f)
+        data['cell']['h'] = np.array(data['cell']['h'])
+        data['cell']['origin'] = np.array(data['cell']['origin'])
+        data['nodes'] = np.array(data['nodes'])
+        data['segs']  = np.array(data['segs'])
+        self.import_data(data)
 
     @property
     def G(self):

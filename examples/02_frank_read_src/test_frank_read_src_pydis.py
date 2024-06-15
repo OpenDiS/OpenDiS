@@ -14,7 +14,7 @@ def init_frank_read_src_loop(arm_length=1.0, box_length=8.0, burg_vec=np.array([
     '''Generate an initial Frank-Read source configuration
     '''
     print("init_frank_read_src_loop: length = %f" % (arm_length))
-    cell = Cell(h=box_length*np.eye(3), is_periodic=[pbc,pbc,pbc])
+    cell = Cell(h=box_length*np.eye(3),origin=-0.5*box_length*np.ones(3), is_periodic=[pbc,pbc,pbc])
     cell_list = CellList(cell=cell, n_div=[8,8,8])
 
     rn    = np.array([[0.0, -arm_length/2.0, 0.0,         DisNode.Constraints.PINNED_NODE],
@@ -65,3 +65,6 @@ if __name__ == "__main__":
 
     # explore the network after simulation
     G  = net.get_disnet()
+
+    os.makedirs('output', exist_ok=True)
+    net.write_json('output/frank_read_src_pydis_final.json')

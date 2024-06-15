@@ -67,9 +67,10 @@ class Cell:
 
     Defines periodic or non-periodic boundary conditions in each direction
     """
-    def __init__(self, h: np.ndarray=np.eye(3), is_periodic: list=[False,False,False]) -> None:
+    def __init__(self, h: np.ndarray=np.eye(3), origin: np.ndarray=np.zeros(3), is_periodic: list=[False,False,False]) -> None:
         self.h = h
         self.hinv = np.linalg.inv(h)
+        self.origin = origin
         self.is_periodic = is_periodic
 
     def map(self, dr: np.ndarray) -> np.ndarray:
@@ -265,7 +266,7 @@ class DisNet(DisNet_BASE):
         for i, tag in enumerate(self._G.nodes()):
             r = self._G.nodes[tag]["R"]
             constraint = self._G.nodes[tag]["constraint"]
-            nodes.append([r[0], r[1], r[2], constraint])
+            nodes.append([tag[0], tag[1], r[0], r[1], r[2], constraint])
             ntags[tag] = i
         return nodes, ntags
     
@@ -285,7 +286,7 @@ class DisNet(DisNet_BASE):
     def export_data(self):
         """export_data: export network to data
         """
-        cell = {"h": self.cell.h, "is_periodic": self.cell.is_periodic}
+        cell = {"h": self.cell.h, "origin": self.cell.origin, "is_periodic": self.cell.is_periodic}
         nodes, ntags = self.nodes_array()
         segs = self.segs_array(ntags)
         data = {"cell" : cell,
@@ -297,7 +298,7 @@ class DisNet(DisNet_BASE):
         """import_data: import network from data
         """
         cell = data.get("cell")
-        self.cell = Cell(h=cell.get("h"), is_periodic=cell.get("is_periodic"))
+        self.cell = Cell(h=cell.get("h"), origin=cell.get("origin"), is_periodic=cell.get("is_periodic"))
         self._G.clear()
         self._recycled_tags = []
         rn = data.get("nodes")
@@ -385,16 +386,27 @@ class DisNet(DisNet_BASE):
         N = rn.shape[0]
         num_links = links.shape[0]
         for i in range(N):
-            if rn.shape[1] > 3:
+            if rn.shape[1] == 6:
+                tag = (int(rn[i,0]), int(rn[i,1]))
+                node = DisNode(R=rn[i,2:5], constraint=int(rn[i,5]))
+            elif rn.shape[1] == 4:
+                tag = (0, i)
                 node = DisNode(R=rn[i,:3], constraint=int(rn[i,3]))
-            else:
+            elif rn.shape[1] == 3:
+                tag = (0, i)
                 node = DisNode(R=rn[i,:3])
-            self._add_node((0,i), deepcopy(node))
+            else:
+                raise ValueError("add_nodes_links_from_list: invalid node format")
+            self._add_node(tag, deepcopy(node))
         for j in range(num_links):
             seg = links[j, :2].astype(int)
             bv  = links[j, 2:5]
-            tag = (0,seg[0])
-            nbr_tag = (0, seg[1])
+            if rn.shape[1] == 6:
+                tag = (int(rn[int(seg[0]),0]), int(rn[int(seg[0]),1]))
+                nbr_tag = (int(rn[int(seg[1]),0]), int(rn[int(seg[1]),1]))
+            elif rn.shape[1] == 4 or rn.shape[1] == 3:
+                tag = (0,seg[0])
+                nbr_tag = (0, seg[1])
             if links.shape[1] > 5:
                 pn  = links[j, 5:8]
                 self._add_edge(tag, nbr_tag, deepcopy(DisEdge(burg_vec= bv, plane_normal=pn)))
