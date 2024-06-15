@@ -119,8 +119,6 @@ class Collision:
                         mergedTag, status = G.merge_node(mergenode1, mergenode2)
                         if mergedTag != None:
                             G.nodes[mergedTag]['R'] = newPos
-                        else:
-                            print('mergedTag = None  status = %s', status)
 
         # In ParaDiS the hinge case (zipping) is handled separately
         # They are skipped here for simplicity
