@@ -2,11 +2,8 @@ import os, sys
 import numpy as np
 
 # Import pyexadis
-pyexadis_path = '../../core/exadis/python/'
-if not pyexadis_path in sys.path: sys.path.append(os.path.abspath(pyexadis_path))
-
-pydis_paths = ['../../python', '../../lib', '../../core/pydis/python']
-[sys.path.append(os.path.abspath(path)) for path in pydis_paths if not path in sys.path]
+pyexadis_paths = ['../../python', '../../lib', '../../core/pydis/python', '../../core/exadis/python/']
+[sys.path.append(os.path.abspath(path)) for path in pyexadis_paths if not path in sys.path]
 np.set_printoptions(threshold=20, edgeitems=5)
 
 try:
