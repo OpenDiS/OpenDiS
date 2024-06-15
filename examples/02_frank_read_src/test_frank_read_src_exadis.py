@@ -4,9 +4,15 @@ import numpy as np
 # Import pyexadis
 pyexadis_path = '../../core/exadis/python/'
 if not pyexadis_path in sys.path: sys.path.append(os.path.abspath(pyexadis_path))
+
+pydis_paths = ['../../python', '../../lib', '../../core/pydis/python']
+[sys.path.append(os.path.abspath(path)) for path in pydis_paths if not path in sys.path]
+np.set_printoptions(threshold=20, edgeitems=5)
+
 try:
     import pyexadis
-    from pyexadis_base import ExaDisNet, NodeConstraints, DisNetManager, SimulateNetwork, VisualizeNetwork
+    from framework.disnet_manager import DisNetManager
+    from pyexadis_base import ExaDisNet, NodeConstraints, SimulateNetwork, VisualizeNetwork
     from pyexadis_base import CalForce, MobilityLaw, TimeIntegration, Collision, Remesh
 except ImportError:
     raise ImportError('Cannot import pyexadis')
@@ -77,8 +83,8 @@ if __name__ == "__main__":
     G  = net.get_disnet(ExaDisNet)
 
     # To do: uncomment following lines after using DisNetManager from framework
-    #os.makedirs('output', exist_ok=True)
-    #net.write_json('output/frank_read_src_exadis_final.json')
+    os.makedirs('output', exist_ok=True)
+    net.write_json('output/frank_read_src_exadis_final.json')
 
     if not sys.flags.interactive:
         pyexadis.finalize()
