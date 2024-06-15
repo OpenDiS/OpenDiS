@@ -82,7 +82,6 @@ if __name__ == "__main__":
     # explore the network after simulation
     G  = net.get_disnet(ExaDisNet)
 
-    # To do: uncomment following lines after using DisNetManager from framework
     os.makedirs('output', exist_ok=True)
     net.write_json('output/frank_read_src_exadis_final.json')
 
