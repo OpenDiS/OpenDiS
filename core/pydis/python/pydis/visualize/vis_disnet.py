@@ -23,7 +23,6 @@ class VisualizeNetwork:
     """
     def __init__(self, bounds: np.ndarray, **kwargs) -> None:
         self.bounds = bounds
-        pass
 
     def plot_disnet(self, G: DisNet,
                     plot_links=True, trim=False,

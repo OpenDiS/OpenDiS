@@ -12,19 +12,22 @@ class MobilityLaw:
     """MobilityLaw: class for mobility laws
 
     """
-    def __init__(self, params: dict={}, mobility_law: str='Relax') -> None:
+    def __init__(self, state: dict={}, mobility_law: str='Relax') -> None:
         self.mobility_law = mobility_law
-        self.mob = params.get("mob", 1.0)
+        self.mob = state.get("mob", 1.0)
 
         self.Mobility_Functions = {
             'Relax': self.Mobility_Relax,
             'SimpleGlide': self.Mobility_SimpleGlide }
         
-    def Mobility(self, DM: DisNetManager, nodeforce_dict: dict):
+    def Mobility(self, DM: DisNetManager, state: dict) -> dict:
         """Mobility: calculate node velocity according to mobility law function
         """
         G = DM.get_disnet(DisNet)
-        return self.Mobility_Functions[self.mobility_law](G, nodeforce_dict)
+        nodeforce_dict = state["nodeforce_dict"]
+        vel_dict = self.Mobility_Functions[self.mobility_law](G, nodeforce_dict)
+        state["vel_dict"] = vel_dict
+        return state
 
     def Mobility_Relax(self, G: DisNet, nodeforce_dict: dict) -> dict:
         """Mobility_Relax: node velocity equal node force

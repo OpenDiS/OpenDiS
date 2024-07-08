@@ -19,21 +19,22 @@ class Collision:
     """Collision: class for detecting and handling collisions
 
     """
-    def __init__(self, params: dict={}, collision_mode: str='Proximity') -> None:
+    def __init__(self, state: dict={}, collision_mode: str='Proximity') -> None:
         self.collision_mode = collision_mode
-        self.mindist2 = params.get("rann", np.sqrt(1.0e-3))**2
+        self.mindist2 = state.get("rann", np.sqrt(1.0e-3))**2
 
         self.HandleCol_Functions = {
             'Proximity': self.HandleCol_Proximity }
         
-    def HandleCol(self, DM: DisNetManager, **kwargs) -> None:
+    def HandleCol(self, DM: DisNetManager, state: dict) -> None:
         """HandleCol: handle collision according to collision_mode
         """
         G = DM.get_disnet(DisNet)
-        oldpos_dict = kwargs.get('oldpos_dict')
-        dt = kwargs.get('dt', 0.0)
+        oldpos_dict = state.get('oldpos_dict', None)
+        dt = state.get('dt', 0.0)
         xold = np.array(list(oldpos_dict.values())) if oldpos_dict != None else None
-        return self.HandleCol_Functions[self.collision_mode](G, xold, dt)
+        self.HandleCol_Functions[self.collision_mode](G, xold, dt)
+        return state
 
     def HandleCol_Proximity(self, G: DisNet, xold=None, dt=None) -> None:
         """HandleCol_Proximity: handle collision using Proximity criterion

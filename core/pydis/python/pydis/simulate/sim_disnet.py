@@ -25,7 +25,7 @@ class SimulateNetwork:
     """SimulateNetwork: class for simulating dislocation network
 
     """
-    def __init__(self, calforce,
+    def __init__(self, state: dict, calforce=None,
                  mobility=None, timeint=None, topology=None,
                  collision=None, remesh=None, vis=None,
                  dt0: float=1.0e-8,
@@ -54,27 +54,31 @@ class SimulateNetwork:
         self.plot_pause_seconds = plot_pause_seconds
         self.write_freq = write_freq
         self.write_dir = write_dir
-        pass
 
-    def step(self, DM: DisNetManager):
+        state["applied_stress"] = np.array(applied_stress)
+        state["sim"] = self
+
+    def step(self, DM: DisNetManager, state: dict):
         """step: take a time step of DD simulation on DisNet G
         """
-        nodeforce_dict, segforce_dict = self.calforce.NodeForce(DM, self.applied_stress)
+        state = self.calforce.NodeForce(DM, state)
 
-        vel_dict = self.mobility.Mobility(DM, nodeforce_dict)
+        state = self.mobility.Mobility(DM, state)
 
         # using a constant time step (for now)
-        self.timeint.Update(DM, vel_dict, self.applied_stress)
+        state = self.timeint.Update(DM, state)
 
-        self.topology.Handle(DM, vel_dict, nodeforce_dict, segforce_dict, self)
+        state = self.topology.Handle(DM, state)
 
         if self.collision is not None:
-            self.collision.HandleCol(DM)
+            state = self.collision.HandleCol(DM, state)
 
         if self.remesh is not None:
-            self.remesh.Remesh(DM)
+            state = self.remesh.Remesh(DM, state)
 
-    def run(self, DM: DisNetManager):
+        return state
+
+    def run(self, DM: DisNetManager, state: dict):
         G = DM.get_disnet(DisNet)
         if self.plot_freq != None:
             try: 
@@ -85,7 +89,7 @@ class SimulateNetwork:
             self.vis.plot_disnet(G, fig=fig, ax=ax, trim=True, block=False)
 
         for tstep in range(self.max_step):
-            self.step(DM)
+            self.step(DM, state)
 
             if self.print_freq != None:
                 if tstep % self.print_freq == 0:
@@ -99,3 +103,5 @@ class SimulateNetwork:
         # plot final configuration
         G = DM.get_disnet(DisNet)
         self.vis.plot_disnet(G, fig=fig, ax=ax, trim=True, block=False)
+
+        return state

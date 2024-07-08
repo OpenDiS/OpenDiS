@@ -12,20 +12,21 @@ class Remesh:
     """Remesh: class for remeshing dislocation network
 
     """
-    def __init__(self, params: dict={}, remesh_rule: str='LengthBased') -> None:
+    def __init__(self, state: dict={}, remesh_rule: str='LengthBased') -> None:
         self.remesh_rule = remesh_rule
-        self.maxseg = params.get("maxseg", None)
-        self.minseg = params.get("minseg", None)
+        self.maxseg = state.get("maxseg", None)
+        self.minseg = state.get("minseg", None)
 
         self.Remesh_Functions = {
             'LengthBased': self.Remesh_LengthBased,
             'RemeshRule_2_ParaDiS': self.RemeshRule_2_ParaDiS }
         
-    def Remesh(self, DM: DisNetManager) -> None:
+    def Remesh(self, DM: DisNetManager, state: dict) -> None:
         """Remesh: remesh dislocation network according to remesh_rule
         """
         G = DM.get_disnet(DisNet)
-        return self.Remesh_Functions[self.remesh_rule](G)
+        self.Remesh_Functions[self.remesh_rule](G)
+        return state
 
     def Remesh_LengthBased(self, G: DisNet) -> None:
         """Remesh_LengthBased: remesh dislocation network according to segment length

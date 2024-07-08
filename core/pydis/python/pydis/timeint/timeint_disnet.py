@@ -12,7 +12,7 @@ class TimeIntegration:
     """TimeIntegration: class for time integration
 
     """
-    def __init__(self, params: dict={}, integrator: str='EulerForward',
+    def __init__(self, state: dict={}, integrator: str='EulerForward',
                  dt: float=1e-8) -> None:
         self.integrator = integrator
         self.dt = dt
@@ -20,11 +20,15 @@ class TimeIntegration:
         self.Update_Functions = {
             'EulerForward': self.Update_EulerForward }
         
-    def Update(self, DM: DisNetManager, vel_dict: dict, applied_stress: np.ndarray) -> None:
+    def Update(self, DM: DisNetManager, state: dict) -> None:
         """TimeIntegration: update node position given velocity
         """
         G = DM.get_disnet(DisNet)
-        return self.Update_Functions[self.integrator](G, vel_dict, applied_stress)
+        vel_dict = state["vel_dict"]
+        applied_stress = state["applied_stress"]
+        self.Update_Functions[self.integrator](G, vel_dict, applied_stress)
+        state["dt"] = self.dt
+        return state
 
     def Update_EulerForward(self, G: DisNet, vel_dict: dict, applied_stress: np.ndarray) -> None:
         """TimeIntegration_EulerForward: Euler forward time integration

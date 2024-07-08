@@ -32,7 +32,7 @@ def init_frank_read_src_loop(arm_length=1.0, box_length=8.0, burg_vec=np.array([
     return DisNetManager(DisNet(cell=cell, cell_list=cell_list, rn=rn, links=links))
 
 def main():
-    global net, sim
+    global net, sim, state
 
     Lbox = 1000.0
     net = init_frank_read_src_loop(box_length=Lbox, arm_length=0.125*Lbox, pbc=True)
@@ -40,22 +40,22 @@ def main():
     bounds = np.array([-0.5*np.diag(net.cell.h), 0.5*np.diag(net.cell.h)])
     vis = VisualizeNetwork(bounds=bounds)
 
-    params = {"burgmag": 3e-10, "mu": 50e9, "nu": 0.3, "a": 1.0, "maxseg": 0.04*Lbox, "minseg": 0.01*Lbox, "rann": 3.0}
+    state = {"burgmag": 3e-10, "mu": 50e9, "nu": 0.3, "a": 1.0, "maxseg": 0.04*Lbox, "minseg": 0.01*Lbox, "rann": 3.0}
 
-    calforce  = CalForce(force_mode='LineTension', params=params)
-    mobility  = MobilityLaw(mobility_law='SimpleGlide', params=params)
-    timeint   = TimeIntegration(integrator='EulerForward', dt=1.0e-8, params=params)
-    topology  = Topology(split_mode='MaxDiss', params=params)
-    collision = Collision(collision_mode='Proximity', params=params)
-    remesh    = Remesh(remesh_rule='LengthBased', params=params)
+    calforce  = CalForce(force_mode='LineTension', state=state)
+    mobility  = MobilityLaw(mobility_law='SimpleGlide', state=state)
+    timeint   = TimeIntegration(integrator='EulerForward', dt=1.0e-8, state=state)
+    topology  = Topology(split_mode='MaxDiss', state=state)
+    collision = Collision(collision_mode='Proximity', state=state)
+    remesh    = Remesh(remesh_rule='LengthBased', state=state)
 
     sim = SimulateNetwork(calforce=calforce, mobility=mobility, timeint=timeint,
                           topology=topology, collision=collision, remesh=remesh, vis=vis,
-                          max_step=200, loading_mode="stress",
+                          state=state, max_step=200, loading_mode="stress",
                           applied_stress=np.array([0.0, 0.0, 0.0, 0.0, -4.0e8, 0.0]),
                           print_freq=10, plot_freq=10, plot_pause_seconds=0.1,
                           write_freq=10, write_dir='output')
-    sim.run(net)
+    sim.run(net, state)
 
     return net.is_sane()
 

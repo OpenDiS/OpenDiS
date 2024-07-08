@@ -63,11 +63,11 @@ def selfforcevec_LineTension(MU, NU, Ec, segments, eps_L=1e-6):
 class CalForce:
     """CalForce_DisNet: class for calculating forces on dislocation network
     """
-    def __init__(self, params: dict={}, Ec: float=None,
+    def __init__(self, state: dict={}, Ec: float=None,
                  force_mode: str='Elasticity_SBA') -> None:
-        self.mu = params.get("mu", 1.0)
-        self.nu = params.get("nu", 0.3)
-        self.a =  params.get("a", 0.01)
+        self.mu = state.get("mu", 1.0)
+        self.nu = state.get("nu", 0.3)
+        self.a =  state.get("a", 0.01)
         self.Ec = self.mu/4.0/np.pi*np.log(self.a/0.1) if Ec is None else Ec
         self.force_mode = force_mode
 
@@ -76,17 +76,22 @@ class CalForce:
             'Elasticity_SBA': self.NodeForce_Elasticity_SBA,
             'Elasticity_SBN1_SBA': self.NodeForce_Elasticity_SBN1_SBA }
 
-    def NodeForce(self, DM: DisNetManager, applied_stress: np.ndarray) -> Tuple[dict, dict]:
+    def NodeForce(self, DM: DisNetManager, state: dict) -> dict:
         """NodeForce: return nodal forces in a dictionary
 
         Using different force calculation functions depending on force_mode
         """
+        applied_stress = state["applied_stress"]
         G = DM.get_disnet(DisNet)
-        return self.NodeForce_Functions[self.force_mode](G, applied_stress)
+        nodeforce_dict, segforce_dict = self.NodeForce_Functions[self.force_mode](G, applied_stress)
+        state["nodeforce_dict"] = nodeforce_dict
+        state["segforce_dict"] = segforce_dict
+        return state
 
-    def NodeForce_from_SegForce(self, G: DisNet, segforce_dict: dict) -> dict:
+    def NodeForce_from_SegForce(self, G: DisNet, state: dict) -> dict:
         """NodeForce_from_SegForce: return nodal forces by assembling segment forces
         """
+        segforce_dict = state["segforce_dict"]
         nodeforce_dict = {}
         for tag in G.nodes:
             nodeforce_dict.update({tag: np.array([0.0,0.0,0.0])})
@@ -94,8 +99,8 @@ class CalForce:
             tag1, tag2 = segment
             nodeforce_dict[tag1] += segforce_dict[segment][0:3]
             nodeforce_dict[tag2] += segforce_dict[segment][3:6]
-
-        return nodeforce_dict
+        state["nodeforce_dict"] = nodeforce_dict
+        return state
 
     def NodeForce_LineTension(self, G: DisNet, applied_stress: np.ndarray) -> Tuple[dict, dict]:
         """NodeForce: return nodal forces from line tension in a dictionary

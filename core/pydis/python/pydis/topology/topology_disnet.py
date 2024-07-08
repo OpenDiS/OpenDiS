@@ -14,18 +14,18 @@ from framework.disnet_manager import DisNetManager
 class Topology:
     """Topology: class for selecting and handling multi node splitting
     """
-    def __init__(self, params: dict={}, split_mode: str='MaxDiss') -> None:
+    def __init__(self, state: dict={}, split_mode: str='MaxDiss') -> None:
         self.split_mode = split_mode
 
         self.Handle_Functions = {
             'MaxDiss': self.Handle_MaxDiss }
         
-    def Handle(self, DM: DisNetManager, vel_dict, nodeforce_dict, segforce_dict, sim, **kwargs) -> None:
+    def Handle(self, DM: DisNetManager, state: dict) -> None:
         """Handle: handle topology according to split_mode
         """
-        dt = kwargs.get('dt', 0.0)
         G = DM.get_disnet(DisNet)
-        return self.Handle_Functions[self.split_mode](G, vel_dict, nodeforce_dict, segforce_dict, sim, dt=dt)
+        self.Handle_Functions[self.split_mode](G, state)
+        return state
 
     @staticmethod
     def build_split_list(n: int) -> list:
@@ -47,7 +47,7 @@ class Topology:
         return
 
     @staticmethod
-    def trial_split_multi_node(G, tag: Tag, vel_dict, nodeforce_dict, segforce_dict, sim, power_th=1e-3) -> dict:
+    def trial_split_multi_node(G, tag: Tag, state: dict, power_th=1e-3) -> dict:
         """trial_split_multi_node: try to split multi-arm node in different ways
             and select the way that maximizes the power dissipation
         """
@@ -59,6 +59,12 @@ class Topology:
             small segments which would end up oscillating with very high
             velocities (and hence significantly impacting the timestep)
         """
+        vel_dict = state["vel_dict"]
+        nodeforce_dict = state["nodeforce_dict"]
+        segforce_dict = state["segforce_dict"]
+        sim = state["sim"]
+
+        state_trial = deepcopy(state)
 
         n_degree = G.out_degree(tag)
         nbrs = list(G.neighbors(tag))
@@ -100,9 +106,12 @@ class Topology:
                         segforce_trial_dict[new_segment] = segforce_dict[segment]
 
             # calculate nodal forces and velocities for the trial split
-            nodeforce_dict_trial = sim.calforce.NodeForce_from_SegForce(G_trial, segforce_trial_dict)
+            state_trial["segforce_dict"] = segforce_trial_dict
+            state_trial = sim.calforce.NodeForce_from_SegForce(G_trial, state_trial)
             DM_trial = DisNetManager(G_trial)
-            vel_dict_trial = sim.mobility.Mobility(DM_trial, nodeforce_dict_trial)
+            sim.mobility.Mobility(DM_trial, state_trial)
+            nodeforce_dict_trial = state_trial["nodeforce_dict"]
+            vel_dict_trial = state_trial["vel_dict"]
 
             power_diss[k] = np.dot(nodeforce_dict_trial[split_node1], vel_dict_trial[split_node1]) \
                           + np.dot(nodeforce_dict_trial[split_node2], vel_dict_trial[split_node2])
@@ -133,7 +142,7 @@ class Topology:
             return segforce_dict
 
     @staticmethod
-    def split_multi_nodes(G, vel_dict, nodeforce_dict, segforce_dict, sim, max_degree=15) -> None:
+    def split_multi_nodes(G, state: dict, max_degree=15) -> None:
         """split_multi_nodes: examines all nodes with at least four arms and decides
            if the node should be split and some of the node's arms moved to a new node.
            guarantees sanity after operation
@@ -149,11 +158,13 @@ class Topology:
             elif n_degree > max_degree:
                 raise ValueError("split_multi_node: Node %s has more than %d arms" % (str(tag), n_degree))
 
-            segforce_dict = Topology.trial_split_multi_node(G, tag, vel_dict, nodeforce_dict, segforce_dict, sim)
+            state = Topology.trial_split_multi_node(G, tag, state)
 
-        return
-    def Handle_MaxDiss(self, G: DisNet, vel_dict, nodeforce_dict, segforce_dict, sim, dt) -> None:
+        return state
+
+    def Handle_MaxDiss(self, G: DisNet, state: dict) -> None:
         """Handle_MaxDiss: split_multi_nodes
         """
         Topology.init_topology_exemptions(G)
-        Topology.split_multi_nodes(G, vel_dict, nodeforce_dict, segforce_dict, sim)
+        Topology.split_multi_nodes(G, state)
+        return state
