@@ -46,29 +46,29 @@ Example of a script to perform a simple Frank-Read source
 simulation using the pyexadis binding to ExaDiS
 '''
 def main():
-    global net, sim
+    global net, sim, state
     
     Lbox = 1000.0
     net = init_frank_read_src_loop(box_length=Lbox, arm_length=0.125*Lbox, pbc=True)
 
     vis = VisualizeNetwork()
     
-    params = {"burgmag": 3e-10, "mu": 50e9, "nu": 0.3, "a": 1.0, "maxseg": 0.04*Lbox, "minseg": 0.01*Lbox, "rann": 3.0}
+    state = {"burgmag": 3e-10, "mu": 50e9, "nu": 0.3, "a": 1.0, "maxseg": 0.04*Lbox, "minseg": 0.01*Lbox, "rann": 3.0}
     
-    calforce  = CalForce(force_mode='LineTension', params=params)
-    mobility  = MobilityLaw(mobility_law='SimpleGlide', params=params)
-    timeint   = TimeIntegration(integrator='EulerForward', dt=1.0e-8, params=params)
-    collision = Collision(collision_mode='Retroactive', params=params)
+    calforce  = CalForce(force_mode='LineTension', state=state)
+    mobility  = MobilityLaw(mobility_law='SimpleGlide', state=state)
+    timeint   = TimeIntegration(integrator='EulerForward', dt=1.0e-8, state=state)
+    collision = Collision(collision_mode='Retroactive', state=state)
     topology  = None
-    remesh    = Remesh(remesh_rule='LengthBased', params=params)
+    remesh    = Remesh(remesh_rule='LengthBased', state=state)
     
     sim = SimulateNetwork(calforce=calforce, mobility=mobility, timeint=timeint, 
                           collision=collision, topology=topology, remesh=remesh, vis=vis,
-                          max_step=200, loading_mode='stress',
+                          state=state, max_step=200, loading_mode='stress',
                           applied_stress=np.array([0.0, 0.0, 0.0, 0.0, -4.0e8, 0.0]),
                           print_freq=10, plot_freq=10, plot_pause_seconds=0.0001,
                           write_freq=10, write_dir='output')
-    sim.run(net)
+    sim.run(net, state)
 
 
 if __name__ == "__main__":
