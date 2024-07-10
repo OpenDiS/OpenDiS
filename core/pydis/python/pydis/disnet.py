@@ -652,3 +652,18 @@ class DisNet(DisNet_BASE):
                 return False
 
         return True
+
+    @staticmethod
+    def convert_nodeforce_dict_to_array(state: dict) -> dict:
+        nodeforce_dict = state["nodeforce_dict"]
+        state["nodeforces"] = np.array([f for f in nodeforce_dict.values()])
+        state["nodeforcetags"] = np.array([ [domainID, index] for domainID, index in nodeforce_dict.keys()])
+        return state
+
+    @staticmethod
+    def convert_nodeforce_array_to_dict(state: dict) -> dict:
+        nodeforces = state["nodeforces"]
+        nodeforcetags = state["nodeforcetags"]
+        nodeforce_dict = {(nodeforcetags[i][0],nodeforcetags[i][1]): nodeforces[i] for i in range(len(nodeforcetags))}
+        state["nodeforce_dict"] = nodeforce_dict
+        return state

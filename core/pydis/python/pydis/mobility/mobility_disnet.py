@@ -24,6 +24,9 @@ class MobilityLaw:
         """Mobility: calculate node velocity according to mobility law function
         """
         G = DM.get_disnet(DisNet)
+        if "nodeforces" in state and "nodeforcetags" in state:
+            DisNet.convert_nodeforce_array_to_dict(state)
+
         nodeforce_dict = state["nodeforce_dict"]
         vel_dict = self.Mobility_Functions[self.mobility_law](G, nodeforce_dict)
         state["vel_dict"] = vel_dict

@@ -86,6 +86,10 @@ class CalForce:
         nodeforce_dict, segforce_dict = self.NodeForce_Functions[self.force_mode](G, applied_stress)
         state["nodeforce_dict"] = nodeforce_dict
         state["segforce_dict"] = segforce_dict
+
+        # prepare nodeforces and nodeforce_tags arrays for compatibility with exadis
+        state = DisNet.convert_nodeforce_dict_to_array(state)
+
         return state
 
     def NodeForce_from_SegForce(self, G: DisNet, state: dict) -> dict:
@@ -100,6 +104,10 @@ class CalForce:
             nodeforce_dict[tag1] += segforce_dict[segment][0:3]
             nodeforce_dict[tag2] += segforce_dict[segment][3:6]
         state["nodeforce_dict"] = nodeforce_dict
+
+        # prepare nodeforces and nodeforce_tags arrays for compatibility with exadis
+        state = DisNet.convert_nodeforce_dict_to_array(state)
+
         return state
 
     def NodeForce_LineTension(self, G: DisNet, applied_stress: np.ndarray) -> Tuple[dict, dict]:
