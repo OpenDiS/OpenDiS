@@ -15,6 +15,7 @@ def init_frank_read_src_loop(arm_length=1.0, box_length=8.0, burg_vec=np.array([
     '''
     print("init_frank_read_src_loop: length = %f" % (arm_length))
     cell = Cell(h=box_length*np.eye(3),origin=-0.5*box_length*np.ones(3), is_periodic=[pbc,pbc,pbc])
+    #center = np.array(cell.center())
     cell_list = CellList(cell=cell, n_div=[8,8,8])
 
     rn    = np.array([[0.0, -arm_length/2.0, 0.0,         DisNode.Constraints.PINNED_NODE],
@@ -22,6 +23,8 @@ def init_frank_read_src_loop(arm_length=1.0, box_length=8.0, burg_vec=np.array([
                       [0.0,  arm_length/2.0, 0.0,         DisNode.Constraints.PINNED_NODE],
                       [0.0,  arm_length/2.0, -arm_length, DisNode.Constraints.PINNED_NODE],
                       [0.0, -arm_length/2.0, -arm_length, DisNode.Constraints.PINNED_NODE]])
+    #rn[:,0:3] += center
+
     N = rn.shape[0]
     links = np.zeros((N, 8))
     for i in range(N):
@@ -53,7 +56,7 @@ def main():
                           topology=topology, collision=collision, remesh=remesh, vis=vis,
                           state=state, max_step=200, loading_mode="stress",
                           applied_stress=np.array([0.0, 0.0, 0.0, 0.0, -4.0e8, 0.0]),
-                          print_freq=10, plot_freq=10, plot_pause_seconds=0.1,
+                          print_freq=10, plot_freq=10, plot_pause_seconds=0.01,
                           write_freq=10, write_dir='output')
     sim.run(net, state)
 

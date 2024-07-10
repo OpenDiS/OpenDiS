@@ -1,5 +1,5 @@
-import os, sys
 import numpy as np
+import sys, os
 
 # Import pyexadis
 pyexadis_paths = ['../../python', '../../lib', '../../core/pydis/python', '../../core/exadis/python/']
@@ -14,12 +14,9 @@ try:
 except ImportError:
     raise ImportError('Cannot import pyexadis')
 
-
-'''
-Example of a function to generate an initial
-Frank-Read source configuration
-'''
 def init_frank_read_src_loop(arm_length=1.0, box_length=8.0, burg_vec=np.array([1.0,0.0,0.0]), pbc=False):
+    '''Generate an initial Frank-Read source configuration
+    '''
     print("init_frank_read_src_loop: length = %f" % (arm_length))
     cell = pyexadis.Cell(h=box_length*np.eye(3), is_periodic=[pbc,pbc,pbc])
     center = np.array(cell.center())
@@ -40,11 +37,6 @@ def init_frank_read_src_loop(arm_length=1.0, box_length=8.0, burg_vec=np.array([
 
     return DisNetManager(ExaDisNet(cell, rn, links))
     
-
-'''
-Example of a script to perform a simple Frank-Read source
-simulation using the pyexadis binding to ExaDiS
-'''
 def main():
     global net, sim, state
     
@@ -66,7 +58,7 @@ def main():
                           collision=collision, topology=topology, remesh=remesh, vis=vis,
                           state=state, max_step=200, loading_mode='stress',
                           applied_stress=np.array([0.0, 0.0, 0.0, 0.0, -4.0e8, 0.0]),
-                          print_freq=10, plot_freq=10, plot_pause_seconds=0.0001,
+                          print_freq=10, plot_freq=10, plot_pause_seconds=0.01,
                           write_freq=10, write_dir='output')
     sim.run(net, state)
 
