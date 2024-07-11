@@ -299,7 +299,7 @@ class DisNet(DisNet_BASE):
         nodes_data = {
             "tags": nodes_array[:,0:2].astype(int),
             "positions": nodes_array[:,2:5],
-            "constraints": nodes_array[:,5].astype(int)
+            "constraints": nodes_array[:,5:6].astype(int)
         }
         return nodes_data, ntags
 
@@ -338,9 +338,13 @@ class DisNet(DisNet_BASE):
         self.cell = Cell(h=cell.get("h"), origin=cell.get("origin"), is_periodic=cell.get("is_periodic"))
         self._G.clear()
         self._recycled_tags = []
-        rn = data.get("nodes")
-        segs = data.get("segs")
-        self.add_nodes_links_from_list(rn, segs)
+        nodes_data = data.get("nodes")
+        nodes_array = np.hstack((nodes_data["tags"], nodes_data["positions"], nodes_data["constraints"]))
+        segs_data = data.get("segs")
+        segs_array = np.hstack((segs_data["nodeids"], segs_data["burgers"], segs_data["planes"]))
+        #rn = data.get("nodes")
+        #segs = data.get("segs")
+        self.add_nodes_links_from_list(nodes_array, segs_array)
 
     def sort_segments_to_cell_list(self, segments):
         """sort_segments_to_cell: sort segments to cell list
