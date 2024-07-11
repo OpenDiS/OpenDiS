@@ -70,7 +70,7 @@ class Cell:
     def __init__(self, h: np.ndarray=np.eye(3), origin: np.ndarray=np.zeros(3), is_periodic: list=[False,False,False]) -> None:
         self.h = h
         self.hinv = np.linalg.inv(h)
-        self.origin = origin
+        self.origin = origin # "left-most" corner of the cell
         self.is_periodic = is_periodic
 
     def map(self, dr: np.ndarray) -> np.ndarray:
@@ -91,6 +91,11 @@ class Cell:
         ds -= self.is_periodic * np.round(ds)
         return np.dot(self.h, ds.T).T + Rref
 
+    def center(self) -> np.ndarray:
+        """center: return the center of the cell
+        """
+        return self.origin + 0.5*np.dot(self.h, np.ones(3))
+
 class CellList:
     """CellList: class for cell list
 
@@ -107,7 +112,7 @@ class CellList:
     def get_cell_index(self, R: np.ndarray) -> np.ndarray:
         """get_cell_index: get cell index of a position
         """
-        s = np.dot(self.cell.hinv, R.T).T
+        s = np.dot(self.cell.hinv, R.T - np.broadcast_to(self.cell.center(), shape=R.shape).T).T
         s -= np.round(s)
         ind = np.floor((s+0.5)*self.n_div).astype(int)
         return ind

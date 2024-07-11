@@ -19,14 +19,13 @@ def init_frank_read_src_loop(arm_length=1.0, box_length=8.0, burg_vec=np.array([
     '''
     print("init_frank_read_src_loop: length = %f" % (arm_length))
     cell = pyexadis.Cell(h=box_length*np.eye(3), is_periodic=[pbc,pbc,pbc])
-    center = np.array(cell.center())
     
     rn    = np.array([[0.0, -arm_length/2.0, 0.0,         NodeConstraints.PINNED_NODE],
                       [0.0,  0.0,            0.0,         NodeConstraints.UNCONSTRAINED],
                       [0.0,  arm_length/2.0, 0.0,         NodeConstraints.PINNED_NODE],
                       [0.0,  arm_length/2.0, -arm_length, NodeConstraints.PINNED_NODE],
                       [0.0, -arm_length/2.0, -arm_length, NodeConstraints.PINNED_NODE]])
-    rn[:,0:3] += center
+    rn[:,0:3] += cell.center()
     
     N = rn.shape[0]
     links = np.zeros((N, 8))

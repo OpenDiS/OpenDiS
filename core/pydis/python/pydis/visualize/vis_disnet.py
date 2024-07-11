@@ -21,8 +21,8 @@ class VisualizeNetwork:
 
     To do: clean up code, improve ways to iterate over nodes and edges 
     """
-    def __init__(self, bounds: np.ndarray, **kwargs) -> None:
-        self.bounds = bounds
+    def __init__(self, **kwargs) -> None:
+        pass
 
     def plot_disnet(self, G: DisNet,
                     plot_links=True, trim=False,
@@ -34,21 +34,20 @@ class VisualizeNetwork:
             try: ax = plt.axes(projection='3d')
             except NameError: print('plt not defined'); return
 
-        # to do: extend to non-cubic box
-        L = self.bounds[1][0] - self.bounds[0][0]
+        self.bounds = np.array([-0.5*np.diag(G.cell.h), 0.5*np.diag(G.cell.h)]) + G.cell.center()
 
         rn = G.pos_array()
         p_link = np.empty((0,6))
 
         # apply PBC
-        rn = G.cell.closest_image(Rref=np.array([0,0,0]), R=rn)
+        rn = G.cell.closest_image(Rref=G.cell.center(), R=rn)
 
         plt.cla()
         if plot_links:
             for my_tag, node_attr in G.nodes.items():
                 my_coords = node_attr['R']
                 # apply PBC
-                my_coords = G.cell.closest_image(Rref=np.array([0,0,0]), R=my_coords)
+                my_coords = G.cell.closest_image(Rref=G.cell.center(), R=my_coords)
                 for arm in G.edges(my_tag):
                     nbr_tag = arm[1]
                     if my_tag < nbr_tag:
@@ -59,8 +58,11 @@ class VisualizeNetwork:
                         r_link[0,:] = my_coords
                         # to do: extend to non-cubic box
                         r_link[1,:] = nbr_coords
-                        #r_link[1,:] = self.pbc_position_L(my_coords, nbr_coords, L)
-                        if (not trim) or np.max(np.absolute(r_link)) <= L/2:
+                        if (not trim) or (
+                            np.min(r_link[:,0]) >= self.bounds[0][0] and np.max(r_link[:,0]) <= self.bounds[1][0] and
+                            np.min(r_link[:,1]) >= self.bounds[0][1] and np.max(r_link[:,1]) <= self.bounds[1][1] and
+                            np.min(r_link[:,2]) >= self.bounds[0][2] and np.max(r_link[:,2]) <= self.bounds[1][2]
+                        ):
                             p_link = np.append(p_link, [r_link[0,:], r_link[1,:]])
 
         ls = p_link.reshape((-1,2,3))

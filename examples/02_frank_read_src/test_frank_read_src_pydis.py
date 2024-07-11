@@ -14,8 +14,7 @@ def init_frank_read_src_loop(arm_length=1.0, box_length=8.0, burg_vec=np.array([
     '''Generate an initial Frank-Read source configuration
     '''
     print("init_frank_read_src_loop: length = %f" % (arm_length))
-    cell = Cell(h=box_length*np.eye(3),origin=-0.5*box_length*np.ones(3), is_periodic=[pbc,pbc,pbc])
-    #center = np.array(cell.center())
+    cell = Cell(h=box_length*np.eye(3), is_periodic=[pbc,pbc,pbc])
     cell_list = CellList(cell=cell, n_div=[8,8,8])
 
     rn    = np.array([[0.0, -arm_length/2.0, 0.0,         DisNode.Constraints.PINNED_NODE],
@@ -23,7 +22,7 @@ def init_frank_read_src_loop(arm_length=1.0, box_length=8.0, burg_vec=np.array([
                       [0.0,  arm_length/2.0, 0.0,         DisNode.Constraints.PINNED_NODE],
                       [0.0,  arm_length/2.0, -arm_length, DisNode.Constraints.PINNED_NODE],
                       [0.0, -arm_length/2.0, -arm_length, DisNode.Constraints.PINNED_NODE]])
-    #rn[:,0:3] += center
+    rn[:,0:3] += cell.center()
 
     N = rn.shape[0]
     links = np.zeros((N, 8))
@@ -40,8 +39,7 @@ def main():
     Lbox = 1000.0
     net = init_frank_read_src_loop(box_length=Lbox, arm_length=0.125*Lbox, pbc=True)
 
-    bounds = np.array([-0.5*np.diag(net.cell.h), 0.5*np.diag(net.cell.h)])
-    vis = VisualizeNetwork(bounds=bounds)
+    vis = VisualizeNetwork()
 
     state = {"burgmag": 3e-10, "mu": 50e9, "nu": 0.3, "a": 1.0, "maxseg": 0.04*Lbox, "minseg": 0.01*Lbox, "rann": 3.0}
 
