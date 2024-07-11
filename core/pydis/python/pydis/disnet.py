@@ -287,16 +287,48 @@ class DisNet(DisNet_BASE):
                 p = self._G.edges[edge]["plane_normal"]
                 segments.append([n1, n2, b[0], b[1], b[2], p[0], p[1], p[2]])
         return segments
-        
+
+    def get_nodes_data(self):
+        """get_nodes_data: collect nodes data into a dictionary format
+           Returns:
+                nodes_data: dictionary of nodes data
+                ntags: position of each tag in the nodes array
+        """
+        nodes_array, ntags = self.nodes_array()
+        nodes_array = np.array(nodes_array)
+        nodes_data = {
+            "tags": nodes_array[:,0:2].astype(int),
+            "positions": nodes_array[:,2:5],
+            "constraints": nodes_array[:,5].astype(int)
+        }
+        return nodes_data, ntags
+
+    def get_tags(self):
+        nodes_dict, _ = self.get_nodes_data()
+        return nodes_dict["tags"]
+
+    def get_positions(self):
+        nodes_dict, _ = self.get_nodes_data()
+        return nodes_dict["positions"]
+
+    def get_segs_data(self, ntags: dict):
+        """get_segs_data: collect segments data into a dictionary format
+        """
+        segs_array = np.array(self.segs_array(ntags))
+        segs_data = {
+            "nodeids": segs_array[:,0:2].astype(int),
+            "burgers": segs_array[:,2:5],
+            "planes": segs_array[:,5:8]
+        }
+        return segs_data
+
     def export_data(self):
         """export_data: export network to data
         """
         cell = {"h": self.cell.h, "origin": self.cell.origin, "is_periodic": self.cell.is_periodic}
-        nodes, ntags = self.nodes_array()
-        segs = self.segs_array(ntags)
-        data = {"cell" : cell,
-                "nodes": np.array(nodes),
-                "segs" : np.array(segs) }
+        nodes_data, ntags = self.get_nodes_data()
+        segs_data = self.get_segs_data(ntags)
+        data = {"cell": cell, "nodes": nodes_data, "segs": segs_data}
         return data
     
     def import_data(self, data):
