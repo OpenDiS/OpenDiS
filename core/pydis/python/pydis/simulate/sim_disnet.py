@@ -56,7 +56,6 @@ class SimulateNetwork:
         self.write_dir = write_dir
 
         state["applied_stress"] = np.array(applied_stress)
-        state["sim"] = self
 
     def step(self, DM: DisNetManager, state: dict):
         """step: take a time step of DD simulation on DisNet G

@@ -46,7 +46,7 @@ def main():
     calforce  = CalForce(force_mode='LineTension', state=state)
     mobility  = MobilityLaw(mobility_law='SimpleGlide', state=state)
     timeint   = TimeIntegration(integrator='EulerForward', dt=1.0e-8, state=state)
-    topology  = Topology(split_mode='MaxDiss', state=state)
+    topology  = Topology(split_mode='MaxDiss', state=state, force=calforce, mobility=mobility)
     collision = Collision(collision_mode='Proximity', state=state)
     remesh    = Remesh(remesh_rule='LengthBased', state=state)
 

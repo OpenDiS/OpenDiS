@@ -14,9 +14,10 @@ from framework.disnet_manager import DisNetManager
 class Topology:
     """Topology: class for selecting and handling multi node splitting
     """
-    def __init__(self, state: dict={}, split_mode: str='MaxDiss') -> None:
+    def __init__(self, state: dict={}, split_mode: str='MaxDiss', **kwargs) -> None:
         self.split_mode = split_mode
-
+        self.force = kwargs.get('force')
+        self.mobility = kwargs.get('mobility')
         self.Handle_Functions = {
             'MaxDiss': self.Handle_MaxDiss }
         
@@ -47,7 +48,7 @@ class Topology:
         return
 
     @staticmethod
-    def trial_split_multi_node(G, tag: Tag, state: dict, power_th=1e-3) -> dict:
+    def trial_split_multi_node(G, tag: Tag, state: dict, force, mobility, power_th=1e-3) -> dict:
         """trial_split_multi_node: try to split multi-arm node in different ways
             and select the way that maximizes the power dissipation
         """
@@ -62,7 +63,6 @@ class Topology:
         vel_dict = state["vel_dict"]
         nodeforce_dict = state["nodeforce_dict"]
         segforce_dict = state["segforce_dict"]
-        sim = state["sim"]
 
         state_trial = deepcopy(state)
 
@@ -107,9 +107,9 @@ class Topology:
 
             # calculate nodal forces and velocities for the trial split
             state_trial["segforce_dict"] = segforce_trial_dict
-            state_trial = sim.calforce.NodeForce_from_SegForce(G_trial, state_trial)
+            state_trial = force.NodeForce_from_SegForce(G_trial, state_trial)
             DM_trial = DisNetManager(G_trial)
-            sim.mobility.Mobility(DM_trial, state_trial)
+            mobility.Mobility(DM_trial, state_trial)
             nodeforce_dict_trial = state_trial["nodeforce_dict"]
             vel_dict_trial = state_trial["vel_dict"]
 
@@ -142,7 +142,7 @@ class Topology:
             return segforce_dict
 
     @staticmethod
-    def split_multi_nodes(G, state: dict, max_degree=15) -> None:
+    def split_multi_nodes(G, state: dict, force, mobility, max_degree=15) -> None:
         """split_multi_nodes: examines all nodes with at least four arms and decides
            if the node should be split and some of the node's arms moved to a new node.
            guarantees sanity after operation
@@ -158,7 +158,7 @@ class Topology:
             elif n_degree > max_degree:
                 raise ValueError("split_multi_node: Node %s has more than %d arms" % (str(tag), n_degree))
 
-            state = Topology.trial_split_multi_node(G, tag, state)
+            state = Topology.trial_split_multi_node(G, tag, state, force, mobility)
 
         return state
 
@@ -166,5 +166,5 @@ class Topology:
         """Handle_MaxDiss: split_multi_nodes
         """
         Topology.init_topology_exemptions(G)
-        Topology.split_multi_nodes(G, state)
+        Topology.split_multi_nodes(G, state, self.force, self.mobility)
         return state
