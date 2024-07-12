@@ -1,6 +1,6 @@
 #__init__.py
 
-from .disnet import DisNode, DisEdge, Cell, CellList, DisNet
+from .disnet import DisNode, DisEdge, Cell, DisNet
 
 from .calforce.calforce_disnet import CalForce
 from .mobility.mobility_disnet import MobilityLaw
@@ -10,3 +10,4 @@ from .collision.collision_disnet import Collision
 from .remesh.remesh_disnet import Remesh
 from .visualize.vis_disnet import VisualizeNetwork
 from .simulate.sim_disnet import SimulateNetwork
+from .nbrlist.nbrlist import CellList

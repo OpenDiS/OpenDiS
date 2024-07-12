@@ -15,7 +15,6 @@ def init_frank_read_src_loop(arm_length=1.0, box_length=8.0, burg_vec=np.array([
     '''
     print("init_frank_read_src_loop: length = %f" % (arm_length))
     cell = Cell(h=box_length*np.eye(3), is_periodic=[pbc,pbc,pbc])
-    cell_list = CellList(cell=cell, n_div=[8,8,8])
 
     rn    = np.array([[0.0, -arm_length/2.0, 0.0,         DisNode.Constraints.PINNED_NODE],
                       [0.0,  0.0,            0.0,         DisNode.Constraints.UNCONSTRAINED],
@@ -31,13 +30,14 @@ def init_frank_read_src_loop(arm_length=1.0, box_length=8.0, burg_vec=np.array([
         pn = pn / np.linalg.norm(pn)
         links[i,:] = np.concatenate(([i, (i+1)%N], burg_vec, pn))
 
-    return DisNetManager(DisNet(cell=cell, cell_list=cell_list, rn=rn, links=links))
+    return DisNetManager(DisNet(cell=cell, rn=rn, links=links))
 
 def main():
     global net, sim, state
 
     Lbox = 1000.0
     net = init_frank_read_src_loop(box_length=Lbox, arm_length=0.125*Lbox, pbc=True)
+    nbrlist = CellList(cell=net.cell, n_div=[8,8,8])
 
     vis = VisualizeNetwork()
 
@@ -47,7 +47,7 @@ def main():
     mobility  = MobilityLaw(mobility_law='SimpleGlide', state=state)
     timeint   = TimeIntegration(integrator='EulerForward', dt=1.0e-8, state=state)
     topology  = Topology(split_mode='MaxDiss', state=state, force=calforce, mobility=mobility)
-    collision = Collision(collision_mode='Proximity', state=state)
+    collision = Collision(collision_mode='Proximity', state=state, nbrlist=nbrlist)
     remesh    = Remesh(remesh_rule='LengthBased', state=state)
 
     sim = SimulateNetwork(calforce=calforce, mobility=mobility, timeint=timeint,

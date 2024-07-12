@@ -19,9 +19,10 @@ class Collision:
     """Collision: class for detecting and handling collisions
 
     """
-    def __init__(self, state: dict={}, collision_mode: str='Proximity') -> None:
+    def __init__(self, state: dict={}, collision_mode: str='Proximity', **kwargs) -> None:
         self.collision_mode = collision_mode
         self.mindist2 = state.get("rann", np.sqrt(1.0e-3))**2
+        self.nbrlist = kwargs.get('nbrlist')
 
         self.HandleCol_Functions = {
             'Proximity': self.HandleCol_Proximity }
@@ -43,10 +44,10 @@ class Collision:
         # loop through all segment pairs to check for collision
         segments = G.seg_list()
         midpoints = G.get_segments_midpoint(segments)
-        G.cell_list.sort_points_to_list(midpoints)
+        self.nbrlist.sort_points_to_list(midpoints)
 
         collided = np.zeros(len(segments), dtype=bool)
-        for i, j in G.cell_list.iterate_nbr_pairs(use_cell_list=all(G.cell.is_periodic)):
+        for i, j in self.nbrlist.iterate_nbr_pairs(use_cell_list=all(G.cell.is_periodic)):
                 seg1 = segments[i]
                 if collided[i]:
                     continue
