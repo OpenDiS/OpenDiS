@@ -4,3 +4,6 @@
 [submodule "core/pydis/python/ctypesgen"]
 	path = core/pydis/python/ctypesgen
 	url = https://github.com/davidjamesca/ctypesgen.git
+[submodule "core/pydis/python/pydis/graph"]
+	path = core/pydis/python/pydis/graph
+	url = https://github.com/maxcai314/portable-graph-utilities.git
