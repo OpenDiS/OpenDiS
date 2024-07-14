@@ -1,13 +1,7 @@
 ### Compile on Mac
 
 #### Install required packages
-```bash
-sudo apt-get install cmake
-sudo apt-get install libfftw3-dev libfftw3-doc
-```
-
-```{Hint}
-If CMake is having problem finding the FFTW package on your system, you can install them manually and specify its location in the ``cmake/sys.cmake.ext`` file.  For example, assuming that you have installed FFTW in your home directory, you may add the following lines in your ``cmake/sys.cmake.ext`` file (and the configure without -DSYS , see below).
+If CMake is having problem finding the [FFTW](https://www.fftw.org/) package on your system, you can install them manually and specify its location in the ``cmake/sys.cmake.ext`` file.  For example, assuming that you have installed FFTW in your home directory, you may add the following lines in your ``cmake/sys.cmake.ext`` file (and the configure without -DSYS , see below).
 ```cmake
 set(FFTW_LIB_DIR $ENV{HOME}/usr/lib)
 set(FFTW_INC_DIR $ENV{HOME}/usr/include)
