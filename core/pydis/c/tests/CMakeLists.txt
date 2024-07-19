@@ -1,8 +1,7 @@
 cmake_minimum_required(VERSION 3.14)
 
 find_package(PythonLibs)
-#find_package(PythonLibs REQUIRED)
-if(DEFINED ${PYTHON_INCLUDE_DIRS})
+if(PYTHONLIBS_FOUND)
     add_executable(test_calforce)
     include_directories(${PYTHON_INCLUDE_DIRS})
 
@@ -13,6 +12,6 @@ if(DEFINED ${PYTHON_INCLUDE_DIRS})
     target_link_libraries(test_calforce ${PYTHON_LIBRARIES})
 else()
     message("skips building core/pydis/c/tests/")
-endif(DEFINED ${PYTHON_INCLUDE_DIRS})
+endif(PYTHONLIBS_FOUND)
 
 
