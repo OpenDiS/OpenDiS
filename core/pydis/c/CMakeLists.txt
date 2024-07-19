@@ -6,6 +6,7 @@ add_subdirectory(calforce)
 add_subdirectory(collision)
 add_subdirectory(remesh)
 add_subdirectory(util)
+add_subdirectory(tests)
 
 target_include_directories(pydis PRIVATE include)
 
