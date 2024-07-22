@@ -25,7 +25,7 @@ cmake --build build -j 8 ; cmake --build build --target install
 Alternatively, you can also copy the ``cmake/sys.cmake.cms3-fast`` file to ``cmake/sys.cmake.ext`` and configure without -DSYS. The ``cmake/sys.cmake.ext`` file is not tracked by git so you can feel free to experiment with the settings.
 
 ````bash
-cp cmake/sys.cmake.mc3_cpu cmake/sys.cmake.ext
+cp cmake/sys.cmake.cms3-fast cmake/sys.cmake.ext
 rm -rf build/; ./configure.sh 
 cmake --build build -j 8 ; cmake --build build --target install
 ````
