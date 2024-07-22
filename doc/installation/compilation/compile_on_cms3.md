@@ -1,4 +1,4 @@
-### Compile on MC3
+### Compile on CMS3
 
 Cms3-fast.tamu.edu is a high performance computing (HPC) cluster at Texas A&M University. It has NVIDIA T4 GPUs. OpenDiS has been used in the teaching at the summer school of [CMS3](https://cms3.tamu.edu/) in July 2024.
 
