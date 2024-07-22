@@ -3,27 +3,29 @@
 Mc3.stanford.edu is a Linux (CentOS) cluster.
 
 #### Create conda environment (opendis) 
-This is for installing Python ``matplotlib`` needed to run test case
-```bash
-module load intel/python
+This is for installing Python3 executable as well as modules (such as ``matplotlib``) needed to run test case
+````bash
+eval "$(/opt/ohpc/pub/compiler/anaconda3/2024.02-1/bin/conda shell.bash hook)"
 conda init
-conda create --name opendis python=3.7.7
+conda create --name opendis python=3.9
 conda activate opendis
 conda install matplotlib
-```
+conda install networkx
+````
 
-```{hint}
-After setting up the conda environment, we need to log out and log in to the computer cluster again, so that intel/python is no longer loaded.  Alternatively, we can unload intel/python explicitly using
-```bash
-module unload intel/python
-```
+To ensure ``matplotlib`` runs properly on MC3, we need to specify its backend to be tkagg in the ``matplotlibrc`` file
+````bash
+vi ~/.config/matplotlib/matplotlibrc
+backend: tkagg
+````
+
 
 #### Load modules 
 
 Put the following lines in your ``~/.bash_profile file``, exit and login again
 ````bash
-module load cmake/3.24.1
-module load gnu8/8.3.0
+module load cmake/3.24.2
+module load gnu9/9.4.0
 module load cuda/11.8
 ````
 
@@ -45,6 +47,12 @@ cp cmake/sys.cmake.mc3_cpu cmake/sys.cmake.ext
 rm -rf build/; ./configure.sh 
 cmake --build build -j 8 ; cmake --build build --target install
 ````
+
+```{hint}
+Make sure you are in the ``opendis`` conda environment using the following command.
+```bash
+conda activate opendis
+```
 
 When compilation is successful, you should see a file like ``pyexadis.cpython*.so`` in the ``core/exadis/python`` folder.
 
