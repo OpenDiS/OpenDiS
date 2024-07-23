@@ -1,6 +1,6 @@
 ### Compile on MC3
 
-Mc3.stanford.edu is a Linux (CentOS) cluster.
+[Mc3.stanford.edu](https://hpcc-intranet.stanford.edu/resources/mc3-cluster/) is a Linux ([Rocky Linux](https://rockylinux.org/) 8) cluster.
 
 #### Create conda environment (opendis) 
 This is for installing Python3 executable as well as modules (such as ``matplotlib``) needed to run test case
