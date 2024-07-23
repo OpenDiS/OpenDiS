@@ -13,7 +13,7 @@ In the simulation, there are two dislocation jogs pinning the four dislocation n
 
 ```{important}
 1. describe this simulation.  Initial condition.  Boundary condition.  Behavior of the dislocation.
-2. how to examine the data structure of the dislocation network (DisNet) in python interactive
+2. how to examine the data structure of the dislocation network (DisNet) in Python interactive
 ```
 
 **Initial condition:** 
@@ -67,7 +67,7 @@ If being ran successfully, one may expect the final simulation configuration to 
 ```
 
 The simulation process follows this animation:
-```{figure} frank_read_vid.gif
+```{figure} frank_read_opendis.gif
 :alt: Video of the whole simulation
 :width: 552px
 ```
