@@ -48,7 +48,7 @@ OutEdgeView([((0, 0), (0, 4)), ((0, 0), (0, 48)), ((0, 2), (0, 3)), ((0, 2), (0,
 ```
 representing all the edges in the dislocation graph that denote the connection between nodes.
 
-One can export the data that stores the information of this graph:
+One can export the data that stores the information in this graph:
 ```python
 net.G.export_data()
 ```
@@ -60,8 +60,8 @@ where the data is stored as
 ```
 One may pass this to a variable that surrogates the dislocation structures after the simulation.
 
-If being ran successfully, one may expect the final simulation configuration to look something like this:
-```{figure} frank_read_schematic.png
+If running successfully, one may expect the final simulation configuration to look something like this:
+```{figure} frank_read_final_config.png
 :alt: Screenshot of the final configuration
 :width: 552px
 ```
