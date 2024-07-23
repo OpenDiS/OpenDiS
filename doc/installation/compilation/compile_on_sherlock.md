@@ -1,6 +1,6 @@
 ### Compile on Sherlock
 
-Sherlock.stanford.edu is a Linux (CentOS) cluster.
+[Sherlock](https://www.sherlock.stanford.edu/).stanford.edu is a Linux (CentOS) cluster.
 
 #### Load modules 
 
