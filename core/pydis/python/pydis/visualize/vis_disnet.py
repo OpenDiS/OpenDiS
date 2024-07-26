@@ -44,26 +44,24 @@ class VisualizeNetwork:
 
         plt.cla()
         if plot_links:
-            for my_tag, node_attr in G.nodes.items():
-                my_coords = node_attr['R']
+            for my_tag, node_attr in G.all_nodes_dict().items():
+                my_coords = node_attr.R
                 # apply PBC
                 my_coords = G.cell.closest_image(Rref=G.cell.center(), R=my_coords)
-                for arm in G.edges(my_tag):
-                    nbr_tag = arm[1]
-                    if my_tag < nbr_tag:
-                        r_link = np.zeros((2,3))
-                        nbr_coords = G.nodes[nbr_tag]['R']
-                        # apply PBC
-                        nbr_coords = G.cell.closest_image(Rref=my_coords, R=nbr_coords)
-                        r_link[0,:] = my_coords
-                        # to do: extend to non-cubic box
-                        r_link[1,:] = nbr_coords
-                        if (not trim) or (
-                            np.min(r_link[:,0]) >= self.bounds[0][0] and np.max(r_link[:,0]) <= self.bounds[1][0] and
-                            np.min(r_link[:,1]) >= self.bounds[0][1] and np.max(r_link[:,1]) <= self.bounds[1][1] and
-                            np.min(r_link[:,2]) >= self.bounds[0][2] and np.max(r_link[:,2]) <= self.bounds[1][2]
-                        ):
-                            p_link = np.append(p_link, [r_link[0,:], r_link[1,:]])
+                for nbr_attr in G.neighbors_dict(my_tag).values():
+                    r_link = np.zeros((2,3))
+                    nbr_coords = nbr_attr.R
+                    # apply PBC
+                    nbr_coords = G.cell.closest_image(Rref=my_coords, R=nbr_coords)
+                    r_link[0,:] = my_coords
+                    # to do: extend to non-cubic box
+                    r_link[1,:] = nbr_coords
+                    if (not trim) or (
+                        np.min(r_link[:,0]) >= self.bounds[0][0] and np.max(r_link[:,0]) <= self.bounds[1][0] and
+                        np.min(r_link[:,1]) >= self.bounds[0][1] and np.max(r_link[:,1]) <= self.bounds[1][1] and
+                        np.min(r_link[:,2]) >= self.bounds[0][2] and np.max(r_link[:,2]) <= self.bounds[1][2]
+                    ):
+                        p_link = np.append(p_link, [r_link[0,:], r_link[1,:]])
 
         ls = p_link.reshape((-1,2,3))
         lc = Line3DCollection(ls, linewidths=0.5, colors='b')

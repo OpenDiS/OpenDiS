@@ -12,7 +12,7 @@ class DisNet_BASE(ABC):
     Defines interface for the DisNet class
     """
     @abstractmethod
-    def nodes(self):
+    def all_nodes(self):
         """nodes: return list of all node tags (keys)
         """
         pass
@@ -24,7 +24,7 @@ class DisNet_BASE(ABC):
         pass
 
     @abstractmethod
-    def segments(self):
+    def all_segments(self):
         """segments: return list of all segments (tag pairs)
         """
         pass
@@ -41,19 +41,21 @@ class DisNet_BASE(ABC):
         """
         pass
 
-    @abstractmethod
-    def node_prop_list(self):
-        """node_pos_list: return a list of node properties
-           (each item of the list is a dictionary)
-        """
-        pass
+    # To do: remove this function requirement
+    #@abstractmethod
+    #def node_prop_list(self):
+    #    """node_pos_list: return a list of node properties
+    #       (each item of the list is a dictionary)
+    #    """
+    #    pass
 
-    @abstractmethod
-    def seg_prop_list(self):
-        """seg_prop_list: return a numpy array of segment properties
-           (each item of the list is a dictionary)
-        """
-        pass
+    # To do: remove this function requirement
+    #@abstractmethod
+    #def seg_prop_list(self):
+    #    """seg_prop_list: return a numpy array of segment properties
+    #       (each item of the list is a dictionary)
+    #    """
+    #    pass
 
     @abstractmethod
     def export_data(self):
@@ -81,7 +83,7 @@ class DisNet_BASE(ABC):
     
     @abstractmethod
     def add_nodes_segments_from_list(self, rn, links) -> None:
-        """add_nodes_links_from_list: add nodes and edges stored in lists to network
+        """add_nodes_segments_from_list: add nodes and edges stored in lists to network
         """
         pass
     
