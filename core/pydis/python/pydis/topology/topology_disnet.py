@@ -132,14 +132,38 @@ class Topology:
         if do_split:
             nbrs_to_split = [nbrs[i] for i in nbr_idx_list[k_sel]]
             split_node1, split_node2 = G.split_node(tag, pos0.copy(), pos0.copy(), nbrs_to_split)
+
+            # To do: remove repeated code
+            segforce_trial_dict = deepcopy(segforce_dict)
+            # modify the segforce_trial_dict to reflect the trial split
+            for segment in segforce_dict:
+                tag1, tag2 = segment
+                if tag1 == tag or tag2 == tag:
+                    if not G.has_segment(tag1, tag2):
+                        #print("remove segment (%s, %s) from segforce_trial_dict" % (str(tag1), str(tag2)))
+                        segforce_trial_dict.pop(segment)
+                        if tag1 == tag and G.has_segment(split_node2, tag2):
+                            new_segment = (split_node2, tag2)
+                        elif tag2 == tag and G.has_segment(tag1, split_node2):
+                            new_segment = (tag1, split_node2)
+                        else:
+                            raise ValueError("trial_split_multi_node: cannot find corresponding segment (%s, %s) in G" % (str(tag1), str(tag2)))
+
+                        #print("add segment %s to segforce_trial_dict" % str(new_segment))
+                        segforce_trial_dict[new_segment] = segforce_dict[segment]
+
+            state = force.NodeForce_from_SegForce(G, state)
+            state = mobility.Mobility(DisNetManager(G), state)
+
             # Mark both nodes involved in the split as 'exempt' from subsequent collisions this time step
             G.nodes[split_node1]["flag"] |= DisNode.Flags.NO_COLLISIONS
             G.nodes[split_node2]["flag"] |= DisNode.Flags.NO_COLLISIONS
 
             # Update segforce_dict to segforce_trial_dict
-            return segforce_trial_dict
-        else:
-            return segforce_dict
+            state["segforce_dict"] = segforce_trial_dict
+        #else:
+        #    return segforce_dict
+        return state
 
     @staticmethod
     def split_multi_nodes(G, state: dict, force, mobility, max_degree=15) -> None:
