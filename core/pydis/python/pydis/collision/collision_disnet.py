@@ -52,24 +52,24 @@ class Collision:
                 if collided[i]:
                     continue
                 tag1, tag2 = seg1["edge"][0], seg1["edge"][1]
-                if not G.has_edge(tag1, tag2):
+                if not G.has_segment(tag1, tag2):
                     continue
-                if G.nodes[tag1].get('flag') & DisNode.Flags.NO_COLLISIONS:
+                if G.nodes(tag1).flag & DisNode.Flags.NO_COLLISIONS:
                     continue
-                if G.nodes[tag2].get('flag') & DisNode.Flags.NO_COLLISIONS:
+                if G.nodes(tag2).flag & DisNode.Flags.NO_COLLISIONS:
                     continue
 
                 seg2 = segments[j]
                 if collided[i] or collided[j]:
                     continue
-                if not G.has_edge(tag1, tag2):
+                if not G.has_segment(tag1, tag2):
                     continue
                 tag3, tag4 = seg2["edge"][0], seg2["edge"][1]
-                if not G.has_edge(tag3, tag4):
+                if not G.has_segment(tag3, tag4):
                     continue
-                if G.nodes[tag3].get('flag') & DisNode.Flags.NO_COLLISIONS:
+                if G.nodes(tag3).flag & DisNode.Flags.NO_COLLISIONS:
                     continue
-                if G.nodes[tag4].get('flag') & DisNode.Flags.NO_COLLISIONS:
+                if G.nodes(tag4).flag & DisNode.Flags.NO_COLLISIONS:
                     continue
                 p1, p2 = np.array(seg1["R1"]), np.array(seg1["R2"])
                 p3, p4 = np.array(seg2["R1"]), np.array(seg2["R2"])
@@ -102,7 +102,7 @@ class Collision:
                             splitSeg1, newPos1 = True, (1-L1)*p1 + L1*p2
                             # skip velocity for now
                             new_tag = G.get_new_tag()
-                            G.insert_node(tag1, tag2, new_tag, newPos1)
+                            G.insert_node_between(tag1, tag2, new_tag, newPos1)
                             mergenode1 = new_tag
 
                         if close2node3:
@@ -113,14 +113,14 @@ class Collision:
                             splitSeg2, newPos2 = True, (1-L2)*p3 + L2*p4
                             # skip velocity for now
                             new_tag = G.get_new_tag()
-                            G.insert_node(tag3, tag4, new_tag, newPos2)
+                            G.insert_node_between(tag3, tag4, new_tag, newPos2)
                             mergenode2 = new_tag
 
                         # To do: determine precise position satisfying glide constraints
                         newPos = (newPos1 + newPos2)/2.0
                         mergedTag, status = G.merge_node(mergenode1, mergenode2)
                         if mergedTag != None:
-                            G.nodes[mergedTag]['R'] = newPos
+                            G.nodes(mergedTag).R = newPos
 
         # In ParaDiS the hinge case (zipping) is handled separately
         # They are skipped here for simplicity

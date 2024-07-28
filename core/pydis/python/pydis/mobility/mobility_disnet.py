@@ -37,7 +37,7 @@ class MobilityLaw:
         """
         vel_dict = nodeforce_dict.copy()
         # set velocity of pinned nodes to zero
-        for tag in G.nodes:
+        for tag in G.all_nodes_dict():
             if G.nodes[tag].get('constraint') == DisNode.Constraints.PINNED_NODE:
                 vel_dict[tag] = np.zeros(3)
         return vel_dict
@@ -64,21 +64,21 @@ class MobilityLaw:
            To do: add glide constraints
         """
         vel_dict = nodeforce_dict.copy()
-        for tag in G.nodes:
-            node1 = G.nodes[tag]
+        for tag in G.all_nodes_dict():
+            node1 = G.nodes(tag)
             # set velocity of pinned nodes to zero
-            if node1.get('constraint') == DisNode.Constraints.PINNED_NODE:
+            if node1.constraint == DisNode.Constraints.PINNED_NODE:
                 vel_dict[tag] = np.zeros(3)
             else:
-                R1 = node1["R"]
+                R1 = node1.R
                 Lsum = 0.0
-                for nbr_tag in G.neighbors(tag):
-                    node2 = G.nodes[nbr_tag]
-                    R2 = node2["R"]
+                for nbr_tag, node2 in G.neighbors_dict(tag).items():
+                    R2 = node2.R
                     # apply PBC
                     R2 = G.cell.closest_image(Rref=R1, R=R2)
                     Lsum += np.linalg.norm(R2-R1)
                 vel = vel_dict[tag] / (Lsum/2.0) * self.mob
-                normals = np.array([G.edges[id]["plane_normal"] for id in G.edges(tag)])
+                normals = np.array([edge.plane_normal for edge in G.neighbor_segments_dict(tag).values()])
+                #print("Mobility_SimpleGlide: tag = %s, vel = %s, normals = %s"%(tag, str(vel), str(normals)))
                 vel_dict[tag] = self.ortho_vel_glide_planes(vel, normals)
         return vel_dict

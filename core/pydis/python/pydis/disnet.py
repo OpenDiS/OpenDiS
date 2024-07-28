@@ -121,6 +121,11 @@ class Cell:
         """
         return self.origin + 0.5*np.dot(self.h, np.ones(3))
 
+    def copy(self):
+        """copy: return a deep copy of the cell
+        """
+        return Cell(h=self.h.copy(), origin=self.origin.copy(), is_periodic=self.is_periodic.copy())
+
 class DisNet(DisNet_BASE):
     """DisNet: class for dislocation network
 
@@ -175,6 +180,15 @@ class DisNet(DisNet_BASE):
 
         return result
 
+    def neighbor_segments_dict(self, tag: Tag):
+        """neighbor_segments_dict: return nbr_tags and attributes of edges
+        """
+        connected_edges = self.tags_to_nodes[tag].edges()
+        return {
+           edge.source.tag if edge.source.tag != tag else edge.target.tag : edge.attr
+           for edge in connected_edges
+        }
+
     def all_nodes(self):
         """nodes: return iterator of all node tags
         """
@@ -210,7 +224,7 @@ class DisNet(DisNet_BASE):
     def out_degree(self, tag):
         """out_degree: return out degree of a node
         """
-        return self.tags_to_nodes[tag].out_degree()
+        return self.tags_to_nodes[tag].num_neighbors()
 
     def pos_array(self) -> np.ndarray:
         """pos_array: return a numpy array of node positions
@@ -230,25 +244,24 @@ class DisNet(DisNet_BASE):
         """
         raise NotImplementedError("seg_prop_list: not implemented")
 
-    # To do: remove function seg_list (not required by base class)
+    # To do: refactor NodeForce to not use seg_list (not required by base class)
     def seg_list(self) -> list:
         """seg_list: return a list of segments
 
-        Each link appear once: tag1 < tag2
+        Each link appear once
         """
-        # segments = []
-        # for edge in self._G.edges():
-        #     r1 = self._G.nodes[tag1]["R"]
-        #     r2 = self._G.nodes[tag2]["R"]
-        #     # apply PBC
-        #     r2 = self.cell.closest_image(Rref=r1, R=r2)
-        #     segments.append({"edge":edge,
-        #                         "burg_vec":self._G.edges[edge]["burg_vec"],
-        #                         "R1":r1,
-        #                         "R2":r2})
-        # return segments
-        raise NotImplementedError("seg_list: not implemented")
-    
+        segments = []
+        for (source, target), edge_attr in self.all_segments_dict().items():
+            r1 = self.tags_to_nodes[source].attr.R
+            r2 = self.tags_to_nodes[target].attr.R
+            # apply PBC
+            r2 = self.cell.closest_image(Rref=r1, R=r2)
+            segments.append({"edge":(source, target),
+                             "burg_vec":edge_attr.burg_vec_from(source),
+                             "R1":r1,
+                             "R2":r2})
+        return segments
+
     # To do: implement function get_segments_midpoint
     def get_segments_midpoint(self, segments: list) -> np.ndarray:
         """get_segments_midpoint: return the midpoints of a segment list
@@ -257,7 +270,7 @@ class DisNet(DisNet_BASE):
         for i, seg in enumerate(segments):
             r1 = seg["R1"]
             r2 = seg["R2"]
-            # apply PBC
+            # apply PBC (not necessary because already applied in seg_list)
             r2 = self.cell.closest_image(Rref=r1, R=r2)
             mp[i,:] = 0.5*(r1+r2)
         return mp
@@ -344,6 +357,18 @@ class DisNet(DisNet_BASE):
         segs_data = data.get("segs")
         segs_array = np.hstack((segs_data["nodeids"], segs_data["burgers"], segs_data["planes"]))
         self.add_nodes_segments_from_list(nodes_array, segs_array)
+
+    def copy(self):
+        """copy: return a deep copy of the network
+        """
+        result = DisNet(cell=self.cell.copy())
+        for tag, node_attr in self.all_nodes_dict().items():
+            result._add_node(tag, deepcopy(node_attr))
+
+        for (source, target), edge_attr in self.all_segments_dict().items():
+            result._add_edge(source, target, deepcopy(edge_attr))
+
+        return result
 
     def to_networkx(self):
         """to_networkx: convert to networkx graph
@@ -484,16 +509,16 @@ class DisNet(DisNet_BASE):
         for i in range(N):
             if rn.shape[1] == 6:
                 tag = (int(rn[i,0]), int(rn[i,1]))
-                node = DisNode(R=rn[i,2:5], constraint=int(rn[i,5]))
+                node = DisNode(R=rn[i,2:5].copy(), constraint=int(rn[i,5]))
             elif rn.shape[1] == 4:
                 tag = (0, i)
-                node = DisNode(R=rn[i,:3], constraint=int(rn[i,3]))
+                node = DisNode(R=rn[i,:3].copy(), constraint=int(rn[i,3]))
             elif rn.shape[1] == 3:
                 tag = (0, i)
-                node = DisNode(R=rn[i,:3])
+                node = DisNode(R=rn[i,:3].copy())
             else:
                 raise ValueError("add_nodes_segments_from_list: invalid node format")
-            self._add_node(tag, deepcopy(node))
+            self._add_node(tag, node)
         for j in range(num_links):
             seg = links[j, :2].astype(int)
             bv  = links[j, 2:5]
@@ -506,10 +531,10 @@ class DisNet(DisNet_BASE):
             if links.shape[1] > 5:
                 pn  = links[j, 5:8]
                 # Note: now we add edges only once
-                self._add_edge(tag, nbr_tag, deepcopy(DisEdge(tag, burg_vec= bv, plane_normal=pn)))
+                self._add_edge(tag, nbr_tag, DisEdge(tag, burg_vec= bv.copy(), plane_normal=pn.copy()))
             else:
                 # Note: now we add edges only once
-                self._add_edge(tag, nbr_tag, deepcopy(DisEdge(tag, burg_vec= bv)))
+                self._add_edge(tag, nbr_tag, DisEdge(tag, burg_vec= bv.copy()))
 
         if not self.is_sane():
             raise ValueError("add_nodes_segments_from_list: sanity check failed")
@@ -522,20 +547,21 @@ class DisNet(DisNet_BASE):
         if recycle and len(self._recycled_tags) > 0:
             return self._recycled_tags.pop(0)
         else:
-            max_tag = max(self.nodes)
+            max_tag = max(self.all_nodes())
             return (max_tag[0], max_tag[1]+1)
 
     # To do: redo with single edge
-    def insert_node(self, tag1: Tag, tag2: Tag, new_tag: Tag, R: np.ndarray) -> None:
-        """insert_node: insert a node between two existing nodes
+    def insert_node_between(self, tag1: Tag, tag2: Tag, new_tag: Tag, R: np.ndarray) -> None:
+        """insert_node_between: insert a node between two existing nodes
            guarantees sanity after operation
         """
         # To do: update plastic strain if new node position is not on segment
-
-        self._add_node(tag, deepcopy(DisNode(R=R)))
-        prev_edge_attr = self.edges((tag1, tag2))
-        self._add_edge(tag1, new_tag, deepcopy(prev_edge_attr))
-        self._add_edge(new_tag, tag2, deepcopy(prev_edge_attr))
+        self._add_node(new_tag, DisNode(R=R.copy()))
+        prev_edge_attr = self.segments((tag1, tag2))
+        new_edge_attr = DisEdge(tag1, prev_edge_attr.burg_vec_from(tag1), prev_edge_attr.plane_normal)
+        self._add_edge(tag1, new_tag, new_edge_attr)
+        new_edge_attr = DisEdge(tag2, prev_edge_attr.burg_vec_from(tag2), prev_edge_attr.plane_normal)
+        self._add_edge(new_tag, tag2, new_edge_attr)
         self._remove_edge(tag1, tag2)
     
     def remove_two_arm_node(self, old_tag: Tag) -> None:
@@ -544,19 +570,22 @@ class DisNet(DisNet_BASE):
         """
         if not self.has_node(old_tag):
             raise ValueError("remove_two_arm_node: Node %s does not exist" % str(old_tag))
-        if self._G.out_degree(old_tag) != 2:
+        if self.out_degree(old_tag) != 2:
             raise ValueError("remove_two_arm_node: Node %s does not have two arms" % str(old_tag))
 
         # To do: update plastic strain due to removed node operation
 
         tag1, tag2 = self.neighbors(old_tag)
+        end_nodes_connected = self.has_segment(tag1, tag2)
 
-        prev_edge_attr = self.edges[(old_tag, tag2)]
-        self._combine_edge(tag1, tag2, deepcopy(prev_edge_attr))
+        prev_link_attr = self.segments((old_tag, tag2))
+        new_link_attr = DisEdge(tag2, prev_link_attr.burg_vec_from(tag2), prev_link_attr.plane_normal)
+        self._combine_edge(tag1, tag2, new_link_attr)
         self._remove_node(old_tag)
 
         # remove neighbor nodes if they become orphaned
         self.remove_empty_arms(tag1)
+        self.remove_empty_arms(tag2)
 
     def remove_empty_arms(self, tag: Tag, tol = 1e-8) -> None:
         """remove_empty_arms: remove any zero-Burgers vector arms between a node and any of its neighbors
@@ -564,15 +593,26 @@ class DisNet(DisNet_BASE):
 
         Remove neighbor nodes if they become orphaned, but do not remove the node itself
         """
+        if not self.has_node(tag):
+            return
+
+        nbr_list = list(self.neighbors(tag))
         node = self.tags_to_nodes[tag]
+        edges_to_remove = []
         for edge in node.edges():
             bv = edge.attr.burg_vec_from(tag)
             if np.max(np.abs(bv)) < tol:
-                self._G.remove_edge(edge)
+                edges_to_remove.append(edge)
+        for edge in edges_to_remove:
+            self._G.remove_edge(edge)
 
         if node.num_neighbors() == 0:
-            self._G.remove_node(node)
-    
+            self._remove_node(node.tag)
+
+        for nbr_tag in nbr_list:
+            if self.out_degree(nbr_tag) == 0:
+                self._remove_node(nbr_tag)
+
     def merge_node(self, tag1: Tag, tag2: Tag):
         """merge_node: merge two nodes into one
            guarantees sanity after operation
@@ -582,9 +622,8 @@ class DisNet(DisNet_BASE):
         Remove any links between node1 and node2
         If merged node has double-links to any neighbor, combine them into one (or zero) link
         """
-
-        node1Deletable = self.nodes[tag1]["constraint"] != DisNode.Constraints.PINNED_NODE
-        node2Deletable = self.nodes[tag2]["constraint"] != DisNode.Constraints.PINNED_NODE
+        node1Deletable = self.nodes(tag1).constraint != DisNode.Constraints.PINNED_NODE
+        node2Deletable = self.nodes(tag2).constraint != DisNode.Constraints.PINNED_NODE
 
         if node1Deletable:
             targetNode, deadNode = tag2, tag1
@@ -600,20 +639,15 @@ class DisNet(DisNet_BASE):
         # Remove any links between targetNode and deadNode
         if self.has_segment(targetNode, deadNode):
             self._remove_edge(targetNode, deadNode)
-        if self.has_segment(deadNode, targetNode):
-            self._remove_edge(deadNode, targetNode)
+        #if self.has_segment(deadNode, targetNode):
+        #    self._remove_edge(deadNode, targetNode)
 
         # Move all connections from the dead node to the target node
         # and add a new connection from the target node to each of the
         # dead node's neighbors.
-        for edge in self.edges(deadNode):
-            nbr = edge[1]
-            if nbr != targetNode:
-                link_attr = self.edges[(deadNode, nbr)]
-                self._combine_edge(targetNode, nbr, deepcopy(DisEdge(**link_attr)))
-
-                link_attr = self.edges[(nbr, deadNode)]
-                self._combine_edge(nbr, targetNode, deepcopy(DisEdge(**link_attr)))
+        for nbr_tag, link_attr in self.neighbor_segments_dict(deadNode).items():
+            new_link_attr = DisEdge(nbr_tag, link_attr.burg_vec_from(nbr_tag), link_attr.plane_normal)
+            self._combine_edge(targetNode, nbr_tag, new_link_attr)
 
             # To do: reset seg forces
 
@@ -621,16 +655,13 @@ class DisNet(DisNet_BASE):
 
         self.remove_empty_arms(targetNode)
 
-        # Remove target node if orphaned (i.e. no longer has any arms)
-        if len(self.edges(targetNode)) == 0:
-            self._remove_node(targetNode)
-            mergedTag = None
-            status = 'MERGE_NODE_ORPHANED'
-        else:
+        if self.has_node(targetNode) and self.out_degree(targetNode) > 0:
             mergedTag = targetNode
             status = 'MERGE_NODE_SUCCESS'
+        else:
+            mergedTag = None
+            status = 'MERGE_NODE_ORPHANED'
 
-        #print("merge_node: %s + %s -> %s" % (str(tag1), str(tag2), str(mergedTag)))
         return mergedTag, status
     
     def find_precise_glide_plane(self, bv: np.ndarray, dirv: np.ndarray, dot_cutoff=0.9995) -> np.ndarray:
@@ -664,24 +695,27 @@ class DisNet(DisNet_BASE):
         """
         split_node1 = tag
         split_node2 = self.get_new_tag()
-        self._add_node(split_node2, deepcopy(DisNode(R=pos2.copy())))
+        self._add_node(split_node2, DisNode(R=pos2.copy()))
 
-        self.nodes[split_node1]['R'] = pos1.copy()
+        self.nodes(split_node1).R = pos1.copy()
 
         bv = np.zeros(3)
         for nbr in nbrs_to_split:
             if not self.has_segment(tag, nbr):
                 raise ValueError("split_node: Node %s and %s are not connected" % (str(tag), str(nbr)))
 
-            link_attr = self.edges[(tag, nbr)]
-            self._add_edge(split_node2, nbr, deepcopy(DisEdge(**link_attr)))
-            bv += np.array(link_attr['burg_vec'])
+            link_attr = self.segments((tag, nbr))
+            #new_link_attr = deepcopy(link_attr)
+            new_link_attr = DisEdge(nbr, link_attr.burg_vec_from(nbr), link_attr.plane_normal)
+            self._add_edge(split_node2, nbr, new_link_attr)
+            #bv += np.array(link_attr['burg_vec'])
+            bv += link_attr.burg_vec_from(tag)
 
-            link_attr = self.edges[(nbr, tag)]
-            self._add_edge(nbr, split_node2, deepcopy(DisEdge(**link_attr)))
+            #link_attr = self.segments((nbr, tag))
+            #self._add_edge(nbr, split_node2, deepcopy(DisEdge(**link_attr)))
 
             self._remove_edge(tag, nbr)
-            self._remove_edge(nbr, tag)
+            #self._remove_edge(nbr, tag)
 
         # ParadiS calls AssignNodeToCell here
 
@@ -698,8 +732,7 @@ class DisNet(DisNet_BASE):
                 dirv = dirv / np.linalg.norm(dirv)
             pn = self.find_precise_glide_plane(bv, dirv)
 
-            self._add_edge(split_node1, split_node2, deepcopy(DisEdge(burg_vec= bv, plane_normal=pn)))
-            self._add_edge(split_node2, split_node1, deepcopy(DisEdge(burg_vec=-bv, plane_normal=pn)))
+            self._add_edge(split_node1, split_node2, DisEdge(split_node1, burg_vec= bv, plane_normal=pn))
 
         #print("split_node: original tag = %s -> new tags = %s, %s, bv = %s" % (str(tag), str(split_node1), str(split_node2)))
         return split_node1, split_node2
@@ -712,14 +745,21 @@ class DisNet(DisNet_BASE):
         The two arms connecting two nodes should have opposite Burgers vectors and parallel plane_normal vectors
         The sum of all Burgers vectors of outgoing arms from a node should be zero
         """
+        for (source, target), edge_attr in self.all_segments_dict().items():
+            if edge_attr.source_tag != source and edge_attr.source_tag != target:
+                print("source_tag ", edge_attr.source_tag, " is not in link", (source, target))
+                return False
 
         for tag, node in self.tags_to_nodes.items():
+            if node.num_neighbors() == 0:
+                print("Node %s has no neighbors" % (str(tag)))
+                return False
             if node.attr.constraint == DisNode.Constraints.PINNED_NODE: continue
             b_tot = np.zeros(3)
             for edge in node.edges():
                 b_tot += edge.attr.burg_vec_from(tag)
             if np.max(np.abs(b_tot)) > tol:
-                print("Total Burgers vector from node %s is not zero" % (str(tag)))
+                print(f"Total Burgers vector from node {tag} is not zero {b_tot}")
                 return False
 
         return True

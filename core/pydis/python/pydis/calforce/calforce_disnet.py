@@ -97,7 +97,7 @@ class CalForce:
         """
         segforce_dict = state["segforce_dict"]
         nodeforce_dict = {}
-        for tag in G.nodes:
+        for tag in G.all_nodes():
             nodeforce_dict.update({tag: np.array([0.0,0.0,0.0])})
         for segment in segforce_dict:
             tag1, tag2 = segment
@@ -124,7 +124,7 @@ class CalForce:
         fseg = np.hstack((fpk*0.5 + fs0, fpk*0.5 + fs1))
 
         nodeforce_dict, segforce_dict = {}, {}
-        for tag in G.nodes:
+        for tag in G.all_nodes_dict():
             nodeforce_dict.update({tag: np.array([0.0,0.0,0.0])})
         for idx, segment in enumerate(segments):
             tag1 = segment["edge"][0]

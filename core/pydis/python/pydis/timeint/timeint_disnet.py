@@ -34,4 +34,4 @@ class TimeIntegration:
         """TimeIntegration_EulerForward: Euler forward time integration
         """
         for tag, vel in vel_dict.items():
-            G.nodes[tag]["R"] += vel * self.dt
+            G.nodes(tag).R += vel * self.dt

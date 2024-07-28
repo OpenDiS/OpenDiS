@@ -35,15 +35,15 @@ class Remesh:
         nodes_to_remove = []
         for segment in G.seg_list():
             tag1, tag2 = segment["edge"][0], segment["edge"][1]
-            node1, node2 = G.nodes[tag1], G.nodes[tag2]
-            R1, R2 = node1["R"], node2["R"]
+            node1, node2 = G.nodes(tag1), G.nodes(tag2)
+            R1, R2 = node1.R, node2.R
             # apply PBC
             R2 = G.cell.closest_image(Rref=R1, R=R2)
             L = np.linalg.norm(R2-R1)
             if (L < self.minseg):
-                if G.out_degree(tag1) == 2 and node1["constraint"] != DisNode.Constraints.PINNED_NODE:
+                if G.out_degree(tag1) == 2 and node1.constraint != DisNode.Constraints.PINNED_NODE:
                     nodes_to_remove.append(tag1)
-                elif G.out_degree(tag2) == 2 and node2["constraint"] != DisNode.Constraints.PINNED_NODE:
+                elif G.out_degree(tag2) == 2 and node2.constraint != DisNode.Constraints.PINNED_NODE:
                     nodes_to_remove.append(tag2)
         for tag in set(nodes_to_remove):
             if G.has_node(tag):
@@ -55,17 +55,19 @@ class Remesh:
         # mesh refine
         for segment in G.seg_list():
             tag1, tag2 = segment["edge"][0], segment["edge"][1]
-            node1, node2 = G.nodes[tag1], G.nodes[tag2]
-            R1, R2 = node1["R"], node2["R"]
+            node1, node2 = G.nodes(tag1), G.nodes(tag2)
+            R1, R2 = node1.R, node2.R
             # apply PBC
             R2 = G.cell.closest_image(Rref=R1, R=R2)
             L = np.linalg.norm(R2-R1)
-            if (L > self.maxseg) and ((node1["constraint"] != DisNode.Constraints.PINNED_NODE) or (node2["constraint"] != DisNode.Constraints.PINNED_NODE)):
+            if (L > self.maxseg) and ((node1.constraint != DisNode.Constraints.PINNED_NODE) or (node2.constraint != DisNode.Constraints.PINNED_NODE)):
                 # insert new node on segment
                 new_tag = G.get_new_tag()
                 # To do: apply PBC here
                 R = (R1 + R2)/2.0
-                G.insert_node(tag1, tag2, new_tag, R)
+                G.insert_node_between(tag1, tag2, new_tag, R)
+                if not G.is_sane():
+                    raise ValueError("Remesh_LengthBased: sanity check failed 1a")
 
         if not G.is_sane():
             raise ValueError("Remesh_LengthBased: sanity check failed 2")
