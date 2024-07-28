@@ -100,7 +100,8 @@ class SimulateNetwork:
                     self.vis.plot_disnet(G, fig=fig, ax=ax, trim=True, block=False, pause_seconds=self.plot_pause_seconds)
 
         # plot final configuration
-        G = DM.get_disnet(DisNet)
-        self.vis.plot_disnet(G, fig=fig, ax=ax, trim=True, block=False)
+        if self.plot_freq != None:
+            G = DM.get_disnet(DisNet)
+            self.vis.plot_disnet(G, fig=fig, ax=ax, trim=True, block=False)
 
         return state
