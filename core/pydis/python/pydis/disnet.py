@@ -43,6 +43,7 @@ class DisNode():
                 v: np.ndarray=None, flag: int=Flags.CLEAR,
                 constraint: int=Constraints.UNCONSTRAINED) -> None:
         self.R = R
+        # To do: remove F, v, flag from DisNet
         if F is not None:
             self.F = F
         if v is not None:
@@ -209,6 +210,7 @@ class DisNet(DisNet_BASE):
         """
         return ( (edge.source.tag, edge.target.tag) for edge in self._G.edges() )
     
+    # To do: check if it is used externally
     def all_segments_dict(self):
         """all_segments_dict: return dictionary of all segments (tag pairs) -> attributes
         """
@@ -531,10 +533,10 @@ class DisNet(DisNet_BASE):
             if links.shape[1] > 5:
                 pn  = links[j, 5:8]
                 # Note: now we add edges only once
-                self._add_edge(tag, nbr_tag, DisEdge(tag, burg_vec= bv.copy(), plane_normal=pn.copy()))
+                self._add_edge(tag, nbr_tag, DisEdge(tag, burg_vec=bv.copy(), plane_normal=pn.copy()))
             else:
                 # Note: now we add edges only once
-                self._add_edge(tag, nbr_tag, DisEdge(tag, burg_vec= bv.copy()))
+                self._add_edge(tag, nbr_tag, DisEdge(tag, burg_vec=bv.copy()))
 
         if not self.is_sane():
             raise ValueError("add_nodes_segments_from_list: sanity check failed")
@@ -560,9 +562,9 @@ class DisNet(DisNet_BASE):
         # To do: update plastic strain if new node position is not on segment
         self._add_node(new_tag, DisNode(R=R.copy()))
         prev_edge_attr = self.segments((tag1, tag2))
-        new_edge_attr = DisEdge(tag1, prev_edge_attr.burg_vec_from(tag1), prev_edge_attr.plane_normal)
+        new_edge_attr = DisEdge(tag1, prev_edge_attr.burg_vec_from(tag1).copy(), prev_edge_attr.plane_normal.copy())
         self._add_edge(tag1, new_tag, new_edge_attr)
-        new_edge_attr = DisEdge(tag2, prev_edge_attr.burg_vec_from(tag2), prev_edge_attr.plane_normal)
+        new_edge_attr = DisEdge(tag2, prev_edge_attr.burg_vec_from(tag2).copy(), prev_edge_attr.plane_normal.copy())
         self._add_edge(new_tag, tag2, new_edge_attr)
         self._remove_edge(tag1, tag2)
     
@@ -581,7 +583,7 @@ class DisNet(DisNet_BASE):
         end_nodes_connected = self.has_segment(tag1, tag2)
 
         prev_link_attr = self.segments((old_tag, tag2))
-        new_link_attr = DisEdge(tag2, prev_link_attr.burg_vec_from(tag2), prev_link_attr.plane_normal)
+        new_link_attr = DisEdge(tag2, prev_link_attr.burg_vec_from(tag2).copy(), prev_link_attr.plane_normal.copy())
         self._combine_edge(tag1, tag2, new_link_attr)
         self._remove_node(old_tag)
 
@@ -648,7 +650,7 @@ class DisNet(DisNet_BASE):
         # and add a new connection from the target node to each of the
         # dead node's neighbors.
         for nbr_tag, link_attr in self.neighbor_segments_dict(deadNode).items():
-            new_link_attr = DisEdge(nbr_tag, link_attr.burg_vec_from(nbr_tag), link_attr.plane_normal)
+            new_link_attr = DisEdge(nbr_tag, link_attr.burg_vec_from(nbr_tag).copy(), link_attr.plane_normal.copy())
             self._combine_edge(targetNode, nbr_tag, new_link_attr)
 
             # To do: reset seg forces
@@ -708,7 +710,7 @@ class DisNet(DisNet_BASE):
 
             link_attr = self.segments((tag, nbr))
             #new_link_attr = deepcopy(link_attr)
-            new_link_attr = DisEdge(nbr, link_attr.burg_vec_from(nbr), link_attr.plane_normal)
+            new_link_attr = DisEdge(nbr, link_attr.burg_vec_from(nbr).copy(), link_attr.plane_normal.copy())
             self._add_edge(split_node2, nbr, new_link_attr)
             #bv += np.array(link_attr['burg_vec'])
             bv += link_attr.burg_vec_from(tag)
@@ -734,7 +736,7 @@ class DisNet(DisNet_BASE):
                 dirv = dirv / np.linalg.norm(dirv)
             pn = self.find_precise_glide_plane(bv, dirv)
 
-            self._add_edge(split_node1, split_node2, DisEdge(split_node1, burg_vec= bv, plane_normal=pn))
+            self._add_edge(split_node1, split_node2, DisEdge(split_node1, burg_vec=bv.copy(), plane_normal=pn.copy()))
 
         #print("split_node: original tag = %s -> new tags = %s, %s, bv = %s" % (str(tag), str(split_node1), str(split_node2)))
         return split_node1, split_node2
