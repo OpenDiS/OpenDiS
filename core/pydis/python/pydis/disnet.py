@@ -550,7 +550,9 @@ class DisNet(DisNet_BASE):
             max_tag = max(self.all_nodes())
             return (max_tag[0], max_tag[1]+1)
 
-    # To do: redo with single edge
+    def insert_node(self, tag1: Tag, tag2: Tag, new_tag: Tag, R: np.ndarray) -> None:
+        insert_node_between(tag1, tag2, new_tag, R)
+
     def insert_node_between(self, tag1: Tag, tag2: Tag, new_tag: Tag, R: np.ndarray) -> None:
         """insert_node_between: insert a node between two existing nodes
            guarantees sanity after operation
@@ -737,7 +739,6 @@ class DisNet(DisNet_BASE):
         #print("split_node: original tag = %s -> new tags = %s, %s, bv = %s" % (str(tag), str(split_node1), str(split_node2)))
         return split_node1, split_node2
 
-    # To do: implement is_sane according to single edge convention
     def is_sane(self, tol: float=1e-8) -> bool:
         """is_sane: check if the network is sane
            guarantees sanity after operation
