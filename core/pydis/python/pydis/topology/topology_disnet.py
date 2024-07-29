@@ -68,7 +68,7 @@ class Topology:
         state_trial = deepcopy(state)
 
         n_degree = G.out_degree(tag)
-        nbrs = list(G.neighbors(tag))
+        nbrs = list(G.neighbors_tags(tag))
         nbr_idx_list = Topology.build_split_list(n_degree)
 
         power0 = np.dot(nodeforce_dict[tag], vel_dict[tag])

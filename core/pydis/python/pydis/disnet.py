@@ -160,7 +160,7 @@ class DisNet(DisNet_BASE):
         self.tags_to_nodes.clear()
         self._recycled_tags.clear()
 
-    def neighbors(self, tag: Tag):
+    def neighbors_tags(self, tag: Tag):
         """neighbors: return neighbor tags (as iterator) of a node
                       (not required in base class)
         """
@@ -563,7 +563,7 @@ class DisNet(DisNet_BASE):
 
         # To do: update plastic strain due to removed node operation
 
-        tag1, tag2 = self.neighbors(old_tag)
+        tag1, tag2 = self.neighbors_tags(old_tag)
         end_nodes_connected = self.has_segment(tag1, tag2)
 
         prev_link_attr = self.segments((old_tag, tag2))
@@ -584,7 +584,7 @@ class DisNet(DisNet_BASE):
         if not self.has_node(tag):
             return
 
-        nbr_list = list(self.neighbors(tag))
+        nbr_list = list(self.neighbors_tags(tag))
         node = self.tags_to_nodes[tag]
         edges_to_remove = []
         for edge in node.edges():
