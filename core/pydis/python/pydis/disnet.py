@@ -210,10 +210,15 @@ class DisNet(DisNet_BASE):
         """
         return self.tags_to_nodes[tag].attr
 
+    def num_nodes(self):
+        """num_nodes: return total number of nodes in the network
+        """
+        return len(self._G._nodes)
+
     def num_segments(self):
         """num_segments: return total number of segments in the network
         """
-        return len(self._G.edges())
+        return len(self._G._edges)
 
     def all_segments_tags(self):
         """segments: return iterator of all segments (tag pairs)
@@ -261,18 +266,18 @@ class DisNet(DisNet_BASE):
         raise NotImplementedError("seg_prop_list: not implemented")
 
     # To do: implement function nodes_array
-    def nodes_array(self) -> list:
-        """nodes_array: pack nodes into an array for export
-        Node format: x,y,z,constraint
-        """
-        nodes, ntags, i = [], {}, 0
-        for tag, node in self.all_nodes_mapping():
-            r = node.R
-            nodes.append([tag[0], tag[1], r[0], r[1], r[2], node.constraint])
-            ntags[tag] = i
-            i += 1
-
-        return nodes, ntags
+#    def nodes_array(self) -> list:
+#        """nodes_array: pack nodes into an array for export
+#        Node format: x,y,z,constraint
+#        """
+#        nodes, ntags, i = [], {}, 0
+#        for tag, node in self.all_nodes_mapping():
+#            r = node.R
+#            nodes.append([tag[0], tag[1], r[0], r[1], r[2], node.constraint])
+#            ntags[tag] = i
+#            i += 1
+#
+#        return nodes, ntags
     
     # To do: implement function segs_array
     def segs_array(self, ntags: dict) -> list:
@@ -287,29 +292,29 @@ class DisNet(DisNet_BASE):
             segments.append([n1, n2, b[0], b[1], b[2], p[0], p[1], p[2]])
         return segments
 
-    # To do: implement function get_nodes_data
     def get_nodes_data(self):
         """get_nodes_data: collect nodes data into a dictionary format
            Returns:
                 nodes_data: dictionary of nodes data
                 ntags: position of each tag in the nodes array
         """
-        nodes_array, ntags = self.nodes_array()
-        nodes_array = np.array(nodes_array)
-        nodes_data = {
-            "tags": nodes_array[:,0:2].astype(int),
-            "positions": nodes_array[:,2:5],
-            "constraints": nodes_array[:,5:6].astype(int)
+        Nnode = self.num_nodes()
+        tags = np.zeros((Nnode, 2), dtype=int)
+        R = np.zeros((Nnode, 3))
+        constraints = np.zeros((Nnode, 1), dtype=int)
+        ntags = {}
+        i = 0
+        for tag, node_attr in self.all_nodes_mapping():
+            tags[i,:] = tag
+            R[i,:] = node_attr.R
+            constraints[i,:] = node_attr.constraint
+            ntags[tag] = i
+            i += 1
+        return {
+            "tags": tags,
+            "positions": R,
+            "constraints": constraints
         }
-        return nodes_data, ntags
-
-    def get_tags(self):
-        nodes_dict, _ = self.get_nodes_data()
-        return nodes_dict["tags"]
-
-    def get_positions(self):
-        nodes_dict, _ = self.get_nodes_data()
-        return nodes_dict["positions"]
 
     def get_segs_data(self, ntags: dict):
         """get_segs_data: collect segments data into a dictionary format
@@ -347,7 +352,6 @@ class DisNet(DisNet_BASE):
             R1[i,:] = r1_local
             R2[i,:] = r2_local
             i += 1
-
         return {
             "nodeids": nodeids,
             "tag1": tag1,
