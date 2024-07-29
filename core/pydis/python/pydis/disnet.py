@@ -210,12 +210,21 @@ class DisNet(DisNet_BASE):
         """
         return self.tags_to_nodes[tag].attr
 
+    def num_segments(self):
+        """num_segments: return total number of segments in the network
+        """
+        return len(self._G.edges())
+
     def all_segments_tags(self):
         """segments: return iterator of all segments (tag pairs)
         """
         return ( (edge.source.tag, edge.target.tag) for edge in self._G.edges() )
     
-    # To do: check if it is used externally
+    def all_segments_mapping(self):
+        """all_segments_mapping: return iterator of all segments (tag pairs) and attributes
+        """
+        return ( ((edge.source.tag, edge.target.tag), edge.attr) for edge in self._G.edges() )
+
     def all_segments_dict(self):
         """all_segments_dict: return dictionary of all segments (tag pairs) -> attributes
         """
@@ -316,7 +325,7 @@ class DisNet(DisNet_BASE):
         """get_segs_data_with_positions: collect segments data into a dictionary format
         """
         _, ntags = self.get_nodes_data()
-        Nseg = len(self.all_segments_tags())
+        Nseg = self.num_segments()
         nodeids = np.zeros((Nseg, 2), dtype=int)
         tag1 = np.zeros((Nseg, 2), dtype=int)
         tag2 = np.zeros((Nseg, 2), dtype=int)
@@ -326,17 +335,11 @@ class DisNet(DisNet_BASE):
         R2 = np.zeros((Nseg, 3))
         i = 0
         for (source, target), edge_attr in self.all_segments_dict().items():
-            try:
-                nodeids[i,:] = ntags[source], ntags[target]
-            except:
-                print(f"Nseg = {Nseg}, i = {i}, source = {source}, target = {target}")
-                print(f"number of links = {len(self.all_segments_dict())}")
-
+            nodeids[i,:] = ntags[source], ntags[target]
             tag1[i,:] = source
             tag2[i,:] = target
-            burgers[i,:] = edge_attr.burg_vec_from(source)
-            #planes[i,:] = edge_attr.plane_normal
-            planes[i,:] = getattr(edge_attr, "plane_normal", np.zeros(3))
+            burgers[i,:] = edge_attr.burg_vec_from(source).copy()
+            planes[i,:] = getattr(edge_attr, "plane_normal", np.zeros(3)).copy()
             r1_local = self.nodes(source).R
             r2_local = self.nodes(target).R
             # apply PBC
