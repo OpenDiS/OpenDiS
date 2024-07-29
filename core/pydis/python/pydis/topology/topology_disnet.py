@@ -43,8 +43,8 @@ class Topology:
     def init_topology_exemptions(G) -> None:
         """init_topology_exemptions: initialize the topology exemptions
         """
-        for node in G.all_nodes_dict().values():
-            node.flag &= ~(DisNode.Flags.NO_COLLISIONS | DisNode.Flags.NO_MESH_COARSEN)
+        for _, node_attr in G.all_nodes_mapping():
+            node_attr.flag &= ~(DisNode.Flags.NO_COLLISIONS | DisNode.Flags.NO_MESH_COARSEN)
         return
 
     @staticmethod

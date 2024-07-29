@@ -133,7 +133,7 @@ class CalForce:
         fseg = np.hstack((fpk*0.5 + fs0, fpk*0.5 + fs1))
 
         nodeforce_dict, segforce_dict = {}, {}
-        for tag in G.all_nodes_dict():
+        for tag in G.all_nodes_tags():
             nodeforce_dict.update({tag: np.array([0.0,0.0,0.0])})
 
         for i in range(Nseg):

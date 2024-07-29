@@ -191,9 +191,14 @@ class DisNet(DisNet_BASE):
         }
 
     def all_nodes_tags(self):
-        """nodes: return iterator of all node tags
+        """all_nodes_tags: return iterator of all node tags
         """
         return self.tags_to_nodes.keys()
+
+    def all_nodes_mapping(self):
+        """all_nodes_mapping: return iterator of all node tags and attributes
+        """
+        return ( (tag, node.attr) for tag, node in self.tags_to_nodes.items() )
 
     def all_nodes_dict(self):
         """nodes: return dictionary of all node tags and attributes
@@ -252,7 +257,7 @@ class DisNet(DisNet_BASE):
         Node format: x,y,z,constraint
         """
         nodes, ntags, i = [], {}, 0
-        for tag, node in self.all_nodes_dict().items():
+        for tag, node in self.all_nodes_mapping():
             r = node.R
             nodes.append([tag[0], tag[1], r[0], r[1], r[2], node.constraint])
             ntags[tag] = i
@@ -375,7 +380,7 @@ class DisNet(DisNet_BASE):
         """copy: return a deep copy of the network
         """
         result = DisNet(cell=self.cell.copy())
-        for tag, node_attr in self.all_nodes_dict().items():
+        for tag, node_attr in self.all_nodes_mapping():
             result._add_node(tag, deepcopy(node_attr))
 
         for (source, target), edge_attr in self.all_segments_dict().items():
@@ -389,7 +394,7 @@ class DisNet(DisNet_BASE):
         # To do: implement function to_networkx
         import networkx as nx
         nx_graph = nx.DiGraph()
-        for tag, node in self.all_nodes_dict().items():
+        for tag, node in self.all_nodes_mapping():
             nx_graph.add_node(tag, **vars(node))
 
         for (source, target), edge_attr in self.all_segments_dict().items():
@@ -420,7 +425,7 @@ class DisNet(DisNet_BASE):
                 self._add_edge(source, target, deepcopy(DisEdge(**edge_dict)))
 
     def is_equivalent(self, G_compare):
-        for tag, node in self.all_nodes_dict().items():
+        for tag, node in self.all_nodes_mapping():
             if not node.is_equivalent(G_compare.nodes(tag)):
                 return False
         for (source, target), edge_attr in self.all_segments_dict().items():

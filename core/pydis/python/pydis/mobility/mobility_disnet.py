@@ -37,7 +37,7 @@ class MobilityLaw:
         """
         vel_dict = nodeforce_dict.copy()
         # set velocity of pinned nodes to zero
-        for tag in G.all_nodes_dict():
+        for tag in G.all_nodes_tags():
             if G.nodes[tag].get('constraint') == DisNode.Constraints.PINNED_NODE:
                 vel_dict[tag] = np.zeros(3)
         return vel_dict
@@ -64,7 +64,7 @@ class MobilityLaw:
            To do: add glide constraints
         """
         vel_dict = nodeforce_dict.copy()
-        for tag in G.all_nodes_dict():
+        for tag in G.all_nodes_tags():
             node1 = G.nodes(tag)
             # set velocity of pinned nodes to zero
             if node1.constraint == DisNode.Constraints.PINNED_NODE:

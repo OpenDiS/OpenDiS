@@ -44,7 +44,7 @@ class VisualizeNetwork:
 
         plt.cla()
         if plot_links:
-            for my_tag, node_attr in G.all_nodes_dict().items():
+            for my_tag, node_attr in G.all_nodes_mapping():
                 my_coords = node_attr.R
                 # apply PBC
                 my_coords = G.cell.closest_image(Rref=G.cell.center(), R=my_coords)
