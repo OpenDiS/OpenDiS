@@ -252,7 +252,6 @@ class DisNet(DisNet_BASE):
         """
         return np.array([node.attr.R for node in self.tags_to_nodes.values()])
 
-    
     # To do: remove function node_prop_list (after removed from base class)
     def node_prop_list(self) -> list:
         """node_prop_list: return a list of node properties
@@ -264,33 +263,6 @@ class DisNet(DisNet_BASE):
         """seg_prop_list: return a list of segment properties
         """
         raise NotImplementedError("seg_prop_list: not implemented")
-
-    # To do: implement function nodes_array
-#    def nodes_array(self) -> list:
-#        """nodes_array: pack nodes into an array for export
-#        Node format: x,y,z,constraint
-#        """
-#        nodes, ntags, i = [], {}, 0
-#        for tag, node in self.all_nodes_mapping():
-#            r = node.R
-#            nodes.append([tag[0], tag[1], r[0], r[1], r[2], node.constraint])
-#            ntags[tag] = i
-#            i += 1
-#
-#        return nodes, ntags
-    
-    # To do: implement function segs_array
-    def segs_array(self, ntags: dict) -> list:
-        """segs_array: pack segments into an array for export
-        Seg format: node1,node2,burg,plane
-        """
-        segments = []
-        for (source, target), edge_attr in self.all_segments_dict().items():
-            n1, n2 = ntags[source], ntags[target]
-            b = edge_attr.burg_vec
-            p = edge_attr.plane_normal
-            segments.append([n1, n2, b[0], b[1], b[2], p[0], p[1], p[2]])
-        return segments
 
     def get_nodes_data(self):
         """get_nodes_data: collect nodes data into a dictionary format
@@ -314,16 +286,25 @@ class DisNet(DisNet_BASE):
             "tags": tags,
             "positions": R,
             "constraints": constraints
-        }
+        }, ntags
 
     def get_segs_data(self, ntags: dict):
         """get_segs_data: collect segments data into a dictionary format
         """
-        segs_array = np.array(self.segs_array(ntags))
+        Nseg = self.num_segments()
+        nodeids = np.zeros((Nseg, 2), dtype=int)
+        burgers = np.zeros((Nseg, 3))
+        planes = np.zeros((Nseg, 3))
+        i = 0
+        for (source, target), edge_attr in self.all_segments_dict().items():
+            nodeids[i,:] = ntags[source], ntags[target]
+            burgers[i,:] = edge_attr.burg_vec_from(source)
+            planes[i,:] = edge_attr.plane_normal
+            i += 1
         return {
-            "nodeids": segs_array[:,0:2].astype(int),
-            "burgers": segs_array[:,2:5],
-            "planes": segs_array[:,5:8]
+            "nodeids": nodeids,
+            "burgers": burgers,
+            "planes": planes
         }
 
     def get_segs_data_with_positions(self):
