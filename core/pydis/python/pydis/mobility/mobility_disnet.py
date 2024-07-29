@@ -12,9 +12,10 @@ class MobilityLaw:
     """MobilityLaw: class for mobility laws
 
     """
-    def __init__(self, state: dict={}, mobility_law: str='Relax') -> None:
+    def __init__(self, state: dict={}, mobility_law: str='Relax', vmax: float=1e9) -> None:
         self.mobility_law = mobility_law
         self.mob = state.get("mob", 1.0)
+        self.vmax = vmax
 
         self.Mobility_Functions = {
             'Relax': self.Mobility_Relax,
@@ -70,15 +71,20 @@ class MobilityLaw:
             if node1.get('constraint') == DisNode.Constraints.PINNED_NODE:
                 vel_dict[tag] = np.zeros(3)
             else:
-                R1 = node1["R"]
+                R1 = node1["R"].copy()
                 Lsum = 0.0
                 for nbr_tag in G.neighbors(tag):
                     node2 = G.nodes[nbr_tag]
-                    R2 = node2["R"]
+                    R2 = node2["R"].copy()
                     # apply PBC
                     R2 = G.cell.closest_image(Rref=R1, R=R2)
                     Lsum += np.linalg.norm(R2-R1)
                 vel = vel_dict[tag] / (Lsum/2.0) * self.mob
                 normals = np.array([G.edges[id]["plane_normal"] for id in G.edges(tag)])
-                vel_dict[tag] = self.ortho_vel_glide_planes(vel, normals)
+                #vel_dict[tag] = self.ortho_vel_glide_planes(vel, normals)
+                vel = self.ortho_vel_glide_planes(vel, normals)
+                vel_norm = np.linalg.norm(vel)
+                if vel_norm > self.vmax:
+                    vel *= self.vmax / vel_norm
+                vel_dict[tag] = vel
         return vel_dict
