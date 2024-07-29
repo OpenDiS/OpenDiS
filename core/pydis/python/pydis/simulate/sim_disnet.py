@@ -5,6 +5,7 @@ Provide simulation functions based on other utlitity classes
 """
 
 import numpy as np
+import os, pickle
 from ..disnet import DisNet
 from ..calforce.calforce_disnet import CalForce
 from ..mobility.mobility_disnet import MobilityLaw
@@ -37,6 +38,7 @@ class SimulateNetwork:
                  plot_pause_seconds: float=None,
                  write_freq: int=None,
                  write_dir: str=".",
+                 save_state: bool=False,
                  **kwargs) -> None:
         self.calforce = calforce
         self.mobility = mobility
@@ -54,6 +56,7 @@ class SimulateNetwork:
         self.plot_pause_seconds = plot_pause_seconds
         self.write_freq = write_freq
         self.write_dir = write_dir
+        self.save_state = save_state
 
         state["applied_stress"] = np.array(applied_stress)
 
@@ -78,6 +81,9 @@ class SimulateNetwork:
         return state
 
     def run(self, DM: DisNetManager, state: dict):
+        if self.write_freq != None:
+            os.makedirs(self.write_dir, exist_ok=True)
+
         G = DM.get_disnet(DisNet)
         if self.plot_freq != None:
             try: 
@@ -89,6 +95,13 @@ class SimulateNetwork:
 
         for tstep in range(self.max_step):
             self.step(DM, state)
+
+            if self.write_freq != None:
+                if tstep % self.write_freq == 0:
+                    DM.write_json(os.path.join(self.write_dir, f'disnet_{tstep}.json'))
+                    if self.save_state:
+                        with open(os.path.join(self.write_dir, f'state_{tstep}.pickle'), 'wb') as file:
+                            pickle.dump(state, file)
 
             if self.print_freq != None:
                 if tstep % self.print_freq == 0:
