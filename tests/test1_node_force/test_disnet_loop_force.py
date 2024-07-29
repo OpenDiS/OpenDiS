@@ -31,7 +31,7 @@ def main():
     #calforce = CalForce(mu=50, nu=0.3, a=0.01, Ec=1.0e6)
     #state = calforce.NodeForce_LineTension(G, state=state)
     nodeforce_dict, segforce_dict = calforce.NodeForce_LineTension(G, applied_stress=np.zeros(6))
-    lt_force_array = np.array([nodeforce_dict[tag] for tag in G.all_nodes()])
+    lt_force_array = np.array([nodeforce_dict[tag] for tag in G.all_nodes_tags()])
 
     atol = 1e-4
     is_lt_force_close = compare_force("force_linetension.dat", lt_force_array, atol=atol)
@@ -43,7 +43,7 @@ def main():
     state["segforce_dict"] = segforce_dict
     state = calforce.NodeForce_from_SegForce(G, state=state)
     nodeforce_from_segforce_dict = state["nodeforce_dict"]
-    lt_force_array = np.array([nodeforce_from_segforce_dict[tag] for tag in G.all_nodes()])
+    lt_force_array = np.array([nodeforce_from_segforce_dict[tag] for tag in G.all_nodes_tags()])
     is_lt_force_from_seg_close = compare_force("force_linetension.dat", lt_force_array, atol=atol)
     if is_lt_force_from_seg_close:
         print("LineTension (from segforce) Test \033[32mPassed!\033[0m")
@@ -51,7 +51,7 @@ def main():
         print("LineTension (from segforce) Test \033[31mFailed!\033[0m")
 
     nodeforce_dict, segforce_dict = calforce.NodeForce_Elasticity_SBA(G, applied_stress=np.zeros(6))
-    elast_force_array = np.array([nodeforce_dict[tag] for tag in G.all_nodes()])
+    elast_force_array = np.array([nodeforce_dict[tag] for tag in G.all_nodes_tags()])
 
     # for debugging purposes:
     # np.savetxt("force.dat", elast_force_array)
@@ -65,7 +65,7 @@ def main():
     state["segforce_dict"] = segforce_dict
     state = calforce.NodeForce_from_SegForce(G, state=state)
     nodeforce_from_segforce_dict = state["nodeforce_dict"]
-    elast_force_array = np.array([nodeforce_from_segforce_dict[tag] for tag in G.all_nodes()])
+    elast_force_array = np.array([nodeforce_from_segforce_dict[tag] for tag in G.all_nodes_tags()])
     is_elast_force_from_seg_close = compare_force("force_stress_analytic_python.dat", elast_force_array, atol=atol)
     if is_elast_force_from_seg_close:
         print("Elasticity (from segforce) Test \033[32mPassed!\033[0m")

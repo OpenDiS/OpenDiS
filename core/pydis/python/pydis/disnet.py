@@ -190,7 +190,7 @@ class DisNet(DisNet_BASE):
            for edge in connected_edges
         }
 
-    def all_nodes(self):
+    def all_nodes_tags(self):
         """nodes: return iterator of all node tags
         """
         return self.tags_to_nodes.keys()
@@ -543,7 +543,7 @@ class DisNet(DisNet_BASE):
         if recycle and len(self._recycled_tags) > 0:
             return self._recycled_tags.pop(0)
         else:
-            max_tag = max(self.all_nodes())
+            max_tag = max(self.all_nodes_tags())
             return (max_tag[0], max_tag[1]+1)
 
     def insert_node(self, tag1: Tag, tag2: Tag, new_tag: Tag, R: np.ndarray) -> None:

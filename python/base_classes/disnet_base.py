@@ -12,7 +12,7 @@ class DisNet_BASE(ABC):
     Defines interface for the DisNet class
     """
     @abstractmethod
-    def all_nodes(self):
+    def all_nodes_tags(self):
         """nodes: return list of all node tags (keys)
         """
         pass
@@ -87,6 +87,7 @@ class DisNet_BASE(ABC):
         """
         pass
     
+    # To do: rename this function to insert_node_between
     @abstractmethod
     def insert_node(self, tag1, tag2, tag):
         """insert_node: insert a node (tag) between two existing nodes (tag1 and tag2)

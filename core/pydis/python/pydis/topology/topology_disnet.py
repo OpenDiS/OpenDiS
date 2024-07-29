@@ -175,7 +175,7 @@ class Topology:
 
            This function calls the lower level split_node() function.
         """
-        nodes = list(G.all_nodes())
+        nodes = list(G.all_nodes_tags())
         for tag in nodes:
             n_degree = G.out_degree(tag)
 
