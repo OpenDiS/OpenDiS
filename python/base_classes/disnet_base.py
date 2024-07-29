@@ -24,7 +24,7 @@ class DisNet_BASE(ABC):
         pass
 
     @abstractmethod
-    def all_segments(self):
+    def all_segments_tags(self):
         """segments: return list of all segments (tag pairs)
         """
         pass

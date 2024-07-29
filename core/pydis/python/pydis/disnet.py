@@ -210,7 +210,7 @@ class DisNet(DisNet_BASE):
         """
         return self.tags_to_nodes[tag].attr
 
-    def all_segments(self):
+    def all_segments_tags(self):
         """segments: return iterator of all segments (tag pairs)
         """
         return ( (edge.source.tag, edge.target.tag) for edge in self._G.edges() )
@@ -316,7 +316,7 @@ class DisNet(DisNet_BASE):
         """get_segs_data_with_positions: collect segments data into a dictionary format
         """
         _, ntags = self.get_nodes_data()
-        Nseg = len(self.all_segments_dict().keys())
+        Nseg = len(self.all_segments_tags())
         nodeids = np.zeros((Nseg, 2), dtype=int)
         tag1 = np.zeros((Nseg, 2), dtype=int)
         tag2 = np.zeros((Nseg, 2), dtype=int)

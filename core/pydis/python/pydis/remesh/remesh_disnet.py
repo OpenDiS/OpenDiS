@@ -61,7 +61,7 @@ class Remesh:
             raise ValueError("Remesh_LengthBased: sanity check failed 1")
 
         # mesh refine
-        all_segments_list = list(G.all_segments())
+        all_segments_list = list(G.all_segments_tags())
         for tag1, tag2 in all_segments_list:
             node1, node2 = G.nodes(tag1), G.nodes(tag2)
             r1, r2 = node1.R, node2.R
