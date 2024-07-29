@@ -7,7 +7,6 @@ Implements basic topological operations on dislocation networks
 import numpy as np
 from .graph.graph import Graph, Node as Node_bare, Edge as Edge_bare
 from typing import Tuple
-from copy import deepcopy
 from enum import IntEnum
 
 from base_classes.disnet_base import DisNet_BASE
@@ -55,6 +54,11 @@ class DisNode():
                     return False
         return True
 
+    def copy(self):
+        """copy: return a deep copy of the node attr
+        """
+        return DisNode(R=self.R.copy(), constraint=self.constraint)
+
 class DisEdge():
     """DisEdge: class for dislocation edge (properties)
 
@@ -78,6 +82,12 @@ class DisEdge():
         burg_vec_eq = np.all(self.burg_vec == other.burg_vec_from(self.source_tag))
         plane_normal_eq = np.all(self.plane_normal == other.plane_normal) or np.all(self.plane_normal == -other.plane_normal)
         return burg_vec_eq and plane_normal_eq
+
+    def copy(self):
+        """copy: return a deep copy of the edge attr
+        """
+        return DisEdge(source_tag=self.source_tag, burg_vec=self.burg_vec.copy(),
+                       plane_normal=self.plane_normal.copy() if hasattr(self, "plane_normal") else None)
 
 class Cell:
     """Cell: class for simulation cell in which dislocation network is embedded
@@ -360,10 +370,10 @@ class DisNet(DisNet_BASE):
         """
         result = DisNet(cell=self.cell.copy())
         for tag, node_attr in self.all_nodes_mapping():
-            result._add_node(tag, deepcopy(node_attr))
+            result._add_node(tag, node_attr.copy())
 
         for (source, target), edge_attr in self.all_segments_dict().items():
-            result._add_edge(source, target, deepcopy(edge_attr))
+            result._add_edge(source, target, edge_attr.copy())
 
         return result
 
@@ -377,24 +387,28 @@ class DisNet(DisNet_BASE):
             nx_graph.add_node(tag, **vars(node))
 
         for (source, target), edge_attr in self.all_segments_dict().items():
-            edge_dict = deepcopy(vars(edge_attr))
+            edge_dict = vars(edge_attr.copy())
             del edge_dict["source_tag"]
-
             edge_dict["burg_vec"] = edge_attr.burg_vec_from(source)
-            nx_graph.add_edge(source, target, **deepcopy(edge_dict))
+            nx_graph.add_edge(source, target, **edge_dict)
 
+            edge_dict = vars(edge_attr.copy())
+            del edge_dict["source_tag"]
             edge_dict["burg_vec"] = edge_attr.burg_vec_from(target)
-            nx_graph.add_edge(target, source, **deepcopy(edge_dict))
+            nx_graph.add_edge(target, source, **edge_dict)
 
         return nx_graph
 
     def from_networkx(self, nx_graph):
         """from_networkx: convert from networkx graph
+                nx_graph: networkx.DiGraph
         """
         import networkx as nx
+        if type(nx_graph) != nx.DiGraph:
+            raise ValueError("from_networkx: input must be networkx.DiGraph")
         self.clear_graph()
         for tag, node_attr in nx_graph.nodes(data=True):
-            self._add_node(tag, deepcopy(DisNode(**node_attr)))
+            self._add_node(tag, DisNode(**node_attr))
 
         for source, target, edge_attr in nx_graph.edges(data=True):
             if source < target:
