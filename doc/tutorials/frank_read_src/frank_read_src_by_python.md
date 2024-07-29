@@ -1,29 +1,45 @@
 ### Frank-Read Source by Pure Python
 
-Frank-Read Source is a mechanism of the generation of dislocations during the plastic deformation of solids. It explains the increase of dislocation density during the material's deformation process. This simple example demonstrates how to simulate Frank-Read Source in pure python mode (PyDiS) using OpenDiS.
+We can run the following test case without having to compile OpenDiS.
 
 To run the simulation, simply execute:
 
 ```bash
-cd ~/Codes/OpenDiS.git/examples/02_frank_read_src
+cd ~/Codes/OpenDiS.git
+cd examples/02_frank_read_src
 python3 -i test_frank_read_src_pydis.py
 ```
 
-In the simulation, there are two dislocation jogs pinning the four dislocation nodes. The bottom two nodes are fixed so that the dislocation line glides on the top plane. The propagation of the dislocation subsumes force calculation, collision, mobility law, re-meshing rules, time integration, and topological operation, as defined in ```pydis``` (Chap. 10 of [Bulatov & Cai, 2006](https://core.ac.uk/reader/44178170)). The dislocation source propagates and interacts with itself, resulting in a dislocation loop and regeneration of a dislocation that can repeat the sequence ([MAE 324, Princeton University](https://www.princeton.edu/~maelabs/mae324/glos324/frankreed.htm))
+#### Initial Condition
+The initial configuration of this simulation is a rectangular (prismatic) dislocation loop, where all four segments are of pure edge type.  Their Burgers vectors are normal to the plane of the rectangular loop.  All four corner nodes have their constraint == FIXED.  This is sufficient to pin the bottom and two side arms of the prismatic loop.  However, the top arm contains a node (in the middle) that is free to move.  This allows the top arm to bow out (under the action of applied stress) and act as a Frank-Read source.
 
-```{important}
-1. describe this simulation.  Initial condition.  Boundary condition.  Behavior of the dislocation.
-2. how to examine the data structure of the dislocation network (DisNet) in Python interactive
+#### Boundary Condition
+
+Periodic boundary condition (PBC) is applied in all three directions, as specified in the following line of the test script.
+```python
+   net = init_frank_read_src_loop(box_length=Lbox, arm_length=0.125*Lbox, pbc=True)
 ```
 
-**Initial condition:** 
+#### Simulation Behavior
+If the simulation runs successfully, a (Python Matplotlib) window should open and the final dislocation configuration at the end of the simulation should look something like this.
+```{figure} frank_read_final_config.png
+:alt: Screenshot of the final configuration
+:width: 552px
+```
 
-The initial condition is described in the function ```init_frank_read_src_loop()```. The initial nodes are described in the ```cell_list```, where the ```CellList``` function is being imported from the DisNet manager to initialize the simulation cell. One defines the simulation cell (```cell = ```). The initial nodal positions are introduced in the variable ```rn```.
+Here is what you should see during the simulation.
+```{figure} frank_read_opendis.gif
+:alt: Video of the whole simulation
+:width: 552px
+```
+
+```{hint}
+If you do not see a new window displaying the dislocation configuration, it is possible because you are running on a remote server and didn't have the X11 forwarding set up correctly. 
+ Add the ```-Y``` option in your ```ssh``` command, such as  ```ssh -Y <your_account>@your.cluster.address```.  You can also try the ```xeyes``` command (which will open a new window) to verify that your X11 channel is set up correctly.
+```
 
 
-**Boundary condition:**
 
-In this example, the periodic boundary condition (PBC) is being implemented. One can turn the ```pbc``` option on or off by setting ```init_frank_read_src_loop(pbc=True)```.
 
 **Explore dislocation data:**
 
@@ -60,19 +76,3 @@ where the data is stored as
 ```
 One may pass this to a variable that surrogates the dislocation structures after the simulation.
 
-If running successfully, one may expect the final simulation configuration to look something like this:
-```{figure} frank_read_final_config.png
-:alt: Screenshot of the final configuration
-:width: 552px
-```
-
-The simulation process follows this animation:
-```{figure} frank_read_opendis.gif
-:alt: Video of the whole simulation
-:width: 552px
-```
-
-
-```{hint}
-In case the window for the visualization is not showing up, please do ```ssh -Y <your_account>@your.address```
-```
