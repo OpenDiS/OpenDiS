@@ -33,6 +33,14 @@ from pydis import DisNet
 G1=DisNet()
 G1.import_data(G.export_data())
 ```
+
+```{hint}
+This can also be accomplished using the function of DisNetManger ```net```.
+```python
+from pydis import DisNet
+G1=net.get_disnet(DisNet)
+```
+
 Now the object ```G1``` is a DisNet object.  We can use the same command as in the previous test case to interact with ```G1```, such as,
 ```python
 G1.all_nodes_tags()
