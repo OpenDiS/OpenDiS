@@ -27,17 +27,17 @@ class Collision:
         self.HandleCol_Functions = {
             'Proximity': self.HandleCol_Proximity }
         
-    def HandleCol(self, DM: DisNetManager, state: dict) -> None:
+    def HandleCol(self, DM: DisNetManager, state: dict) -> dict:
         """HandleCol: handle collision according to collision_mode
         """
         G = DM.get_disnet(DisNet)
         oldpos_dict = state.get('oldpos_dict', None)
         dt = state.get('dt', 0.0)
         xold = np.array(list(oldpos_dict.values())) if oldpos_dict != None else None
-        self.HandleCol_Functions[self.collision_mode](G, xold, dt)
+        state = self.HandleCol_Functions[self.collision_mode](G, state, xold=xold, dt=dt)
         return state
 
-    def HandleCol_Proximity(self, G: DisNet, xold=None, dt=None) -> None:
+    def HandleCol_Proximity(self, G: DisNet, state: dict, xold=None, dt=None) -> dict:
         """HandleCol_Proximity: handle collision using Proximity criterion
            This is a much simplified version of Proximity collision handling in ParaDiS
         """
@@ -59,9 +59,9 @@ class Collision:
                 tag1, tag2 = tuple(source_tags[i]), tuple(target_tags[i])
                 if not G.has_segment(tag1, tag2):
                     continue
-                if G.nodes(tag1).flag & DisNode.Flags.NO_COLLISIONS:
+                if state['nodeflag_dict'][tag1] & DisNode.Flags.NO_COLLISIONS:
                     continue
-                if G.nodes(tag2).flag & DisNode.Flags.NO_COLLISIONS:
+                if state['nodeflag_dict'][tag2] & DisNode.Flags.NO_COLLISIONS:
                     continue
 
                 if collided[i] or collided[j]:
@@ -71,9 +71,9 @@ class Collision:
                 tag3, tag4 = tuple(source_tags[j]), tuple(target_tags[j])
                 if not G.has_segment(tag3, tag4):
                     continue
-                if G.nodes(tag3).flag & DisNode.Flags.NO_COLLISIONS:
+                if state['nodeflag_dict'][tag3] & DisNode.Flags.NO_COLLISIONS:
                     continue
-                if G.nodes(tag4).flag & DisNode.Flags.NO_COLLISIONS:
+                if state['nodeflag_dict'][tag4] & DisNode.Flags.NO_COLLISIONS:
                     continue
                 p1, p2 = R1[i,:].copy(), R2[i,:].copy()
                 p3, p4 = R1[j,:].copy(), R2[j,:].copy()
@@ -131,6 +131,8 @@ class Collision:
 
         if not G.is_sane():
             raise ValueError("HandleCol_Proximity: sanity check failed")
+
+        return state
 
     def HandleCol_Proximity_ParaDiS(self, G: DisNet, xold=None, dt=None) -> None:
         """HandleCol_Proximity: using ProximityCollision of ParaDiS

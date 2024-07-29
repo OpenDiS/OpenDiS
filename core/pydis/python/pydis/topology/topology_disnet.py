@@ -21,7 +21,7 @@ class Topology:
         self.Handle_Functions = {
             'MaxDiss': self.Handle_MaxDiss }
         
-    def Handle(self, DM: DisNetManager, state: dict) -> None:
+    def Handle(self, DM: DisNetManager, state: dict) -> dict:
         """Handle: handle topology according to split_mode
         """
         G = DM.get_disnet(DisNet)
@@ -40,12 +40,15 @@ class Topology:
         return selected_list
 
     @staticmethod
-    def init_topology_exemptions(G) -> None:
+    def init_topology_exemptions(G, state) -> None:
         """init_topology_exemptions: initialize the topology exemptions
         """
-        for _, node_attr in G.all_nodes_mapping():
-            node_attr.flag &= ~(DisNode.Flags.NO_COLLISIONS | DisNode.Flags.NO_MESH_COARSEN)
-        return
+        nodeflag_dict = {}
+        for tag in G.all_nodes_tags():
+            nodeflag_dict[tag]  = DisNode.Flags.CLEAR
+            nodeflag_dict[tag] &= ~(DisNode.Flags.NO_COLLISIONS | DisNode.Flags.NO_MESH_COARSEN)
+        state["nodeflag_dict"] = nodeflag_dict
+        return state
 
     @staticmethod
     def trial_split_multi_node(G, tag: Tag, state: dict, force, mobility, power_th=1e-3) -> dict:
@@ -158,13 +161,15 @@ class Topology:
             state = mobility.Mobility(DisNetManager(G), state)
 
             # Mark both nodes involved in the split as 'exempt' from subsequent collisions this time step
-            G.nodes(split_node1).flag |= DisNode.Flags.NO_COLLISIONS
-            G.nodes(split_node2).flag |= DisNode.Flags.NO_COLLISIONS
+            if not split_node1 in state['nodeflag_dict']:
+                state['nodeflag_dict'][split_node1] = DisNode.Flags.CLEAR
+            if not split_node2 in state['nodeflag_dict']:
+                state['nodeflag_dict'][split_node2] = DisNode.Flags.CLEAR
+            state['nodeflag_dict'][split_node1] |= DisNode.Flags.NO_COLLISIONS
+            state['nodeflag_dict'][split_node2] |= DisNode.Flags.NO_COLLISIONS
 
             # Update segforce_dict to segforce_trial_dict
             state["segforce_dict"] = segforce_trial_dict
-        #else:
-        #    return segforce_dict
         return state
 
     @staticmethod
@@ -191,6 +196,6 @@ class Topology:
     def Handle_MaxDiss(self, G: DisNet, state: dict) -> None:
         """Handle_MaxDiss: split_multi_nodes
         """
-        Topology.init_topology_exemptions(G)
+        state = Topology.init_topology_exemptions(G, state)
         state = Topology.split_multi_nodes(G, state, self.force, self.mobility)
         return state

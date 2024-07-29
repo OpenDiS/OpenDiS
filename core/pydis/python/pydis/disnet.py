@@ -39,19 +39,10 @@ class DisNode():
         NO_MESH_COARSEN    = 0x08
         NODE_CHK_DBL_LINK  = 0x10
 
-    def __init__(self, R: np.ndarray, F: np.ndarray=None,
-                v: np.ndarray=None, flag: int=Flags.CLEAR,
-                constraint: int=Constraints.UNCONSTRAINED) -> None:
+    def __init__(self, R: np.ndarray,
+                 constraint: int=Constraints.UNCONSTRAINED) -> None:
         self.R = R
-        # To do: remove F, v, flag from DisNet
-        if F is not None:
-            self.F = F
-        if v is not None:
-            self.v = v
-        if flag is not None:
-            self.flag = int(flag)
-        if constraint is not None:
-            self.constraint = int(constraint)
+        self.constraint = int(constraint)
 
     def is_equivalent(self, other) -> bool:
         # check if all attributes in self have the same value in other
