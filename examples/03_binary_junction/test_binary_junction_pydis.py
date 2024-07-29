@@ -15,13 +15,13 @@ def init_two_disl_lines(z0=1.0, box_length=8.0, b1=np.array([-1.0,1.0,1.0]), b2=
     '''
     print("init_two_disl_lines: z0 = %f" % (z0))
     cell = Cell(h=box_length*np.eye(3), is_periodic=[pbc,pbc,pbc])
-    cell_list = CellList(cell=cell, n_div=[4,4,4])
     rn    = np.array([[0.0, -z0, -z0,  DisNode.Constraints.PINNED_NODE],
                       [0.0,  0.0, 0.0, DisNode.Constraints.UNCONSTRAINED],
                       [0.0,  z0,  z0,  DisNode.Constraints.PINNED_NODE],
                       [-z0,  0.0,-z0,  DisNode.Constraints.PINNED_NODE],
                       [0.0,  0.0, 0.0, DisNode.Constraints.UNCONSTRAINED],
                       [ z0,  0.0, z0,  DisNode.Constraints.PINNED_NODE]])
+    rn[:,0:3] += cell.center()
     
     xi1, xi2 = rn[2,:3] - rn[1,:3], rn[5,:3] - rn[4,:3]
     n1, n2 = np.cross(b1, xi1), np.cross(b2, xi2)
@@ -32,17 +32,16 @@ def init_two_disl_lines(z0=1.0, box_length=8.0, b1=np.array([-1.0,1.0,1.0]), b2=
     links[2, :] = np.concatenate(([3, 4], b2, n2))
     links[3, :] = np.concatenate(([4, 5], b2, n2))
 
-    G = DisNetManager(DisNet(cell=cell, cell_list=cell_list, rn=rn, links=links))
-
-    return G
+    return DisNetManager(DisNet(cell=cell, rn=rn, links=links))
 
 def main():
     global net, sim, state
 
     Lbox = 8; z0 = 1
     net = init_two_disl_lines(z0=z0, box_length=Lbox, pbc=False)
-
+    nbrlist = CellList(cell=net.cell, n_div=[4,4,4])
     bounds = np.array([-0.5*np.diag(net.cell.h), 0.5*np.diag(net.cell.h)])
+    
     vis = VisualizeNetwork(bounds=bounds)
 
     state = {
@@ -58,8 +57,8 @@ def main():
     calforce = CalForce(force_mode='LineTension', state=state, Ec=1.0e6)
     mobility = MobilityLaw(mobility_law='SimpleGlide', state=state)
     timeint = TimeIntegration(integrator='EulerForward', dt=1.0e-9, state=state)
-    topology = Topology(split_mode='MaxDiss', state=state)
-    collision = Collision(collision_mode='Proximity', state=state)
+    topology  = Topology(split_mode='MaxDiss', state=state, force=calforce, mobility=mobility)
+    collision = Collision(collision_mode='Proximity', state=state, nbrlist=nbrlist)
     remesh = Remesh(remesh_rule='LengthBased', state=state)
 
     sim = SimulateNetwork(calforce=calforce, mobility=mobility, timeint=timeint,
