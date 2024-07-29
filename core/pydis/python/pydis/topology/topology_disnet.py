@@ -51,6 +51,34 @@ class Topology:
         return state
 
     @staticmethod
+    def split_node_and_update_forces(G, state, tag, pos1, pos2, nbrs_to_split, force, mobility):
+        segforce_dict = state["segforce_dict"]
+        split_node1, split_node2 = G.split_node(tag, pos1, pos2, nbrs_to_split)
+
+        # modify the segforce_trial_dict to reflect the trial split
+        segforce_dict_copy = deepcopy(segforce_dict)
+        for segment in segforce_dict_copy:
+            tag1, tag2 = segment
+            if tag1 == tag or tag2 == tag:
+                if not G.has_segment(tag1, tag2):
+                    #print("remove segment (%s, %s) from segforce_trial_dict" % (str(tag1), str(tag2)))
+                    segforce_dict.pop(segment)
+                    if tag1 == tag and G.has_segment(split_node2, tag2):
+                        new_segment = (split_node2, tag2)
+                    elif tag2 == tag and G.has_segment(tag1, split_node2):
+                        new_segment = (tag1, split_node2)
+                    else:
+                        raise ValueError("trial_split_multi_node: cannot find corresponding segment (%s, %s) in G_trial" % (str(tag1), str(tag2)))
+                    #print("add segment %s to segforce_trial_dict" % str(new_segment))
+                    segforce_dict[new_segment] = segforce_dict_copy[segment]
+
+        # calculate nodal forces and velocities for the trial split
+        state["segforce_dict"] = segforce_dict
+        state = force.NodeForce_from_SegForce(G, state)
+        state = mobility.Mobility(DisNetManager(G), state)
+        return state, split_node1, split_node2
+
+    @staticmethod
     def trial_split_multi_node(G, tag: Tag, state: dict, force, mobility, power_th=1e-3) -> dict:
         """trial_split_multi_node: try to split multi-arm node in different ways
             and select the way that maximizes the power dissipation
@@ -64,17 +92,11 @@ class Topology:
             velocities (and hence significantly impacting the timestep)
         """
 
-        vel_dict = state["vel_dict"]
-        nodeforce_dict = state["nodeforce_dict"]
-        segforce_dict = state["segforce_dict"]
-
-        state_trial = deepcopy(state)
-
         n_degree = G.out_degree(tag)
         nbrs = list(G.neighbors_tags(tag))
         nbr_idx_list = Topology.build_split_list(n_degree)
 
-        power0 = np.dot(nodeforce_dict[tag], vel_dict[tag])
+        power0 = np.dot(state["nodeforce_dict"][tag], state["vel_dict"][tag])
         #print("trial_split_multi_node (%s): power0 = %e"%(tag, power0))
         #print("edges = %s"%(str(G.edges(tag))))
 
@@ -86,40 +108,11 @@ class Topology:
 
             # make a copy of the network G to make trial splits
             G_trial = G.copy()
+            state_trial = deepcopy(state)
+            state_trial, split_node1, split_node2 = Topology.split_node_and_update_forces(G_trial, state_trial, tag, pos0.copy(), pos0.copy(), nbrs_to_split, force, mobility)
 
-            segforce_trial_dict = deepcopy(segforce_dict)
-
-            # attempt to split node
-            split_node1, split_node2 = G_trial.split_node(tag, pos0.copy(), pos0.copy(), nbrs_to_split)
-            #print("split_node1 = %s, split_node2 = %s"%(str(split_node1), str(split_node2)))
-
-            # modify the segforce_trial_dict to reflect the trial split
-            for segment in segforce_dict:
-                tag1, tag2 = segment
-                if tag1 == tag or tag2 == tag:
-                    if not G_trial.has_segment(tag1, tag2):
-                        #print("remove segment (%s, %s) from segforce_trial_dict" % (str(tag1), str(tag2)))
-                        segforce_trial_dict.pop(segment)
-                        if tag1 == tag and G_trial.has_segment(split_node2, tag2):
-                            new_segment = (split_node2, tag2)
-                        elif tag2 == tag and G_trial.has_segment(tag1, split_node2):
-                            new_segment = (tag1, split_node2)
-                        else:
-                            raise ValueError("trial_split_multi_node: cannot find corresponding segment (%s, %s) in G_trial" % (str(tag1), str(tag2)))
-                        
-                        #print("add segment %s to segforce_trial_dict" % str(new_segment))
-                        segforce_trial_dict[new_segment] = segforce_dict[segment]
-
-            # calculate nodal forces and velocities for the trial split
-            state_trial["segforce_dict"] = segforce_trial_dict
-            state_trial = force.NodeForce_from_SegForce(G_trial, state_trial)
-            DM_trial = DisNetManager(G_trial)
-            mobility.Mobility(DM_trial, state_trial)
-            nodeforce_dict_trial = state_trial["nodeforce_dict"]
-            vel_dict_trial = state_trial["vel_dict"]
-
-            power_diss[k] = np.dot(nodeforce_dict_trial[split_node1], vel_dict_trial[split_node1]) \
-                          + np.dot(nodeforce_dict_trial[split_node2], vel_dict_trial[split_node2])
+            power_diss[k] = np.dot(state_trial["nodeforce_dict"][split_node1], state_trial["vel_dict"][split_node1]) \
+                          + np.dot(state_trial["nodeforce_dict"][split_node2], state_trial["vel_dict"][split_node2])
 
             #print("trial_split_multi_node (%s): power_diss[%d] = %e"%(str(tag), k, power_diss[k]))
 
@@ -132,33 +125,9 @@ class Topology:
         else:
             do_split = False
 
-        # To do: perhaps we should just record which split is selected
-        #        and do the actual split outside of this function
         if do_split:
             nbrs_to_split = [nbrs[i] for i in nbr_idx_list[k_sel]]
-            split_node1, split_node2 = G.split_node(tag, pos0.copy(), pos0.copy(), nbrs_to_split)
-
-            # To do: remove repeated code
-            segforce_trial_dict = deepcopy(segforce_dict)
-            # modify the segforce_trial_dict to reflect the trial split
-            for segment in segforce_dict:
-                tag1, tag2 = segment
-                if tag1 == tag or tag2 == tag:
-                    if not G.has_segment(tag1, tag2):
-                        #print("remove segment (%s, %s) from segforce_trial_dict" % (str(tag1), str(tag2)))
-                        segforce_trial_dict.pop(segment)
-                        if tag1 == tag and G.has_segment(split_node2, tag2):
-                            new_segment = (split_node2, tag2)
-                        elif tag2 == tag and G.has_segment(tag1, split_node2):
-                            new_segment = (tag1, split_node2)
-                        else:
-                            raise ValueError("trial_split_multi_node: cannot find corresponding segment (%s, %s) in G" % (str(tag1), str(tag2)))
-
-                        #print("add segment %s to segforce_trial_dict" % str(new_segment))
-                        segforce_trial_dict[new_segment] = segforce_dict[segment]
-
-            state = force.NodeForce_from_SegForce(G, state)
-            state = mobility.Mobility(DisNetManager(G), state)
+            state, split_node1, split_node2 = Topology.split_node_and_update_forces(G, state, tag, pos0.copy(), pos0.copy(), nbrs_to_split, force, mobility)
 
             # Mark both nodes involved in the split as 'exempt' from subsequent collisions this time step
             if not split_node1 in state['nodeflag_dict']:
@@ -168,8 +137,6 @@ class Topology:
             state['nodeflag_dict'][split_node1] |= DisNode.Flags.NO_COLLISIONS
             state['nodeflag_dict'][split_node2] |= DisNode.Flags.NO_COLLISIONS
 
-            # Update segforce_dict to segforce_trial_dict
-            state["segforce_dict"] = segforce_trial_dict
         return state
 
     @staticmethod
