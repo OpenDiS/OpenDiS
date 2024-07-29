@@ -12,7 +12,7 @@ This is assuming ExaDis has been compiled using OpenMP, and ```OMP_NUM_THREADS=8
 
 #### Explore Dislocation Network
 
-After the simulation has finished, we can examine the data stored in object ```G```.
+After the simulation has finished, we can examine the data stored in object ```G``` by typing the following command in the Python terminal.
 ```python
 G
 ```
@@ -35,7 +35,7 @@ G1.import_data(G.export_data())
 ```
 
 ```{hint}
-This can also be accomplished using the function of DisNetManger ```net```.
+This can also be accomplished using the ```get_disnet``` function of DisNetManger ```net```.
 ```python
 from pydis import DisNet
 G1=net.get_disnet(DisNet)
