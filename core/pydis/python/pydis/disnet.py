@@ -138,6 +138,11 @@ class Cell:
         """
         return Cell(h=self.h.copy(), origin=self.origin.copy(), is_periodic=self.is_periodic.copy())
 
+    def view(self):
+        """view: return a dictionary view of the cell
+        """
+        return vars(self)
+
 class DisNet(DisNet_BASE):
     """DisNet: class for dislocation network
 
