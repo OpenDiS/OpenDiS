@@ -59,6 +59,11 @@ class DisNode():
         """
         return DisNode(R=self.R.copy(), constraint=self.constraint)
 
+    def view(self):
+        """view: return a dictionary view of the node attr
+        """
+        return vars(self)
+
 class DisEdge():
     """DisEdge: class for dislocation edge (properties)
 
@@ -88,6 +93,11 @@ class DisEdge():
         """
         return DisEdge(source_tag=self.source_tag, burg_vec=self.burg_vec.copy(),
                        plane_normal=self.plane_normal.copy() if hasattr(self, "plane_normal") else None)
+
+    def view(self):
+        """view: return a dictionary view of the edge attr
+        """
+        return vars(self)
 
 class Cell:
     """Cell: class for simulation cell in which dislocation network is embedded
