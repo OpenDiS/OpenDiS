@@ -39,40 +39,83 @@ If you do not see a new window displaying the dislocation configuration, it is p
 ```
 
 
+#### Explore Dislocation Network
 
-
-**Explore dislocation data:**
-
-The ```pydis``` module stores the simulated dislocation networks as graphs. One can explore the properties of this graph by checking its nodes
+Since we ran the test case in Python interactive mode (with the ```-i``` option), we can examine the data structure representing the dislocation network (i.e. a graph) at the end of the simulation.  For example, use the following command to see all the nodes (DisNode) in the dislocation network (DisNet).
 
 ```python
-net.G.nodes
+G.all_nodes_tags()
 ```
-and obtain
+Each node is labeled by a tag, which is a tuple of two integers, (domainID, index).  This is following the convention of ParaDiS.  In this example, the domainID equals 0 for all nodes.
+The output of the above command is,
 ```python
-NodeView(((0, 0), (0, 2), (0, 3), (0, 4), (0, 39), (0, 40), (0, 106), (0, 48), (0, 47), (0, 125), (0, 8), (0, 55), (0, 56), (0, 13), (0, 65), (0, 64), (0, 111), (0, 89), (0, 116), (0, 103), (0, 114), (0, 60), (0, 7)))
+dict_keys([(0, 0), (0, 2), (0, 3), (0, 4), (0, 11), (0, 12), (0, 17), (0, 18), (0, 27), (0, 28), (0, 29), (0, 32), (0, 33), (0, 34), (0, 41), (0, 42), (0, 63), (0, 64), (0, 77), (0, 78), (0, 79), (0, 80), (0, 83), (0, 84), (0, 85), (0, 86), (0, 87), (0, 88), (0, 89), (0, 43), (0, 102), (0, 103), (0, 107), (0, 110), (0, 124), (0, 128), (0, 51), (0, 111), (0, 120), (0, 14), (0, 23), (0, 117), (0, 5), (0, 9), (0, 129), (0, 113), (0, 22), (0, 112), (0, 73), (0, 10), (0, 44), (0, 66), (0, 96), (0, 74), (0, 100)])
 ```
-which represents all the nodes in the dislocation graph. Note that each node is labeled as ```(0, i)``` where ```i``` is an integer but not continuously labeled.
 
-One can also obtain the graph's edges:
+```{hint}
+In other test cases, if ```G``` is not available, you can use ```net.G``` instead, e.g.
 ```python
-net.G.edges
+net.G.all_nodes_tags()
 ```
-and obtain
-```python
-OutEdgeView([((0, 0), (0, 4)), ((0, 0), (0, 48)), ((0, 2), (0, 3)), ((0, 2), (0, 47)), ((0, 3), (0, 2)), ((0, 3), (0, 4)), ((0, 4), (0, 3)), ((0, 4), (0, 0)), ((0, 39), (0, 56)), ((0, 39), (0, 13)), ((0, 40), (0, 65)), ((0, 40), (0, 116)), ((0, 106), (0, 114)), ((0, 106), (0, 60)), ((0, 48), (0, 0)), ((0, 48), (0, 13)), ((0, 47), (0, 2)), ((0, 47), (0, 65)), ((0, 125), (0, 89)), ((0, 125), (0, 103)), ((0, 8), (0, 64)), ((0, 8), (0, 116)), ((0, 55), (0, 89)), ((0, 55), (0, 7)), ((0, 56), (0, 39)), ((0, 56), (0, 103)), ((0, 13), (0, 48)), ((0, 13), (0, 39)), ((0, 65), (0, 47)), ((0, 65), (0, 40)), ((0, 64), (0, 8)), ((0, 64), (0, 114)), ((0, 111), (0, 60)), ((0, 111), (0, 7)), ((0, 89), (0, 125)), ((0, 89), (0, 55)), ((0, 116), (0, 40)), ((0, 116), (0, 8)), ((0, 103), (0, 125)), ((0, 103), (0, 56)), ((0, 114), (0, 106)), ((0, 114), (0, 64)), ((0, 60), (0, 111)), ((0, 60), (0, 106)), ((0, 7), (0, 111)), ((0, 7), (0, 55))])
-```
-representing all the edges in the dislocation graph that denote the connection between nodes.
 
-One can export the data that stores the information in this graph:
+To examine the information (i.e. attributes) of a node, use the following command, e.g.
 ```python
-net.G.export_data()
+G.nodes((0,0)).view()
 ```
-where the data is stored as
+The output is
 ```python
-{'cell': {'h': array([[8., 0., 0.],
-       [0., 8., 0.],
-       [0., 0., 8.]]), 'is_periodic': [True, True, True]}, 'nodes': [[0.0, -0.5, 0.0, 7], [0.0, 0.5, 0.0, 7], [0.0, 0.5, -1.0, 7], [0.0, -0.5, -1.0, 7], [0.6171914542157114, -0.9203767203483139, 0.0, 0], [0.5896056897739462, 0.9205821223444571, 0.0, 0], [1.527654949085545, 0.37859632672384724, 0.0, 0], [0.10738792556990989, -0.7427245725072399, 0.0, 0], [0.10444403949640058, 0.7398113693714066, 0.0, 0], [1.2394214646843567, -0.7124467613152135, 0.0, 0], [1.038784432520676, 0.8285147317619693, 0.0, 0], [1.5716894184507821, -0.28790456076296594, 0.0, 0], [0.9117097060289435, -0.8758517344507986, 0.0, 0], [0.34637940319295846, -0.8795321491305716, 0.0, 0], [0.3378369332510002, 0.8766402879318167, 0.0, 0], [1.2872062053182376, 0.6724966429085716, 0.0, 0], [1.6233434358862746, 0.05363704629680839, 0.0, 0], [1.429249934659248, -0.5312531663550655, 0.0, 0], [0.816660983695957, 0.9004808461025454, 0.0, 0], [1.0825050529428142, -0.806130063119192, 0.0, 0], [1.4213149895828676, 0.5379245440205022, 0.0, 0], [1.5920293249425574, 0.2218589104669993, 0.0, 0], [1.6172723087695884, -0.11733006641199845, 0.0, 0]], 'segs': [[0, 3, -1.0, -0.0, -0.0, 0.0, -1.0, 0.0], [0, 7, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0], [1, 2, 1.0, 0.0, 0.0, -0.0, 1.0, 0.0], [1, 8, -1.0, -0.0, -0.0, 0.0, 0.0, 1.0], [2, 3, 1.0, 0.0, 0.0, 0.0, 0.0, -1.0], [4, 12, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0], [4, 13, -1.0, -0.0, -0.0, 0.0, 0.0, 1.0], [5, 14, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0], [5, 18, -1.0, -0.0, -0.0, 0.0, 0.0, 1.0], [6, 20, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0], [6, 21, -1.0, -0.0, -0.0, 0.0, 0.0, 1.0], [7, 13, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0], [8, 14, -1.0, -0.0, -0.0, 0.0, 0.0, 1.0], [9, 17, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0], [9, 19, -1.0, -0.0, -0.0, 0.0, 0.0, 1.0], [10, 15, -1.0, -0.0, -0.0, 0.0, 0.0, 1.0], [10, 18, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0], [11, 17, -1.0, -0.0, -0.0, 0.0, 0.0, 1.0], [11, 22, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0], [12, 19, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0], [15, 20, -1.0, -0.0, -0.0, 0.0, 0.0, 1.0], [16, 21, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0], [16, 22, -1.0, -0.0, -0.0, 0.0, 0.0, 1.0]]}
+{'R': array([500. , 437.5, 500. ]), 'constraint': 7}
 ```
-One may pass this to a variable that surrogates the dislocation structures after the simulation.
 
+Use the following command to see all the segments (DisEdge) in the dislocation network (DisNet).
+```python
+list(G.all_segments_tags())
+```
+The output of the above command is,
+```python
+[((0, 2), (0, 3)), ((0, 3), (0, 4)), ((0, 4), (0, 0)), ((0, 33), (0, 79)), ((0, 79), (0, 11)), ((0, 12), (0, 80)), ((0, 80), (0, 34)), ((0, 17), (0, 83)), ((0, 83), (0, 33)), ((0, 34), (0, 84)), ((0, 84), (0, 18)), ((0, 41), (0, 87)), ((0, 88), (0, 42)), ((0, 89), (0, 17)), ((0, 103), (0, 2)), ((0, 0), (0, 107)), ((0, 27), (0, 51)), ((0, 51), (0, 77)), ((0, 78), (0, 111)), ((0, 111), (0, 28)), ((0, 11), (0, 120)), ((0, 120), (0, 63)), ((0, 64), (0, 14)), ((0, 14), (0, 12)), ((0, 102), (0, 23)), ((0, 23), (0, 86)), ((0, 77), (0, 117)), ((0, 117), (0, 41)), ((0, 42), (0, 5)), ((0, 5), (0, 78)), ((0, 43), (0, 9)), ((0, 9), (0, 110)), ((0, 32), (0, 129)), ((0, 129), (0, 124)), ((0, 124), (0, 22)), ((0, 22), (0, 43)), ((0, 110), (0, 112)), ((0, 112), (0, 85)), ((0, 73), (0, 27)), ((0, 28), (0, 10)), ((0, 86), (0, 44)), ((0, 44), (0, 103)), ((0, 32), (0, 66)), ((0, 66), (0, 128)), ((0, 107), (0, 96)), ((0, 96), (0, 85)), ((0, 128), (0, 74)), ((0, 74), (0, 102)), ((0, 29), (0, 63)), ((0, 100), (0, 87)), ((0, 64), (0, 113)), ((0, 10), (0, 113)), ((0, 18), (0, 89)), ((0, 29), (0, 73)), ((0, 100), (0, 88))]
+```
+We can see that each segment is specified by the tags of its two end nodes.  Each segment is included only once in this representation.
+
+To examine the information (i.e. attributes) of a segment, use the following command, e.g.
+```python
+G.segments(((0,0),(0,4))).view()
+```
+The output is
+```python
+{'source_tag': (0, 4), 'burg_vec': array([1., 0., 0.]), 'plane_normal': array([ 0., -1.,  0.])}
+```
+
+Note that each segment needs to know the line direction corresponding to the Burgers vector being stored.  The line direction goes from the node designated by ```source_tag```.
+
+We can use the ```burg_vec_from``` function to obtain the Burgers vector using either one of the two end nodes, e.g.
+```python
+G.segments(((0,0),(0,4))).burg_vec_from((0,4))
+```
+The output is
+```python
+array([1., 0., 0.])
+```
+Alternatively,
+```python
+G.segments(((0,0),(0,4))).burg_vec_from((0,0))
+```
+The output is
+```python
+array([-1., -0., -0.])
+```
+
+
+We can also examine the information for the simulation cell as follows.
+```python
+G.cell.view()
+```
+
+The output of the above command is,
+```python
+{'h': array([[1000.,    0.,    0.],
+       [   0., 1000.,    0.],
+       [   0.,    0., 1000.]]), 'hinv': array([[0.001, 0.   , 0.   ],
+       [0.   , 0.001, 0.   ],
+       [0.   , 0.   , 0.001]]), 'origin': array([0., 0., 0.]), 'is_periodic': [True, True, True]}
+```
