@@ -42,16 +42,21 @@ class Collision:
            This is a much simplified version of Proximity collision handling in ParaDiS
         """
         # loop through all segment pairs to check for collision
-        segments = G.seg_list()
-        midpoints = G.get_segments_midpoint(segments)
+        segs_data_with_positions = G.get_segs_data_with_positions()
+        Nseg = segs_data_with_positions["nodeids"].shape[0]
+        R1 = segs_data_with_positions["R1"]
+        R2 = segs_data_with_positions["R2"]
+        midpoints = 0.5*(R1 + R2)
+
         self.nbrlist.sort_points_to_list(midpoints)
 
-        collided = np.zeros(len(segments), dtype=bool)
+        collided = np.zeros(Nseg, dtype=bool)
+        source_tags = segs_data_with_positions["tag1"]
+        target_tags = segs_data_with_positions["tag2"]
         for i, j in self.nbrlist.iterate_nbr_pairs(use_cell_list=all(G.cell.is_periodic)):
-                seg1 = segments[i]
                 if collided[i]:
                     continue
-                tag1, tag2 = seg1["edge"][0], seg1["edge"][1]
+                tag1, tag2 = tuple(source_tags[i]), tuple(target_tags[i])
                 if not G.has_segment(tag1, tag2):
                     continue
                 if G.nodes(tag1).flag & DisNode.Flags.NO_COLLISIONS:
@@ -59,20 +64,19 @@ class Collision:
                 if G.nodes(tag2).flag & DisNode.Flags.NO_COLLISIONS:
                     continue
 
-                seg2 = segments[j]
                 if collided[i] or collided[j]:
                     continue
                 if not G.has_segment(tag1, tag2):
                     continue
-                tag3, tag4 = seg2["edge"][0], seg2["edge"][1]
+                tag3, tag4 = tuple(source_tags[j]), tuple(target_tags[j])
                 if not G.has_segment(tag3, tag4):
                     continue
                 if G.nodes(tag3).flag & DisNode.Flags.NO_COLLISIONS:
                     continue
                 if G.nodes(tag4).flag & DisNode.Flags.NO_COLLISIONS:
                     continue
-                p1, p2 = np.array(seg1["R1"]), np.array(seg1["R2"])
-                p3, p4 = np.array(seg2["R1"]), np.array(seg2["R2"])
+                p1, p2 = R1[i,:].copy(), R2[i,:].copy()
+                p3, p4 = R1[j,:].copy(), R2[j,:].copy()
                 v1, v2 = np.zeros(3), np.zeros(3)
                 v3, v4 = np.zeros(3), np.zeros(3)
                 if tag1 != tag3 and tag1 != tag4 and tag2 != tag3 and tag2 != tag4:

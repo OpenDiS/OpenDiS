@@ -33,13 +33,21 @@ class Remesh:
         """
         # mesh coarsen
         nodes_to_remove = []
-        for segment in G.seg_list():
-            tag1, tag2 = segment["edge"][0], segment["edge"][1]
+        segs_data_with_positions = G.get_segs_data_with_positions()
+        Nseg = segs_data_with_positions["nodeids"].shape[0]
+        source_tags = segs_data_with_positions["tag1"]
+        target_tags = segs_data_with_positions["tag2"]
+        R1 = segs_data_with_positions["R1"]
+        R2 = segs_data_with_positions["R2"]
+        for i in range(Nseg):
+            tag1, tag2 = tuple(source_tags[i]), tuple(target_tags[i])
             node1, node2 = G.nodes(tag1), G.nodes(tag2)
-            R1, R2 = node1.R, node2.R
+            #R1, R2 = node1.R, node2.R
+            r1 = R1[i,:].copy()
+            r2 = R2[i,:].copy()
             # apply PBC
-            R2 = G.cell.closest_image(Rref=R1, R=R2)
-            L = np.linalg.norm(R2-R1)
+            r2 = G.cell.closest_image(Rref=r1, R=r2)
+            L = np.linalg.norm(r2-r1)
             if (L < self.minseg):
                 if G.out_degree(tag1) == 2 and node1.constraint != DisNode.Constraints.PINNED_NODE:
                     nodes_to_remove.append(tag1)
@@ -53,19 +61,18 @@ class Remesh:
             raise ValueError("Remesh_LengthBased: sanity check failed 1")
 
         # mesh refine
-        for segment in G.seg_list():
-            tag1, tag2 = segment["edge"][0], segment["edge"][1]
+        all_segments_list = list(G.all_segments())
+        for tag1, tag2 in all_segments_list:
             node1, node2 = G.nodes(tag1), G.nodes(tag2)
-            R1, R2 = node1.R, node2.R
+            r1, r2 = node1.R, node2.R
             # apply PBC
-            R2 = G.cell.closest_image(Rref=R1, R=R2)
-            L = np.linalg.norm(R2-R1)
+            r2 = G.cell.closest_image(Rref=r1, R=r2)
+            L = np.linalg.norm(r2-r1)
             if (L > self.maxseg) and ((node1.constraint != DisNode.Constraints.PINNED_NODE) or (node2.constraint != DisNode.Constraints.PINNED_NODE)):
                 # insert new node on segment
                 new_tag = G.get_new_tag()
-                # To do: apply PBC here
-                R = (R1 + R2)/2.0
-                G.insert_node_between(tag1, tag2, new_tag, R)
+                r = (r1 + r2)/2.0
+                G.insert_node_between(tag1, tag2, new_tag, r)
                 if not G.is_sane():
                     raise ValueError("Remesh_LengthBased: sanity check failed 1a")
 

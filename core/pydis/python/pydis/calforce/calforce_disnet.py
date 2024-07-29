@@ -26,39 +26,44 @@ def voigt_vector_to_tensor(voigt_vector):
                      [voigt_vector[5], voigt_vector[1], voigt_vector[3]],
                      [voigt_vector[4], voigt_vector[3], voigt_vector[2]]])
 
-def pkforcevec(sigext, segments):
+def pkforcevec(sigext, segs_data):
     # return Peach-Koehler force vector for each segment
     # half of it should be assigned to each node
-    nseg = len(segments)
-    fpk = np.zeros((nseg, 3))
-    for idx, segment in enumerate(segments):
-        sigb = sigext @ segment["burg_vec"]
-        dR = segment["R2"] - segment["R1"]
-        fpk[idx] = np.cross(sigb, dR)
+    Nseg = segs_data["nodeids"].shape[0]
+    burg_vecs = segs_data["burgers"]
+    R1 = segs_data["R1"]
+    R2 = segs_data["R2"]
+    fpk = np.zeros((Nseg, 3))
+    for i in range(Nseg):
+        sigb = sigext @ burg_vecs[i]
+        dR = R2[i,:] - R1[i,:]
+        fpk[i,:] = np.cross(sigb, dR)
     return fpk
 
-def selfforcevec_LineTension(MU, NU, Ec, segments, eps_L=1e-6):
-    # to do: vectorize the calculations
-    nseg = len(segments)
-    fs0 = np.zeros((nseg, 3))
-    fs1 = np.zeros((nseg, 3))
+def selfforcevec_LineTension(MU, NU, Ec, segs_data, eps_L=1e-6):
+    # To do: vectorize the calculations
+    Nseg = segs_data["nodeids"].shape[0]
+    burg_vecs = segs_data["burgers"]
+    R1 = segs_data["R1"]
+    R2 = segs_data["R2"]
+    fs0 = np.zeros((Nseg, 3))
+    fs1 = np.zeros((Nseg, 3))
     omninv = 1.0/(1.0-NU)
-    for idx, segment in enumerate(segments):
-        dR = segment["R2"] - segment["R1"]
+    for i in range(Nseg):
+        dR = R2[i,:] - R1[i,:]
         L = np.linalg.norm(dR)
         if L < eps_L:
             continue
         t = dR / L
-        bs = np.dot(segment["burg_vec"], t)
+        bs = np.dot(burg_vecs[i,:], t)
         bs2 = bs*bs
-        bev = segment["burg_vec"] - bs*t
+        bev = burg_vecs[i] - bs*t
         be2 = np.sum(bev*bev)
         Score = 2.0*NU*omninv*Ec*bs
         LTcore = (bs2+be2*omninv)*Ec
-        fs1[idx] = Score*bev - LTcore*t
+        fs1[i,:] = Score*bev - LTcore*t
     fs0 = -fs1
     return fs0, fs1
-
 
 class CalForce:
     """CalForce_DisNet: class for calculating forces on dislocation network
@@ -117,21 +122,26 @@ class CalForce:
         (from DDLab/src/segforcevec.m)
         Note: assuming G.seg_list already accounts for PBC
         """
-        segments = G.seg_list()
+        segs_data_with_positions = G.get_segs_data_with_positions()
+        Nseg = segs_data_with_positions["nodeids"].shape[0]
+        source_tags = segs_data_with_positions["tag1"]
+        target_tags = segs_data_with_positions["tag2"]
+
         sigext = voigt_vector_to_tensor(applied_stress)
-        fpk = pkforcevec(sigext, segments)
-        fs0, fs1 = selfforcevec_LineTension(self.mu, self.nu, self.Ec, segments)
+        fpk = pkforcevec(sigext, segs_data_with_positions)
+        fs0, fs1 = selfforcevec_LineTension(self.mu, self.nu, self.Ec, segs_data_with_positions)
         fseg = np.hstack((fpk*0.5 + fs0, fpk*0.5 + fs1))
 
         nodeforce_dict, segforce_dict = {}, {}
         for tag in G.all_nodes_dict():
             nodeforce_dict.update({tag: np.array([0.0,0.0,0.0])})
-        for idx, segment in enumerate(segments):
-            tag1 = segment["edge"][0]
-            tag2 = segment["edge"][1]
-            nodeforce_dict[tag1] += fseg[idx, 0:3]
-            nodeforce_dict[tag2] += fseg[idx, 3:6]
-            segforce_dict[segment["edge"]] = fseg[idx, :]
+
+        for i in range(Nseg):
+            tag1 = tuple(source_tags[i])
+            tag2 = tuple(target_tags[i])
+            nodeforce_dict[tag1] += fseg[i, 0:3]
+            nodeforce_dict[tag2] += fseg[i, 3:6]
+            segforce_dict[(tag1, tag2)] = fseg[i, :]
 
         return nodeforce_dict, segforce_dict
 
@@ -139,42 +149,44 @@ class CalForce:
         """NodeForce: return nodal forces from external stress and elastic interactions
 
         (from ParaDiS)
-        Note: assuming G.seg_list already accounts for PBC
+        Note: assuming G.get_segs_data_with_positions already accounts for PBC
         """
-        segments = G.seg_list()
+        segs_data_with_positions = G.get_segs_data_with_positions()
+        Nseg = segs_data_with_positions["nodeids"].shape[0]
+        source_tags = segs_data_with_positions["tag1"]
+        target_tags = segs_data_with_positions["tag2"]
+        R1 = segs_data_with_positions["R1"]
+        R2 = segs_data_with_positions["R2"]
+        burg_vecs = segs_data_with_positions["burgers"]
+
         sigext = voigt_vector_to_tensor(applied_stress)
-        fpk = pkforcevec(sigext, segments)
+        fpk = pkforcevec(sigext, segs_data_with_positions)
         fseg = np.hstack((fpk*0.5, fpk*0.5))
 
         nodeforce_dict, segforce_dict = {}, {}
-        for tag in G.nodes:
+        for tag in G.all_nodes():
             nodeforce_dict.update({tag: np.array([0.0,0.0,0.0])})
-        for idx, segment in enumerate(segments):
-            tag1 = segment["edge"][0]
-            tag2 = segment["edge"][1]
-            nodeforce_dict[tag1] += fseg[idx, 0:3]
-            nodeforce_dict[tag2] += fseg[idx, 3:6]
+        for i in range(Nseg):
+            tag1, tag2 = tuple(source_tags[i]), tuple(target_tags[i])
+            nodeforce_dict[tag1] += fseg[i, 0:3]
+            nodeforce_dict[tag2] += fseg[i, 3:6]
 
-        nseg = len(segments)
-        for i in range(nseg):
-            for j in range(i, nseg):
-                seg1 = segments[i]
-                seg2 = segments[j]
-                p1 = np.array(seg1["R1"])
-                p2 = np.array(seg1["R2"])
-                p3 = np.array(seg2["R1"])
-                p4 = np.array(seg2["R2"])
-                b12 = np.array(seg1["burg_vec"])
-                b34 = np.array(seg2["burg_vec"])
+        for i in range(Nseg):
+            for j in range(i, Nseg):
+                p1 = R1[i,:].copy()
+                p2 = R2[i,:].copy()
+                p3 = R1[j,:].copy()
+                p4 = R2[j,:].copy()
+                b12 = burg_vecs[i,:].copy()
+                b34 = burg_vecs[j,:].copy()
+
                 # apply PBC
-                p2 = G.cell.map_to(p2, p1)
-                p3 = G.cell.map_to(p3, p1)
-                p4 = G.cell.map_to(p4, p3)
+                p2 = G.cell.closest_image(Rref=p1, R=p2)
+                p3 = G.cell.closest_image(Rref=p1, R=p3)
+                p4 = G.cell.closest_image(Rref=p3, R=p4)
                 f1, f2, f3, f4 = compute_segseg_force(p1, p2, p3, p4, b12, b34, self.mu, self.nu, self.a)
-                tag1 = seg1["edge"][0]
-                tag2 = seg1["edge"][1]
-                tag3 = seg2["edge"][0]
-                tag4 = seg2["edge"][1]
+                tag1, tag2 = tuple(source_tags[i]), tuple(target_tags[i])
+                tag3, tag4 = tuple(source_tags[j]), tuple(target_tags[j])
                 if i == j:
                     fseg[i, 0:3] += f1
                     fseg[i, 3:6] += f2
@@ -190,8 +202,9 @@ class CalForce:
                     nodeforce_dict[tag3] += f3
                     nodeforce_dict[tag4] += f4
 
-        for idx, segment in enumerate(segments):
-            segforce_dict[segment["edge"]] = fseg[idx, :]
+        for i in range(Nseg):
+            tag1, tag2 = tuple(source_tags[i]), tuple(target_tags[i])
+            segforce_dict[(tag1, tag2)] = fseg[i, :]
 
         return nodeforce_dict, segforce_dict
 
@@ -201,19 +214,26 @@ class CalForce:
         (from ParaDiS)
         Note: assuming G.seg_list already accounts for PBC
         """
-        segments = G.seg_list()
+        segs_data_with_positions = G.get_segs_data_with_positions()
+        Nseg = segs_data_with_positions["nodeids"].shape[0]
+        source_tags = segs_data_with_positions["tag1"]
+        target_tags = segs_data_with_positions["tag2"]
+        R1 = segs_data_with_positions["R1"]
+        R2 = segs_data_with_positions["R2"]
+        burg_vecs = segs_data_with_positions["burgers"]
+
+        # To do: need to run test case for this function
         sigext = voigt_vector_to_tensor(applied_stress)
-        fpk = pkforcevec(sigext, segments)
+        fpk = pkforcevec(sigext, segs_data_with_positions)
         fseg = np.hstack((fpk*0.5, fpk*0.5))
 
         nodeforce_dict, segforce_dict = {}, {}
-        for tag in G.nodes:
+        for tag in G.all_nodes():
             nodeforce_dict.update({tag: np.array([0.0,0.0,0.0])})
-        for idx, segment in enumerate(segments):
-            tag1 = segment["edge"][0]
-            tag2 = segment["edge"][1]
-            nodeforce_dict[tag1] += fseg[idx, 0:3]
-            nodeforce_dict[tag2] += fseg[idx, 3:6]
+        for i in range(Nseg):
+            tag1, tag2 = tuple(source_tags[i]), tuple(target_tags[i])
+            nodeforce_dict[tag1] += fseg[i, 0:3]
+            nodeforce_dict[tag2] += fseg[i, 3:6]
 
         """ hardcode force_nint = 3
         """
@@ -222,26 +242,22 @@ class CalForce:
         print('quad_points = ', quad_points)
         print('weights = ', weights)
 
-        nseg = len(segments)
-        for i in range(nseg):
-            for j in range(i, nseg):
-                seg1 = segments[i]
-                seg2 = segments[j]
-                p1 = np.array(seg1["R1"])
-                p2 = np.array(seg1["R2"])
-                p3 = np.array(seg2["R1"])
-                p4 = np.array(seg2["R2"])
-                b12 = np.array(seg1["burg_vec"])
-                b34 = np.array(seg2["burg_vec"])
+        for i in range(Nseg):
+            for j in range(i, Nseg):
+                p1 = R1[i,:].copy()
+                p2 = R2[i,:].copy()
+                p3 = R1[j,:].copy()
+                p4 = R2[j,:].copy()
+                b12 = burg_vecs[i,:].copy()
+                b34 = burg_vecs[j,:].copy()
+
                 # apply PBC
-                p2 = G.cell.map_to(p2, p1)
-                p3 = G.cell.map_to(p3, p1)
-                p4 = G.cell.map_to(p4, p3)
+                p2 = G.cell.closest_image(Rref=p1, R=p2)
+                p3 = G.cell.closest_image(Rref=p1, R=p3)
+                p4 = G.cell.closest_image(Rref=p3, R=p4)
                 f1, f2, f3, f4 = compute_segseg_force_SBN1_SBA(p1, p2, p3, p4, b12, b34, self.mu, self.nu, self.a, quad_points, weights)
-                tag1 = seg1["edge"][0]
-                tag2 = seg1["edge"][1]
-                tag3 = seg2["edge"][0]
-                tag4 = seg2["edge"][1]
+                tag1, tag2 = tuple(source_tags[i]), tuple(target_tags[i])
+                tag3, tag4 = tuple(source_tags[j]), tuple(target_tags[j])
                 if i == j:
                     fseg[i, 0:3] += f1
                     fseg[i, 3:6] += f2
@@ -257,7 +273,8 @@ class CalForce:
                     nodeforce_dict[tag3] += f3
                     nodeforce_dict[tag4] += f4
 
-        for idx, segment in enumerate(segments):
-            segforce_dict[segment["edge"]] = fseg[idx, :]
+        for i in range(Nseg):
+            tag1, tag2 = tuple(source_tags[i]), tuple(target_tags[i])
+            segforce_dict[(tag1, tag2)] = fseg[i, :]
 
         return nodeforce_dict, segforce_dict

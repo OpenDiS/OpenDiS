@@ -246,37 +246,6 @@ class DisNet(DisNet_BASE):
         """
         raise NotImplementedError("seg_prop_list: not implemented")
 
-    # To do: refactor NodeForce to not use seg_list (not required by base class)
-    def seg_list(self) -> list:
-        """seg_list: return a list of segments
-
-        Each link appear once
-        """
-        segments = []
-        for (source, target), edge_attr in self.all_segments_dict().items():
-            r1 = self.tags_to_nodes[source].attr.R
-            r2 = self.tags_to_nodes[target].attr.R
-            # apply PBC
-            r2 = self.cell.closest_image(Rref=r1, R=r2)
-            segments.append({"edge":(source, target),
-                             "burg_vec":edge_attr.burg_vec_from(source),
-                             "R1":r1,
-                             "R2":r2})
-        return segments
-
-    # To do: implement function get_segments_midpoint
-    def get_segments_midpoint(self, segments: list) -> np.ndarray:
-        """get_segments_midpoint: return the midpoints of a segment list
-        """
-        mp = np.zeros((len(segments), 3))
-        for i, seg in enumerate(segments):
-            r1 = seg["R1"]
-            r2 = seg["R2"]
-            # apply PBC (not necessary because already applied in seg_list)
-            r2 = self.cell.closest_image(Rref=r1, R=r2)
-            mp[i,:] = 0.5*(r1+r2)
-        return mp
-        
     # To do: implement function nodes_array
     def nodes_array(self) -> list:
         """nodes_array: pack nodes into an array for export
@@ -332,12 +301,54 @@ class DisNet(DisNet_BASE):
         """get_segs_data: collect segments data into a dictionary format
         """
         segs_array = np.array(self.segs_array(ntags))
-        segs_data = {
+        return {
             "nodeids": segs_array[:,0:2].astype(int),
             "burgers": segs_array[:,2:5],
             "planes": segs_array[:,5:8]
         }
-        return segs_data
+
+    def get_segs_data_with_positions(self):
+        """get_segs_data_with_positions: collect segments data into a dictionary format
+        """
+        _, ntags = self.get_nodes_data()
+        Nseg = len(self.all_segments_dict().keys())
+        nodeids = np.zeros((Nseg, 2), dtype=int)
+        tag1 = np.zeros((Nseg, 2), dtype=int)
+        tag2 = np.zeros((Nseg, 2), dtype=int)
+        burgers = np.zeros((Nseg, 3))
+        planes = np.zeros((Nseg, 3))
+        R1 = np.zeros((Nseg, 3))
+        R2 = np.zeros((Nseg, 3))
+        i = 0
+        for (source, target), edge_attr in self.all_segments_dict().items():
+            try:
+                nodeids[i,:] = ntags[source], ntags[target]
+            except:
+                print(f"Nseg = {Nseg}, i = {i}, source = {source}, target = {target}")
+                print(f"number of links = {len(self.all_segments_dict())}")
+
+            tag1[i,:] = source
+            tag2[i,:] = target
+            burgers[i,:] = edge_attr.burg_vec_from(source)
+            #planes[i,:] = edge_attr.plane_normal
+            planes[i,:] = getattr(edge_attr, "plane_normal", np.zeros(3))
+            r1_local = self.nodes(source).R
+            r2_local = self.nodes(target).R
+            # apply PBC
+            r2_local = self.cell.closest_image(Rref=r1_local, R=r2_local)
+            R1[i,:] = r1_local
+            R2[i,:] = r2_local
+            i += 1
+
+        return {
+            "nodeids": nodeids,
+            "tag1": tag1,
+            "tag2": tag2,
+            "burgers": burgers,
+            "planes":  planes,
+            "R1": R1,
+            "R2": R2
+        }
 
     def export_data(self):
         """export_data: export network to data
@@ -416,23 +427,6 @@ class DisNet(DisNet_BASE):
             if not edge_attr.is_equivalent(G_compare.segments((source, target))):
                 return False
         return True
-
-    # To do: implement function sort_segments_to_cell_list
-    #        (Note: segments not used in this function)
-    def sort_segments_to_cell_list(self, segments):
-        """sort_segments_to_cell: sort segments to cell list
-        """
-        cell_list = []
-        for edge in self._G.edges:
-            tag1 = edge[0]
-            tag2 = edge[1]
-            r1 = self._G.nodes[tag1]["R"]
-            r2 = self._G.nodes[tag2]["R"]
-            # apply PBC
-            r2 = self.cell.closest_image(Rref=r1, R=r2)
-            self._G.edges[edge]["R1"] = r1
-            self._G.edges[edge]["R2"] = r2
-        return cell_list
 
     def has_node(self, tag: Tag) -> bool:
         """has_node: check if a node exists in the network
@@ -643,8 +637,6 @@ class DisNet(DisNet_BASE):
         # Remove any links between targetNode and deadNode
         if self.has_segment(targetNode, deadNode):
             self._remove_edge(targetNode, deadNode)
-        #if self.has_segment(deadNode, targetNode):
-        #    self._remove_edge(deadNode, targetNode)
 
         # Move all connections from the dead node to the target node
         # and add a new connection from the target node to each of the
@@ -709,17 +701,11 @@ class DisNet(DisNet_BASE):
                 raise ValueError("split_node: Node %s and %s are not connected" % (str(tag), str(nbr)))
 
             link_attr = self.segments((tag, nbr))
-            #new_link_attr = deepcopy(link_attr)
             new_link_attr = DisEdge(nbr, link_attr.burg_vec_from(nbr).copy(), link_attr.plane_normal.copy())
             self._add_edge(split_node2, nbr, new_link_attr)
-            #bv += np.array(link_attr['burg_vec'])
             bv += link_attr.burg_vec_from(tag)
 
-            #link_attr = self.segments((nbr, tag))
-            #self._add_edge(nbr, split_node2, deepcopy(DisEdge(**link_attr)))
-
             self._remove_edge(tag, nbr)
-            #self._remove_edge(nbr, tag)
 
         # ParadiS calls AssignNodeToCell here
 
