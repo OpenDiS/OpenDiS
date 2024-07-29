@@ -55,7 +55,7 @@ def main():
                           state=state, max_step=200, loading_mode="stress",
                           applied_stress=np.array([0.0, 0.0, 0.0, 0.0, -4.0e8, 0.0]),
                           print_freq=10, plot_freq=10, plot_pause_seconds=0.01,
-                          write_freq=10, write_dir='output')
+                          write_freq=10, write_dir='output', save_state=False)
     sim.run(net, state)
 
     return net.is_sane()
