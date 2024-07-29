@@ -43,8 +43,7 @@ class Remesh:
             tag1, tag2 = tuple(source_tags[i]), tuple(target_tags[i])
             node1, node2 = G.nodes(tag1), G.nodes(tag2)
             #R1, R2 = node1.R, node2.R
-            r1 = R1[i,:].copy()
-            r2 = R2[i,:].copy()
+            r1, r2 = R1[i,:].copy(), R2[i,:].copy()
             # apply PBC
             r2 = G.cell.closest_image(Rref=r1, R=r2)
             L = np.linalg.norm(r2-r1)
@@ -64,7 +63,7 @@ class Remesh:
         all_segments_list = list(G.all_segments_tags())
         for tag1, tag2 in all_segments_list:
             node1, node2 = G.nodes(tag1), G.nodes(tag2)
-            r1, r2 = node1.R, node2.R
+            r1, r2 = node1.R.copy(), node2.R.copy()
             # apply PBC
             r2 = G.cell.closest_image(Rref=r1, R=r2)
             L = np.linalg.norm(r2-r1)
