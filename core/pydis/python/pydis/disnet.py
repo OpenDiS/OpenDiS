@@ -406,11 +406,8 @@ class DisNet(DisNet_BASE):
             self._add_node(tag, deepcopy(DisNode(**node_attr)))
 
         for source, target, edge_attr in nx_graph.edges(data=True):
-            edge_dict = deepcopy(edge_attr)
-            # note: only half of the segments are added
             if source < target:
-                edge_dict["source_tag"] = source
-                self._add_edge(source, target, deepcopy(DisEdge(**edge_dict)))
+                self._add_edge(source, target, DisEdge(source, edge_attr.get("burg_vec").copy(), edge_attr.get("plane_normal", None).copy()))
 
     def is_equivalent(self, G_compare):
         for tag, node in self.all_nodes_mapping():
