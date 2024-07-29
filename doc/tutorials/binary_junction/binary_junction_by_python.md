@@ -28,7 +28,7 @@ If the simulation runs successfully, a (Python Matplotlib) window should open an
 ```
 
 Here is what you should see during the simulation.
-```{figure} binary_junction_opendis.gif
+```{figure} binary_junction.gif
 :alt: Video of the whole simulation
 :width: 552px
 ```
