@@ -23,7 +23,7 @@ Before you begin the installation of ExaDiS/KOKKOS, make sure the following soft
 - **Python Development Package**
   - Version: 3.6 or higher
   - Ensure Python and the development headers are installed (e.g., `sudo apt install python3-dev` for Ubuntu).
-  - Some of the Python packages required include [numpy](https://numpy.org/), [matplotlib](https://matplotlib.org/), [networkx](https://networkx.org/).
+  - Some of the Python packages required include [numpy](https://numpy.org/), [matplotlib](https://matplotlib.org/).
 
 - **FFTW**
   - Install [FFTW](https://www.fftw.org/) for handling discrete Fourier transforms.
