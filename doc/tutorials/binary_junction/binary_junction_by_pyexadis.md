@@ -22,15 +22,15 @@ The output is
 ```
 We can see that ```G``` is an ```ExaDiSNet``` object (so that we cannot interact with it the same way as a ```DisNet``` object).
 
+We can use the following command to see the content of G.
+
+```python
+G.export_data()
+```
        
 <details>
   <summary>
-     We can use the following command to see the content of G.
-     
-   ```python
-      G.export_data()
-   ```
-   
+   Here is the output for this command.
   </summary>
 
  ```python
