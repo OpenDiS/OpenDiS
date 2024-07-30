@@ -22,10 +22,85 @@ The output is
 ```
 We can see that ```G``` is an ```ExaDiSNet``` object (so that we cannot interact with it the same way as a ```DisNet``` object).
 
-We can use the following command to see the content of ```G```.
+
+We can use the following command to see the content of G.
+
 ```python
 G.export_data()
 ```
+
+<details>
+  <summary>
+   Here is the output for this command.
+  </summary>
+
+ ```python
+{'cell': {'h': array([[1000.,    0.,    0.],
+       [   0., 1000.,    0.],
+       [   0.,    0., 1000.]]), 'origin': array([0., 0., 0.]), 'is_periodic': [1, 1, 1]}, 'nodes': {'tags': array([[  0,   0],
+       [  0, 107],
+       [  0,   2],
+       [  0,   3],
+       [  0,   4],
+       ...,
+       [  0,  63],
+       [  0,  88],
+       [  0,   8],
+       [  0,  82],
+       [  0, 114]]), 'positions': array([[500.        , 437.5       , 500.        ],
+       [504.8985802 , 405.30790288, 500.        ],
+       [500.        , 562.5       , 500.        ],
+       [500.        , 562.5       , 375.        ],
+       [500.        , 437.5       , 375.        ],
+       ...,
+       [ 98.42129319, 129.36609803, 500.        ],
+       [239.65231892,  21.11140067, 500.        ],
+       [571.97968178, 379.25113058, 500.        ],
+       [529.45283533, 613.42150792, 500.        ],
+       [ 83.49577868, 877.26034318, 500.        ]]), 'constraints': array([[7],
+       [0],
+       [7],
+       [7],
+       [7],
+       ...,
+       [0],
+       [0],
+       [0],
+       [0],
+       [0]])}, 'segs': {'nodeids': array([[ 0,  1],
+       [16, 52],
+       [ 2,  3],
+       [ 3,  4],
+       [ 4,  0],
+       ...,
+       [29, 49],
+       [25, 17],
+       [32,  8],
+       [ 8, 13],
+       [19, 32]]), 'burgers': array([[1., 0., 0.],
+       [1., 0., 0.],
+       [1., 0., 0.],
+       [1., 0., 0.],
+       [1., 0., 0.],
+       ...,
+       [1., 0., 0.],
+       [1., 0., 0.],
+       [1., 0., 0.],
+       [1., 0., 0.],
+       [1., 0., 0.]]), 'planes': array([[ 0.,  0.,  1.],
+       [ 0.,  0.,  1.],
+       [-0.,  1.,  0.],
+       [ 0.,  0., -1.],
+       [ 0., -1.,  0.],
+       ...,
+       [ 0.,  0.,  1.],
+       [ 0.,  0.,  1.],
+       [ 0.,  0.,  1.],
+       [ 0.,  0.,  1.],
+       [ 0.,  0.,  1.]])}}
+```
+</details>
+
 
 We can use the following command to convert an ```ExaDiSNet``` object to a ```DisNet``` object, so that we can interact with it using the same approach as in the previous test case.
 ```python
