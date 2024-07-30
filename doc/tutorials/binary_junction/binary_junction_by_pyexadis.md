@@ -28,7 +28,8 @@ We can use the following command to see the content of ```G```.
 
       
 <details>
-  <summary> We can use the following command to see the content of G. 
+  <summary> 
+   We can use the following command to see the content of G. 
 
 
     ```python
