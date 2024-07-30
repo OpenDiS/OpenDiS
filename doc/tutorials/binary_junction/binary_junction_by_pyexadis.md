@@ -30,7 +30,8 @@ We can use the following command to see the content of ```G```.
       
 <details>
   <summary> We can use the following command to see the content of G. 
-  </summary>
+
+</summary>
 
  ```python
 {'cell': {'h': array([[8., 0., 0.],
