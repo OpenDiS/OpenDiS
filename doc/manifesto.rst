@@ -38,10 +38,6 @@ We invite you to join the OpenDiS project to shape the future of dislocation dyn
 
 .. raw:: html
 
-   <a href="./documentation" style="text-decoration: none;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a>
-
-.. raw:: html
-
    <style>
    .no-underline {
        text-decoration: none;
@@ -64,4 +60,7 @@ We invite you to join the OpenDiS project to shape the future of dislocation dyn
 
    <a href="./documentation" class="no-underline">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a>
 
+.. raw:: html
+
+   <a href="./documentation" style="text-decoration: none;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a>
 
