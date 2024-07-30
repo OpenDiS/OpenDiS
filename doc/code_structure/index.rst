@@ -1,5 +1,5 @@
 ===============
-Tutorials
+Code Structure
 ===============
 
 .. toctree::
