@@ -100,7 +100,9 @@ Text text text
 
 
 <details>
-  <summary>
+  <```python
+G.export_data()
+```>
     summary
   </summary>
   details
