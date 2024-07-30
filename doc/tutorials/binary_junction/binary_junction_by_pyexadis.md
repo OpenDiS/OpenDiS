@@ -29,7 +29,7 @@ We can use the following command to see the content of ```G```.
       
 <details>
   <summary>
-     see results for:
+     We can use the following command to see the content of G.
      
    ```python
       G.export_data()
