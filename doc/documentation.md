@@ -5,6 +5,7 @@
 [Markdown guide](https://www.markdownguide.org/basic-syntax/)
 
 
+
 ## Add a section to an existing page 
 
 
@@ -191,7 +192,6 @@ You can use html blocks to toggle code output [see stack overflow:]([https://web
      
 </details>
 
-`♡ <./documentation>`_
 
 
 
