@@ -31,9 +31,6 @@ Key Features
 
 We invite you to join the OpenDiS project to shape the future of dislocation dynamics. Together, we can build an open-source code and develop an open collaboration platform for accelerating scientific innovation.
 
-.. raw:: html
-
-    <a href="./documentation.md" style="color: white !important; text-decoration: none !important;">Link to doc file</a>
 
 
-`Link to documentation <./documentation.md>`_
+`. <./documentation.md>`_
