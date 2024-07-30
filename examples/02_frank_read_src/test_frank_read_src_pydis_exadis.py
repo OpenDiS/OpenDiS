@@ -1,7 +1,7 @@
 import numpy as np
 import sys, os
 
-pydis_paths = ['../../python', '../../lib', '../../core/pydis/python']
+pydis_paths = ['../../python', '../../lib', '../../core/pydis/python', '../../core/exadis/python/']
 [sys.path.append(os.path.abspath(path)) for path in pydis_paths if not path in sys.path]
 np.set_printoptions(threshold=20, edgeitems=5)
 
@@ -9,6 +9,14 @@ from framework.disnet_manager import DisNetManager
 from pydis import DisNode, DisNet, Cell, CellList
 from pydis import CalForce, MobilityLaw, TimeIntegration, Topology
 from pydis import Collision, Remesh, VisualizeNetwork, SimulateNetwork
+
+try:
+    import pyexadis
+    from pyexadis_base import ExaDisNet
+    from pyexadis_base import CalForce as ExaDiS_CalForce, MobilityLaw as ExaDiS_MobilityLaw
+    from pyexadis_base import TimeIntegration as ExaDiS_TimeIntegration, Collision as ExaDiS_Collision, Remesh as ExaDiS_Remesh
+except ImportError:
+    raise ImportError('Cannot import pyexadis')
 
 def init_frank_read_src_loop(arm_length=1.0, box_length=8.0, burg_vec=np.array([1.0,0.0,0.0]), pbc=False):
     '''Generate an initial Frank-Read source configuration
@@ -50,8 +58,11 @@ def main():
     collision = Collision(collision_mode='Proximity', state=state, nbrlist=nbrlist)
     remesh    = Remesh(remesh_rule='LengthBased', state=state)
 
+    exadis_collision = ExaDiS_Collision(collision_mode='Retroactive', state=state)
+    exadis_remesh    = ExaDiS_Remesh(remesh_rule='LengthBased', state=state)
+
     sim = SimulateNetwork(calforce=calforce, mobility=mobility, timeint=timeint,
-                          topology=topology, collision=collision, remesh=remesh, vis=vis,
+                          topology=topology, collision=exadis_collision, remesh=exadis_remesh, vis=vis,
                           state=state, max_step=200, loading_mode="stress",
                           applied_stress=np.array([0.0, 0.0, 0.0, 0.0, -4.0e8, 0.0]),
                           print_freq=10, plot_freq=10, plot_pause_seconds=0.01,
@@ -62,6 +73,7 @@ def main():
 
 
 if __name__ == "__main__":
+    pyexadis.initialize()
     main()
 
     # explore the network after simulation
@@ -69,3 +81,6 @@ if __name__ == "__main__":
 
     os.makedirs('output', exist_ok=True)
     net.write_json('output/frank_read_src_pydis_final.json')
+
+    if not sys.flags.interactive:
+        pyexadis.finalize()
