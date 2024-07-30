@@ -48,7 +48,7 @@ We invite you to join the OpenDiS project to shape the future of dislocation dyn
        color: blue;
    }
    .no-underline:hover::after {
-       content: '♡♡♡';
+       content: '♡';
        position: absolute;
        left: 50%;
        transform: translateX(-50%);
