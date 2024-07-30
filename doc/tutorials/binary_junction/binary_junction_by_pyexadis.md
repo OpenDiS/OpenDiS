@@ -28,11 +28,14 @@ We can use the following command to see the content of ```G```.
 
       
 <details>
-  <summary> 
-       
-     ```python
-     G.export_data()```
- <summary>
+  <summary>
+     see results for:
+     
+   ```python
+      G.export_data()
+   ```
+   
+  </summary>
 
  ```python
 {'cell': {'h': array([[8., 0., 0.],
@@ -101,7 +104,6 @@ We can use the following command to see the content of ```G```.
 ```
      
 </details>
-
 
 
 We can use the following command to convert an ```ExaDiSNet``` object to a ```DisNet``` object, so that we can interact with it using the same approach as in the previous test case.
