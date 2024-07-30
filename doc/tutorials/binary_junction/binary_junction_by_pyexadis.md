@@ -24,13 +24,12 @@ We can see that ```G``` is an ```ExaDiSNet``` object (so that we cannot interact
 
 We can use the following command to see the content of ```G```.
 
+  ```python
+      G.export_data()```
 
+      
 <details>
   <summary> We can use the following command to see the content of G. 
-   
-    ```python
-      G.export_data()```
-   
   </summary>
 
  ```python
