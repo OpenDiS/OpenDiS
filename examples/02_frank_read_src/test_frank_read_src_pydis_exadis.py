@@ -80,7 +80,7 @@ if __name__ == "__main__":
     G  = net.get_disnet()
 
     os.makedirs('output', exist_ok=True)
-    net.write_json('output/frank_read_src_pydis_final.json')
+    net.write_json('output/frank_read_src_pydis_exadis_final.json')
 
     if not sys.flags.interactive:
         pyexadis.finalize()
