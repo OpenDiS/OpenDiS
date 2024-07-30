@@ -10,5 +10,3 @@ Welcome to OpenDiS!
    manifesto.rst
    installation/index
    tutorials/index
-   documentation.md
-   
