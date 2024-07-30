@@ -34,6 +34,6 @@ We invite you to join the OpenDiS project to shape the future of dislocation dyn
 
 .. raw:: html
 
-   <a href="./documentation" style="text-decoration: none;">&nbsp;</a>
+   <a href="./documentation" style="text-decoration: none;">&nbsp;      </a>
 
 
