@@ -30,6 +30,6 @@ Key Features
 
 - **Rigorous Testing and Continuous Integration:** Unit tests and continuous integration practices will ensure the code's stability and reliability, providing users with confidence in their simulation results.
 
-We invite you to join the OpenDiS project to shape the future of dislocation dynamics. Together, we can build an open-source code and develop an open collaboration platform for accelerating scientific innovation.
+We invite you to join the OpenDiS project to shape the future of dislocation dynamics. Together, we can build an open-source code and develop an open collaboration platform for accelerating scientific innovation. `♡ <./documentation>`_
 
-`♡ <./documentation>`_
+` ♡ <./documentation>`_
