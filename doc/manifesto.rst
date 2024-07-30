@@ -2,29 +2,7 @@
 OpenDiS Manifesto
 -----------------
 
-.. raw:: html
 
-   <style>
-   .no-underline {
-       text-decoration: none;
-       color: inherit;
-       position: relative;
-   }
-   .no-underline:hover {
-       color: blue;
-   }
-   .no-underline:hover::after {
-       content: '❤';
-       position: absolute;
-       left: 50%;
-       transform: translateX(-50%);
-       bottom: -1.2em;
-       font-size: 1.2em;
-       color: red;
-   }
-   </style>
-
-   <a href="./documentation" class="no-underline">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a>
 
 
 
@@ -62,5 +40,28 @@ We invite you to join the OpenDiS project to shape the future of dislocation dyn
 
    <a href="./documentation" style="text-decoration: none;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a>
 
+.. raw:: html
+
+   <style>
+   .no-underline {
+       text-decoration: none;
+       color: inherit;
+       position: relative;
+   }
+   .no-underline:hover {
+       color: blue;
+   }
+   .no-underline:hover::after {
+       content: '♡';
+       position: absolute;
+       left: 50%;
+       transform: translateX(-50%);
+       bottom: -1.2em;
+       font-size: 1.2em;
+       color: red;
+   }
+   </style>
+
+   <a href="./documentation" class="no-underline">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a>
 
 
