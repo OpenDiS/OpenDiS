@@ -191,6 +191,6 @@ You can use html blocks to toggle code output [see stack overflow:]([https://web
      
 </details>
 
-`&nbsp; <./documentation.md>`_
+`&#160; <./documentation.md>`_
 
 
