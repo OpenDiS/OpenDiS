@@ -1,4 +1,6 @@
 .. role:: red
+.. |nbsp| unicode:: 0xa0
+   :trim:
 
 OpenDiS Manifesto
 -----------------
@@ -36,4 +38,4 @@ We invite you to join the OpenDiS project to shape the future of dislocation dyn
 
 :red:`this text color is red`
 
-`\ _\ <./documentation>`_
+`|nbsp| <./documentation>`_
