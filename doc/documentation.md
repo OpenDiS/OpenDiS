@@ -98,6 +98,20 @@ Text four
 
 Text text text
 
+You can use html blocks to toggle code output [see stack overflow:]([https://website-name.com](https://stackoverflow.com/questions/63023659/how-can-i-have-a-code-block-with-a-vertical-scrolling-feature-in-the-markdown-on))
+
+```
+<details>
+  <summary>
+
+   add text for summary here. You can add code blocks but make sure you have an extra line after summary
+
+  </summary>
+
+   add whatever details you want here
+
+</details>
+```
 
 <details>
   <summary>
@@ -175,6 +189,5 @@ Text text text
        [-0.70710678,  0.        ,  0.70710678]])}}
 ```
      
-
 </details>
 
