@@ -102,10 +102,13 @@ Text text text
 <details>
   <summary>
      
-    ```python
+   ```python
       G.export_data()
-      ```
+   
   </summary>
-  details
+
+ here
+     
+
 </details>
 
