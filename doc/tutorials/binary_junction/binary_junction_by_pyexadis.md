@@ -34,11 +34,11 @@ We can use the following command to see the content of ```G```.
    <details>
     <summary>
      
-      ```python
-      G.export_data()```
-      
-      </summary>
-      
+     ```python
+     G.export_data()```
+     
+     </summary>
+     
 </summary>
 
  ```python
