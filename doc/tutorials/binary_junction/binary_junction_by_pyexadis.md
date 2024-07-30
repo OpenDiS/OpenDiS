@@ -31,10 +31,10 @@ We can use the following command to see the content of ```G```.
   <summary> 
    We can use the following command to see the content of G. 
 
-       <details>
+   <details>
     <summary>
-    
-        ```python
+     
+      ```python
       G.export_data()```
       
       </summary>
