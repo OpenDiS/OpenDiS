@@ -22,11 +22,7 @@ The output is
 ```
 We can see that ```G``` is an ```ExaDiSNet``` object (so that we cannot interact with it the same way as a ```DisNet``` object).
 
-We can use the following command to see the content of ```G```.
-
- 
-
-      
+       
 <details>
   <summary>
      We can use the following command to see the content of G.
