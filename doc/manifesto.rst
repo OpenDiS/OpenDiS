@@ -53,7 +53,7 @@ We invite you to join the OpenDiS project to shape the future of dislocation dyn
        left: 50%;
        transform: translateX(-50%);
        bottom: -1.2em;
-       font-size: 2.2em;
+       font-size: 3.0em;
        color: purple;
    }
    </style>
