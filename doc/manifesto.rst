@@ -33,7 +33,7 @@ We invite you to join the OpenDiS project to shape the future of dislocation dyn
 
 .. raw:: html
 
-    <a href="./documentation.md" style="color: white;">Link to Markdown file</a>
+    <a href="./documentation.md" style="color: white !important;">Link to doc file</a>
 
 
 `Link to documentation <./documentation.md>`_
