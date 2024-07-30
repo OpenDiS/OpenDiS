@@ -97,3 +97,12 @@ Text four
 ```
 
 Text text text
+
+
+<details>
+  <summary>
+    summary
+  </summary>
+  details
+</details>
+
