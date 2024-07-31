@@ -36,8 +36,19 @@ The initial dislocation configuration is visualized below:
 
 The stress-strain curve for a simulation of 10000 steps is shown below:
 The initial dislocation configuration is visualized below:
-```{figure} stress_strain.png
+```{figure} Stress_strain.png
 :alt: Screenshot of the final configuration
 :width: 552px
 ```
 </br>
+
+**Density-strain curve**
+
+The density-strain curve for a simulation of 10000 steps is shown below:
+The initial dislocation configuration is visualized below:
+```{figure} Density_strain.png
+:alt: Screenshot of the final configuration
+:width: 552px
+```
+</br>
+
