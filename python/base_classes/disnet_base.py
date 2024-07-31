@@ -6,7 +6,27 @@ Defines interface for the DisNet class
 
 from abc import ABC, abstractmethod 
 
-class DisNet_BASE(ABC):
+class DisNet_Base(ABC):
+    #@abstractmethod
+    # To do: find out if property can be abstract method
+    #def cell(self):
+    #    """cell: return simulation cell
+    #    """
+    #    pass
+
+    @abstractmethod
+    def export_data(self):
+        """export_data: export network to data
+        """
+        pass
+
+    @abstractmethod
+    def import_data(self, data):
+        """import_data: import network from data
+        """
+        pass
+
+class DisNet_Python(DisNet_Base):
     """DisNet_BASE: base class for DisNet (dislocation network)
 
     Defines interface for the DisNet class
@@ -41,34 +61,6 @@ class DisNet_BASE(ABC):
         """
         pass
 
-    # To do: remove this function requirement
-    #@abstractmethod
-    #def node_prop_list(self):
-    #    """node_pos_list: return a list of node properties
-    #       (each item of the list is a dictionary)
-    #    """
-    #    pass
-
-    # To do: remove this function requirement
-    #@abstractmethod
-    #def seg_prop_list(self):
-    #    """seg_prop_list: return a numpy array of segment properties
-    #       (each item of the list is a dictionary)
-    #    """
-    #    pass
-
-    @abstractmethod
-    def export_data(self):
-        """export_data: export network to data
-        """
-        pass
-
-    @abstractmethod
-    def import_data(self, data):
-        """import_data: import network from data
-        """
-        pass
-    
     @abstractmethod
     def has_node(self, tag) -> bool:
         """has_node: check if a node exists in the network

@@ -7,8 +7,10 @@ np.set_printoptions(threshold=20, edgeitems=5)
 
 from framework.disnet_manager import DisNetManager
 from pydis import DisNode, DisNet, Cell, CellList
-from pydis import CalForce, MobilityLaw, TimeIntegration, Topology
-from pydis import Collision, Remesh, VisualizeNetwork, SimulateNetwork
+from pydis import CalForce as PyDiS_CalForce, MobilityLaw as PyDiS_MobilityLaw
+from pydis import TimeIntegration as PyDiS_TimeIntegration, Topology as PyDiS_Topology
+from pydis import Collision as PyDiS_Collision, Remesh as PyDiS_Remesh
+from pydis import VisualizeNetwork, SimulateNetwork
 
 try:
     import pyexadis
@@ -51,18 +53,18 @@ def main():
 
     state = {"burgmag": 3e-10, "mu": 50e9, "nu": 0.3, "a": 1.0, "maxseg": 0.04*Lbox, "minseg": 0.01*Lbox, "rann": 3.0}
 
-    calforce  = CalForce(force_mode='LineTension', state=state)
-    mobility  = MobilityLaw(mobility_law='SimpleGlide', state=state)
-    timeint   = TimeIntegration(integrator='EulerForward', dt=1.0e-8, state=state)
-    topology  = Topology(split_mode='MaxDiss', state=state, force=calforce, mobility=mobility)
-    collision = Collision(collision_mode='Proximity', state=state, nbrlist=nbrlist)
-    remesh    = Remesh(remesh_rule='LengthBased', state=state)
+    pydis_calforce  = PyDiS_CalForce(force_mode='LineTension', state=state)
+    pydis_mobility  = PyDiS_MobilityLaw(mobility_law='SimpleGlide', state=state)
+    pydis_timeint   = PyDiS_TimeIntegration(integrator='EulerForward', dt=1.0e-8, state=state)
+    pydis_topology  = PyDiS_Topology(split_mode='MaxDiss', state=state, force=pydis_calforce, mobility=pydis_mobility)
+    pydis_collision = PyDiS_Collision(collision_mode='Proximity', state=state, nbrlist=nbrlist)
+    pydis_remesh    = PyDiS_Remesh(remesh_rule='LengthBased', state=state)
 
     exadis_collision = ExaDiS_Collision(collision_mode='Retroactive', state=state)
     exadis_remesh    = ExaDiS_Remesh(remesh_rule='LengthBased', state=state)
 
-    sim = SimulateNetwork(calforce=calforce, mobility=mobility, timeint=timeint,
-                          topology=topology, collision=exadis_collision, remesh=exadis_remesh, vis=vis,
+    sim = SimulateNetwork(calforce=pydis_calforce, mobility=pydis_mobility, timeint=pydis_timeint,
+                          topology=pydis_topology, collision=exadis_collision, remesh=exadis_remesh, vis=vis,
                           state=state, max_step=200, loading_mode="stress",
                           applied_stress=np.array([0.0, 0.0, 0.0, 0.0, -4.0e8, 0.0]),
                           print_freq=10, plot_freq=10, plot_pause_seconds=0.01,

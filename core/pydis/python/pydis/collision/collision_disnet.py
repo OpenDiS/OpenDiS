@@ -23,6 +23,8 @@ class Collision:
         self.collision_mode = collision_mode
         self.mindist2 = state.get("rann", np.sqrt(1.0e-3))**2
         self.nbrlist = kwargs.get('nbrlist')
+        if not self.nbrlist.__module__.split('.')[0] in ['pydis']:
+            raise ValueError("Collision: nbrlist must come compatible modules")
 
         self.HandleCol_Functions = {
             'Proximity': self.HandleCol_Proximity }

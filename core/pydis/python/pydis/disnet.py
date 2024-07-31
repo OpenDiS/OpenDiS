@@ -9,7 +9,7 @@ from .graph.graph import Graph, Node as Node_bare, Edge as Edge_bare
 from typing import Tuple
 from enum import IntEnum
 
-from base_classes.disnet_base import DisNet_BASE
+from base_classes.disnet_base import DisNet_Python
 
 Tag = Tuple[int, int]
 
@@ -147,7 +147,7 @@ class Cell:
         """
         return vars(self)
 
-class DisNet(DisNet_BASE):
+class DisNet(DisNet_Python):
     """DisNet: class for dislocation network
 
     Implements basic topological operations on dislocation networks
