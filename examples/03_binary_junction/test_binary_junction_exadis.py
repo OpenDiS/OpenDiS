@@ -10,7 +10,7 @@ try:
     import pyexadis
     from framework.disnet_manager import DisNetManager
     from pyexadis_base import ExaDisNet, NodeConstraints, SimulateNetwork, VisualizeNetwork
-    from pyexadis_base import CalForce, MobilityLaw, TimeIntegration, Collision, Remesh
+    from pyexadis_base import CalForce, MobilityLaw, TimeIntegration, Collision, Topology, Remesh
 except ImportError:
     raise ImportError('Cannot import pyexadis')
 
@@ -54,14 +54,14 @@ def main():
         "nu": 0.31,
         "a": 0.1,
         "maxseg": 0.04 * Lbox,
-        "minseg": 0.0001 * Lbox,
-        "rann": 0.165
+        "minseg": 0.01 * Lbox,
+        "rann": 0.0316
     }
 
     calforce = CalForce(force_mode='LineTension', state=state, Ec=1.0e6)
     mobility = MobilityLaw(mobility_law='SimpleGlide', state=state)
     timeint = TimeIntegration(integrator='EulerForward', dt=1.0e-9, state=state)
-    topology = None
+    topology  = Topology(topology_mode='TopologySerial', state=state, force=calforce, mobility=mobility)
     collision = Collision(collision_mode='Proximity', state=state)
     remesh = Remesh(remesh_rule='LengthBased', state=state)
 
