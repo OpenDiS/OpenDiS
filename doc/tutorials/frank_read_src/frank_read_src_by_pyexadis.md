@@ -10,6 +10,12 @@ python3 -i test_frank_read_src_exadis.py
 ```
 This is assuming ExaDis has been compiled using OpenMP, and ```OMP_NUM_THREADS=8``` specifies the number of threads used for the OpenMP run.  The behavior should be similar to the previous test case (using pydis), except that the simulation should run much faster.
 
+One difference between this test case and the previous one is that here we have set
+```python
+topology  = None
+```
+The purpose is just to demonstrate that, without a topology module (which handles split_multi_node), the Frank-Read source test case can still behave properly.
+
 #### Explore Dislocation Network
 
 After the simulation has finished, we can examine the data stored in object ```G``` by typing the following command in the Python terminal.
