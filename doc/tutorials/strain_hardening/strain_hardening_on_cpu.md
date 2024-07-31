@@ -28,6 +28,7 @@ This is a simulation for max_step=100. After simulation, we can see a folder “
 </br>
 
 **Initial dislocation configuration**
+
 The initial dislocation configuration is visualized below:
 ```{figure} initial_con figuration.png
 :alt: Screenshot of the final configuration
