@@ -10,3 +10,4 @@ Welcome to OpenDiS!
    manifesto.rst
    installation/index
    tutorials/index
+   code_structure/index
