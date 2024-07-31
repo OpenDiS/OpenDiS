@@ -17,7 +17,11 @@ class Topology:
     def __init__(self, state: dict={}, split_mode: str='MaxDiss', **kwargs) -> None:
         self.split_mode = split_mode
         self.force = kwargs.get('force')
+        if not self.force.__module__.split('.')[0] in ['pydis']:
+            raise ValueError("Topology: force must come compatible modules")
         self.mobility = kwargs.get('mobility')
+        if not self.mobility.__module__.split('.')[0] in ['pydis']:
+            raise ValueError("Topology: mobility must come compatible modules")
         self.Handle_Functions = {
             'MaxDiss': self.Handle_MaxDiss }
         
