@@ -22,4 +22,22 @@ The simulation settings are assigned via params, calforce, mobility, timeint, co
 sim.run(net)
 ```
 This is a simulation for max_step=100. After simulation, we can see a folder “output_fcc_Cu_15um_1e3”, where there is a data file for every 100 steps and a file called “stress_strain_dens.dat” to store step, strain, stress (Pa), dislocation density (1/m^2) and walltime (sec) in five columns for each step, respectively.
+
+**Initial dislocation configuration**
+
+The initial dislocation configuration is visualized below:
+```{figure} initial_con figuration.png
+:alt: Screenshot of the final configuration
+:width: 552px
+```
+</br>
+
+**Stress-strain curve**
+
+The stress-strain curve for a simulation of 10000 steps is shown below:
+The initial dislocation configuration is visualized below:
+```{figure} stress_strain.png
+:alt: Screenshot of the final configuration
+:width: 552px
+```
 </br>
