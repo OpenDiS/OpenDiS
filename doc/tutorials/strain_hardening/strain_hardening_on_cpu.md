@@ -22,7 +22,7 @@ G.read_paradis('180chains_16.10e.data')
 
 The simulation settings are assigned via params, calforce, mobility, timeint, collision, topology and remesh. Then, they are used in SimulateNetworkPerf(). The simulation is conducted using 
 ```bash
-sim.run(net)
+sim.run(net, state)
 ```
 This is a simulation for max_step=100. After simulation, we can see a folder “output_fcc_Cu_15um_1e3”, where there is a data file for every 100 steps and a file called “stress_strain_dens.dat” to store step, strain, stress (Pa), dislocation density (1/m^{2}) and walltime (sec) in five columns for each step, respectively.
 </br>
