@@ -24,12 +24,12 @@ The simulation settings are assigned via params, calforce, mobility, timeint, co
 ```bash
 sim.run(net)
 ```
-This is a simulation for max_step=100. After simulation, we can see a folder “output_fcc_Cu_15um_1e3”, where there is a data file for every 100 steps and a file called “stress_strain_dens.dat” to store step, strain, stress (Pa), dislocation density (1/m^2) and walltime (sec) in five columns for each step, respectively.
+This is a simulation for max_step=100. After simulation, we can see a folder “output_fcc_Cu_15um_1e3”, where there is a data file for every 100 steps and a file called “stress_strain_dens.dat” to store step, strain, stress (Pa), dislocation density (1/m^{2}) and walltime (sec) in five columns for each step, respectively.
 </br>
 
 **Initial dislocation configuration**
 
-The initial dislocation configuration is visualized below:
+The dimensions for initial dislocation configuration are ∼ 15 𝜇m × 15 𝜇m × 15 𝜇m. The dislocation density is 𝜌0 ≈ 1.2 × 1012 m^{−2}. It is visualized below using Paraview.
 ```{figure} initial_con figuration.png
 :alt: Screenshot of the final configuration
 :width: 552px
