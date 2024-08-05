@@ -38,7 +38,8 @@ The dimensions for initial dislocation configuration are ∼ 15 𝜇m × 15 𝜇
 
 **Stress-strain curve**
 
-The stress-strain curve for a simulation of 10000 steps is shown below:
+A simulation is conducted for 8 hours as an example.
+The stress-strain curve is shown below:
 ```{figure} Stress_strain.png
 :alt: Screenshot of the final configuration
 :width: 552px
@@ -47,7 +48,8 @@ The stress-strain curve for a simulation of 10000 steps is shown below:
 
 **Density-strain curve**
 
-The density-strain curve for a simulation of 10000 steps is shown below:
+A simulation is conducted for 8 hours as an example.
+The density-strain curve is shown below:
 ```{figure} Density_strain.png
 :alt: Screenshot of the final configuration
 :width: 552px
