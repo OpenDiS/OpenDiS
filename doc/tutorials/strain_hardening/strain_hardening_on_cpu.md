@@ -29,7 +29,7 @@ This is a simulation for max_step=100. After simulation, we can see a folder “
 
 **Initial dislocation configuration**
 
-The dimensions for initial dislocation configuration are ∼ 15 𝜇m × 15 𝜇m × 15 𝜇m. The dislocation density is 𝜌0 ≈ 1.2 × 1012 m^{−2}. It is visualized below using Paraview.
+The dimensions for initial dislocation configuration are ∼ 15 𝜇m × 15 𝜇m × 15 𝜇m. Periodic boundary condition is applied along all three dimensions. The dislocation density is 𝜌0 ≈ 1.2 × 10$^{12}$ m^{−2}. It is visualized below using Paraview.
 ```{figure} initial_con figuration.png
 :alt: Screenshot of the final configuration
 :width: 552px
