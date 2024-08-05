@@ -21,7 +21,7 @@ def example_fcc_Cu_15um_1e3():
     
     pyexadis.initialize()
     
-    params = {
+    state = {
         "crystal": 'fcc',
         "burgmag": 2.55e-10,
         "mu": 54.6e9,
@@ -37,24 +37,24 @@ def example_fcc_Cu_15um_1e3():
     
     G = ExaDisNet()
     G.read_paradis('180chains_16.10e.data')
-    net = DisNetManager({type(G): G})
+    net = DisNetManager(G)
     
     vis = None
     
-    calforce  = CalForce(force_mode='SUBCYCLING_MODEL', params=params, Ngrid=64, cell=G.cell)
-    mobility  = MobilityLaw(mobility_law='FCC_0', params=params, Medge=64103.0, Mscrew=64103.0, vmax=4000.0)
-    timeint   = TimeIntegration(integrator='Subcycling', rgroups=[0.0, 100.0, 600.0, 1600.0], params=params, force=calforce, mobility=mobility)
-    collision = Collision(collision_mode='Retroactive', params=params)
-    topology  = Topology(topology_mode='TopologyParallel', params=params, force=calforce, mobility=mobility)
-    remesh    = Remesh(remesh_rule='LengthBased', params=params)
+    calforce  = CalForce(force_mode='SUBCYCLING_MODEL', state=state, Ngrid=64, cell=net.cell)
+    mobility  = MobilityLaw(mobility_law='FCC_0', state=state, Medge=64103.0, Mscrew=64103.0, vmax=4000.0)
+    timeint   = TimeIntegration(integrator='Subcycling', rgroups=[0.0, 100.0, 600.0, 1600.0], state=state, force=calforce, mobility=mobility)
+    collision = Collision(collision_mode='Retroactive', state=state)
+    topology  = Topology(topology_mode='TopologyParallel', state=state, force=calforce, mobility=mobility)
+    remesh    = Remesh(remesh_rule='LengthBased', state=state)
     
     sim = SimulateNetworkPerf(calforce=calforce, mobility=mobility, timeint=timeint, 
                               collision=collision, topology=topology, remesh=remesh, vis=vis,
                               loading_mode='strain_rate', erate=1e3, edir=np.array([0.,0.,1.]),
-                              max_step=100, burgmag=params["burgmag"],
+                              max_step=100, burgmag=state["burgmag"], state=state,
                               print_freq=1, plot_freq=10, plot_pause_seconds=0.0001,
                               write_freq=100, write_dir='output_fcc_Cu_15um_1e3')
-    sim.run(net)
+    sim.run(net, state)
     
     pyexadis.finalize()
     
