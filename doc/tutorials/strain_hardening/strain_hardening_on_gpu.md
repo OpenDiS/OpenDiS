@@ -36,7 +36,7 @@ The dimensions for initial dislocation configuration are ∼ 15 𝜇m × 15 𝜇
 
 A simulation of 10000 steps is conducted as an example, which costs 2 days.
 The stress-strain curve is shown below:
-```{figure} Stress_strain.png
+```{figure} Stress_strain_GPU.png
 :alt: Screenshot of the final configuration
 :width: 552px
 ```
@@ -46,7 +46,7 @@ The stress-strain curve is shown below:
 
 A simulation of 10000 steps is conducted as an example, which costs 2 days.
 The density-strain curve is shown below:
-```{figure} Density_strain.png
+```{figure} Density_strain_GPU.png
 :alt: Screenshot of the final configuration
 :width: 552px
 ```
