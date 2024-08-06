@@ -40,7 +40,7 @@ The dimensions for initial dislocation configuration are ∼ 15 𝜇m × 15 𝜇
 
 A simulation is conducted for 8 hours as an example.
 The stress-strain curve is shown below:
-```{figure} Stress_strain.png
+```{figure} Stress_strain_CPU.png
 :alt: Screenshot of the final configuration
 :width: 552px
 ```
@@ -50,7 +50,7 @@ The stress-strain curve is shown below:
 
 A simulation is conducted for 8 hours as an example.
 The density-strain curve is shown below:
-```{figure} Density_strain.png
+```{figure} Density_strain_CPU.png
 :alt: Screenshot of the final configuration
 :width: 552px
 ```
