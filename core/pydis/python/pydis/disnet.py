@@ -9,7 +9,7 @@ from .graph.graph import Graph, Node as Node_bare, Edge as Edge_bare
 from typing import Tuple
 from enum import IntEnum
 
-from base_classes.disnet_base import DisNet_Python
+from framework.disnet_base import DisNet_Python
 
 Tag = Tuple[int, int]
 
