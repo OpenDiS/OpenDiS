@@ -17,10 +17,12 @@ class Topology:
     def __init__(self, state: dict={}, split_mode: str='MaxDiss', **kwargs) -> None:
         self.split_mode = split_mode
         self.force = kwargs.get('force')
-        if not self.force.__module__.split('.')[0] in ['pydis']:
+        if not self.force.__module__.split('.')[0] in ['pydis', 'pyexadis_base']:
+            print("Topology: force.__module__ = ", self.force.__module__)
             raise ValueError("Topology: force must come compatible modules")
         self.mobility = kwargs.get('mobility')
         if not self.mobility.__module__.split('.')[0] in ['pydis']:
+            print("Topology: mobility.__module__ = ", self.mobility.__module__)
             raise ValueError("Topology: mobility must come compatible modules")
         self.Handle_Functions = {
             'MaxDiss': self.Handle_MaxDiss }
@@ -56,29 +58,11 @@ class Topology:
 
     @staticmethod
     def split_node_and_update_forces(G, state, tag, pos1, pos2, nbrs_to_split, force, mobility):
-        segforce_dict = state["segforce_dict"]
         split_node1, split_node2 = G.split_node(tag, pos1, pos2, nbrs_to_split)
-
-        # modify the segforce_trial_dict to reflect the trial split
-        segforce_dict_copy = deepcopy(segforce_dict)
-        for segment in segforce_dict_copy:
-            tag1, tag2 = segment
-            if tag1 == tag or tag2 == tag:
-                if not G.has_segment(tag1, tag2):
-                    #print("remove segment (%s, %s) from segforce_trial_dict" % (str(tag1), str(tag2)))
-                    segforce_dict.pop(segment)
-                    if tag1 == tag and G.has_segment(split_node2, tag2):
-                        new_segment = (split_node2, tag2)
-                    elif tag2 == tag and G.has_segment(tag1, split_node2):
-                        new_segment = (tag1, split_node2)
-                    else:
-                        raise ValueError("trial_split_multi_node: cannot find corresponding segment (%s, %s) in G_trial" % (str(tag1), str(tag2)))
-                    #print("add segment %s to segforce_trial_dict" % str(new_segment))
-                    segforce_dict[new_segment] = segforce_dict_copy[segment]
-
         # calculate nodal forces and velocities for the trial split
-        state["segforce_dict"] = segforce_dict
-        state = force.NodeForce_from_SegForce(G, state)
+        # To do: pass DisNetManager instead of DisNet in these static methods
+        f1 = force.OneNodeForce(DisNetManager(G), state, split_node1, update_state=True)
+        f2 = force.OneNodeForce(DisNetManager(G), state, split_node2, update_state=True)
         state = mobility.Mobility(DisNetManager(G), state)
         return state, split_node1, split_node2
 

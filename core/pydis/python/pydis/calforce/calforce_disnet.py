@@ -6,7 +6,7 @@ Provide force calculation functions given a DisNet object
 
 import numpy as np
 from typing import Tuple
-from ..disnet import DisNet
+from ..disnet import DisNet, Tag
 from framework.disnet_manager import DisNetManager
 
 try:
@@ -80,6 +80,10 @@ class CalForce:
             'LineTension': self.NodeForce_LineTension,
             'Elasticity_SBA': self.NodeForce_Elasticity_SBA,
             'Elasticity_SBN1_SBA': self.NodeForce_Elasticity_SBN1_SBA }
+        self.OneNodeForce_Functions = {
+            'LineTension': self.OneNodeForce_LineTension,
+            'Elasticity_SBA': self.OneNodeForce_Elasticity_SBA,
+            'Elasticity_SBN1_SBA': self.OneNodeForce_Elasticity_SBN1_SBA }
 
     def NodeForce(self, DM: DisNetManager, state: dict) -> dict:
         """NodeForce: return nodal forces in a dictionary
@@ -97,23 +101,100 @@ class CalForce:
 
         return state
 
-    def NodeForce_from_SegForce(self, G: DisNet, state: dict) -> dict:
-        """NodeForce_from_SegForce: return nodal forces by assembling segment forces
+    def PreCompute(self, DM: DisNetManager, state: dict) -> dict:
+        """PreCompute: pre-compute some data for force calculation
         """
-        segforce_dict = state["segforce_dict"]
-        nodeforce_dict = {}
-        for tag in G.all_nodes_tags():
-            nodeforce_dict.update({tag: np.array([0.0,0.0,0.0])})
-        for segment in segforce_dict:
-            tag1, tag2 = segment
-            nodeforce_dict[tag1] += segforce_dict[segment][0:3]
-            nodeforce_dict[tag2] += segforce_dict[segment][3:6]
-        state["nodeforce_dict"] = nodeforce_dict
-
-        # prepare nodeforces and nodeforce_tags arrays for compatibility with exadis
-        state = DisNet.convert_nodeforce_dict_to_array(state)
-
+        #G = DM.get_disnet(DisNet)
+        #segs_data_with_positions = G.get_segs_data_with_positions()
+        #state["segs_data_with_positions"] = segs_data_with_positions
         return state
+
+    def OneNodeForce(self, DM: DisNetManager, state: dict, tag: Tag, update_state: bool=True) -> dict:
+        applied_stress = state["applied_stress"]
+        G = DM.get_disnet(DisNet)
+        f = self.OneNodeForce_Functions[self.force_mode](G, applied_stress, tag)
+        # update force dictionary if needed
+        if update_state:
+            if "nodeforces" in state and "nodeforcetags" in state:
+                nodeforcetags = state["nodeforcetags"]
+                ind = np.where((nodeforcetags[:,0]==tag[0])&(nodeforcetags[:,1]==tag[1]))[0]
+                if ind.size == 1:
+                    state["nodeforces"][ind[0]] = f
+                else:
+                    state["nodeforces"] = np.vstack((state["nodeforces"], f))
+                    state["nodeforcetags"] = np.vstack((state["nodeforcetags"], tag))
+            else:
+                state["nodeforces"] = np.array([f])
+                state["nodeforcetags"] = np.array([tag])
+
+        return f
+
+    def OneNodeForce_LineTension(self, G: DisNet, applied_stress: np.ndarray, tag) -> float:
+        """OneNodeForce_LineTension: return force on one node from line tension
+        """
+        # To do: refactor this into a function
+        Nseg = G.out_degree(tag) # This line is different
+        nodeids = np.zeros((Nseg, 2), dtype=int)
+        tag1 = np.zeros((Nseg, 2), dtype=int)
+        tag2 = np.zeros((Nseg, 2), dtype=int)
+        burgers = np.zeros((Nseg, 3))
+        planes = np.zeros((Nseg, 3))
+        R1 = np.zeros((Nseg, 3))
+        R2 = np.zeros((Nseg, 3))
+        i = 0
+        for nbr_tag, edge_attr in G.neighbor_segments_dict(tag).items(): # This line is different
+            nodeids[i,:] = -1, -1 # This line is different
+            source = tag          # This line is different
+            target = nbr_tag      # This line is different
+            tag1[i,:] = source
+            tag2[i,:] = target
+            burgers[i,:] = edge_attr.burg_vec_from(source).copy()
+            planes[i,:] = getattr(edge_attr, "plane_normal", np.zeros(3)).copy()
+            r1_local = G.nodes(source).R  # This line is different
+            r2_local = G.nodes(target).R  # This line is different
+            # apply PBC
+            r2_local = G.cell.closest_image(Rref=r1_local, R=r2_local) # This line is different
+            R1[i,:] = r1_local
+            R2[i,:] = r2_local
+            i += 1
+        segs_data_with_positions = {
+            "nodeids": nodeids,
+            "tag1": tag1,
+            "tag2": tag2,
+            "burgers": burgers,
+            "planes":  planes,
+            "R1": R1,
+            "R2": R2
+        }
+        source_tags = segs_data_with_positions["tag1"]
+        target_tags = segs_data_with_positions["tag2"]
+
+        sigext = voigt_vector_to_tensor(applied_stress)
+        fpk = pkforcevec(sigext, segs_data_with_positions)
+        fs0, fs1 = selfforcevec_LineTension(self.mu, self.nu, self.Ec, segs_data_with_positions)
+        fseg = np.hstack((fpk*0.5 + fs0, fpk*0.5 + fs1))
+
+        f = np.zeros(3)
+
+        for i in range(Nseg):
+            tag1 = tuple(source_tags[i])
+            tag2 = tuple(target_tags[i])
+            if tag == tag1:
+                f += fseg[i, 0:3]
+            elif tag == tag2:
+                f += fseg[i, 3:6]
+
+        return f
+
+    def OneNodeForce_Elasticity_SBA(self, G: DisNet, applied_stress: np.ndarray, tag) -> float:
+        """OneNodeForce_Elasticity_SBA: return force on one node from line tension
+        """
+        raise NotImplementedError("OneNodeForce_Elasticity_SBA not implemented yet")
+
+    def OneNodeForce_Elasticity_SBN1_SBA(self, G: DisNet, applied_stress: np.ndarray, tag) -> float:
+        """OneNodeForce_Elasticity_SBN1_SBA: return force on one node from line tension
+        """
+        raise NotImplementedError("OneNodeForce_Elasticity_SBN1_SBA not implemented yet")
 
     def NodeForce_LineTension(self, G: DisNet, applied_stress: np.ndarray) -> Tuple[dict, dict]:
         """NodeForce: return nodal forces from line tension in a dictionary

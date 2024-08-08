@@ -53,17 +53,25 @@ def main():
 
     state = {"burgmag": 3e-10, "mu": 50e9, "nu": 0.3, "a": 1.0, "maxseg": 0.04*Lbox, "minseg": 0.01*Lbox, "rann": 3.0}
 
-    pydis_calforce  = PyDiS_CalForce(force_mode='LineTension', state=state)
-    pydis_mobility  = PyDiS_MobilityLaw(mobility_law='SimpleGlide', state=state)
-    pydis_timeint   = PyDiS_TimeIntegration(integrator='EulerForward', dt=1.0e-8, state=state)
-    pydis_topology  = PyDiS_Topology(split_mode='MaxDiss', state=state, force=pydis_calforce, mobility=pydis_mobility)
-    pydis_collision = PyDiS_Collision(collision_mode='Proximity', state=state, nbrlist=nbrlist)
-    pydis_remesh    = PyDiS_Remesh(remesh_rule='LengthBased', state=state)
+    pydis_calforce   = PyDiS_CalForce(force_mode='LineTension', state=state)
+    exadis_calforce  = ExaDiS_CalForce(force_mode='LineTension', state=state)
 
+    pydis_mobility   = PyDiS_MobilityLaw(mobility_law='SimpleGlide', state=state)
+    exadis_mobility  = ExaDiS_MobilityLaw(mobility_law='SimpleGlide', state=state)
+
+    pydis_timeint    = PyDiS_TimeIntegration(integrator='EulerForward', dt=1.0e-8, state=state)
+    exadis_timeint   = ExaDiS_TimeIntegration(integrator='EulerForward', dt=1.0e-8, state=state)
+
+    pydis_topology   = PyDiS_Topology(split_mode='MaxDiss', state=state, force=exadis_calforce, mobility=pydis_mobility)
+
+    pydis_collision  = PyDiS_Collision(collision_mode='Proximity', state=state, nbrlist=nbrlist)
     exadis_collision = ExaDiS_Collision(collision_mode='Retroactive', state=state)
+
+    pydis_remesh     = PyDiS_Remesh(remesh_rule='LengthBased', state=state)
     exadis_remesh    = ExaDiS_Remesh(remesh_rule='LengthBased', state=state)
 
-    sim = SimulateNetwork(calforce=pydis_calforce, mobility=pydis_mobility, timeint=pydis_timeint,
+
+    sim = SimulateNetwork(calforce=exadis_calforce, mobility=pydis_mobility, timeint=pydis_timeint,
                           topology=pydis_topology, collision=exadis_collision, remesh=exadis_remesh, vis=vis,
                           state=state, max_step=200, loading_mode="stress",
                           applied_stress=np.array([0.0, 0.0, 0.0, 0.0, -4.0e8, 0.0]),
