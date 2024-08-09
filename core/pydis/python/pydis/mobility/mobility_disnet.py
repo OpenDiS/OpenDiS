@@ -8,6 +8,9 @@ import numpy as np
 from ..disnet import DisNet, DisNode
 from framework.disnet_manager import DisNetManager
 
+# To do:
+# 1. Implement OneNodeMobility in pydis, to use exadis_topology with pydis_mobility
+
 class MobilityLaw:
     """MobilityLaw: class for mobility laws
 

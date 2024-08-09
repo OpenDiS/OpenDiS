@@ -15,32 +15,13 @@ from pydis import VisualizeNetwork, SimulateNetwork
 try:
     import pyexadis
     from pyexadis_base import ExaDisNet
-    from pyexadis_base import CalForce as ExaDiS_CalForce, MobilityLaw as ExaDiS_MobilityLaw
+    from pyexadis_base import CalForce as ExaDiS_CalForce, MobilityLaw as ExaDiS_MobilityLaw, Topology as ExaDiS_Topology
     from pyexadis_base import TimeIntegration as ExaDiS_TimeIntegration, Collision as ExaDiS_Collision, Remesh as ExaDiS_Remesh
 except ImportError:
     raise ImportError('Cannot import pyexadis')
 
-def init_frank_read_src_loop(arm_length=1.0, box_length=8.0, burg_vec=np.array([1.0,0.0,0.0]), pbc=False):
-    '''Generate an initial Frank-Read source configuration
-    '''
-    print("init_frank_read_src_loop: length = %f" % (arm_length))
-    cell = Cell(h=box_length*np.eye(3), is_periodic=[pbc,pbc,pbc])
-
-    rn    = np.array([[0.0, -arm_length/2.0, 0.0,         DisNode.Constraints.PINNED_NODE],
-                      [0.0,  0.0,            0.0,         DisNode.Constraints.UNCONSTRAINED],
-                      [0.0,  arm_length/2.0, 0.0,         DisNode.Constraints.PINNED_NODE],
-                      [0.0,  arm_length/2.0, -arm_length, DisNode.Constraints.PINNED_NODE],
-                      [0.0, -arm_length/2.0, -arm_length, DisNode.Constraints.PINNED_NODE]])
-    rn[:,0:3] += cell.center()
-
-    N = rn.shape[0]
-    links = np.zeros((N, 8))
-    for i in range(N):
-        pn = np.cross(burg_vec, rn[(i+1)%N,:3]-rn[i,:3])
-        pn = pn / np.linalg.norm(pn)
-        links[i,:] = np.concatenate(([i, (i+1)%N], burg_vec, pn))
-
-    return DisNetManager(DisNet(cell=cell, rn=rn, links=links))
+# import the function to set up the frank-read source
+from test_frank_read_src_pydis_exadis import init_frank_read_src_loop
 
 def main():
     global net, sim, state
@@ -60,10 +41,10 @@ def main():
     exadis_mobility  = ExaDiS_MobilityLaw(mobility_law='SimpleGlide', state=state)
 
     pydis_timeint    = PyDiS_TimeIntegration(integrator='EulerForward', dt=1.0e-8, state=state)
-    exadis_timeint   = ExaDiS_TimeIntegration(integrator='EulerForward', dt=1.0e-8, state=state)
+    exadis_timeint   = ExaDiS_TimeIntegration(integrator='EulerForward', dt=1.0e-8, state=state, force=pydis_calforce, mobility=exadis_mobility)
 
     pydis_topology   = PyDiS_Topology(split_mode='MaxDiss', state=state, force=exadis_calforce, mobility=pydis_mobility)
-    exadis_topology  = None
+    exadis_topology  = ExaDiS_Topology(topology_mode='TopologySerial', state=state, force=pydis_calforce, mobility=exadis_mobility)
 
     pydis_collision  = PyDiS_Collision(collision_mode='Proximity', state=state, nbrlist=nbrlist)
     exadis_collision = ExaDiS_Collision(collision_mode='Retroactive', state=state)
@@ -72,8 +53,8 @@ def main():
     exadis_remesh    = ExaDiS_Remesh(remesh_rule='LengthBased', state=state)
 
 
-    sim = SimulateNetwork(calforce=exadis_calforce, mobility=pydis_mobility, timeint=pydis_timeint,
-                          topology=pydis_topology, collision=exadis_collision, remesh=exadis_remesh, vis=vis,
+    sim = SimulateNetwork(calforce=exadis_calforce, mobility=pydis_mobility, timeint=exadis_timeint,
+                          topology=exadis_topology, collision=exadis_collision, remesh=exadis_remesh, vis=vis,
                           state=state, max_step=200, loading_mode="stress",
                           applied_stress=np.array([0.0, 0.0, 0.0, 0.0, -4.0e8, 0.0]),
                           print_freq=10, plot_freq=10, plot_pause_seconds=0.01,
