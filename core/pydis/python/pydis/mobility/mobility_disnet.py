@@ -31,6 +31,9 @@ class MobilityLaw:
         nodeforce_dict = state["nodeforce_dict"]
         vel_dict = self.Mobility_Functions[self.mobility_law](G, nodeforce_dict)
         state["vel_dict"] = vel_dict
+
+        # prepare nodeforces and nodeforce_tags arrays for compatibility with exadis
+        state = DisNet.convert_nodevel_dict_to_array(state)
         return state
 
     def Mobility_Relax(self, G: DisNet, nodeforce_dict: dict) -> dict:

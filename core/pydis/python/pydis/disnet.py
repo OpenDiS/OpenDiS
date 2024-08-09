@@ -781,3 +781,18 @@ class DisNet(DisNet_Python):
         nodeforce_dict = {(nodeforcetags[i][0],nodeforcetags[i][1]): nodeforces[i] for i in range(len(nodeforcetags))}
         state["nodeforce_dict"] = nodeforce_dict
         return state
+
+    @staticmethod
+    def convert_nodevel_dict_to_array(state: dict) -> dict:
+        nodevel_dict = state["vel_dict"]
+        state["nodevels"] = np.array([v for v in nodevel_dict.values()])
+        state["nodeveltags"] = np.array([ [domainID, index] for domainID, index in nodevel_dict.keys()])
+        return state
+
+    @staticmethod
+    def convert_nodevel_array_to_dict(state: dict) -> dict:
+        nodevels = state["nodevels"]
+        nodeveltags = state["nodeveltags"]
+        nodevel_dict = {(nodeveltags[i][0],nodeveltags[i][1]): nodevels[i] for i in range(len(nodeveltags))}
+        state["vel_dict"] = nodevel_dict
+        return state

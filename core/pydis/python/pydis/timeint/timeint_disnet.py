@@ -24,6 +24,9 @@ class TimeIntegration:
         """TimeIntegration: update node position given velocity
         """
         G = DM.get_disnet(DisNet)
+        if "nodevels" in state and "nodeveltags" in state:
+            DisNet.convert_nodevel_array_to_dict(state)
+
         vel_dict = state["vel_dict"]
         applied_stress = state["applied_stress"]
         self.Update_Functions[self.integrator](G, vel_dict, applied_stress)
