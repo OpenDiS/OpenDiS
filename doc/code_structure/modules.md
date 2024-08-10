@@ -1,9 +1,9 @@
 ### Module Structure
 
 Here is the overall structure of the OpenDiS project
-```{figure} opendis_structure.png
+```{figure} OpenDiS_overview.png
 :alt: Overall structure of OpenDiS project
-:width: 552px
+:width: 600px
 ```
 
 #### Simulation Module
