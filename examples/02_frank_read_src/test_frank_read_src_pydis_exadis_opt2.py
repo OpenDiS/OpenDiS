@@ -41,7 +41,7 @@ def main():
     exadis_mobility  = ExaDiS_MobilityLaw(mobility_law='SimpleGlide', state=state)
 
     pydis_timeint    = PyDiS_TimeIntegration(integrator='EulerForward', dt=1.0e-8, state=state)
-    exadis_timeint   = ExaDiS_TimeIntegration(integrator='EulerForward', dt=1.0e-8, state=state, force=pydis_calforce, mobility=exadis_mobility)
+    exadis_timeint   = ExaDiS_TimeIntegration(integrator='Trapezoid', dt=1.0e-8, state=state, force=pydis_calforce, mobility=exadis_mobility)
 
     pydis_topology   = PyDiS_Topology(split_mode='MaxDiss', state=state, force=exadis_calforce, mobility=pydis_mobility)
     exadis_topology  = ExaDiS_Topology(topology_mode='TopologySerial', state=state, force=pydis_calforce, mobility=exadis_mobility)
