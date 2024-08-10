@@ -17,13 +17,6 @@ This test case first run the same simulation as in ```test_frank_read_src_exadis
 3. test G1_eq_G4 PASSED
 ```
 
-<pre style="background-color: #282424; border-radius: 3px; padding: 3px;">
-<code>
-<span style="color: #d73a49;">$</span> 1. test G1 sanity check <span style="color: green;">PASSED</span>
-<span style="color: #d73a49;">$</span> 2. test G1_eq_G2 <span style="color: green;">PASSED</span>
-<span style="color: #d73a49;">$</span> 3. test G1_eq_G4 <span style="color: green;">PASSED</span>
-</code>
-</pre>
 
 <div style="background-color: #282424; color: #fff; padding: 10px; border-radius: 5px; font-family: monospace;">
   1. test G1 sanity check <span style="color: green;">PASSED</span><br>
