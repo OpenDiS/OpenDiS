@@ -18,7 +18,7 @@ This test case first run the same simulation as in ```test_frank_read_src_exadis
 ```
 
 
-<div style="background-color: #282424; color: #fff; padding: 10px; border-radius: 5px; font-family: monospace;">
+<div style="background-color: #202020; color: #fff; padding: 10px; border-radius: 5px; font-family: monospace;">
   <span style="color: #4fb2fd;">1.</span> <span style="color: #2abdcc;">test</span> G1 sanity check <span style="color: green;">PASSED</span><br>
   <span style="color: #4fb2fd;">2.</span> <span style="color: #2abdcc;">test</span> G1_eq_G2 <span style="color: green;">PASSED</span><br>
   <span style="color: #4fb2fd;">3.</span> <span style="color: #2abdcc;">test</span> G1_eq_G4 <span style="color: green;">PASSED</span><br>
