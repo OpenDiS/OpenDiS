@@ -31,6 +31,15 @@ This test case first run the same simulation as in ```test_frank_read_src_exadis
 </code>
 </pre>
 
+<pre style="background-color: #f6f8fa; border-radius: 3px; padding: 10px;">
+<code>
+<span style="color: #d73a49;">$</span> 1. test G1 sanity check <span style="color: green;">PASSED</span>
+<span style="color: #d73a49;">$</span> 2. test G1_eq_G2 <span style="color: green;">PASSED</span>
+<span style="color: #d73a49;">$</span> 3. test G1_eq_G4 <span style="color: green;">PASSED</span>
+</code>
+</pre>
+
+
 
 
 #### Conversion between ExaDiS and PyDiS using DisNetManager
