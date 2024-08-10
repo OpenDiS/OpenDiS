@@ -17,20 +17,6 @@ This test case first run the same simulation as in ```test_frank_read_src_exadis
 3. test G1_eq_G4 PASSED
 ```
 
-```bash
-1. test G1 sanity check \033[32mPASSED\033[0m
-2. test G1_eq_G2 <span style="color:green">PASSED</span>
-3. test G1_eq_G4 <span style="color:green">PASSED</span>
-```
-
-<pre>
-<code>
-1. test G1 sanity check <span style="color:green;">PASSED</span>
-2. test G1_eq_G2 <span style="color:green;">PASSED</span>
-3. test G1_eq_G4 <span style="color:green;">PASSED</span>
-</code>
-</pre>
-
 <pre style="background-color: #282424; border-radius: 3px; padding: 3px;">
 <code>
 <span style="color: #d73a49;">$</span> 1. test G1 sanity check <span style="color: green;">PASSED</span>
