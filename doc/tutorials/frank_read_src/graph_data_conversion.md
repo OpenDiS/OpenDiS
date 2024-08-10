@@ -11,13 +11,6 @@ python3 -i test_data_convert.py
 #### Expected Behavior
 This test case first run the same simulation as in ```test_frank_read_src_exadis.py```, and then converts the dislocation network (graph) to various formats and check for self-consistency.  If all tests are successful, you should see
 
-```bash
-1. test G1 sanity check PASSED
-2. test G1_eq_G2 PASSED
-3. test G1_eq_G4 PASSED
-```
-
-
 <div style="background-color: #202020; color: #fff; padding: 10px; border-radius: 5px; font-family: monospace;">
   <span style="color: #4fb2fd;">1.</span> <span style="color: #2abdcc;">test</span> G1 sanity check <span style="color: green;">PASSED</span><br>
   <span style="color: #4fb2fd;">2.</span> <span style="color: #2abdcc;">test</span> G1_eq_G2 <span style="color: green;">PASSED</span><br>
