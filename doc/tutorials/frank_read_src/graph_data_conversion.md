@@ -23,6 +23,16 @@ This test case first run the same simulation as in ```test_frank_read_src_exadis
 3. test G1_eq_G4 <span style="color:green">PASSED</span>
 ```
 
+<pre>
+<code>
+1. test G1 sanity check <span style="color:green;">PASSED</span>
+2. test G1_eq_G2 <span style="color:green;">PASSED</span>
+3. test G1_eq_G4 <span style="color:green;">PASSED</span>
+</code>
+</pre>
+
+
+
 #### Conversion between ExaDiS and PyDiS using DisNetManager
 
 At the end of the simulation, the final dislocation network is managed by the ```DisNetManager``` called ```net```.  The following line in the python code
