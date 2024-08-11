@@ -1,4 +1,4 @@
-### OpenDiS Project Overview
+### Project Overview
 
 Here is the overall structure of the OpenDiS project
 ```{figure} OpenDiS_overview.png
