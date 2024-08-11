@@ -3,7 +3,7 @@
 Here is the overall structure of the OpenDiS project
 ```{figure} OpenDiS_overview.png
 :alt: Overall structure of OpenDiS project
-:width: 600px
+:width: 640px
 ```
 
 We envision a layered architecture, where a set of Core Libraries, such as ```PyDiS``` and ```ExaDiS``` provide the fundamental functions and classes for setting up and performing dislocation dynamics simulations.
