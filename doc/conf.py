@@ -60,6 +60,11 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 html_static_path = ['_static']
 
+def setup(app):
+    app.add_css_file('custom.css')
+    app.add_js_file('custom.js')
+    
+
 html_logo = "logo_box_upright.png"
 html_theme =  "furo"
  
