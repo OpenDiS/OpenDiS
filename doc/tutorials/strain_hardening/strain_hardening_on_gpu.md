@@ -52,3 +52,30 @@ The density-strain curve is shown below:
 ```
 </br>
 
+The below python script is used to plot the above curves:
+```bash
+import numpy as np
+import matplotlib.pyplot as plt
+
+step, strain, stress, density, walltime = np.loadtxt('stress_strain_dens.dat', usecols=(0,1,2,3,4), unpack=True)
+
+plt.figure(figsize=(8, 8))
+plt.rcParams['font.family'] = 'Times New Roman'
+plt.rcParams['font.size'] = 24
+plt.rcParams['mathtext.fontset'] = 'stix'
+plt.plot(strain*100, stress/1000000, linewidth=1.5, color='b')
+plt.xlabel('Strain (%)')
+plt.ylabel('Stress (MPa)')
+
+plt.figure(figsize=(8, 8))
+plt.rcParams['font.family'] = 'Times New Roman'
+plt.rcParams['font.size'] = 24
+plt.rcParams['mathtext.fontset'] = 'stix'
+plt.plot(strain*100, density, linewidth=1.5, color='b', label='OpenDiS')
+plt.xlabel('Strain (%)')
+plt.ylabel('Density (1/m$^{2}$)')
+
+print("Figure has been done!")
+
+plt.show()
+```
