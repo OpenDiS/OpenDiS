@@ -25,8 +25,13 @@ This is a simulation for max_step=100. After simulation, we can see a folder “
 
 **Initial dislocation configuration**
 
-The dimensions for initial dislocation configuration (180chains_16.10e.data) are ∼ 15 𝜇m × 15 𝜇m × 15 𝜇m. Periodic boundary condition is applied along all three dimensions. The dislocation density is 𝜌0 ≈ 1.2 × 10^{12} m^{−2}. It is visualized below using Ovito.
-```{figure} initial_con figuration.png
+The dimensions for initial dislocation configuration (180chains_16.10e.data) are ∼ 15 𝜇m × 15 𝜇m × 15 𝜇m. Periodic boundary condition is applied along all three dimensions. The dislocation density is 𝜌0 ≈ 1.2 × 10^{12} m^{−2}. It is visualized below using Ovito and the ovito settings are also shown below.
+```{figure} initial_configuration_Ovito.png
+:alt: Screenshot of the final configuration
+:width: 552px
+```
+
+```{figure} Ovito_settings.png
 :alt: Screenshot of the final configuration
 :width: 552px
 ```
