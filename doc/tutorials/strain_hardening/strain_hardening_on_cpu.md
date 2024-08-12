@@ -41,6 +41,15 @@ The dimensions for initial dislocation configuration (180chains_16.10e.data) are
 ```
 </br>
 
+**Final dislocation configuration**
+
+The final dislocation configuration (config.1600.data) in this simulation is visualized below using Ovito. The Ovito settings are the same as the above screenshot.
+```{figure} CPU_final_configuration_Ovito.png
+:alt: Screenshot of the final configuration
+:width: 552px
+```
+</br>
+
 **Stress-strain curve**
 
 A simulation of 10000 steps is conducted as an example, which costs 2 days.
