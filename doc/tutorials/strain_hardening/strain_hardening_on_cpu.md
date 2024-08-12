@@ -29,8 +29,13 @@ This is a simulation for max_step=100. After simulation, we can see a folder “
 
 **Initial dislocation configuration**
 
-The dimensions for initial dislocation configuration are ∼ 15 𝜇m × 15 𝜇m × 15 𝜇m. Periodic boundary condition is applied along all three dimensions. The dislocation density is 𝜌0 ≈ 1.2 × 10^{12} m^{−2}. It is visualized below using Paraview.
-```{figure} initial_con figuration.png
+The dimensions for initial dislocation configuration (180chains_16.10e.data) are ∼ 15 𝜇m × 15 𝜇m × 15 𝜇m. Periodic boundary condition is applied along all three dimensions. The dislocation density is 𝜌0 ≈ 1.2 × 10^{12} m^{−2}. It is visualized below using Ovito and the Ovito settings are also shown below.
+```{figure} initial_configuration_Ovito.png
+:alt: Screenshot of the final configuration
+:width: 552px
+```
+
+```{figure} Ovito_settings.png
 :alt: Screenshot of the final configuration
 :width: 552px
 ```
@@ -38,9 +43,9 @@ The dimensions for initial dislocation configuration are ∼ 15 𝜇m × 15 𝜇
 
 **Stress-strain curve**
 
-A simulation is conducted for ∼ 22 hours as an example.
+A simulation of 10000 steps is conducted as an example, which costs 2 days.
 The stress-strain curve is shown below:
-```{figure} Stress_strain_CPU.png
+```{figure} Stress_strain_GPU.png
 :alt: Screenshot of the final configuration
 :width: 552px
 ```
@@ -48,9 +53,9 @@ The stress-strain curve is shown below:
 
 **Density-strain curve**
 
-A simulation is conducted for ∼ 22 hours as an example.
+A simulation of 10000 steps is conducted as an example, which costs 2 days.
 The density-strain curve is shown below:
-```{figure} Density_strain_CPU.png
+```{figure} Density_strain_GPU.png
 :alt: Screenshot of the final configuration
 :width: 552px
 ```
