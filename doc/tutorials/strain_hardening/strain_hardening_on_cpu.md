@@ -1,6 +1,6 @@
 ### Strain Hardening Simulation on CPU
 
-We can run a tensile test simulation of a single-crystal Cu using the following commands (running ExaDiS on CPU).  This type of simulation is also called the strain-hardening simulation, because it predicts stress-strain curves in the plastic regime where the flow stress increases with strain.
+We can run a tensile test simulation of a single-crystal Cu using the following commands (running ExaDiS on CPU).  This type of simulation is also called the strain-hardening simulation because it predicts stress-strain curves in the plastic regime where the flow stress increases with strain.
 
 ```bash
 cd ~/Codes/OpenDiS.git
@@ -11,7 +11,7 @@ python3 test_strain_hardening_exadis.py
 
 #### Initial Condition
 
-The initial dislocation configuration for this simulation is read from a data file “180chains_16.10e.data” (in ParaDiS data format) by the following Python commands.
+The initial dislocation configuration for this simulation is read from a data file ```180chains_16.10e.data``` (in ParaDiS data format) by the following Python commands.
 ```bash
 G = ExaDisNet()
 G.read_paradis('180chains_16.10e.data')
@@ -21,11 +21,7 @@ The simulation cell size is 15 𝜇m × 15 𝜇m × 15 𝜇m, subjected to perio
 :alt: Screenshot of the final configuration
 :width: 552px
 ```
-The Ovito settings are also shown below.
-```{figure} Ovito_settings.png
-:alt: Screenshot of the final configuration
-:width: 352px
-```
+Click [here](Ovito_settings.png) to see the Ovito settings used to generate the plot above.
 
 
 #### Simulation Setup
@@ -47,13 +43,13 @@ The final dislocation configuration (config.1600.data) after 1600 steps is shown
 ```
 
 The predicted stress-strain curve is shown below.
-```{figure} Stress_strain_CPU.png Density_strain_CPU.png
-:alt: stress-strain curve and density-strain curve
+```{figure} Stress_strain_CPU.png
+:alt: stress-strain curve
 :width: 352px
 ```
 
-The figure below shows how the total dislocation density changes with strain.
+Here is how the total dislocation density changes with strain.  The increase of dislocation density (i.e. dislocation multiplication) with strain is a key mechanism for strain-hardening.
 ```{figure} Density_strain_CPU.png
-:alt: Screenshot of the final configuration
+:alt: dislocation density-strain curve
 :width: 352px
 ```
