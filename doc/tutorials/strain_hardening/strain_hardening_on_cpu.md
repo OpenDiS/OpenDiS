@@ -24,7 +24,7 @@ The simulation settings are assigned via params, calforce, mobility, timeint, co
 ```bash
 sim.run(net, state)
 ```
-This is a simulation for max_step=100. After simulation, we can see a folder “output_fcc_Cu_15um_1e3”, where there is a data file for every 100 steps and a file called “stress_strain_dens.dat” to store step, strain, stress (Pa), dislocation density (1/m^{2}) and walltime (sec) in five columns for each step, respectively.
+This is a simulation for max_step=10000. After simulation, we can see a folder “output_fcc_Cu_15um_1e3”, where there is a data file for every 100 steps and a file called “stress_strain_dens.dat” to store step, strain, stress (Pa), dislocation density (1/m^{2}) and walltime (sec) in five columns for each step, respectively.
 </br>
 
 **Initial dislocation configuration**
@@ -52,9 +52,9 @@ The final dislocation configuration (config.1600.data) in this simulation is vis
 
 **Stress-strain curve**
 
-A simulation of 10000 steps is conducted as an example, which costs 2 days.
+A simulation of 1600 steps is conducted as an example, which costs 21 hours.
 The stress-strain curve is shown below:
-```{figure} Stress_strain_GPU.png
+```{figure} Stress_strain_CPU.png
 :alt: Screenshot of the final configuration
 :width: 552px
 ```
@@ -62,9 +62,9 @@ The stress-strain curve is shown below:
 
 **Density-strain curve**
 
-A simulation of 10000 steps is conducted as an example, which costs 2 days.
+A simulation of 1600 steps is conducted as an example, which costs 21 hours.
 The density-strain curve is shown below:
-```{figure} Density_strain_GPU.png
+```{figure} Density_strain_CPU.png
 :alt: Screenshot of the final configuration
 :width: 552px
 ```
@@ -75,7 +75,7 @@ The below python script is used to plot the above curves:
 import numpy as np
 import matplotlib.pyplot as plt
 
-step, strain, stress, density, walltime = np.loadtxt('stress_strain_dens.dat', usecols=(0,1,2,3,4), unpack=True)
+step, strain, stress, density, walltime = np.loadtxt('stress_strain_dens_1600_CPU.dat', usecols=(0,1,2,3,4), unpack=True)
 
 plt.figure(figsize=(8, 8))
 plt.rcParams['font.family'] = 'Times New Roman'
