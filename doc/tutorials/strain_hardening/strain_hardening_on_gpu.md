@@ -21,7 +21,7 @@ The simulation settings are assigned via params, calforce, mobility, timeint, co
 ```bash
 sim.run(net, state)
 ```
-This is a simulation for max_step=100. After simulation, we can see a folder “output_fcc_Cu_15um_1e3”, where there is a data file for every 100 steps and a file called “stress_strain_dens.dat” to store step, strain, stress (Pa), dislocation density (1/m^2) and walltime (sec) in five columns for each step, respectively.
+This is a simulation for max_step=10000. After simulation, we can see a folder “output_fcc_Cu_15um_1e3”, where there is a data file for every 100 steps and a file called “stress_strain_dens.dat” to store step, strain, stress (Pa), dislocation density (1/m^2) and walltime (sec) in five columns for each step, respectively.
 
 **Initial dislocation configuration**
 
@@ -71,7 +71,7 @@ The below python script is used to plot the above curves:
 import numpy as np
 import matplotlib.pyplot as plt
 
-step, strain, stress, density, walltime = np.loadtxt('stress_strain_dens.dat', usecols=(0,1,2,3,4), unpack=True)
+step, strain, stress, density, walltime = np.loadtxt('stress_strain_dens_10000_GPU.dat', usecols=(0,1,2,3,4), unpack=True)
 
 plt.figure(figsize=(8, 8))
 plt.rcParams['font.family'] = 'Times New Roman'
