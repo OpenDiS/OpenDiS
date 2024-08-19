@@ -18,4 +18,4 @@ ExaDisNet is what ExaDis uses to represent the dislocation network.
 
 DisNetManager provides a convenient way to convert the data between DisNet and ExaDisNet.
 
-Section [Explore Dislocation Network](../tutorials/frank_read_src/graph_data_conversion.md) describes how to convert between DisNet and ExaDiSNet objects.
+Section [Graph Data Conversion](../tutorials/frank_read_src/graph_data_conversion.md) describes how to convert between DisNet and ExaDiSNet objects.
