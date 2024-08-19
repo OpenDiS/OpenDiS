@@ -1,99 +1,58 @@
 ### Strain Hardening Simulation on CPU
 
-**Introduction**
+We can run a tensile test simulation of a single-crystal Cu using the following commands (running ExaDiS on CPU).  This type of simulation is also called the strain-hardening simulation, because it predicts stress-strain curves in the plastic regime where the flow stress increases with strain.
 
-Strain hardening, also known as work hardening, in single crystals is a process that increases the strength and hardness of a material by plastic deformation. This phenomenon occurs due to the movement and interaction of dislocations within the crystal structure. This is an example demonstrating how to simulate strain hardening with ExaDiS on CPU.
-
-To run the simulation, execute the following commands in the corresponding example directory:
 ```bash
-cd ~/Codes/OpenDiS.git/examples/10_strain_hardening/
+cd ~/Codes/OpenDiS.git
+cd examples/10_strain_hardening/
 export OMP_NUM_THREADS=8
 python3 test_strain_hardening_exadis.py
 ```
-</br>
 
-**Explanation**
+#### Initial Condition
 
-The information of all dislocation nodes is stored in the data file “180chains_16.10e.data”, which can be read using
+The initial dislocation configuration for this simulation is read from a data file “180chains_16.10e.data” (in ParaDiS data format) by the following Python commands.
 ```bash
 G = ExaDisNet()
 G.read_paradis('180chains_16.10e.data')
 ```
-
-The simulation settings are assigned via params, calforce, mobility, timeint, collision, topology and remesh. Then, they are used in SimulateNetworkPerf(). The simulation is conducted using 
-```bash
-sim.run(net, state)
-```
-This is a simulation for max_step=10000. After simulation, we can see a folder “output_fcc_Cu_15um_1e3”, where there is a data file for every 100 steps and a file called “stress_strain_dens.dat” to store step, strain, stress (Pa), dislocation density (1/m^{2}) and walltime (sec) in five columns for each step, respectively.
-</br>
-
-**Initial dislocation configuration**
-
-The dimensions for initial dislocation configuration (180chains_16.10e.data) are ∼ 15 𝜇m × 15 𝜇m × 15 𝜇m. Periodic boundary condition is applied along all three dimensions. The dislocation density is 𝜌0 ≈ 1.2 × 10^{12} m^{−2}. It is visualized below using Ovito and the Ovito settings are also shown below.
+The simulation cell size is 15 𝜇m × 15 𝜇m × 15 𝜇m, subjected to periodic boundary conditions in all three directions. The initial dislocation density is 𝜌<sub>0</sub> ≈ 1.2 × 10^{12} m^{−2}.  The initial dislocation structure can be visualized by [Ovito](https://www.ovito.org/) as shown below.  The dislocation lines are colored according to the slip systems they belong to.
 ```{figure} initial_configuration_Ovito.png
 :alt: Screenshot of the final configuration
 :width: 552px
 ```
-
+The Ovito settings are also shown below.
 ```{figure} Ovito_settings.png
 :alt: Screenshot of the final configuration
 :width: 552px
 ```
-</br>
 
-**Final dislocation configuration**
 
-The final dislocation configuration (config.1600.data) in this simulation is visualized below using Ovito. The Ovito settings are the same as the above screenshot.
+#### Simulation Setup
+
+Many simulation parameters are specified in the dictionary variable ```state```.  The ```sim``` objects contains all the information, including the sub-modules of the simulation.  In particular, ```max_step``` specifies the number of simulation steps (here it is 100).  The following line in the Python program executes the simulation.
+```bash
+sim.run(net, state)
+```
+
+#### Simulation Behavior
+The simulation creates a folder called ```output_fcc_Cu_15um_1e3``` to store the results files.  On MC3.stanford.edu (on 8 OMP threads), it takes about 12 minutes to run the first 100 steps of the simulation.
+
+To run a longer simulation, we can modify the constructor for ```sim``` from ```max_step=100``` to ```max_step=1600```.  The simulation takes about 21 hours on MC3.stanford.edu (with 8 OMP threads). The simulation will write a data file to the output folder for every 100 steps.  The [stress_strain_dens.dat](stress_strain_dens_1600_CPU.dat) file stores certain essential information of the tensile test --- it contains 5 columns corresponding to step, strain, stress (Pa), dislocation density (m<sup>-2</sup>) and wall-clock time (sec), respectively.
+
+The final dislocation configuration (config.1600.data) after 1600 steps is shown below.
 ```{figure} CPU_final_configuration_Ovito.png
 :alt: Screenshot of the final configuration
 :width: 552px
 ```
-</br>
 
-**Stress-strain curve**
-
-A simulation of 1600 steps is conducted as an example, which costs 21 hours.
-The stress-strain curve is shown below:
+The predicted stress-strain curve is shown below.
 ```{figure} Stress_strain_CPU.png
 :alt: Screenshot of the final configuration
-:width: 552px
+:width: 252px
 ```
-</br>
-
-**Density-strain curve**
-
-A simulation of 1600 steps is conducted as an example, which costs 21 hours.
-The density-strain curve is shown below:
+The figure below shows how the total dislocation density changes with strain.
 ```{figure} Density_strain_CPU.png
 :alt: Screenshot of the final configuration
-:width: 552px
-```
-</br>
-
-The below python script is used to plot the above curves:
-```bash
-import numpy as np
-import matplotlib.pyplot as plt
-
-step, strain, stress, density, walltime = np.loadtxt('stress_strain_dens_1600_CPU.dat', usecols=(0,1,2,3,4), unpack=True)
-
-plt.figure(figsize=(8, 8))
-plt.rcParams['font.family'] = 'Times New Roman'
-plt.rcParams['font.size'] = 24
-plt.rcParams['mathtext.fontset'] = 'stix'
-plt.plot(strain*100, stress/1000000, linewidth=1.5, color='b')
-plt.xlabel('Strain (%)')
-plt.ylabel('Stress (MPa)')
-
-plt.figure(figsize=(8, 8))
-plt.rcParams['font.family'] = 'Times New Roman'
-plt.rcParams['font.size'] = 24
-plt.rcParams['mathtext.fontset'] = 'stix'
-plt.plot(strain*100, density, linewidth=1.5, color='b', label='OpenDiS')
-plt.xlabel('Strain (%)')
-plt.ylabel('Density (1/m$^{2}$)')
-
-print("Figure has been done!")
-
-plt.show()
+:width: 252px
 ```
