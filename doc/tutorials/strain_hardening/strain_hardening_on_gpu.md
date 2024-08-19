@@ -1,95 +1,34 @@
 ### Strain Hardening Simulation on GPU
-To run strain hardening simulation on GPU, execute the same commands as those written in [Sec. 3.3.1](https://caiwei-stanford.github.io/opendis-doc/tutorials/strain_hardening/strain_hardening_on_cpu.html) in the same example directory. The outputs are also the same as those calculated on CPU.
-
-To run the simulation, execute the following commands in the corresponding example directory:
+We can run a tensile test simulation of a single-crystal Cu using the following commands (running ExaDiS on GPU).  GPU allows us to run the simulation more efficiently and hence reach a greater strain to see the strain-hardening behavior more clearly.
+Execute the following commands to enter the directory containing the example.
 ```bash
-cd ~/Codes/OpenDiS.git/examples/10_strain_hardening/
+cd ~/Codes/OpenDiS.git
+cd examples/10_strain_hardening/
+```
+Before running the simulation, we shall edit the ```test_strain_hardening_exadis.py``` file to change the constructor of ```sim``` from ```maxstep=100``` to ```max_step=10000```.
+Execute the following commands to run the simulation.
+```bash
 export OMP_NUM_THREADS=8
 python3 test_strain_hardening_exadis.py
 ```
-</br>
 
-**Explanation**
+#### Simulation Behavior
+The simulation creates a folder called ```output_fcc_Cu_15um_1e3``` to store the results files.  On MC3.stanford.edu (GPU node), it takes about 2 days to run 10000 steps of the simulation.  The simulation will write a data file to the output folder for every 100 steps.  The ```stress_strain_dens.dat``` file stores certain essential information of the tensile test --- it contains 5 columns corresponding to step, strain, stress (Pa), dislocation density (m<sup>-2</sup>) and wall-clock time (sec), respectively.
 
-The information of all dislocation nodes is stored in the data file “180chains_16.10e.data”, which can be read using
-```bash
-G = ExaDisNet()
-G.read_paradis('180chains_16.10e.data')
-```
-
-The simulation settings are assigned via params, calforce, mobility, timeint, collision, topology and remesh. Then, they are used in SimulateNetworkPerf(). The simulation is conducted using 
-```bash
-sim.run(net, state)
-```
-This is a simulation for max_step=10000. After simulation, we can see a folder “output_fcc_Cu_15um_1e3”, where there is a data file for every 100 steps and a file called “stress_strain_dens.dat” to store step, strain, stress (Pa), dislocation density (1/m^2) and walltime (sec) in five columns for each step, respectively.
-
-**Initial dislocation configuration**
-
-The dimensions for initial dislocation configuration (180chains_16.10e.data) are ∼ 15 𝜇m × 15 𝜇m × 15 𝜇m. Periodic boundary condition is applied along all three dimensions. The dislocation density is 𝜌0 ≈ 1.2 × 10^{12} m^{−2}. It is visualized below using Ovito and the Ovito settings are also shown below.
-```{figure} initial_configuration_Ovito.png
-:alt: Screenshot of the final configuration
-:width: 552px
-```
-
-```{figure} Ovito_settings.png
-:alt: Screenshot of the final configuration
-:width: 552px
-```
-</br>
-
-**Final dislocation configuration**
-
-The final dislocation configuration (config.10000.data) in this simulation is visualized below using Ovito. The Ovito settings are the same as the above screenshot.
+The final dislocation configuration (config.10000.data) after 10000 steps is shown below.
 ```{figure} GPU_final_configuration_Ovito.png
 :alt: Screenshot of the final configuration
 :width: 552px
 ```
-</br>
 
-**Stress-strain curve**
-
-A simulation of 10000 steps is conducted as an example, which costs 2 days.
-The stress-strain curve is shown below:
+The predicted stress-strain curve is shown below.
 ```{figure} Stress_strain_GPU.png
-:alt: Screenshot of the final configuration
-:width: 552px
+:alt: stress-strain curve
+:width: 352px
 ```
-</br>
 
-**Density-strain curve**
-
-A simulation of 10000 steps is conducted as an example, which costs 2 days.
-The density-strain curve is shown below:
+Here is how the total dislocation density changes with strain.  The increase of dislocation density (i.e. dislocation multiplication) with strain is a key mechanism for strain-hardening.
 ```{figure} Density_strain_GPU.png
-:alt: Screenshot of the final configuration
-:width: 552px
-```
-</br>
-
-The below python script is used to plot the above curves:
-```bash
-import numpy as np
-import matplotlib.pyplot as plt
-
-step, strain, stress, density, walltime = np.loadtxt('stress_strain_dens_10000_GPU.dat', usecols=(0,1,2,3,4), unpack=True)
-
-plt.figure(figsize=(8, 8))
-plt.rcParams['font.family'] = 'Times New Roman'
-plt.rcParams['font.size'] = 24
-plt.rcParams['mathtext.fontset'] = 'stix'
-plt.plot(strain*100, stress/1000000, linewidth=1.5, color='b')
-plt.xlabel('Strain (%)')
-plt.ylabel('Stress (MPa)')
-
-plt.figure(figsize=(8, 8))
-plt.rcParams['font.family'] = 'Times New Roman'
-plt.rcParams['font.size'] = 24
-plt.rcParams['mathtext.fontset'] = 'stix'
-plt.plot(strain*100, density, linewidth=1.5, color='b', label='OpenDiS')
-plt.xlabel('Strain (%)')
-plt.ylabel('Density (1/m$^{2}$)')
-
-print("Figure has been done!")
-
-plt.show()
+:alt: dislocation density-strain curve
+:width: 352px
 ```
