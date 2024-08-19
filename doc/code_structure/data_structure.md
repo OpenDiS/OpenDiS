@@ -11,7 +11,7 @@ In this example, the DisNet represents a (prismatic) dislocation loop with 5 nod
 
 Each segment in DisNet is specified by a tuple of tags specifying the nodes it connects with.  For example, segment ((0,0), (0,1)) represents the segment connecting nodes (0,0) and (0,1).  Since DisNet is an undirected graph, ((0,1), (0,0)) would refer to the same segment.  Each segment has its attributes: ```burg_vec``` (3D vector for Burgers vector) and ```plane_normal``` (3D vector for glide plane normal).  Importantly, the sign of the Burgers vector of a segment depends on the order of the nodes we use to refer to the segment.  For example, the Burger vector of the above segment going from node (0,0) is (1,0,0).  The Burgers vector of the same segment going from node (0,1) is (-1,0,0).  (The Python function to retrieve its Burgers vector of a segment is burg_vec_from(self, from_tag), where ```from_tag``` specifies the node we are going from.)  The tag pairs and attributes for every segment are represented by the green boxes in the figure above.
 
-Section [Explore Dislocation Network](../tutorials/frank_read_src/frank_read_src_by_python.md#Explore-Dislocation-Network) provides an example of how to interact with a DisNet object in Python.
+Section [Explore Dislocation Network](../tutorials/frank_read_src/frank_read_src_by_python.md#explore-dislocation-network) provides an example of how to interact with a DisNet object in Python.
 
 #### ExaDisNet and DisNetManager
 ExaDisNet is what ExaDis uses to represent the dislocation network.
