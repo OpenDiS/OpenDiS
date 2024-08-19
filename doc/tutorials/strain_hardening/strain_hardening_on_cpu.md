@@ -24,7 +24,7 @@ The simulation cell size is 15 𝜇m × 15 𝜇m × 15 𝜇m, subjected to perio
 The Ovito settings are also shown below.
 ```{figure} Ovito_settings.png
 :alt: Screenshot of the final configuration
-:width: 552px
+:width: 352px
 ```
 
 
@@ -47,12 +47,13 @@ The final dislocation configuration (config.1600.data) after 1600 steps is shown
 ```
 
 The predicted stress-strain curve is shown below.
-```{figure} Stress_strain_CPU.png
-:alt: Screenshot of the final configuration
-:width: 252px
+```{figure} Stress_strain_CPU.png Density_strain_CPU.png
+:alt: stress-strain curve and density-strain curve
+:width: 352px
 ```
+
 The figure below shows how the total dislocation density changes with strain.
 ```{figure} Density_strain_CPU.png
 :alt: Screenshot of the final configuration
-:width: 252px
+:width: 352px
 ```
