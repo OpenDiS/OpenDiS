@@ -3,7 +3,7 @@
 We can run the same Frank-Read Source example using ExaDiS (after compilation) using the following commands.
 
 ```bash
-cd ~/Codes/OpenDiS.git
+cd ${OPENDIS_DIR}
 cd examples/02_frank_read_src
 export OMP_NUM_THREADS=8
 python3 -i test_frank_read_src_exadis.py
