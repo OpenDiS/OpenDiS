@@ -3,7 +3,7 @@
 To run the test case, simply execute:
 
 ```bash
-cd ~/Codes/OpenDiS.git
+cd ${OPENDIS_DIR}
 cd examples/02_frank_read_src
 python3 -i test_data_convert.py
 ```
