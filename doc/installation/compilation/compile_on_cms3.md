@@ -17,7 +17,7 @@ Follow the instructions at this [wiki page](http://micro.stanford.edu/wiki/Insta
 #### Build ExaDiS/KOKKOS (GPU version)
 
 ````bash
-cd ~/Codes/OpenDiS.git
+cd ${OPENDIS_DIR}
 rm -rf build/; ./configure.sh -DSYS=cms3-fast
 cmake --build build -j 8 ; cmake --build build --target install
 ````
@@ -37,6 +37,7 @@ When compilation is successful, you should see a file like ``pyexadis.cpython*.s
 
 ````bash
 export OMP_NUM_THREADS=8
+cd ${OPENDIS_DIR}
 cd examples/02_frank_read_src
 conda activate opendis
 python3 -i test_frank_read_src_exadis.py
