@@ -31,3 +31,6 @@ where `data` is a dictionary containing the following entries:
     - `data["segs"]["nodeids"]`: array of indices of segments end-nodes (node1,node2), size=(Nsegs,2)
     - `data["segs"]["burgers"]`: array of segments Burgers vectors, size=(Nsegs,3)
     - `data["segs"]["plane"]`: array of segments plane normal, size=(Nsegs,3)
+
+DisNetManager provides a convenient way to convert the data between DisNet and ExaDisNet.
+Section [Graph Data Conversion](../tutorials/frank_read_src/graph_data_conversion.md) describes how to convert between DisNet and ExaDiSNet objects.
