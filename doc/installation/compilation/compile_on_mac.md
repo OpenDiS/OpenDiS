@@ -21,6 +21,7 @@ cmake --build build -j 8 ; cmake --build build --target install
 Alternatively, you can also copy ``cmake/sys.cmake.ubuntu`` file to ``cmake/sys.cmake.ext`` and configure without -DSYS .  The ``cmake/sys.cmake.ext`` file is not tracked by git so you can feel free to experiment with the settings.
 
 ```bash
+cd ${OPENDIS_DIR}
 cp cmake/sys.cmake.ubuntu cmake/sys.cmake.ext
 rm -rf build/; ./configure.sh 
 cmake --build build -j 8 ; cmake --build build --target install
@@ -32,6 +33,7 @@ When compilation is successful, you should see a file like ``pyexadis.cpython*.s
 
 ```bash
 export OMP_NUM_THREADS=8
+cd ${OPENDIS_DIR}
 cd examples/02_frank_read_src
 python3 -i test_frank_read_src_exadis.py
 ```
@@ -54,6 +56,7 @@ brew install libomp
 
 If you cannot install OpenMP on your Mac, you can turn it off during compilation (configure) as follows.
 ```bash
+cd ${OPENDIS_DIR}
 rm -rf build/; ./configure.sh -DSYS=mac -DKokkos_ENABLE_OPENMP=off
 cmake --build build -j 8 ; cmake --build build --target install
 ```
