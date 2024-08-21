@@ -22,7 +22,7 @@ python3 -m pip install matplotlib --user
 #### Build ExaDiS/KOKKOS (OMP version)
 
 ````bash
-cd ~/Codes/OpenDiS.git
+cd ${OPENDIS_DIR}
 rm -rf build/; ./configure.sh -DSYS=sherlock
 cmake --build build -j 8 ; cmake --build build --target install
 ````
