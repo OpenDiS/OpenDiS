@@ -20,7 +20,7 @@ data = N.export_data()
 ```
 where `data` is a dictionary containing the following entries:
 * `data["cell"]`: dictionary defining the simulation cell, containing the following entries:
-    - `data["cell"]["h"]`: simulation cell matrix (rows are the cell vectors)
+    - `data["cell"]["h"]`: simulation cell matrix (columns are the cell vectors)
     - `data["cell"]["origin"]`: simulation cell origin
     - `data["cell"]["is_periodic"]`: periodic flag along the three dimensions
 * `data["nodes"]`: dictionary containing the nodes attributes within the following entries:
