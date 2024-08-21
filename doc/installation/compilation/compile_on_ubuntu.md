@@ -8,7 +8,7 @@ sudo apt-get install libfftw3-dev libfftw3-doc
 
 #### Build ExaDiS/KOKKOS
 ```bash
-cd ~/Codes/OpenDiS.git/
+cd ${OPENDIS_DIR}
 rm -rf build/; ./configure.sh -DSYS=ubuntu
 cmake --build build -j 8 ; cmake --build build --target install
 ```
