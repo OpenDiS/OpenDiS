@@ -24,7 +24,7 @@ Before you begin the installation of ExaDiS/KOKKOS, make sure the following soft
   - Version: 3.6 or higher
   - Ensure Python and the development headers are installed (e.g., `sudo apt install python3-dev` for Ubuntu).
   - Some of the Python packages required include [numpy](https://numpy.org/), [matplotlib](https://matplotlib.org/).
-  - Optional Python package [networkx](https://networkx.org/), needed only if you call the DisNet to_networkx()/from_networkx() functions
+  - Optional Python package [networkx](https://networkx.org/), needed only if you call the DisNet to_networkx(), from_networkx() functions
 
 - **FFTW**
   - Install [FFTW](https://www.fftw.org/) for handling discrete Fourier transforms.
