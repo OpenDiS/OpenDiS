@@ -7,7 +7,7 @@ G = ExaDisNet(cell, nodes, segs)
 ```
 with
 * `cell`: `pyexadis.Cell` object defining the simulation cell. Constructor arguments:
-    - `h` (required): simulation cell matrix (rows are the cell vectors)
+    - `h` (required): simulation cell matrix (columns are the cell vectors)
     - `origin` (optional): cell origin. Default: (0,0,0)
     - `is_periodic` (optional): periodic flag along the three dimensions. Default: [true,true,true].
 * `nodes`: array of nodes where each row contains a node attributes.
