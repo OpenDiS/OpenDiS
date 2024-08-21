@@ -3,7 +3,7 @@
 We can run the same Binary Junction example using ExaDiS (after compilation) using the following commands.
 
 ```bash
-cd ~/Codes/OpenDiS.git
+cd ${OPENDIS_DIR}
 cd examples/03_binary_junction
 export OMP_NUM_THREADS=8
 python3 -i test_binary_junction_exadis.py
