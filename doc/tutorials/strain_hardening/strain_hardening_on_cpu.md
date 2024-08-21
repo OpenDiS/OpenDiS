@@ -3,7 +3,7 @@
 We can run a tensile test simulation of a single-crystal Cu using the following commands (running ExaDiS on CPU).  This type of simulation is also called the strain-hardening simulation because it predicts stress-strain curves in the plastic regime where the flow stress increases with strain.
 
 ```bash
-cd ~/Codes/OpenDiS.git
+cd ${OPENDIS_DIR}
 cd examples/10_strain_hardening/
 export OMP_NUM_THREADS=8
 python3 test_strain_hardening_exadis.py
