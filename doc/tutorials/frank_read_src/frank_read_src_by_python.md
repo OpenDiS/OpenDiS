@@ -5,7 +5,7 @@ We can run the following test case without having to compile OpenDiS.
 To run the simulation, simply execute:
 
 ```bash
-cd ~/Codes/OpenDiS.git
+cd ${OPENDIS_DIR}
 cd examples/02_frank_read_src
 python3 -i test_frank_read_src_pydis.py
 ```
