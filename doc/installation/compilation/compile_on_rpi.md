@@ -9,7 +9,7 @@ sudo apt install -y python3-grpcio python3-grpc-tools
 
 #### Build ExaDiS/KOKKOS
 ```bash
-cd ~/Codes/OpenDiS.git/
+cd ${OPENDIS_DIR}
 rm -rf build/; ./configure.sh -DSYS=rpi
 cmake --build build -j 8 ; cmake --build build --target install
 ```
@@ -28,6 +28,7 @@ When compilation is successful, you should see a file like ``pyexadis.cpython*.s
 
 ```bash
 export OMP_NUM_THREADS=8
+cd ${OPENDIS_DIR}
 cd examples/02_frank_read_src
 python3 -i test_frank_read_src_exadis.py
 ```
