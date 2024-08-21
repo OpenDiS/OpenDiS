@@ -35,7 +35,7 @@ Follow the instructions at this [wiki page](http://micro.stanford.edu/wiki/Insta
 #### Build ExaDiS/KOKKOS (OMP version)
 
 ````bash
-cd ~/Codes/OpenDiS.git
+cd ${OPENDIS_DIR}
 rm -rf build/; ./configure.sh -DSYS=mc3_cpu
 cmake --build build -j 8 ; cmake --build build --target install
 ````
@@ -70,7 +70,7 @@ python3 -i test_frank_read_src_exadis.py
 ````bash
 # first we need to get on a GPU node in order to use nvcc
 srun -p gpu-tesla -n 1 --x11 --pty bash
-cd ~/Codes/OpenDiS.git
+cd ${OPENDIS_DIR}
 rm -rf build/; ./configure.sh -DSYS=mc3_gpu
 cmake --build build -j 8 ; cmake --build build --target install
 ````
