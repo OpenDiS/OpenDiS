@@ -19,7 +19,7 @@ cd ${OPENDIS_DIR}
 
 ### Download OpenDiS and obtain submodules separately
 
-Alternatively, you can use the following commands to achieve the same.
+Alternatively, you can use the following commands to achieve the same result.
 ```bash
 mkdir -p ${OPENDIS_DIR}
 git clone https://gitlab.com/micronano/OpenDiS.git ${OPENDIS_DIR}
@@ -27,10 +27,9 @@ cd ${OPENDIS_DIR}
 git submodule update --init --recursive
 ```
 
-### Upload submodules after download
+### Update OpenDiS and submodules after download
 
 If you have already downloaded OpenDiS, you can use the following commands to update it to the latest release version.
-Alternatively, you can use the following commands to achieve the same.
 ```bash
 cd ${OPENDIS_DIR}
 git pull
