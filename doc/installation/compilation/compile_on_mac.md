@@ -13,7 +13,7 @@ message("FFTW_INC_DIR = ${FFTW_INC_DIR}")
 
 #### Build ExaDiS/KOKKOS
 ```bash
-cd ~/Codes/OpenDiS.git/
+cd ${OPENDIS_DIR}
 rm -rf build/; ./configure.sh -DSYS=mac
 cmake --build build -j 8 ; cmake --build build --target install
 ```
