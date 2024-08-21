@@ -16,7 +16,7 @@ The initial dislocation configuration for this simulation is read from a data fi
 G = ExaDisNet()
 G.read_paradis('180chains_16.10e.data')
 ```
-The simulation cell size is 15 𝜇m × 15 𝜇m × 15 𝜇m, subjected to periodic boundary conditions in all three directions. The initial dislocation density is 𝜌<sub>0</sub> ≈ 1.2 × 10^{12} m^{−2}.  The initial dislocation structure can be visualized by [Ovito](https://www.ovito.org/) as shown below.  The dislocation lines are colored according to the slip systems they belong to.
+The simulation cell size is 15 𝜇m × 15 𝜇m × 15 𝜇m, subjected to periodic boundary conditions in all three directions. The initial dislocation density is 𝜌<sub>0</sub> ≈ 1.2 × 10^{12} m^{−2}.  The initial dislocation structure can be visualized by [Ovito](https://www.ovito.org/) as shown below.  The dislocation lines are colored according to the dislocation character angle.
 ```{figure} initial_configuration_Ovito.png
 :alt: Screenshot of the final configuration
 :width: 552px
