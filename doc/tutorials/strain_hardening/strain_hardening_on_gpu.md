@@ -2,7 +2,7 @@
 We can run a tensile test simulation of a single-crystal Cu using the following commands (running ExaDiS on GPU).  GPU allows us to run the simulation more efficiently and hence reach a greater strain to see the strain-hardening behavior more clearly.
 Execute the following commands to enter the directory containing the example.
 ```bash
-cd ~/Codes/OpenDiS.git
+cd ${OPENDIS_DIR}
 cd examples/10_strain_hardening/
 ```
 Before running the simulation, we shall edit the ```test_strain_hardening_exadis.py``` file to change the constructor of ```sim``` from ```maxstep=100``` to ```max_step=10000```.
