@@ -11,7 +11,7 @@ python3 -i test_frank_read_src_pydis.py
 ```
 
 #### Initial Condition
-The initial configuration of this simulation is a rectangular (prismatic) dislocation loop, where all four segments are of pure edge type.  Their Burgers vectors are normal to the plane of the rectangular loop.  All four corner nodes have their constraint = pinned (PINNED_NODE).  This is sufficient to pin the bottom and two side arms of the prismatic loop.  However, the top arm contains a node (in the middle) that is free to move.  This allows the top arm to bow out (under the action of applied stress) and act as a Frank-Read source.
+The initial configuration of this simulation is a rectangular (prismatic) dislocation loop, where all four sides are of pure edge type.  Their Burgers vectors are normal to the plane of the rectangular loop.  All four corner nodes have their constraint = pinned (PINNED_NODE).  This is sufficient to pin the bottom and two side arms of the prismatic loop.  However, the top arm contains a node (in the middle) that is free to move.  This allows the top arm to bow out (under the action of applied stress) and act as a Frank-Read source.
 
 The data structure of the initial condition is explained in Section [DisNet Class](../../code_structure/data_structure/disnet_class.md).
 
