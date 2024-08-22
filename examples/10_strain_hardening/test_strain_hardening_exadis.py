@@ -6,7 +6,7 @@ pyexadis_path = '../../core/exadis/python/'
 if not pyexadis_path in sys.path: sys.path.append(pyexadis_path)
 try:
     import pyexadis
-    from pyexadis_base import ExaDisNet, DisNetManager, SimulateNetworkPerf
+    from pyexadis_base import ExaDisNet, DisNetManager, SimulateNetworkPerf, read_restart
     from pyexadis_base import CalForce, MobilityLaw, TimeIntegration, Collision, Topology, Remesh
 except ImportError:
     raise ImportError('Cannot import pyexadis')
@@ -35,9 +35,17 @@ def example_fcc_Cu_15um_1e3():
         "maxdt": 1e-9,
     }
     
-    G = ExaDisNet()
-    G.read_paradis('180chains_16.10e.data')
-    net = DisNetManager(G)
+    output_dir = 'output_fcc_Cu_15um_1e3'
+    
+    if 1:
+        # Initial configuration
+        G = ExaDisNet()
+        G.read_paradis('180chains_16.10e.data')
+        net = DisNetManager(G)
+        restart = None
+    else:
+        # Restart configuration
+        net, restart = read_restart(state=state, restart_file=os.path.join(output_dir, 'restart.1000.exadis'))
     
     vis = None
     
@@ -51,9 +59,9 @@ def example_fcc_Cu_15um_1e3():
     sim = SimulateNetworkPerf(calforce=calforce, mobility=mobility, timeint=timeint, 
                               collision=collision, topology=topology, remesh=remesh, vis=vis,
                               loading_mode='strain_rate', erate=1e3, edir=np.array([0.,0.,1.]),
-                              max_step=100, burgmag=state["burgmag"], state=state,
+                              max_strain=0.01, burgmag=state["burgmag"], state=state,
                               print_freq=1, plot_freq=10, plot_pause_seconds=0.0001,
-                              write_freq=100, write_dir='output_fcc_Cu_15um_1e3')
+                              write_freq=100, write_dir=output_dir, restart=restart)
     sim.run(net, state)
     
     pyexadis.finalize()
