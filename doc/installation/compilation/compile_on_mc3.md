@@ -36,6 +36,7 @@ Follow the instructions at this [wiki page](http://micro.stanford.edu/wiki/Insta
 
 ````bash
 cd ${OPENDIS_DIR}
+conda activate opendis
 rm -rf build/; ./configure.sh -DSYS=mc3_cpu
 cmake --build build -j 8 ; cmake --build build --target install
 ````
@@ -49,11 +50,10 @@ cmake --build build -j 8 ; cmake --build build --target install
 ````
 
 ```{hint}
-Make sure you are in the ``opendis`` conda environment using the following command.
+If the Python used for compiling and the Python used for running are different, then error will occur. Make sure you are in the ``opendis`` conda environment using the following command before both compiling and running.
 ```bash
 conda activate opendis
 ```
-
 When compilation is successful, you should see a file like ``pyexadis.cpython*.so`` in the ``core/exadis/python`` folder.
 
 #### Run test case (OMP version)
@@ -72,6 +72,7 @@ python3 -i test_frank_read_src_exadis.py
 # first we need to get on a GPU node in order to use nvcc
 srun -p gpu-tesla -n 1 --x11 --pty bash
 cd ${OPENDIS_DIR}
+conda activate opendis
 rm -rf build/; ./configure.sh -DSYS=mc3_gpu
 cmake --build build -j 8 ; cmake --build build --target install
 ````
