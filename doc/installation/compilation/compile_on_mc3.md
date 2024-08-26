@@ -77,6 +77,12 @@ rm -rf build/; ./configure.sh -DSYS=mc3_gpu
 cmake --build build -j 8 ; cmake --build build --target install
 ````
 
+```{hint}
+The Python executable used in compiling is specified in the ```cmake/sys.cmake.mc3_gpu``` file.  Make sure you use the same Python version when running as that used for compiling by using the following command.
+```bash
+conda activate opendis
+```
+
 #### Run test case (GPU version)
 
 ````bash
