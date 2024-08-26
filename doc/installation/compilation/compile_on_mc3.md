@@ -50,7 +50,7 @@ cmake --build build -j 8 ; cmake --build build --target install
 ````
 
 ```{hint}
-If you encounter the error ```pyexadis not found```, it is likely that the Python used for compiling and the Python used for running are different.  Check which Python version you are running by e.g. ```python3 --version```. Make sure you are in the ``opendis`` conda environment using the following command before both compiling and running.
+If you encounter the error ```pyexadis not found```, it is likely that the Python used for compiling and the Python used for running are different.  The Python executable used in compiling is specified in the ```cmake/sys.cmake.mc3_cpu``` file.  Check which Python version you are running by e.g. ```python3 --version```. Make sure you are in the ``opendis`` conda environment using the following command before both compiling and running.
 ```bash
 conda activate opendis
 ```
