@@ -14,7 +14,7 @@ This would greatly shorten the development time while not sacrificing the comput
    :maxdepth: 2
    :caption: Contents:
 
-  simulate_network
+   simulate_network
    calforce
    mobility_law
    time_integration
