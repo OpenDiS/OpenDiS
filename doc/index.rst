@@ -11,4 +11,4 @@ Welcome to OpenDiS!
    installation/index
    tutorials/index
    code_structure/index
-   exadis_documentation/index
+   core_libraries/index
