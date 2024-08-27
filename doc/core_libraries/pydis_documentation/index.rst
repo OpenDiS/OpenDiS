@@ -1,4 +1,4 @@
-PyDiS documentation
+PyDiS Documentation
 ====================
 
 PyDiS (Python Dislocation Simulator) is discrete dislocation dynamics (DDD) simulation module written mostly in Python.  It is developed with two goals in mind.
