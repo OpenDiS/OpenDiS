@@ -1,5 +1,9 @@
-.. toctree::
-   :maxdepth: 2
+===============
+Core Libraries
+===============
 
-   pydis_documentation
-   exadis_documentation
+.. toctree::
+   :maxdepth: 4
+
+   pydis_documentation/index.rst
+   exadis_documentation/index.rst
