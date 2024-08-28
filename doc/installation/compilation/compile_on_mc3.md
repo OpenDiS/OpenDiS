@@ -73,12 +73,12 @@ python3 -i test_frank_read_src_exadis.py
 srun -p gpu-tesla -n 1 --x11 --pty bash
 cd ${OPENDIS_DIR}
 conda activate opendis
-rm -rf build/; ./configure.sh -DSYS=mc3_gpu
+rm -rf build/; ./configure.sh -DSYS=mc3_tesla
 cmake --build build -j 8 ; cmake --build build --target install
 ````
 
 ```{hint}
-The Python executable used in compiling is ```${HOME}/.conda/envs/opendis/bin/python```, as specified in the ```cmake/sys.cmake.mc3_gpu``` file.  Make sure you use the same Python version when running as that used for compiling by using the following command.
+The Python executable used in compiling is ```${HOME}/.conda/envs/opendis/bin/python```, as specified in the ```cmake/sys.cmake.mc3_tesla``` file.  Make sure you use the same Python version when running as that used for compiling by using the following command.
 ```bash
 conda activate opendis
 ```
