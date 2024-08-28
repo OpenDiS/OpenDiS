@@ -53,3 +53,13 @@ Here is how the total dislocation density changes with strain.  The increase of 
 :alt: dislocation density-strain curve
 :width: 352px
 ```
+
+#### Restart Simulation
+The simulation produces a set of restart files in the output directory.  We can restart the simulation from any of these restart files.  For example,
+```bash
+cd ${OPENDIS_DIR}
+cd examples/10_strain_hardening/
+export OMP_NUM_THREADS=8
+python3 test_strain_hardening_exadis.py 100
+```
+would restart the simulation from the file ```output_fcc_Cu_15um_1e3/restart.100.exadis```.
