@@ -1,6 +1,8 @@
 set(Kokkos_ENABLE_CUDA On)
 set(Kokkos_ENABLE_CUDA_LAMBDA On)
 
+set(CMAKE_C_COMPILER /opt/ohpc/pub/compiler/gcc/9.4.0/bin/gcc)
+
 set(FFTW_LIB_DIR $ENV{HOME}/usr/lib)
 set(FFTW_INC_DIR $ENV{HOME}/usr/include)
 
