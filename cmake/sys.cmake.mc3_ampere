@@ -1,0 +1,13 @@
+set(Kokkos_ENABLE_CUDA On)
+set(Kokkos_ENABLE_CUDA_LAMBDA On)
+set(Kokkos_ARCH_AMPERE80 On)
+
+set(FFTW_LIB_DIR $ENV{HOME}/usr/lib)
+set(FFTW_INC_DIR $ENV{HOME}/usr/include)
+
+message("FFTW_LIB_DIR = ${FFTW_LIB_DIR}")
+message("FFTW_INC_DIR = ${FFTW_INC_DIR}")
+
+set(EXADIS_PYTHON_BINDING On)
+set(PYTHON_EXECUTABLE $ENV{HOME}/.conda/envs/opendis/bin/python)
+
