@@ -2,8 +2,10 @@ import os, sys
 import numpy as np
 
 # Import pyexadis
-pyexadis_path = '../../core/exadis/python/'
-if not pyexadis_path in sys.path: sys.path.append(pyexadis_path)
+pyexadis_paths = ['../../python', '../../lib', '../../core/pydis/python', '../../core/exadis/python/']
+[sys.path.append(os.path.abspath(path)) for path in pyexadis_paths if not path in sys.path]
+np.set_printoptions(threshold=20, edgeitems=5)
+
 try:
     import pyexadis
     from pyexadis_base import ExaDisNet, DisNetManager, SimulateNetworkPerf, read_restart
