@@ -13,6 +13,12 @@ try:
 except ImportError:
     raise ImportError('Cannot import pyexadis')
 
+def init_from_paradis_data_file(datafile):
+    G = ExaDisNet()
+    G.read_paradis('180chains_16.10e.data')
+    net = DisNetManager(G)
+    restart = None
+    return net, restart
 
 def example_fcc_Cu_15um_1e3():
     """example_fcc_Cu_15um_1e3:
@@ -39,15 +45,18 @@ def example_fcc_Cu_15um_1e3():
     
     output_dir = 'output_fcc_Cu_15um_1e3'
     
-    if 1:
-        # Initial configuration
-        G = ExaDisNet()
-        G.read_paradis('180chains_16.10e.data')
-        net = DisNetManager(G)
-        restart = None
+    restart_id = sys.argv[1] if len(sys.argv) > 1 else None
+
+    if restart_id is None:
+        # Initial configuration from file
+        data_filename = '180chains_16.10e.data'
+        print(f"init from {data_filename}")
+        net, restart = init_from_paradis_data_file(data_filename)
     else:
         # Restart configuration
-        net, restart = read_restart(state=state, restart_file=os.path.join(output_dir, 'restart.1000.exadis'))
+        restart_filename = f'restart.{restart_id}.exadis'
+        print(f"restart from {restart_filename}")
+        net, restart = read_restart(state=state, restart_file=os.path.join(output_dir, restart_filename))
     
     vis = None
     
