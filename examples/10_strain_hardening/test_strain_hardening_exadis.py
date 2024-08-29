@@ -15,7 +15,7 @@ except ImportError:
 
 def init_from_paradis_data_file(datafile):
     G = ExaDisNet()
-    G.read_paradis('180chains_16.10e.data')
+    G.read_paradis(datafile)
     net = DisNetManager(G)
     restart = None
     return net, restart
