@@ -10,7 +10,7 @@ ExaDiS is built around a portable library of core functions for Discrete Disloca
 
 Contributing
 ------------
-As part of the OpenDiS project, ExaDiS is welcoming and encouraging new contributions from users. The easiest way to make contributions to the code is via pull/merge requests, or by reporting bugs or opening discussions in the Issue section.
+As part of the OpenDiS project, ExaDiS is welcoming and encouraging new contributions from users. The easiest way to make contributions to the code is via pull/merge requests, or by reporting bugs or opening discussions in the Issue section of the `ExaDiS Github repo <https://github.com/LLNL/exadis>`_.
 
 
 License

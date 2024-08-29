@@ -4,7 +4,7 @@ ExaDiS is implemented using the [Kokkos](https://kokkos.org) framework and built
 
 ### Obtaining the code from OpenDiS
 
-You can obtain the code from OpenDiS, in which ExaDiS is included as a submodule. To do so, please follow the steps described in the [Installation section](../../installation/index).
+You can obtain the code from OpenDiS, in which ExaDiS is included as a submodule. To do so, please follow the steps described in the [Installation section](../../../installation/index).
 
 
 ### Obtaining the code as a standalone
