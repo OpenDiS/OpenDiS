@@ -22,11 +22,13 @@ class CalForce_Base(ABC):
         """
         pass
 
+    @abstractmethod
     def PreCompute(self, DM: DisNetManager, state: dict) -> dict:
         """PreCompute: pre-compute some data for force calculation
         """
         pass
 
+    @abstractmethod
     def OneNodeForce(self, DM: DisNetManager, state: dict, tag: Tag, update_state: bool=True) -> dict:
         """OneNodeForce: compute force calculation on one node
         """
