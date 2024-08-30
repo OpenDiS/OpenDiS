@@ -69,11 +69,11 @@ python3 -i test_frank_read_src_exadis.py
 #### Build ExaDiS/KOKKOS (GPU version)
 
 ````bash
-# first we need to get on a GPU node in order to use nvcc
-srun -p gpu-tesla -n 1 --x11 --pty bash
+# first we need to get on a GPU node (gpu-ampere) in order to use nvcc
+srun -p gpu-ampere -n 1 --x11 --pty bash
 cd ${OPENDIS_DIR}
 conda activate opendis
-rm -rf build/; ./configure.sh -DSYS=mc3_tesla
+rm -rf build/; ./configure.sh -DSYS=mc3_ampere
 cmake --build build -j 8 ; cmake --build build --target install
 ````
 
