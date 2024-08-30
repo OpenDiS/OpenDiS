@@ -26,7 +26,7 @@ Put the following lines in your ``~/.bash_profile file``, exit and login again
 ````bash
 module load cmake/3.24.2
 module load gnu9/9.4.0
-module load cuda/12.5
+module load cuda/nvhpc/23.7
 ````
 
 #### Install FFTW
