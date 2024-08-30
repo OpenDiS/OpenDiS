@@ -20,6 +20,7 @@ rm -rf build/
 ### Step 2: Configure the build
 
 Configure the build for your system by passing build options to the `configure.sh` script. (See list of options in the Build Options section below.)
+
 Below are various examples of how OpenDiS can be configured:
 
 * Example: use a pre-defined build options defined in `cmake/sys.cmake.<system>`, and then pass build argument `-DSYS=<system>`. E.g., to build for `SYS=mac` (i.e. using options set in file `cmake/sys.cmake.mac`):
@@ -59,4 +60,4 @@ cmake --build build -j 8 ; cmake --build build --target install
 
 ## Build options
 
-Besides the standard `CMAKE` options and the `SYS` option, most OpenDiS build options are related to the ExaDiS core library. See the list of [ExaDiS build options](../../core_libraries/exadis_documentation/user_guide/obtaining.md#detailed-build-instructions).
+Besides the standard `CMAKE` options and the `SYS` option, most OpenDiS build options are related to the ExaDiS/Kokkos core library. See the list of [ExaDiS build options](../../core_libraries/exadis_documentation/user_guide/obtaining.md#detailed-build-instructions).
