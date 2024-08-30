@@ -13,7 +13,7 @@ python3 test_strain_hardening_exadis.py
 ```
 
 #### Simulation Behavior
-The simulation creates a folder called ```output_fcc_Cu_15um_1e3``` to store the results files.  On MC3.stanford.edu (GPU node), it takes about 2 days to run 10000 steps of the simulation.  The simulation will write a data file to the output folder for every 100 steps.  The ```stress_strain_dens.dat``` file stores certain essential information of the tensile test --- it contains 5 columns corresponding to step, strain, stress (Pa), dislocation density (m<sup>-2</sup>) and wall-clock time (sec), respectively.
+The simulation creates a folder called ```output_fcc_Cu_15um_1e3``` to store the results files.  On MC3.stanford.edu (gpu-ampere), it takes about 13.6 hours to run 10000 steps of the simulation.  The simulation will write a data file to the output folder for every 100 steps.  The ```stress_strain_dens.dat``` file stores certain essential information of the tensile test --- it contains 5 columns corresponding to step, strain, stress (Pa), dislocation density (m<sup>-2</sup>) and wall-clock time (sec), respectively.
 
 The final dislocation configuration (config.10000.data) after 10000 steps is shown below.
 ```{figure} GPU_final_configuration_Ovito.png
@@ -22,13 +22,13 @@ The final dislocation configuration (config.10000.data) after 10000 steps is sho
 ```
 
 The predicted stress-strain curve is shown below.
-```{figure} Stress_strain_GPU.png
+```{figure} Stress_strain_ampere.png
 :alt: stress-strain curve
 :width: 352px
 ```
 
 Here is how the total dislocation density changes with strain.  The increase of dislocation density (i.e. dislocation multiplication) with strain is a key mechanism for strain-hardening.
-```{figure} Density_strain_GPU.png
+```{figure} Density_strain_ampere.png
 :alt: dislocation density-strain curve
 :width: 352px
 ```
