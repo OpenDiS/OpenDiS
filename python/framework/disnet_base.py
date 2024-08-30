@@ -1,5 +1,5 @@
 """@package docstring
-DisNet_BASE: base class for DisNet (dislocation network)
+DisNet_Base: base class for DisNet (dislocation network)
 
 Defines interface for the DisNet class
 """
@@ -7,6 +7,11 @@ Defines interface for the DisNet class
 from abc import ABC, abstractmethod 
 
 class DisNet_Base(ABC):
+    """DisNet_Base: base class for DisNet (dislocation network)
+
+    Defines interface for the DisNet class
+    """
+
     #@abstractmethod
     # To do: find out if property can be abstract method
     #def cell(self):
@@ -27,9 +32,9 @@ class DisNet_Base(ABC):
         pass
 
 class DisNet_Python(DisNet_Base):
-    """DisNet_BASE: base class for DisNet (dislocation network)
+    """DisNet_Python: base class for DisNet inherited by PyDiS
 
-    Defines interface for the DisNet class
+    Defines interface for the DisNet class for Python implementation
     """
     @abstractmethod
     def all_nodes_tags(self):

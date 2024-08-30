@@ -8,6 +8,7 @@ import numpy as np
 from typing import Tuple
 from ..disnet import DisNet, Tag
 from framework.disnet_manager import DisNetManager
+from framework.calforce_base import CalForce_Base
 
 try:
     from .compute_stress_force_analytic_paradis import compute_segseg_force_vec, compute_segseg_force
@@ -65,7 +66,7 @@ def selfforcevec_LineTension(MU, NU, Ec, segs_data, eps_L=1e-6):
     fs0 = -fs1
     return fs0, fs1
 
-class CalForce:
+class CalForce(CalForce_Base):
     """CalForce_DisNet: class for calculating forces on dislocation network
     """
     def __init__(self, state: dict={}, Ec: float=None,
@@ -110,6 +111,8 @@ class CalForce:
         return state
 
     def OneNodeForce(self, DM: DisNetManager, state: dict, tag: Tag, update_state: bool=True) -> dict:
+        """OneNodeForce: compute force calculation on one node
+        """
         applied_stress = state["applied_stress"]
         G = DM.get_disnet(DisNet)
         f = self.OneNodeForce_Functions[self.force_mode](G, applied_stress, tag)
