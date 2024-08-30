@@ -1,12 +1,14 @@
 ## How to get the code
 
-### Download OpenDiS together with submodules
-
-For clarity, let us set the environment variable ```OPENDIS_DIR``` to be the directory that will contain your downloaded OpenDiS code.  For example, you may use
+````{important}
+For clarity, throughout this documentation variable ```OPENDIS_DIR``` is used to designate the directory that contains your downloaded OpenDiS code. For instance, you may set this directory via an environment variable ```OPENDIS_DIR``` using
 ```bash
 export OPENDIS_DIR=${HOME}/Codes/OpenDiS.git
 ```
-But you may specify a different path that you prefer.  If you use ```bash```, you can include the above line in your ```~/.bash_profile``` file so that this line is automatically executed every time you log in.
+You may specify a different path that you prefer. If you use ```bash```, you can include the above line in your ```~/.bash_profile``` file so that this line is automatically executed every time you log in.
+````
+
+### Download OpenDiS together with submodules
 
 Use the following steps to download OpenDiS into the location specified by your ```${OPENDIS_DIR}``` variable.
 
