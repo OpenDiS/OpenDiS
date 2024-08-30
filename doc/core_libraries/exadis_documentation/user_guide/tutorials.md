@@ -4,6 +4,12 @@
 
 ExaDiS is a modular DDD code. Contrary to other DDD codes such as the legacy ParaDiS code, standard DDD simulations in ExaDiS are not driven via a set of input files provided as argument to the command line code. Instead, simulations are driven either through the python or C++ interfaces via scripts. ExaDiS modules can also be used as independent building blocks (e.g. within the OpenDiS framework) to create various DDD applications.
 
+```{important}
+All paths, e.g. `examples/02_frank_read_src`, used in this section of the documentation refer to paths within the ExaDiS directory. If ExaDiS is installed as a submodule within OpenDiS, the corresponding path is
+
+`${OPENDIS_DIR}/core/exadis/examples/02_frank_read_src`
+```
+
 
 ### Running a Frank-Read source simulation
 

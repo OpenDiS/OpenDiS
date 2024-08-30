@@ -3,7 +3,9 @@
 ExaDiS is implemented using the [Kokkos](https://kokkos.org) framework and built using the CMake build system. The code is available as a standalone, or as part of the OpenDiS framework where the `ExaDiS` repository is included as a submodule.
 
 ### Obtaining the code from OpenDiS
-
+```{note}
+This is the preferred way of obtaining the code.
+```
 You can obtain the code from OpenDiS, in which ExaDiS is included as a submodule. To do so, please follow the steps described in the [Installation section](../../../installation/index).
 
 
