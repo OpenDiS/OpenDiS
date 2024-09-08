@@ -65,7 +65,7 @@ def setup(app):
     app.add_js_file('custom.js')
     
 
-html_logo = "logo_box_upright.png"
+html_logo = "nodebox_base.png"
 html_theme =  "furo"
  
 #favicons = ["logo_box_upright.png",]
