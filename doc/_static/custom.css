@@ -3,15 +3,26 @@
     font-weight: bold;
 }
 
-
-.sidebar-logo-container img.sidebar-logo::after {
-    content: "Test visiblity. What is wrong.";
-    background-color: black;
-    color: black;
-    padding: 10px;
-    opacity: 1;
-    visibility: visible;
+img.sidebar-logo {
+    position: relative;
+}
+img.sidebar-logo::after {
+    content: "Designed by Jonathan Lin";
+    font-size: 0px;
+    visibility: hidden;
+    color: red;
+    display: block;
     position: absolute;
-    z-index: 9999;
+    top: 100%; 
+    left: 50%;
+    transform: translateX(-50%); 
+    width: 100%;
+    text-align: center;
+    transition: font-size 0.5s ease, visibility 0.5s ease;
+}
+
+img.sidebar-logo:hover::after {
+    font-size: 100px;
+    visibility: visible;
 }
 
