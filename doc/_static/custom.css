@@ -3,10 +3,8 @@
     font-weight: bold;
 }
 
-img.sidebar-logo {
-    position: relative;
-}
-img.sidebar-container::after {
+
+img.sidebar-container:hover::after {
     content: "Designed by Jonathan Lin";
     visibility: visible;
     font-size: 80px;
