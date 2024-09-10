@@ -8,6 +8,7 @@ img.sidebar-logo {
 }
 img.sidebar-logo::after {
     content: "Designed by Jonathan Lin";
+    visibility: visible;
     font-size: 80px;
     color: red;
     display: block;
