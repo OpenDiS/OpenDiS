@@ -4,8 +4,9 @@
 }
 
 
-img.sidebar-brand:hover {
+img.sidebar-logo:hover {
     background-color: yellow;
+    font-size: 100px;
     content: here;
 }
 /* 
