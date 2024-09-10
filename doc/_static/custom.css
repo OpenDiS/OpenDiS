@@ -4,21 +4,19 @@
 }
 
 
-/* Styling for the logo tooltip */
-img[alt="Logo"] {
+img.sidebar-logo {
     position: relative;
 }
 
-img[alt="Logo"]::after {
-    content: "Designed by Jonathan Lin\njlin1212@umd.edu";
+img.sidebar-logo::after {
+    content: "Designed by Jonathan Lin\njlin1212@umd.edu"; 
     position: absolute;
-    bottom: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    background-color: #333;
-    color: white;
-    padding: 5px;
-    border-radius: 5px;
+    bottom: 100%; 
+    left: 50%; 
+    transform: translateX(-50%); 
+    background-color: #333; 
+    color: white; 
+    padding: 5px; 
     white-space: pre; 
     opacity: 0;
     visibility: hidden;
@@ -26,7 +24,8 @@ img[alt="Logo"]::after {
     pointer-events: none;
 }
 
-img[alt="Logo"]:hover::after {
+img.sidebar-logo:hover::after {
     opacity: 1;
     visibility: visible;
 }
+
