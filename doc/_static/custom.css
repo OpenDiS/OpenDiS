@@ -6,6 +6,7 @@
 
 img.sidebar-logo:hover {
     background-color: yellow;
+    content: 'text';
 }
 /* 
 img.sidebar-logo:hover::after {
