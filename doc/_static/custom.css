@@ -4,19 +4,8 @@
 }
 
 
-img.sidebar-logo:hover::after {
-    content: "Designed by Jonathan Lin";
-    visibility: visible;
-    font-size: 80px;
-    color: red;
-    display: block;
-    position: absolute;
-    top: 100%; 
-    left: 50%;
-    transform: translateX(-50%); 
-    width: 100%;
-    text-align: center;
-    transition: font-size 0.5s ease, visibility 0.5s ease;
+img.sidebar-logo:hover {
+    background-color: yellow;
 }
 /* 
 img.sidebar-logo:hover::after {
