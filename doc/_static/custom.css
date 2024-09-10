@@ -5,20 +5,17 @@
 
 
 img.sidebar-logo::after {
-    content: "Designed by Jonathan Lin"; 
-    background-color: #333;
-    color: #fff;
-    padding: 5px;
+    content: "Designed by Jonathan Lin\njlin1212@umd.edu";
     position: absolute;
     bottom: 100%;
     left: 50%;
     transform: translateX(-50%);
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.3s;
-}
-
-img.sidebar-logo:hover::after {
+    background-color: red;
+    color: white;
+    padding: 10px;
+    border-radius: 5px;
+    white-space: pre;
+    z-index: 9999;
     opacity: 1;
     visibility: visible;
 }
