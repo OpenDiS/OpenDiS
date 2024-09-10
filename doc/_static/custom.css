@@ -4,7 +4,7 @@
 }
 
 
-img.sidebar-container:hover::after {
+img.sidebar-logo:hover::after {
     content: "Designed by Jonathan Lin";
     visibility: visible;
     font-size: 80px;
