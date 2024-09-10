@@ -6,7 +6,7 @@
 img.sidebar-logo {
     position: relative;
 }
-img.sidebar-logo::after {
+img.sidebar-container::after {
     content: "Designed by Jonathan Lin";
     visibility: visible;
     font-size: 80px;
