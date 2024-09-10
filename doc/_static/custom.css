@@ -4,7 +4,7 @@
 }
 
 
-img.sidebar-logo:hover {
+img.sidebar-brand:hover {
     background-color: yellow;
     content: here;
 }
