@@ -2,3 +2,24 @@
     color: green;
     font-weight: bold;
 }
+
+
+img[alt="Logo"] {
+    position: relative;
+}
+
+img[alt="Logo"]::after {
+    content: "Designed by Jonathan jlin1212@umd.edu";
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+img[alt="Logo"]:hover::after {
+    opacity: 1;
+    visibility: visible;
+}
