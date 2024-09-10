@@ -5,18 +5,13 @@
 
 
 .sidebar-logo-container img.sidebar-logo::after {
-    content: "Designed by Jonathan Lin\njlin1212@umd.edu";
-    position: absolute;
-    bottom: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    background-color: red !important;
-    color: white !important;
+    content: "Test visiblity. What is wrong.";
+    background-color: black;
+    color: black;
     padding: 10px;
-    z-index: 9999;
     opacity: 1;
     visibility: visible;
+    position: absolute;
+    z-index: 9999;
 }
-
-
 
