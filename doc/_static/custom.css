@@ -3,15 +3,16 @@
     font-weight: bold;
 }
 
+.sidebar-logo-container::after {
+  content: "(Logo by Jonathan Lin)";
+  font-size: 8pt;
+  color: #222;
+  display: block;
+  text-align: right;
+  transition: 0.4s;
+  opacity: 0;
+}
 
-img.sidebar-logo:hover {
-    background-color: yellow;
-    font-size: 100px;
-    content: here;
+.sidebar-logo-container:hover::after {
+  opacity: 1;
 }
-/* 
-img.sidebar-logo:hover::after {
-    font-size: 100px;
-    visibility: visible;
-}
- */
