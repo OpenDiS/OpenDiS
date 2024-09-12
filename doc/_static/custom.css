@@ -19,26 +19,16 @@
 }
  */
 
-.sidebar-logo-container {
+.sidebar-logo-container a {
   font-size: 8pt;
   color: #222;
+  display: block;
   text-align: right;
-  transition: opacity 0.4s;
   opacity: 0;
+  transition: opacity 0.4s;
+  white-space: pre;
 }
 
-.sidebar-logo-container a {
-  color: #222;
-  text-decoration: none;
-  transition: color 0.4s;
-}
-
-.sidebar-logo-container a:hover {
-  color: #555;
-  opacity: 1;
-
-}
-
-.sidebar-logo-container:hover {
+.sidebar-logo-container:hover a {
   opacity: 1;
 }
