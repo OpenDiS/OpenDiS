@@ -35,6 +35,8 @@
 
 .sidebar-logo-container a:hover {
   color: #555;
+  opacity: 1;
+
 }
 
 .sidebar-logo-container:hover {
