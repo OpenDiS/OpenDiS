@@ -3,7 +3,7 @@
     font-weight: bold;
 }
 
-.sidebar-logo-container::after {
+/* .sidebar-logo-container::after {
   content: "Logo by Jonathan Lin \a https://jlin1212.github.io/";
   font-size: 8pt;
   color: #222;
@@ -15,5 +15,28 @@
 }
 
 .sidebar-logo-container:hover::after {
+  opacity: 1;
+}
+ */
+
+.sidebar-logo-container {
+  font-size: 8pt;
+  color: #222;
+  text-align: right;
+  transition: opacity 0.4s;
+  opacity: 0;
+}
+
+.sidebar-logo-container a {
+  color: #222;
+  text-decoration: none;
+  transition: color 0.4s;
+}
+
+.sidebar-logo-container a:hover {
+  color: #555;
+}
+
+.sidebar-logo-container:hover {
   opacity: 1;
 }
