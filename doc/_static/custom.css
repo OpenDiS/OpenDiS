@@ -3,7 +3,7 @@
     font-weight: bold;
 }
 
-.sidebar-logo-container::after {
+/* .sidebar-logo-container::after {
   content: "Logo by Jonathan Lin \a jlin1212@termpail.umd.edu";
   font-size: 8pt;
   color: #222;
@@ -17,4 +17,4 @@
 .sidebar-logo-container:hover::after {
   opacity: 1;
 }
-
+ */
