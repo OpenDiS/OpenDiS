@@ -1,9 +1,6 @@
 {% extends "furo/page.html" %}
 
 {% block footer %}
-<div class="related-pages">
-  {{ super() }}  {# Include related pages content from the parent template #}
-</div>
 <div class="bottom-of-page">
   <div class="left-details">
     {% trans %}Made with {% endtrans %}
@@ -16,7 +13,6 @@
     <span>Logo by <a href="https://jlin1212.github.io/" target="_blank" rel="noopener noreferrer">Jonathan Lin</a></span>
   </div>
   <div class="right-details">
-    ...
   </div>
 </div>
 {% endblock %}
