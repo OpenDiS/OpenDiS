@@ -21,8 +21,10 @@ import sys
 
 project = 'OpenDiS'
 copyright = '2024, OpenDiS'
-author_str = 'OpenDis | logo by Jonathan Lin
-
+# author_str = 'OpenDis | logo by Jonathan Lin
+html_context = {
+    "author": 'OpenDis | logo by <a href="https://jlin1212.github.io/" target="_blank">Jonathan Lin</a>',
+}
 
 
 from datetime import datetime
