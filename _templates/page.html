@@ -1,0 +1,24 @@
+{% extends "furo/page.html" %}
+
+{% block footer %}
+<div class="related-pages">
+  {{ super() }}
+</div>
+<div class="bottom-of-page">
+  <div class="left-details">
+    {# Original footer content #}
+    {% trans %}Made with {% endtrans -%}
+    {%- if show_sphinx -%}
+    {% trans %}<a href="https://www.sphinx-doc.org/">Sphinx</a> and {% endtrans -%}
+    <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+    {% endif -%}
+    {% trans %}
+    <a href="https://github.com/pradyunsg/furo">Furo</a>
+    {% endtrans %}
+    <span>Logo by Jonathan Lin</span>
+  </div>
+  <div class="right-details">
+    ...
+  </div>
+</div>
+{% endblock footer %}
