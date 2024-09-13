@@ -21,7 +21,8 @@ import sys
 
 project = 'OpenDiS'
 copyright = '2024, OpenDiS'
-author = 'OpenDis ~ logo by Jonathan Lin'
+author = 'OpenDis | logo by <a href="https://jlin1212.github.io/" target="_blank">Jonathan Lin</a>'
+
 
 from datetime import datetime
 year = datetime.now().year
