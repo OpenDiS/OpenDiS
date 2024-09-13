@@ -69,7 +69,6 @@ def setup(app):
 
 html_logo = "_static/nodebox_logo.png"
 html_theme =  "furo"
-templates_path = ['_templates']
 
 #favicons = ["logo_box_upright.png",]
 #favicons = [{"href": "favicon.ico"},]
