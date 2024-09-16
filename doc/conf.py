@@ -20,8 +20,8 @@ import sys
 # -- Project information -----------------------------------------------------
 
 project = 'OpenDiS'
-copyright = '2024, OpenDiS'
-author = 'OpenDis | <a href="contributors.html">Contributors</a>'
+copyright = '2024'
+author = 'Contributors'
 
 
 
