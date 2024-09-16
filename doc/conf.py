@@ -21,7 +21,7 @@ import sys
 
 project = 'OpenDiS'
 copyright = '2024, OpenDiS'
-author = 'OpenDis | logo by Jonathan Lin'
+author = 'OpenDis | [Contributors](contributors.md)'
 
 
 
