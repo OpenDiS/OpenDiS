@@ -20,17 +20,15 @@ import sys
 # -- Project information -----------------------------------------------------
 
 project = 'OpenDiS'
-copyright = '2024'
 author = 'Contributors'
-
 
 
 from datetime import datetime
 year = datetime.now().year
 if year > 2024:
-    copyright = f'2024-{year}, {author}'
+    copyright = f'2024-{year}, {project}, {author}'
 else:
-    copyright = f'2024, {author}'
+    copyright = [f'2024, {project}, {author}'](contributors.md)
 
 # The full version, including alpha/beta/rc tags
 release = '0.1.0'
