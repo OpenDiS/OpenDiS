@@ -10,9 +10,6 @@ module load gcc/8.3.0
 module load cuda/12.2.2
 
 ````
-
-#### Install FFTW
-Follow the instructions at this [wiki page](http://micro.stanford.edu/wiki/Install_FFTW3) to install FFW in your home directory.  The library and include files should be put in paths consistent with what’s specified in the ``cmake/sys.cmake.mc3_cpu`` file.
   
 #### Build ExaDiS/KOKKOS (GPU version)
 
@@ -36,7 +33,6 @@ When compilation is successful, you should see a file like ``pyexadis.cpython*.s
 #### Run test case (GPU version)
 
 ````bash
-export OMP_NUM_THREADS=8
 cd ${OPENDIS_DIR}
 cd examples/02_frank_read_src
 conda activate opendis

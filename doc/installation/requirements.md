@@ -31,5 +31,5 @@ To run high performance simulations (CPU and GPU), OpenDiS relies on the core [E
   - Optional Python package [networkx](https://networkx.org/), needed only if you call the DisNet to_networkx(), from_networkx() functions
 
 - **FFTW**
-  - Install [FFTW](https://www.fftw.org/) for handling discrete Fourier transforms (required for CPU build)
+  - Install [FFTW](https://www.fftw.org/) for handling discrete Fourier transforms (only required for CPU build)
   - It can typically be installed via your package manager (e.g., `sudo apt install libfftw3-dev`).

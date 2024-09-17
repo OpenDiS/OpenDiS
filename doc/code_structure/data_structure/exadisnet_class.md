@@ -53,4 +53,4 @@ N = DisNetManager(G)
 ```
 
 DisNetManager provides a convenient way to convert the data between DisNet and ExaDisNet.
-Section [Graph Data Conversion](../tutorials/frank_read_src/graph_data_conversion.md) describes how to convert between DisNet and ExaDiSNet objects.
+Section [Graph Data Conversion](../../tutorials/frank_read_src/graph_data_conversion.md) describes how to convert between DisNet and ExaDiSNet objects.

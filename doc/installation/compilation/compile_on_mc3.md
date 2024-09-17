@@ -30,7 +30,10 @@ module load cuda/nvhpc/23.7
 ````
 
 #### Install FFTW
-Follow the instructions at this [wiki page](http://micro.stanford.edu/wiki/Install_FFTW3) to install FFW in your home directory.  The library and include files should be put in paths consistent with what’s specified in the ``cmake/sys.cmake.mc3_cpu`` file.
+Follow the instructions at this [wiki page](http://micro.stanford.edu/wiki/Install_FFTW3) to install FFTW in your home directory.  The library and include files should be put in paths consistent with what’s specified in the ``cmake/sys.cmake.mc3_cpu`` file.
+```{note}
+FFTW is only required when compiling for CPU/OMP. When compiling for cuda GPU, FFT transforms will be performed using the `cuFFT` library.  
+```
   
 #### Build ExaDiS/KOKKOS (OMP version)
 

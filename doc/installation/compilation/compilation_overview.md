@@ -56,6 +56,9 @@ Once configuration is completed, build and install the codes using the following
 ```bash
 cmake --build build -j 8 ; cmake --build build --target install
 ```
+```{note}
+Building for GPU (e.g. with `nvcc` or `hipcc`) may be pretty slow, please be patient!
+```
 
 
 ## Build options
