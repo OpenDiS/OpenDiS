@@ -49,18 +49,18 @@ The `DisNetManager` object keeps track of the last requested instance of the dis
 For instance, in the following code example
 ```cpp
 void function1(System* system) {
-    SerialDisNet* net = system->get_serial_network();
+    DeviceDisNet* net = system->get_device_network();
     // do some stuff
 }
 void function2(System* system) {
-    SerialDisNet* net = system->get_serial_network();
+    DeviceDisNet* net = system->get_device_network();
     // do some stuff
 }
 // Main body
 function1(system);
 function2(system);
 ```
-no memory copy is triggered in `function2` because the `SerialDisNet` instance was already marked as active when executing `function1`.
+no memory copy is triggered in `function2` because the `DeviceDisNet` instance was already marked as active when executing `function1`.
 
 Conversely, in the following code example
 ```cpp
@@ -84,7 +84,7 @@ a copy of the network instance from the host space to the device space will be t
 As a concrete example, let's implement a function to compute the total dislocation density in the system. Calculating the dislocation density is a good starting example because it involves looping over each segment of the network, accessing their end-nodes to compute the segment length, summing up their lengths, and dividing the total length by the simulation cell volume (using appropriate units).
 
 #### Serial implementation
-As a first step, we may want to implement this method for serial/host execution for simplicity. We could implement the following function:
+As a prototype, we may start to implement this function for serial/host execution for simplicity. We could implement the following function:
 
 ```cpp
 double compute_dislocation_density(System* system) {
@@ -266,14 +266,14 @@ public:
 
 The guideline in ExaDiS is for each module to possess its own `Param` struct that serves to define the dedicated parameters of the module, and provide it to the constructor. After that, we need to implemented the various methods associated with the `Force` base class.
 
-For a force module, the 3 required methods to implement are:
+For a `Force` module, the 3 required methods to implement are:
 - `pre_compute()`: method to perform any pre-computation that may be required to compute nodal forces. In the traditional cycle, the pre-compute function is called once at the beginning of each simulation time step. For instance, for the `ForceFFT` module, the pre-computation step is used to compute and tabulate the long-range stress field on a grid. In the `ForceSegSegList` module, the pre-computation step is used to build the list of segment pair interactions.
 - `compute()`: method to perform a global computation of nodal forces, i.e. to compute the forces on all nodes of the network.
 - `node_force()`: method to perform an individual force computation, i.e. to compute the force on a given node of the network. Optionally, this function can also be implemented when using a team of workers for parallel execution on device (GPU), where the individual node force computation can itself be parallelized across several concurrent threads using hierarchical parallelization.
 
 #### Serial implementation
 
-In our simple example, there is no need to perform any pre-computation, so we can leave the `pre_compute()` method empty. The next step is to implement the `compute()` method. Recall we want to set the nodal forces to a constant value. As a first/prototype, we may want to implement this method in serial on the CPU for simplicity. Here, we could do something like this:
+In our simple example, there is no need to perform any pre-computation, so we can leave the `pre_compute()` method empty. The next step is to implement the `compute()` method. Recall we want to set the nodal forces to a constant value. As a first attempt/prototype, we may want to implement this method in serial on the CPU for simplicity. Here, we could do something like this:
 
 ```cpp
 // Global compute (serial implementation)
@@ -296,7 +296,7 @@ where we loop over the local nodes and assign `fval` to their force property. We
 
 #### Parallel implementation
 
-Now, let's imagine that we are happy with our implementation, but want to use this module in a production run on GPU. In this case, executing the `compute()` method in the serial execution space is going to be very inefficient. (This would be the case even for such a trivial force module. This is because other force/mobility modules used in the simulation will likely be executed on GPU, hence the call to the `system->get_serial_network()` will trigger memory copies from the GPU to the CPU, while the `system->get_device_network()` in the other GPU modules will also trigger the reverse memory copies. These back-and-forth movements may significantly hit the performance.) Alternatively, we can now implement a new version of the `compute()` method that will be executed on the device space. Here, the implementation is trivial because each index `i` of the loop is independent and thus can be parallelized. As such, all we need to do is to replace the serial `for` loop with a `Kokkos::parallel_for` loop, while now operating on a `DeviceDisNet` object:
+Now, let's imagine that we are happy with our implementation, but want to use this module in a production run on GPU. In this case, executing the `compute()` method in the serial execution space is going to be very inefficient. (This would be the case even for such a trivial force module. This is because other force/mobility modules used in the simulation will likely be executed on GPU, hence the call to the `system->get_serial_network()` will trigger memory copies from the GPU to the CPU, while the `system->get_device_network()` in the other GPU modules will trigger the reverse memory copies. These back-and-forth movements may significantly hit the performance.) Alternatively, we can now implement a new version of the `compute()` method that will be executed on the device space. Here, the implementation is trivial because each index `i` of the loop is independent and thus can be parallelized. As such, all we need to do is to replace the serial `for` loop with a `Kokkos::parallel_for` loop, while now operating on a `DeviceDisNet` object:
 
 ```cpp
 // Global compute (parallel implementation)
@@ -436,6 +436,6 @@ and then declare our `ForceSegConstant` force module as the base class `ForceSeg
 typedef ForceSeg<SegConstant> ForceSegConstant;
 ```
 
-In struct `SegConstant`, all we had to do is to pretty much copy the inside of our serial loop into the `segment_force()` method. We have also templated the network instance type `N` so that the same kernel can be compiled for serial or device execution spaces using indifferently `SerialDisNet` or `DeviceDisNet` instances of the network. When compiled for GPU, the segment forces will be computed in a highly parallel fashion on the device (GPU) space by default, and forces at nodes will be aggregated properly avoiding race conditions, following the machinery implemented in base class `ForceSeg` and here abstracted from the user. In addition, when using this approach the associated `node_force()` method becomes automatically available as well. However, if we want to implement a dedicated `node_force()` method, we could also do that by setting flag `has_node_force = true` and implementing method `node_force()` in our `SegConstant` struct, in which case its base class implementation will be overridden. Similarly, we could provide a team implementation or pre-compute methods.
+In struct `SegConstant`, all we had to do is to pretty much copy the inside of our serial loop into the `segment_force()` method. We have also templated the network instance type `N` so that the same kernel can be compiled for serial or device execution spaces using indifferently `SerialDisNet` or `DeviceDisNet` instances of the network. When compiled for GPU, the segment forces will be computed in a highly parallel fashion on the device (GPU) space by default, and forces at nodes will be aggregated properly avoiding race conditions, following the machinery implemented in base class `ForceSeg` and here abstracted from the user. In addition, when using this approach the associated `node_force()` method becomes automatically created as well, without us having to explicitly define it. However, if we want to implement a dedicated `node_force()` method, we could also do that by setting flag `has_node_force = true` and implementing method `node_force()` in our `SegConstant` struct, in which case its base class implementation will be overridden. Similarly, we could provide a team implementation or pre-compute methods.
 
 In the code, base class `ForceSeg` is for instance used to compute the core force in `src/force_types/force_lt.h`, or implement the N^2 force model in `src/force_types/force_n2.h`.

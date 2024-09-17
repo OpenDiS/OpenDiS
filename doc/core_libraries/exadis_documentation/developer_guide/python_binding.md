@@ -50,18 +50,18 @@ the binding must also act as a wrapper for the `System` object, which is only in
 
 ```cpp
 struct MyExaDisModuleBind {
-    MyExaDisModule* module;
+    MyExaDisModule* mymodule;
     Params params;
     MyExaDisModuleBind(Params& p) {
         params = p;
         System* system = make_system(new SerialDisNet(), Crystal(), params);
-        module = new MyExaDisModule(system);
+        mymodule = new MyExaDisModule(system);
         exadis_delete(system);
     }
     void foo(ExaDisNet& disnet) {
         System* system = disnet.system;
         system->params = params;
-        module->foo(system);
+        mymodule->foo(system);
     }
 };
 

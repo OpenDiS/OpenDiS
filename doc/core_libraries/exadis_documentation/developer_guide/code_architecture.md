@@ -4,9 +4,9 @@
 
 ExaDiS is implemented based on a modular design in which each functionality can be viewed as an independent module. This design is essential to make the code extensible and enable its coupling with various other modules within the [OpenDiS](https://github.com/OpenDiS/) framework.
 
-ExaDiS core backend is written in modern C++ and built based on the [Kokkos](https://kokkos.org) framework. This allows to maintain a unique version of the source code that is largely agnostic of the target hardware, while being able to compile the code for a wide variety of systems and hardwares, e.g. for serial CPU machines, using OpenMP, or for GPU machines using cuda or hip architectures, for instance.
+ExaDiS core backend is written in modern C++ and built based on the [Kokkos](https://kokkos.org) framework. This allows to maintain a unique version of the source code that is largely agnostic of the target hardware: the same source code can be compiled for a wide variety of systems and hardwares, e.g. for serial CPU machines, using OpenMP, or for GPU machines using cuda or hip architectures, for instance.
 
-ExaDiS classes and functions are implemented with high-performance and high-parallelism kernel execution in mind. Yet, the code is designed to abstract away as much complexity as possible, so as to lower the entry barrier for developing new functionalities. For prototyping or first implementation pass, ExaDiS also provides convenient helper functions and data structures that are easier to manipulate than Kokkos-based implementations. An example is provided with the `Topology` class implementation, where class `TopologySerial` implements the split-multi-node procedure in a serial fashion on the host (CPU), while `TopologyParallel` is an implementation of the same split-multi-node procedure but executed with highly-parallel kernels on the device (GPU).
+ExaDiS classes and functions are implemented with high-performance and high-parallelism kernel execution in mind. Yet, the code is designed to abstract away as much complexity as possible, so as to lower the entry barrier for developing new functionalities. For prototyping or first implementation pass, ExaDiS also provides convenient helper functions and data structures that are easier to manipulate than Kokkos-based implementations. An illustration of this is the `Topology` class implementation, where class `TopologySerial` implements the split-multi-node procedure in a serial fashion on the host (CPU), while `TopologyParallel` is an implementation of the same split-multi-node procedure but executed with highly-parallel kernels on the device (GPU).
 
 
 ### Project structure
@@ -133,7 +133,9 @@ Class `DisNetManager` is used as a container to synchronize dislocation networks
 ### System class
 `System` is the base class in ExaDiS that contains all information about the simulated dislocation system, including the parameters, the crystal instance, and the dislocation network object. A `System` object is the fundamental data structure that is being propagated from modules to modules.
 
-Important: A `System` object must be allocated using the `exadis_new()` or the `make_system()` helper functions to ensure it is placed on a memory space accessible to all execution spaces.
+```{important}
+A `System` object must be allocated using the `exadis_new()` or the `make_system()` helper functions to ensure it is placed on a memory space accessible to all execution spaces.
+```
 
 ##### Constructors
 - `System()`: instantiates an empty `System` object

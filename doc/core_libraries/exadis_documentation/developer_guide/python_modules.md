@@ -1,7 +1,7 @@
 
 ## Calling user-defined python modules
 
-ExaDiS python interface allows the code to interact with user-defined, python-based modules within the specifications of OpenDiS. For instance, a generic module that perform calculations and modifications on the dislocation network can be created as:
+ExaDiS python interface allows the code to interact with user-defined, python-based modules implemented within the specifications of OpenDiS. For instance, a generic module that performs calculations and modifications on the dislocation network can be created as:
 ```Python
 class MyModule:
     """ Prototype of an python-based OpenDiS module """
@@ -11,6 +11,7 @@ class MyModule:
         
     def some_internal_function(self, G, param):
         # compute some stuff
+        # values = ...
         return values
         
     def Compute(self, N: DisNetManager, state: dict) -> dict:
