@@ -1,25 +1,34 @@
 ### Strain Hardening Simulation on GPU
-To run strain hardening simulation on GPU, execute the same commands as those written in [Sec. 3.3.1](https://caiwei-stanford.github.io/opendis-doc/tutorials/strain_hardening/strain_hardening_on_cpu.html) in the same example directory. The outputs are also the same as those calculated on CPU.
-
-To run the simulation, execute the following commands in the corresponding example directory:
+We can run a tensile test simulation of a single-crystal Cu using the following commands (running ExaDiS on GPU).  GPU allows us to run the simulation more efficiently and hence reach a greater strain to see the strain-hardening behavior more clearly.
+Execute the following commands to enter the directory containing the example.
 ```bash
-cd ~/Codes/OpenDiS.git/examples/10_strain_hardening/
+cd ${OPENDIS_DIR}
+cd examples/10_strain_hardening/
+```
+Before running the simulation, we shall edit the ```test_strain_hardening_exadis.py``` file to change the constructor of ```sim``` from ```maxstep=100``` to ```max_step=10000```.
+Execute the following commands to run the simulation.
+```bash
 export OMP_NUM_THREADS=8
 python3 test_strain_hardening_exadis.py
 ```
-</br>
 
-**Explanation**
+#### Simulation Behavior
+The simulation creates a folder called ```output_fcc_Cu_15um_1e3``` to store the results files.  On MC3.stanford.edu (gpu-ampere), it takes about 13.6 hours to run 10000 steps of the simulation.  The simulation will write a data file to the output folder for every 100 steps.  The ```stress_strain_dens.dat``` file stores certain essential information of the tensile test --- it contains 5 columns corresponding to step, strain, stress (Pa), dislocation density (m<sup>-2</sup>) and wall-clock time (sec), respectively.
 
-The information of all dislocation nodes is stored in the data file “180chains_16.10e.data”, which can be read using
-```bash
-G = ExaDisNet()
-G.read_paradis('180chains_16.10e.data')
+The final dislocation configuration (config.10000.data) after 10000 steps is shown below.
+```{figure} GPU_final_configuration_Ovito.png
+:alt: Screenshot of the final configuration
+:width: 552px
 ```
 
-The simulation settings are assigned via params, calforce, mobility, timeint, collision, topology and remesh. Then, they are used in SimulateNetworkPerf(). The simulation is conducted using 
-```bash
-sim.run(net)
+The predicted stress-strain curve is shown below.
+```{figure} Stress_strain_ampere.png
+:alt: stress-strain curve
+:width: 352px
 ```
-This is a simulation for max_step=100. After simulation, we can see a folder “output_fcc_Cu_15um_1e3”, where there is a data file for every 100 steps and a file called “stress_strain_dens.dat” to store step, strain, stress, dislocation density and walltime (sec) in five columns for each step, respectively.
-</br>
+
+Here is how the total dislocation density changes with strain.  The increase of dislocation density (i.e. dislocation multiplication) with strain is a key mechanism for strain-hardening.
+```{figure} Density_strain_ampere.png
+:alt: dislocation density-strain curve
+:width: 352px
+```

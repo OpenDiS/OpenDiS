@@ -9,5 +9,5 @@ Frank-Read Source
 
    frank_read_src_by_python
    frank_read_src_by_pyexadis
+   graph_data_conversion
    frank_read_src_by_pydis_pyexadis
-   frank_read_src_by_exadis

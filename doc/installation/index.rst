@@ -3,7 +3,7 @@ Installation
 =============
 
 .. toctree::
-   :maxdepth: 5
+   :maxdepth: 2
 
    download
    requirements

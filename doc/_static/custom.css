@@ -1,0 +1,20 @@
+.highlight .keyword-passed {
+    color: green;
+    font-weight: bold;
+}
+
+/* .sidebar-logo-container::after {
+  content: "Logo by Jonathan Lin \a jlin1212@termpail.umd.edu";
+  font-size: 8pt;
+  color: #222;
+  display: block;
+  text-align: right;
+  transition: 0.4s;
+  white-space: pre;
+  opacity: 0;
+}
+
+.sidebar-logo-container:hover::after {
+  opacity: 1;
+}
+ */
