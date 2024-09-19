@@ -34,7 +34,7 @@ sim.run(net, state)
 #### Simulation Behavior
 The simulation creates a folder called ```output_fcc_Cu_15um_1e3``` to store the results files.  On MC3.stanford.edu (with 8 OMP threads), it takes about 12 minutes to run the first 100 steps of the simulation.
 
-To run a longer simulation, we can modify the constructor for ```sim``` from ```max_step=100``` to ```max_step=1600```.  The simulation takes about 21 hours on MC3.stanford.edu (with 8 OMP threads). The simulation will write a data file to the output folder for every 100 steps.  The [stress_strain_dens.dat](./stress_strain_dens_1600_CPU.dat) file stores certain essential information of the tensile test --- it contains 5 columns corresponding to step, strain, stress (Pa), dislocation density (m<sup>-2</sup>) and wall-clock time (sec), respectively.
+To run a longer simulation, we can modify the constructor for ```sim``` from ```max_step=100``` to ```max_step=1600```.  The simulation takes about 21 hours on MC3.stanford.edu (with 8 OMP threads). The simulation will write a data file to the output folder for every 100 steps.  The [stress_strain_dens_1600_CPU.dat](./stress_strain_dens_1600_CPU.dat) file stores certain essential information of the tensile test --- it contains 5 columns corresponding to step, strain, stress (Pa), dislocation density (m<sup>-2</sup>) and wall-clock time (sec), respectively.
 
 The final dislocation configuration (config.1600.data) after 1600 steps is shown below.
 ```{figure} CPU_final_configuration_Ovito.png
