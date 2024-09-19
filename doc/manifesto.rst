@@ -14,7 +14,7 @@ The OpenDiS Project is a community-driven initiative aimed at developing a robus
 Our Goals
 ~~~~~~~~~
 
-- **Open Access**: We maintain a public Git repository that welcomes all to download and use the code.
+- **Open Access**: We maintain a `public Git repository <https://github.com/OpenDiS/OpenDiS>`_ that welcomes all to download and use the code.
 - **Community Development**: We prioritize ease of development for all, making it accessible for anyone to create extension modules and contribute to the expanding OpenDiS repository.
 - **Embracing Innovation**: We constantly strive to adapt and harness the power of existing and emerging computing architectures, including GPU acceleration and distributed massively parallel computing thus ensuring that OpenDiS stays at the forefront of computational efficiency.
 
@@ -63,4 +63,3 @@ We invite you to join the OpenDiS project to shape the future of dislocation dyn
 .. raw:: html
 
    <a href="./documentation" style="text-decoration: none;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a>
-
