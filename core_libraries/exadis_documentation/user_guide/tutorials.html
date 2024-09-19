@@ -1,0 +1,765 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../../../">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link href="../../../_static/favicon_node.ico" rel="icon" type="image/x-icon"><link rel="index" title="Index" href="../../../genindex.html" /><link rel="search" title="Search" href="../../../search.html" /><link rel="next" title="Python modules: pyexadis" href="python_modules.html" /><link rel="prev" title="Obtaining, building and running the code" href="obtaining.html" />
+
+    <!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
+        <title>Tutorials - OpenDiS 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=354aac6f" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/tabs.css?v=4c969af8" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=ed3bf6ad" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo-extensions.css?v=302659d7" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../../../index.html"><div class="brand">OpenDiS 0.1.0 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="../../../_static/nodebox_logo.png" alt="Logo"/>
+  </div>
+  
+  <span class="sidebar-brand-text">OpenDiS 0.1.0 documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../../../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../manifesto.html">OpenDiS Manifesto</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../installation/index.html">Installation</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of Installation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../installation/download.html">How to get the code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../installation/requirements.html">System Requirements</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../installation/compilation/index.html">Compilation</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of Compilation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../installation/compilation/compilation_overview.html">Compilation Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../installation/compilation/compile_on_mac.html">Compile on Mac</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../installation/compilation/compile_on_ubuntu.html">Compile on Linux (Ubuntu)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../installation/compilation/compile_on_sherlock.html">Compile on Sherlock</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../installation/compilation/compile_on_mc3.html">Compile on MC3</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../installation/compilation/compile_on_cms3.html">Compile on CMS3</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../installation/compilation/compile_on_rpi.html">Compile on Raspberry Pi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../installation/compilation/compile_on_termux.html">Compile on Android Phone (Termux)</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle navigation of Tutorials</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../tutorials/frank_read_src/index.html">Frank-Read Source</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle navigation of Frank-Read Source</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../tutorials/frank_read_src/frank_read_src_by_python.html">Frank-Read Source by Pure Python</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../tutorials/frank_read_src/frank_read_src_by_pyexadis.html">Frank-Read Source by Python calling ExaDiS</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../tutorials/frank_read_src/graph_data_conversion.html">Graph Data Conversion</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../tutorials/frank_read_src/frank_read_src_by_pydis_pyexadis.html">Inter-operability between PyDiS and ExaDiS Modules</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../tutorials/binary_junction/index.html">Binary Junction</a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle navigation of Binary Junction</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../tutorials/binary_junction/binary_junction_by_python.html">Binary Junction by Pure Python</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../tutorials/binary_junction/binary_junction_by_pyexadis.html">Binary Junction by Python calling ExaDiS</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../tutorials/strain_hardening/index.html">Strain Hardening</a><input class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><div class="visually-hidden">Toggle navigation of Strain Hardening</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../tutorials/strain_hardening/strain_hardening_on_cpu.html">Strain Hardening Simulation on CPU</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../tutorials/strain_hardening/strain_hardening_on_gpu.html">Strain Hardening Simulation on GPU</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../code_structure/index.html">Code Structure</a><input class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><div class="visually-hidden">Toggle navigation of Code Structure</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../code_structure/project_overview.html">Project Overview</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../code_structure/data_structure/index.html">Data Structure</a><input class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><div class="visually-hidden">Toggle navigation of Data Structure</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../code_structure/data_structure/disnetmanager_class.html">DisNetManager Class</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../code_structure/data_structure/disnet_class.html">DisNet Class</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../code_structure/data_structure/exadisnet_class.html">ExaDisNet Class</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 current has-children"><a class="reference internal" href="../../index.html">Core Libraries</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><div class="visually-hidden">Toggle navigation of Core Libraries</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../pydis_documentation/index.html">PyDiS Documentation</a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><div class="visually-hidden">Toggle navigation of PyDiS Documentation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l2 current has-children"><a class="reference internal" href="../index.html">ExaDiS Documentation</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><div class="visually-hidden">Toggle navigation of ExaDiS Documentation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l3 current has-children"><a class="reference internal" href="index.html">User guide</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><div class="visually-hidden">Toggle navigation of User guide</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="obtaining.html">Obtaining, building and running the code</a></li>
+<li class="toctree-l4 current current-page"><a class="current reference internal" href="#">Tutorials</a></li>
+<li class="toctree-l4"><a class="reference internal" href="python_modules.html">Python modules: pyexadis</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../developer_guide/index.html">Developer guide</a><input class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" role="switch" type="checkbox"/><label for="toctree-checkbox-13"><div class="visually-hidden">Toggle navigation of Developer guide</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../developer_guide/code_architecture.html">Code architecture and data structures</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../developer_guide/developing_modules.html">Developing modules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../developer_guide/python_binding.html">Binding modules to python</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../developer_guide/python_modules.html">Calling user-defined python modules</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="../../../_sources/core_libraries/exadis_documentation/user_guide/tutorials.md.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="tutorials">
+<h1>Tutorials<a class="headerlink" href="#tutorials" title="Link to this heading">¶</a></h1>
+<section id="basics">
+<h2>Basics<a class="headerlink" href="#basics" title="Link to this heading">¶</a></h2>
+<p>ExaDiS is a modular DDD code. Contrary to other DDD codes such as the legacy ParaDiS code, standard DDD simulations in ExaDiS are not driven via a set of input files provided as argument to the command line code. Instead, simulations are driven either through the python or C++ interfaces via scripts. ExaDiS modules can also be used as independent building blocks (e.g. within the OpenDiS framework) to create various DDD applications.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>All paths, e.g. <code class="docutils literal notranslate"><span class="pre">examples/02_frank_read_src</span></code>, used in this section of the documentation refer to paths within the ExaDiS directory. If ExaDiS is installed as a submodule within OpenDiS, the corresponding path is</p>
+<p><code class="docutils literal notranslate"><span class="pre">${OPENDIS_DIR}/core/exadis/examples/02_frank_read_src</span></code></p>
+</div>
+</section>
+<section id="running-a-frank-read-source-simulation">
+<h2>Running a Frank-Read source simulation<a class="headerlink" href="#running-a-frank-read-source-simulation" title="Link to this heading">¶</a></h2>
+<p>As a starting example, folder <code class="docutils literal notranslate"><span class="pre">examples/02_frank_read_src</span></code> contains an example of a simulation of a simple Frank-Read source, either driven through the python or C++ interfaces. To run the simulation using the python interface, the code needs to be built with flag <code class="docutils literal notranslate"><span class="pre">-DEXADIS_PYTHON_BINDING</span></code>. Then the simulation can be run with:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>examples/02_frank_read_src
+python<span class="w"> </span>test_frank_read_src.py
+</pre></div>
+</div>
+<p>A successful run should display a matplotlib window showing the evolution of the Frank-Read source as the simulations proceeds.</p>
+<p>To run the simulation with the C++ interface, the code must be built with flag <code class="docutils literal notranslate"><span class="pre">-DEXADIS_BUILD_TESTS</span></code>. Then the simulation can be run with:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>build/examples/02_frank_read_src
+./test_frank_read_src
+</pre></div>
+</div>
+<p>In contrast to the python run, no visualization window will be displayed. Simulation results will be written to the <code class="docutils literal notranslate"><span class="pre">output</span></code> directory, including dislocation configurations in the <code class="docutils literal notranslate"><span class="pre">.data</span></code> format.</p>
+</section>
+<section id="simulation-examples">
+<h2>Simulation examples<a class="headerlink" href="#simulation-examples" title="Link to this heading">¶</a></h2>
+<p>Folder <code class="docutils literal notranslate"><span class="pre">examples/</span></code> contains a number of ExaDiS simulation examples:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">02_frank_read_src</span></code>: Frank-Read source simulation under constant stress</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">03_collision</span></code>: Collision test case between two dislocations</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">04_bcc_junction</span></code>: Formation of a binary junction in a BCC crystal</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">05_fcc_junctions</span></code>: Formation of several types of binary reactions in a FCC crystal</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">06_nodal_xslip</span></code>: Example of nodal x-slip mechanisms (zipping and unzipping) in an elementary BCC network</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">20_compare_forces</span></code>: Example of a script to compare force calculation between pydis and ExaDiS modules. This example requires OpenDiS.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">21_bcc_Ta_100nm_2e8</span></code>: Example of a large-scale strength simulation of a BCC tantalum crystal loaded at ultra-high strain rate</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">22_fcc_Cu_15um_1e3</span></code>: Example of a large-scale strain-hardening simulation of a FCC copper crystal loaded at high strain rate</p></li>
+</ul>
+</section>
+<section id="setting-up-a-python-driven-simulation">
+<h2>Setting up a python driven simulation<a class="headerlink" href="#setting-up-a-python-driven-simulation" title="Link to this heading">¶</a></h2>
+<p>This section shows how to setup and drive an ExaDiS simulation using a python script.</p>
+<p>Note: a major advantage of driving a simulation through the python interface is that is does not need compilation of the simulation file, as is required when driving a simulation through the C++ interface.</p>
+<section id="importing-the-pyexadis-modules">
+<h3>Importing the pyexadis modules<a class="headerlink" href="#importing-the-pyexadis-modules" title="Link to this heading">¶</a></h3>
+<p>First, we need to make sure that the path to the <code class="docutils literal notranslate"><span class="pre">pyexadis</span></code> library is included in the python path. A successful compilation of ExaDiS produces library file <code class="docutils literal notranslate"><span class="pre">python/pyexadis.cpython-*.so</span></code>. To add the path of this library to python, we can add the following lines at the beginning of our script, for instance:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">pyexadis_path</span> <span class="o">=</span> <span class="s1">&#39;/path/to/your/exadis/python/&#39;</span>
+<span class="k">if</span> <span class="ow">not</span> <span class="n">pyexadis_path</span> <span class="ow">in</span> <span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="p">:</span> <span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pyexadis_path</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>When the path is properly setup, we should now be able to import <code class="docutils literal notranslate"><span class="pre">pyexadis</span></code> from our script.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">pyexadis</span>
+</pre></div>
+</div>
+<p>Library <code class="docutils literal notranslate"><span class="pre">pyexadis</span></code> contains binding to the backends C++ functions implemented in ExaDiS. To facilitate access to the ExaDiS functions through python, wrapper classes and functions are implemented in the <code class="docutils literal notranslate"><span class="pre">pyexadis_base.py</span></code> and <code class="docutils literal notranslate"><span class="pre">pyexadis_utils.py</span></code> files located in the <code class="docutils literal notranslate"><span class="pre">python/</span></code> folder. ExaDiS data structures (e.g. dislocation network class) and modules (e.g. force, mobility, etc…) can be directly imported from these files:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pyexadis_base</span> <span class="kn">import</span> <span class="n">ExaDisNet</span><span class="p">,</span> <span class="n">DisNetManager</span><span class="p">,</span> <span class="n">SimulateNetwork</span><span class="p">,</span> <span class="n">VisualizeNetwork</span>
+<span class="kn">from</span> <span class="nn">pyexadis_base</span> <span class="kn">import</span> <span class="n">CalForce</span><span class="p">,</span> <span class="n">MobilityLaw</span><span class="p">,</span> <span class="n">TimeIntegration</span><span class="p">,</span> <span class="n">Collision</span><span class="p">,</span> <span class="n">Topology</span><span class="p">,</span> <span class="n">Remesh</span>
+</pre></div>
+</div>
+<p>Here we have imported the following base classes and modules:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">ExaDisNet</span></code>: ExaDiS dislocation network (graph) object. Handles synchronization between the different execution spaces (e.g. memory movements between CPU and GPU).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">DisNetManager</span></code>: dislocation network manager to convert different instances of a dislocation network between various data structures used in OpenDiS. Any network passed to the <code class="docutils literal notranslate"><span class="pre">pyexadis_base</span></code> wrapper functions must be wrapped into a <code class="docutils literal notranslate"><span class="pre">DisNetManager</span></code> object.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">SimulateNetwork</span></code>: python simulation driver</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">VisualizeNetwork</span></code>: python visualization toggle</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">CalForce</span></code>: wrapper class to instantiate a model to calculate dislocation forces</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MobilityLaw</span></code>: wrapper class to instantiate a dislocation mobility law</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">TimeIntegration</span></code>: wrapper class to instantiate a time-integration scheme</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Collision</span></code>: wrapper class to instantiate a dislocation collision method</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Topology</span></code>: wrapper class to instantiate a dislocation topology method</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Remesh</span></code>: wrapper class to instantiate a dislocation line remeshing method</p></li>
+</ul>
+</section>
+<section id="initializing-kokkos">
+<h3>Initializing Kokkos<a class="headerlink" href="#initializing-kokkos" title="Link to this heading">¶</a></h3>
+<p>Now that we have imported all the base classes we need, we can start setting up the simulation. All the simulation script must be inserted in between calls to the <code class="docutils literal notranslate"><span class="pre">pyexadis.initialize()</span></code> and <code class="docutils literal notranslate"><span class="pre">pyexadis.finalize()</span></code> functions:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">pyexadis</span><span class="o">.</span><span class="n">initialize</span><span class="p">()</span>
+
+<span class="c1"># Code to setup and run the simulation here...</span>
+
+<span class="n">pyexadis</span><span class="o">.</span><span class="n">finalize</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>This is to make sure that Kokkos is initialized and terminated properly on the chosen execution spaces. The <code class="docutils literal notranslate"><span class="pre">pyexadis.initialize()</span></code> can take the following arguments:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">num_threads</span></code>: specifies the number of OpenMP threads to be used. For instance, use <code class="docutils literal notranslate"><span class="pre">pyexadis.initialize(num_threads=8)</span></code> to run a simulation using 8 threads. If not specified (default), ExaDiS will use the maximum number of threads available on the machine or defined from the <code class="docutils literal notranslate"><span class="pre">OMP_NUM_THREADS</span></code> environment variable if set.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">device_id</span></code>: specifies the id of the device (GPU) to be used. If not specified (default), ExaDiS will select the first entry in the list of available devices.</p></li>
+</ul>
+</section>
+<section id="setting-up-the-initial-dislocation-configuration">
+<h3>Setting up the initial dislocation configuration<a class="headerlink" href="#setting-up-the-initial-dislocation-configuration" title="Link to this heading">¶</a></h3>
+<p>After this, the first step is generally to setup the initial dislocation configuration using an <code class="docutils literal notranslate"><span class="pre">ExaDisNet</span></code> object. This can be done by reading a dislocation configuration file, e.g. in ParaDiS format</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">G</span> <span class="o">=</span> <span class="n">ExaDisNet</span><span class="p">()</span>
+<span class="n">G</span><span class="o">.</span><span class="n">read_paradis</span><span class="p">(</span><span class="s1">&#39;my_config.data&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>or using a user-defined python function that creates an initial configuration, e.g. as in the <code class="docutils literal notranslate"><span class="pre">examples/02_frank_read_src\test_frank_read_src.py</span></code> example</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">G</span> <span class="o">=</span> <span class="n">init_frank_read_src_loop</span><span class="p">(</span><span class="n">pbc</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Then, we need to wrap the <code class="docutils literal notranslate"><span class="pre">ExaDisNet</span></code> object into a <code class="docutils literal notranslate"><span class="pre">DisNetManager</span></code> object</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">N</span> <span class="o">=</span> <span class="n">DisNetManager</span><span class="p">(</span><span class="n">G</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>so that it can be used in ExaDiS modules. This step is necessary to make the ExaDiS modules and data structures compliant with the OpenDiS framework.</p>
+</section>
+<section id="global-state-dictionary">
+<h3>Global state dictionary<a class="headerlink" href="#global-state-dictionary" title="Link to this heading">¶</a></h3>
+<p>The rest of the simulation script consists in defining the global <code class="docutils literal notranslate"><span class="pre">state</span></code> dictionary and the different modules to be used. The global <code class="docutils literal notranslate"><span class="pre">state</span></code> dictionary holds a collection of variables and arrays used during a simulation. Modules operate and communicate with each other by reading and writing entries to the <code class="docutils literal notranslate"><span class="pre">state</span></code> dictionary. The <code class="docutils literal notranslate"><span class="pre">state</span></code> dictionary must be initialized with the global simulation parameters, e.g.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">state</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;crystal&quot;</span><span class="p">:</span> <span class="s1">&#39;fcc&#39;</span><span class="p">,</span>
+    <span class="s2">&quot;burgmag&quot;</span><span class="p">:</span> <span class="mf">2.55e-10</span><span class="p">,</span>
+    <span class="s2">&quot;mu&quot;</span><span class="p">:</span> <span class="mf">54.6e9</span><span class="p">,</span>
+    <span class="s2">&quot;nu&quot;</span><span class="p">:</span> <span class="mf">0.324</span><span class="p">,</span>
+    <span class="s2">&quot;a&quot;</span><span class="p">:</span> <span class="mf">6.0</span><span class="p">,</span>
+    <span class="s2">&quot;maxseg&quot;</span><span class="p">:</span> <span class="mf">2000.0</span><span class="p">,</span>
+    <span class="s2">&quot;minseg&quot;</span><span class="p">:</span> <span class="mf">300.0</span><span class="p">,</span>
+    <span class="s2">&quot;rtol&quot;</span><span class="p">:</span> <span class="mf">10.0</span><span class="p">,</span>
+    <span class="s2">&quot;rann&quot;</span><span class="p">:</span> <span class="mf">10.0</span><span class="p">,</span>
+    <span class="s2">&quot;nextdt&quot;</span><span class="p">:</span> <span class="mf">1e-10</span><span class="p">,</span>
+    <span class="s2">&quot;maxdt&quot;</span><span class="p">:</span> <span class="mf">1e-9</span><span class="p">,</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Global simulation parameters are used internally in ExaDiS and must be consistent across the different modules used in a simulation. Some parameters are required and other optional, although it is good practice to specify a maximum number of these. Here is a full list of possible parameters:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">burgmag</span></code> (required): Burgers vector magnitude in m. All lengths used in a simulation will be scaled by this value.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mu</span></code> (required): Shear modulus in Pa.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">nu</span></code> (required): Poisson’s ratio.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">a</span></code> (required): Dislocation non-singular core radius in <code class="docutils literal notranslate"><span class="pre">burgmag</span></code> units.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">maxseg</span></code> (required): Maximum discretization segment length in <code class="docutils literal notranslate"><span class="pre">burgmag</span></code> units.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">minseg</span></code> (required): Minimum discretization segment length in <code class="docutils literal notranslate"><span class="pre">burgmag</span></code> units.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">crystal</span></code> (optional): Crystal structure. Optional but most mobility laws will require it to be provided. Supported options are <code class="docutils literal notranslate"><span class="pre">'fcc'</span></code> and <code class="docutils literal notranslate"><span class="pre">'bcc'</span></code> for now. Default: none.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Rorient</span></code> (optional): Crystal orientation matrix. Default: Identity matrix.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">rtol</span></code> (optional): Integration tolerance in <code class="docutils literal notranslate"><span class="pre">burgmag</span></code> units. Default: 0.25*<code class="docutils literal notranslate"><span class="pre">a</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">rann</span></code> (optional): Annihilation radius in <code class="docutils literal notranslate"><span class="pre">burgmag</span></code> units. Default: 2*<code class="docutils literal notranslate"><span class="pre">rtol</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">maxdt</span></code> (optional): Maximum timestep size. Default: 1e-7 s.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">nextdt</span></code> (optional): Initial timestep size. Default: 1e-12 s.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">split3node</span></code> (optional): Toggle to enable splitting of 3-nodes (only for BCC crystals). Default: 1.</p></li>
+</ul>
+</section>
+<section id="simulation-modules">
+<h3>Simulation modules<a class="headerlink" href="#simulation-modules" title="Link to this heading">¶</a></h3>
+<p>Next we define the simulation modules to be used in the simulation. A full simulation typically uses the following modules corresponding to the different elementary stages of the DDD simulation cycle: <code class="docutils literal notranslate"><span class="pre">CalForce</span></code>, <code class="docutils literal notranslate"><span class="pre">MobilityLaw</span></code>, <code class="docutils literal notranslate"><span class="pre">TimeIntegration</span></code>, <code class="docutils literal notranslate"><span class="pre">Collision</span></code>, <code class="docutils literal notranslate"><span class="pre">Topology</span></code>, <code class="docutils literal notranslate"><span class="pre">Remesh</span></code>. Each ExaDiS module must be instantiated by passing the global state dictionary <code class="docutils literal notranslate"><span class="pre">state</span></code> and module specific arguments, e.g.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">mobility</span> <span class="o">=</span> <span class="n">MobilityLaw</span><span class="p">(</span><span class="n">mobility_law</span><span class="o">=</span><span class="s1">&#39;FCC_0&#39;</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="n">state</span><span class="p">,</span> <span class="n">Medge</span><span class="o">=</span><span class="mf">64103.0</span><span class="p">,</span> <span class="n">Mscrew</span><span class="o">=</span><span class="mf">64103.0</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="mf">4000.0</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Modules parameters and options are documented in the Modules section of this guide.</p>
+<p>Finally, special modules <code class="docutils literal notranslate"><span class="pre">SimulateNetwork</span></code> (or <code class="docutils literal notranslate"><span class="pre">SimulateNetworkPerf</span></code>) and <code class="docutils literal notranslate"><span class="pre">VisualizeNetwork</span></code> can be defined. Module <code class="docutils literal notranslate"><span class="pre">SimulateNetwork</span></code> (or <code class="docutils literal notranslate"><span class="pre">SimulateNetworkPerf</span></code>) is the simulation driver used to run a simulation. It must be defined by passing all base modules defined above (<code class="docutils literal notranslate"><span class="pre">CalForce</span></code>, <code class="docutils literal notranslate"><span class="pre">MobilityLaw</span></code>, etc.) plus some additional parameters defining the simulation run, e.g. strain rate, number of steps, etc. Once the <code class="docutils literal notranslate"><span class="pre">SimulateNetwork</span></code> object is instantiated, the simulation is run with method <code class="docutils literal notranslate"><span class="pre">run()</span></code> passing the initial dislocation network <code class="docutils literal notranslate"><span class="pre">DisNetManager</span></code> object and <code class="docutils literal notranslate"><span class="pre">state</span></code> dictionary as its arguments</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">sim</span> <span class="o">=</span> <span class="n">SimulateNetwork</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+<span class="n">sim</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">state</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Module <code class="docutils literal notranslate"><span class="pre">VisualizeNetwork</span></code> is used to visualize the evolution of the dislocation network during a simulation, e.g. through a matplotlib window.</p>
+</section>
+<section id="running-the-simulation">
+<h3>Running the simulation<a class="headerlink" href="#running-the-simulation" title="Link to this heading">¶</a></h3>
+<p>After the above python driven simulation setup is saved in script, e.g. <code class="docutils literal notranslate"><span class="pre">my_script.py</span></code>, it is run by executing the python script</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>my_script.py
+</pre></div>
+</div>
+<p>For debugging or interacting with the simulation, we can also use the interactive mode of python</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-i<span class="w"> </span>my_script.py
+</pre></div>
+</div>
+<p>In this mode, after the script has been executed, we can manipulate the data, e.g. to investigate the dislocation network or perform additional analyses. Note that we must not call the <code class="docutils literal notranslate"><span class="pre">pyexadis.finalize()</span></code> instruction when using the interactive mode, otherwise the ExaDiS data will be freed and thus inaccessible. A good option is to call the <code class="docutils literal notranslate"><span class="pre">pyexadis.finalize()</span></code> function only when a non-interactive python mode is detected, e.g.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="ow">not</span> <span class="n">sys</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">interactive</span><span class="p">:</span>
+    <span class="n">pyexadis</span><span class="o">.</span><span class="n">finalize</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+<section id="performance-considerations">
+<h3>Performance considerations<a class="headerlink" href="#performance-considerations" title="Link to this heading">¶</a></h3>
+<p>ExaDiS is implemented as a HPC code designed to leverage high efficiency of modern computing architectures. However, when using the python interface, ExaDiS may suffer some performance hit (compared to a native C++ driven simulation) due to data flow through the python pipeline. This overhead is generally reasonable (e.g. 20%) and allows for a great flexibility of the code, e.g. ExaDiS modules can be used within OpenDiS and interfaced with other DDD implementations.</p>
+<p>However, when using the python interface to drive a standalone ExaDiS simulation (i.e. outside of OpenDiS or when all modules used are ExaDiS modules) and high performance is desired, then we can simply use the <code class="docutils literal notranslate"><span class="pre">SimulateNetworkPerf</span></code> driver instead of the default <code class="docutils literal notranslate"><span class="pre">SimulateNetwork</span></code> driver. The <code class="docutils literal notranslate"><span class="pre">SimulateNetworkPerf</span></code> performance driver removes data movement through the python interface during the run and should results in simulation performance identical to when using the C++ driving interface. The downsides are that it cannot be used with external modules (must use ExaDiS modules only), and it does not allow for interactive data visualization or manipulation. This driver is recommended for production runs of large systems, e.g. for strain-hardening simulations.</p>
+</section>
+</section>
+<section id="using-exadis-modules-to-build-applications">
+<h2>Using ExaDiS modules to build applications<a class="headerlink" href="#using-exadis-modules-to-build-applications" title="Link to this heading">¶</a></h2>
+<p>The python interface and modular design of ExaDiS allows for modules to be used as independent building blocks to build various DDD applications. A simple example is given in <code class="docutils literal notranslate"><span class="pre">examples/20_compare_forces</span></code>, where ExaDiS is only used to evaluate the nodal forces on a given network configuration (as opposed to running a full simulation).</p>
+</section>
+<section id="using-exadis-modules-in-opendis">
+<h2>Using ExaDiS modules in OpenDiS<a class="headerlink" href="#using-exadis-modules-in-opendis" title="Link to this heading">¶</a></h2>
+<p>ExaDiS modules can be imported and used within the OpenDiS python framework. This allows modules to be mixed with external modules coming from other DDD simulations (e.g. pydis).</p>
+<p>To use ExaDiS modules within OpenDiS, the only required change is to use the <code class="docutils literal notranslate"><span class="pre">DisNetManager</span></code> class from the OpenDiS framework instead of the one provided in <code class="docutils literal notranslate"><span class="pre">pyexadis_base.py</span></code>, i.e. replace</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pyexadis_base</span> <span class="kn">import</span> <span class="n">DisNetManager</span>
+</pre></div>
+</div>
+<p>with</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">framework.disnet_manager</span> <span class="kn">import</span> <span class="n">DisNetManager</span>
+</pre></div>
+</div>
+<p>where <code class="docutils literal notranslate"><span class="pre">framework</span></code> designates the <code class="docutils literal notranslate"><span class="pre">python/framework</span></code> directory of the OpenDiS code that must be included in the python path. Then ExaDiS modules are essentially used the same way than has been explained in the previous section. Please refer to the OpenDiS documentation for more information and examples on how to use ExaDiS from the OpenDiS framework.</p>
+</section>
+<section id="setting-up-a-c-driven-simulation">
+<h2>Setting up a C++ driven simulation<a class="headerlink" href="#setting-up-a-c-driven-simulation" title="Link to this heading">¶</a></h2>
+<p>As ExaDiS is written in C++, it also gives the option to setup and drive simulations directly through the C++ interface. This can be useful for certain purposes and allows for a more direct control of the simulations via access to the native implementation. However, for standard applications such as running a typical DDD simulation, it is generally recommended to use the python interface, which is generally easier to use. Beyond syntaxic differences, a major difference is that a simulation driven though C++ must be compiled before it can be executed.</p>
+<p>Overall, the way simulations are setup in the C++ interface is similar to the python approach. A good starting point is to look at the Frank-Read simulation example in <code class="docutils literal notranslate"><span class="pre">examples/02_frank_read_src</span></code> and compare the python driven setup in <code class="docutils literal notranslate"><span class="pre">test_frank_read_src.py</span></code> with the C++ driven setup in <code class="docutils literal notranslate"><span class="pre">test_frank_read_src.cpp</span></code>. The typical workflow consists in instantiating a simulation object, declaring the simulation parameters, initializing the dislocation configuration, setting up the various modules, and running the simulation.</p>
+<section id="includes-and-namespace">
+<h3>Includes and namespace<a class="headerlink" href="#includes-and-namespace" title="Link to this heading">¶</a></h3>
+<p>First, we need to include the required header files for ExaDiS and the simulation driver functionalities. We can also use the ExaDiS namespace to simplify code syntax in the file.</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;exadis.h&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;driver.h&quot;</span>
+
+<span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">ExaDiS</span><span class="p">;</span>
+</pre></div>
+</div>
+</section>
+<section id="initializing-the-application">
+<h3>Initializing the application<a class="headerlink" href="#initializing-the-application" title="Link to this heading">¶</a></h3>
+<p>Then we need to initialize the application, by first initializing Kokkos (here using the <code class="docutils literal notranslate"><span class="pre">ScopeGuard</span></code> approach). An instance of a DDD simulation application is then created using the <code class="docutils literal notranslate"><span class="pre">ExaDiSApp</span></code> driver class from <code class="docutils literal notranslate"><span class="pre">driver.h</span></code>.</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">Kokkos</span><span class="o">::</span><span class="n">ScopeGuard</span><span class="w"> </span><span class="nf">guard</span><span class="p">(</span><span class="n">argc</span><span class="p">,</span><span class="w"> </span><span class="n">argv</span><span class="p">);</span>
+<span class="n">ExaDiS</span><span class="o">::</span><span class="n">ExaDiSApp</span><span class="w"> </span><span class="nf">exadis</span><span class="p">(</span><span class="n">argc</span><span class="p">,</span><span class="w"> </span><span class="n">argv</span><span class="p">);</span>
+</pre></div>
+</div>
+</section>
+<section id="setting-up-the-simulation-parameters">
+<h3>Setting up the simulation parameters<a class="headerlink" href="#setting-up-the-simulation-parameters" title="Link to this heading">¶</a></h3>
+<p>Global simulation parameters are defined using the <code class="docutils literal notranslate"><span class="pre">Params</span></code> struct. The global parameters are essentially the same as those detailed in the python section, expect for the crystal information which are defined separately using the <code class="docutils literal notranslate"><span class="pre">Crystal</span></code> class. The constructor of the <code class="docutils literal notranslate"><span class="pre">Params</span></code> object takes in the six required simulation parameters (<code class="docutils literal notranslate"><span class="pre">burgmag</span></code>, <code class="docutils literal notranslate"><span class="pre">MU</span></code>, <code class="docutils literal notranslate"><span class="pre">NU</span></code>, <code class="docutils literal notranslate"><span class="pre">a</span></code>, <code class="docutils literal notranslate"><span class="pre">maxseg</span></code>, <code class="docutils literal notranslate"><span class="pre">minseg</span></code>), and other parameters can be specified manually afterwards, e.g.</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">Params</span><span class="w"> </span><span class="nf">params</span><span class="p">(</span><span class="n">burgmag</span><span class="p">,</span><span class="w"> </span><span class="n">MU</span><span class="p">,</span><span class="w"> </span><span class="n">NU</span><span class="p">,</span><span class="w"> </span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="n">maxseg</span><span class="p">,</span><span class="w"> </span><span class="n">minseg</span><span class="p">);</span>
+<span class="n">params</span><span class="p">.</span><span class="n">nextdt</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">dt</span><span class="p">;</span>
+<span class="n">params</span><span class="p">.</span><span class="n">rann</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rann</span><span class="p">;</span>
+<span class="n">params</span><span class="p">.</span><span class="n">rtol</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rtol</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>Another set of parameters are the simulation control parameters that specify the control settings such as the number of simulation steps, loading type, applied stress, output frequencies, etc. Each loading instance is defined using the <code class="docutils literal notranslate"><span class="pre">ExaDiSApp::Control</span></code> struct, for instance</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">ExaDiSApp</span><span class="o">::</span><span class="n">Control</span><span class="w"> </span><span class="n">ctrl</span><span class="p">;</span>
+<span class="n">ctrl</span><span class="p">.</span><span class="n">nsteps</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">200</span><span class="p">;</span>
+<span class="n">ctrl</span><span class="p">.</span><span class="n">loading</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ExaDiSApp</span><span class="o">::</span><span class="n">STRESS_CONTROL</span><span class="p">;</span>
+<span class="n">ctrl</span><span class="p">.</span><span class="n">appstress</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Mat33</span><span class="p">().</span><span class="n">symmetric</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">-4.0e8</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">);</span>
+<span class="n">ctrl</span><span class="p">.</span><span class="n">erate</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0</span><span class="p">;</span>
+<span class="n">ctrl</span><span class="p">.</span><span class="n">edir</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Vec3</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">1.0</span><span class="p">);</span>
+<span class="n">ctrl</span><span class="p">.</span><span class="n">rotation</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="n">ctrl</span><span class="p">.</span><span class="n">printfreq</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="n">ctrl</span><span class="p">.</span><span class="n">propfreq</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">10</span><span class="p">;</span>
+<span class="n">ctrl</span><span class="p">.</span><span class="n">outfreq</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">100</span><span class="p">;</span>
+<span class="k">using</span><span class="w"> </span><span class="n">Prop</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ExaDiSApp</span><span class="o">::</span><span class="n">Prop</span><span class="p">;</span>
+<span class="n">ctrl</span><span class="p">.</span><span class="n">props</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="n">Prop</span><span class="o">::</span><span class="n">STEP</span><span class="p">,</span><span class="w"> </span><span class="n">Prop</span><span class="o">::</span><span class="n">STRAIN</span><span class="p">,</span><span class="w"> </span><span class="n">Prop</span><span class="o">::</span><span class="n">STRESS</span><span class="p">,</span><span class="w"> </span><span class="n">Prop</span><span class="o">::</span><span class="n">DENSITY</span><span class="p">};</span>
+</pre></div>
+</div>
+<p>where the control properties are:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">nsteps</span></code> (required): number of steps for the loading instance. Valid options are:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">N</span></code>: the number of steps N to run from this instant</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ExaDiSApp::NUM_STEPS(N)</span></code>: same as above</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ExaDiSApp::MAX_STEPS(N)</span></code>: the maximum number of steps N to reach</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ExaDiSApp::MAX_STRAIN(strain)</span></code>: the maximum strain to reach</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ExaDiSApp::MAX_TIME(time)</span></code>: the maximum physical simulation time in s to reach</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ExaDiSApp::MAX_WALLTIME(time)</span></code>: the maximum wall-clock time in s to reach</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">loading</span></code> (required): loading type. Available options are:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">ExaDiSApp::STRESS_CONTROL</span></code>: constant stress loading. The stress value is defined using the <code class="docutils literal notranslate"><span class="pre">appstress</span></code> control property.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ExaDiSApp::STRAIN_RATE_CONTROL</span></code>: constant, uniaxial strain rate loading. The strain rate is specified using property <code class="docutils literal notranslate"><span class="pre">erate</span></code>. The loading direction is specfified using property <code class="docutils literal notranslate"><span class="pre">edir</span></code>. The simulation can be started at a specific initial value of stress defined using the <code class="docutils literal notranslate"><span class="pre">appstress</span></code> control property.</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">erate</span></code> (optional): loading strain rate in 1/s for the <code class="docutils literal notranslate"><span class="pre">STRAIN_RATE_CONTROL</span></code> loading mode. Unused in <code class="docutils literal notranslate"><span class="pre">STRESS_CONTROL</span></code> mode. Default: 1e3/s.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">edir</span></code> (optional): uniaxial loading direction for the <code class="docutils literal notranslate"><span class="pre">STRAIN_RATE_CONTROL</span></code> mode. Unused in <code class="docutils literal notranslate"><span class="pre">STRESS_CONTROL</span></code> mode. Default: (0,0,1)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">appstress</span></code> (optional): initial value of the applied stress tensor. Default: zero matrix.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">rotation</span></code> (optional): flag to enable crystal rotation. Default: 0</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">printfreq</span></code> (optional): step frequency to print console information</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">propfreq</span></code> (optional): step frequency to print simulation properties</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">outfreq</span></code> (optional): step frequency to output dislocation configurations and restart files</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">props</span></code> (optional): list of simulation properties to be printed in the output property file at frequency <code class="docutils literal notranslate"><span class="pre">propfreq</span></code>. Default: {STEP, STRAIN, STRESS, DENSITY}. Available items are:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">ExaDiSApp::Prop::STEP</span></code>: simulation step number</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ExaDiSApp::Prop::STRAIN</span></code>: uniaxial strain</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ExaDiSApp::Prop::STRESS</span></code>: uniaxial stress</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ExaDiSApp::Prop::DENSITY</span></code>: total dislocation density</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ExaDiSApp::Prop::NNODES</span></code>: number of dislocation nodes</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ExaDiSApp::Prop::NSEGS</span></code>: number of dislocation segments</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ExaDiSApp::Prop::DT</span></code>: timestep size</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ExaDiSApp::Prop::TIME</span></code>: simulation time</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ExaDiSApp::Prop::WALLTIME</span></code>: wall-clock time</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ExaDiSApp::Prop::EDIR</span></code>: current loading direction</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ExaDiSApp::Prop::ALLSTRESS</span></code>: full stress components</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="id1">
+<h3>Setting up the initial dislocation configuration<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h3>
+<p>The initial dislocation network is set up using an instance of a <code class="docutils literal notranslate"><span class="pre">SerialDisNet</span></code> object. The <code class="docutils literal notranslate"><span class="pre">SerialDisNet</span></code> class is a simple STL-based implementation of an ExaDiS dislocation network that is used to create, hold and manipulate dislocation networks on the host execution space (CPU). User can create their dislocation network easily by implementing user-defined functions (e.g. see function <code class="docutils literal notranslate"><span class="pre">init_frank_read_src_loop()</span></code> in <code class="docutils literal notranslate"><span class="pre">test_frank_read_src.cpp</span></code>), or using network generation functions implemented in ExaDiS. For instance, we can create an initial configuration made of prismatic loops with</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">Crystal</span><span class="w"> </span><span class="nf">crystal</span><span class="p">(</span><span class="n">BCC_CRYSTAL</span><span class="p">);</span>
+<span class="n">SerialDisNet</span><span class="o">*</span><span class="w"> </span><span class="n">config</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">generate_prismatic_config</span><span class="p">(</span><span class="n">crystal</span><span class="p">,</span><span class="w"> </span><span class="n">Lbox</span><span class="p">,</span><span class="w"> </span><span class="n">numloops</span><span class="p">,</span><span class="w"> </span><span class="n">radius</span><span class="p">,</span><span class="w"> </span><span class="n">maxseg</span><span class="p">,</span><span class="w"> </span><span class="n">seed</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>or load a configuration form a ParaDiS <code class="docutils literal notranslate"><span class="pre">.data</span></code> file</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">SerialDisNet</span><span class="o">*</span><span class="w"> </span><span class="n">config</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">read_paradis</span><span class="p">(</span><span class="n">datafile</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>Once we have an initial configuration, we need to initialize the ExaDiS <code class="docutils literal notranslate"><span class="pre">System</span></code> object of the driver</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">System</span><span class="o">*</span><span class="w"> </span><span class="n">system</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">exadis</span><span class="o">-&gt;</span><span class="n">system</span><span class="p">;</span>
+<span class="n">system</span><span class="o">-&gt;</span><span class="n">initialize</span><span class="p">(</span><span class="n">params</span><span class="p">,</span><span class="w"> </span><span class="n">crystal</span><span class="p">,</span><span class="w"> </span><span class="n">config</span><span class="p">);</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">System</span></code> is the base class of ExaDiS that holds all the information about the dislocation system being simulated (global parameters, crystal, dislocation network, etc.). All ExaDiS modules and functions usually require the system’s pointer as one of their argument. Once the dislocation configuration is passed to the system <code class="docutils literal notranslate"><span class="pre">initialize()</span></code> function, it becomes available to use on kernels of all execution spaces (e.g. GPU).</p>
+</section>
+<section id="modules-initialization">
+<h3>Modules initialization<a class="headerlink" href="#modules-initialization" title="Link to this heading">¶</a></h3>
+<p>Next we need to define and initialize the various modules needed in the simulation such as the force model, mobility, integrator, collision, topology, and remeshing components. Each of these six modules corresponds to a stage of the traditional DDD cycle, and is required to be defined, e.g.</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">exadis</span><span class="o">-&gt;</span><span class="n">force</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">ForceType</span><span class="o">::</span><span class="n">LINE_TENSION_MODEL</span><span class="p">(</span><span class="n">system</span><span class="p">);</span>
+<span class="n">exadis</span><span class="o">-&gt;</span><span class="n">mobility</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">MobilityType</span><span class="o">::</span><span class="n">GLIDE</span><span class="p">(</span><span class="n">system</span><span class="p">,</span><span class="w"> </span><span class="n">MobilityType</span><span class="o">::</span><span class="n">GLIDE</span><span class="o">::</span><span class="n">Params</span><span class="p">(</span><span class="n">Mob</span><span class="p">));</span>
+<span class="n">exadis</span><span class="o">-&gt;</span><span class="n">integrator</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">IntegratorEuler</span><span class="p">(</span><span class="n">system</span><span class="p">);</span>
+<span class="n">exadis</span><span class="o">-&gt;</span><span class="n">collision</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">CollisionRetroactive</span><span class="p">(</span><span class="n">system</span><span class="p">);</span>
+<span class="n">exadis</span><span class="o">-&gt;</span><span class="n">topology</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">TopologySerial</span><span class="p">(</span><span class="n">system</span><span class="p">,</span><span class="w"> </span><span class="n">exadis</span><span class="o">-&gt;</span><span class="n">force</span><span class="p">,</span><span class="w"> </span><span class="n">exadis</span><span class="o">-&gt;</span><span class="n">mobility</span><span class="p">);</span>
+<span class="n">exadis</span><span class="o">-&gt;</span><span class="n">remesh</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">RemeshSerial</span><span class="p">(</span><span class="n">system</span><span class="p">);</span>
+</pre></div>
+</div>
+</section>
+<section id="simulation-setup-and-run">
+<h3>Simulation setup and run<a class="headerlink" href="#simulation-setup-and-run" title="Link to this heading">¶</a></h3>
+<p>Finally, we need to call the <code class="docutils literal notranslate"><span class="pre">set_simulation()</span></code> function of the driver to make sure everything is set up properly and perform some sanity checks</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">exadis</span><span class="o">-&gt;</span><span class="n">outputdir</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">outputdir</span><span class="p">;</span>
+<span class="n">exadis</span><span class="o">-&gt;</span><span class="n">set_simulation</span><span class="p">();</span>
+</pre></div>
+</div>
+<p>We need to make sure that the <code class="docutils literal notranslate"><span class="pre">outputdir</span></code> parameter of the driver is properly specified before calling <code class="docutils literal notranslate"><span class="pre">set_simulation()</span></code>, because this function also handles the creation of directories necessary for the simulation.</p>
+<p>Once everything is setup, we can call the <code class="docutils literal notranslate"><span class="pre">run()</span></code> function to perform the simulation</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">exadis</span><span class="o">-&gt;</span><span class="n">run</span><span class="p">(</span><span class="n">ctrl</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">run()</span></code> function takes as an argument an instance of a simulation control <code class="docutils literal notranslate"><span class="pre">ExaDiSApp::Control</span></code> object, or a vector of such objects (allowing to perform a sequence of various loadings).</p>
+</section>
+<section id="compilation">
+<h3>Compilation<a class="headerlink" href="#compilation" title="Link to this heading">¶</a></h3>
+<p>After the above C++ driven simulation setup is saved in a cpp file, e.g. <code class="docutils literal notranslate"><span class="pre">my_simulation.cpp</span></code>, it must be compiled to produce a simulation executable. This can be done by adding a new executable to the CMake build tree of ExaDiS and linking against the ExaDiS library, e.g.</p>
+<div class="highlight-cmake notranslate"><div class="highlight"><pre><span></span><span class="nb">add_executable</span><span class="p">(</span><span class="s">my_simulation</span><span class="w"> </span><span class="s">my_simulation.cpp</span><span class="p">)</span>
+<span class="nb">target_include_directories</span><span class="p">(</span><span class="s">my_simulation</span><span class="w"> </span><span class="s">PRIVATE</span><span class="w"> </span><span class="o">${</span><span class="nv">EXADIS_INCLUDE_DIRS</span><span class="o">}</span><span class="p">)</span>
+<span class="nb">target_link_libraries</span><span class="p">(</span><span class="s">my_simulation</span><span class="w"> </span><span class="s">PRIVATE</span><span class="w"> </span><span class="s">exadis</span><span class="w"> </span><span class="o">${</span><span class="nv">EXADIS_EXTERN_LIBS</span><span class="o">}</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>For more details about the backend C++ classes and modules options, please see the <a class="reference internal" href="../developer_guide/index.html"><span class="doc std std-doc">Developer guide</span></a> section of the documentation.</p>
+</section>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="python_modules.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">Python modules: pyexadis</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="obtaining.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Obtaining, building and running the code</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2024, OpenDiS
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            <div class="icons">
+              <a class="muted-link " href="https://opendis.github.io/OpenDiS/contributors.html" aria-label="Contributors">
+                <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path>
+                </svg>
+            </a>
+              
+            </div>
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Tutorials</a><ul>
+<li><a class="reference internal" href="#basics">Basics</a></li>
+<li><a class="reference internal" href="#running-a-frank-read-source-simulation">Running a Frank-Read source simulation</a></li>
+<li><a class="reference internal" href="#simulation-examples">Simulation examples</a></li>
+<li><a class="reference internal" href="#setting-up-a-python-driven-simulation">Setting up a python driven simulation</a><ul>
+<li><a class="reference internal" href="#importing-the-pyexadis-modules">Importing the pyexadis modules</a></li>
+<li><a class="reference internal" href="#initializing-kokkos">Initializing Kokkos</a></li>
+<li><a class="reference internal" href="#setting-up-the-initial-dislocation-configuration">Setting up the initial dislocation configuration</a></li>
+<li><a class="reference internal" href="#global-state-dictionary">Global state dictionary</a></li>
+<li><a class="reference internal" href="#simulation-modules">Simulation modules</a></li>
+<li><a class="reference internal" href="#running-the-simulation">Running the simulation</a></li>
+<li><a class="reference internal" href="#performance-considerations">Performance considerations</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#using-exadis-modules-to-build-applications">Using ExaDiS modules to build applications</a></li>
+<li><a class="reference internal" href="#using-exadis-modules-in-opendis">Using ExaDiS modules in OpenDiS</a></li>
+<li><a class="reference internal" href="#setting-up-a-c-driven-simulation">Setting up a C++ driven simulation</a><ul>
+<li><a class="reference internal" href="#includes-and-namespace">Includes and namespace</a></li>
+<li><a class="reference internal" href="#initializing-the-application">Initializing the application</a></li>
+<li><a class="reference internal" href="#setting-up-the-simulation-parameters">Setting up the simulation parameters</a></li>
+<li><a class="reference internal" href="#id1">Setting up the initial dislocation configuration</a></li>
+<li><a class="reference internal" href="#modules-initialization">Modules initialization</a></li>
+<li><a class="reference internal" href="#simulation-setup-and-run">Simulation setup and run</a></li>
+<li><a class="reference internal" href="#compilation">Compilation</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../../../_static/documentation_options.js?v=01f34227"></script>
+    <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/scripts/furo.js?v=5fa4622c"></script>
+    <script src="../../../_static/tabs.js?v=3ee01567"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../../_static/custom.js?v=72377513"></script>
+    </body>
+</html>

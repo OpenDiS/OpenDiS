@@ -1,0 +1,837 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../../../">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link href="../../../_static/favicon_node.ico" rel="icon" type="image/x-icon"><link rel="index" title="Index" href="../../../genindex.html" /><link rel="search" title="Search" href="../../../search.html" /><link rel="next" title="Binding modules to python" href="python_binding.html" /><link rel="prev" title="Code architecture and data structures" href="code_architecture.html" />
+
+    <!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
+        <title>Developing modules - OpenDiS 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=354aac6f" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/tabs.css?v=4c969af8" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=ed3bf6ad" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo-extensions.css?v=302659d7" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../../../index.html"><div class="brand">OpenDiS 0.1.0 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="../../../_static/nodebox_logo.png" alt="Logo"/>
+  </div>
+  
+  <span class="sidebar-brand-text">OpenDiS 0.1.0 documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../../../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../manifesto.html">OpenDiS Manifesto</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../installation/index.html">Installation</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of Installation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../installation/download.html">How to get the code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../installation/requirements.html">System Requirements</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../installation/compilation/index.html">Compilation</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of Compilation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../installation/compilation/compilation_overview.html">Compilation Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../installation/compilation/compile_on_mac.html">Compile on Mac</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../installation/compilation/compile_on_ubuntu.html">Compile on Linux (Ubuntu)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../installation/compilation/compile_on_sherlock.html">Compile on Sherlock</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../installation/compilation/compile_on_mc3.html">Compile on MC3</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../installation/compilation/compile_on_cms3.html">Compile on CMS3</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../installation/compilation/compile_on_rpi.html">Compile on Raspberry Pi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../installation/compilation/compile_on_termux.html">Compile on Android Phone (Termux)</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle navigation of Tutorials</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../tutorials/frank_read_src/index.html">Frank-Read Source</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle navigation of Frank-Read Source</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../tutorials/frank_read_src/frank_read_src_by_python.html">Frank-Read Source by Pure Python</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../tutorials/frank_read_src/frank_read_src_by_pyexadis.html">Frank-Read Source by Python calling ExaDiS</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../tutorials/frank_read_src/graph_data_conversion.html">Graph Data Conversion</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../tutorials/frank_read_src/frank_read_src_by_pydis_pyexadis.html">Inter-operability between PyDiS and ExaDiS Modules</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../tutorials/binary_junction/index.html">Binary Junction</a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle navigation of Binary Junction</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../tutorials/binary_junction/binary_junction_by_python.html">Binary Junction by Pure Python</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../tutorials/binary_junction/binary_junction_by_pyexadis.html">Binary Junction by Python calling ExaDiS</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../tutorials/strain_hardening/index.html">Strain Hardening</a><input class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><div class="visually-hidden">Toggle navigation of Strain Hardening</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../tutorials/strain_hardening/strain_hardening_on_cpu.html">Strain Hardening Simulation on CPU</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../tutorials/strain_hardening/strain_hardening_on_gpu.html">Strain Hardening Simulation on GPU</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../code_structure/index.html">Code Structure</a><input class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><div class="visually-hidden">Toggle navigation of Code Structure</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../code_structure/project_overview.html">Project Overview</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../code_structure/data_structure/index.html">Data Structure</a><input class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><div class="visually-hidden">Toggle navigation of Data Structure</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../code_structure/data_structure/disnetmanager_class.html">DisNetManager Class</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../code_structure/data_structure/disnet_class.html">DisNet Class</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../code_structure/data_structure/exadisnet_class.html">ExaDisNet Class</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 current has-children"><a class="reference internal" href="../../index.html">Core Libraries</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><div class="visually-hidden">Toggle navigation of Core Libraries</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../pydis_documentation/index.html">PyDiS Documentation</a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><div class="visually-hidden">Toggle navigation of PyDiS Documentation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l2 current has-children"><a class="reference internal" href="../index.html">ExaDiS Documentation</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><div class="visually-hidden">Toggle navigation of ExaDiS Documentation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l3 has-children"><a class="reference internal" href="../user_guide/index.html">User guide</a><input class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><div class="visually-hidden">Toggle navigation of User guide</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../user_guide/obtaining.html">Obtaining, building and running the code</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../user_guide/tutorials.html">Tutorials</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../user_guide/python_modules.html">Python modules: pyexadis</a></li>
+</ul>
+</li>
+<li class="toctree-l3 current has-children"><a class="reference internal" href="index.html">Developer guide</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" role="switch" type="checkbox"/><label for="toctree-checkbox-13"><div class="visually-hidden">Toggle navigation of Developer guide</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="code_architecture.html">Code architecture and data structures</a></li>
+<li class="toctree-l4 current current-page"><a class="current reference internal" href="#">Developing modules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="python_binding.html">Binding modules to python</a></li>
+<li class="toctree-l4"><a class="reference internal" href="python_modules.html">Calling user-defined python modules</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="../../../_sources/core_libraries/exadis_documentation/developer_guide/developing_modules.md.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="developing-modules">
+<h1>Developing modules<a class="headerlink" href="#developing-modules" title="Link to this heading">¶</a></h1>
+<section id="general-implementation-approach">
+<h2>General implementation approach<a class="headerlink" href="#general-implementation-approach" title="Link to this heading">¶</a></h2>
+<p>ExaDiS modules are typically implemented as classes which follow a generic template, e.g.:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">MyExaDisModule</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">BaseClass</span><span class="w"> </span><span class="p">{</span>
+<span class="k">public</span><span class="o">:</span>
+<span class="w">    </span><span class="n">MyExaDisModule</span><span class="p">(</span><span class="n">System</span><span class="o">*</span><span class="w"> </span><span class="n">system</span><span class="p">)</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">BaseClass</span><span class="p">(</span><span class="n">system</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// Initialize</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="n">function</span><span class="p">(</span><span class="n">System</span><span class="o">*</span><span class="w"> </span><span class="n">system</span><span class="p">,</span><span class="w"> </span><span class="p">...)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// Do some stuff</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="p">...</span>
+<span class="p">};</span>
+</pre></div>
+</div>
+<p>where <code class="docutils literal notranslate"><span class="pre">System</span></code> is the main class that contains all information about the simulated dislocation system, including the parameters, the crystal instance, and the dislocation network object, see <a class="reference internal" href="code_architecture.html#system-class"><span class="std std-ref">System class</span></a>.</p>
+<section id="accessing-the-dislocation-network">
+<h3>Accessing the dislocation network<a class="headerlink" href="#accessing-the-dislocation-network" title="Link to this heading">¶</a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">System</span></code> object provides the <code class="docutils literal notranslate"><span class="pre">get_serial_network()</span></code> and <code class="docutils literal notranslate"><span class="pre">get_device_network()</span></code> methods to request various instances of the dislocation network to be used in various execution spaces. These methods are implemented in the <a class="reference internal" href="code_architecture.html#disnetmanager-class"><span class="std std-ref">DisNetManager class</span></a>.</p>
+<p>Method <code class="docutils literal notranslate"><span class="pre">get_serial_network()</span></code> returns a pointer to a <a class="reference internal" href="code_architecture.html#serialdisnet-class"><span class="std std-ref">SerialDisNet</span></a> instance of the network to be used for execution in the host execution space and whose data is allocated on the host memory space.</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Request a `SerialDisNet` instance of the dislocation network</span>
+<span class="n">SerialDisNet</span><span class="o">*</span><span class="w"> </span><span class="n">net</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">system</span><span class="o">-&gt;</span><span class="n">get_serial_network</span><span class="p">();</span>
+<span class="c1">// Perform operations in the serial execution space</span>
+<span class="p">...</span>
+</pre></div>
+</div>
+<p>Method <code class="docutils literal notranslate"><span class="pre">get_device_network()</span></code> returns a pointer to a <a class="reference internal" href="code_architecture.html#devicedisnet-class"><span class="std std-ref">DeviceDisNet</span></a> instance of the network to be used for execution in the device execution space and whose data is allocated on the device memory space or accessible from the device (e.g. via the use of unified memory).</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Request a `DeviceDisNet` instance of the dislocation network</span>
+<span class="n">DeviceDisNet</span><span class="o">*</span><span class="w"> </span><span class="n">net</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">system</span><span class="o">-&gt;</span><span class="n">get_device_network</span><span class="p">();</span>
+<span class="c1">// Perform operation in the device execution space</span>
+<span class="p">...</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The device memory/execution spaces refer to the highest spaces available for the current build. If the code is compiled for GPU (e.g. using build option <code class="docutils literal notranslate"><span class="pre">-DKokkos_ENABLE_CUDA=On</span></code>), then the device execution/memory spaces refer to the GPU device spaces. If the code is compiled for CPU execution only, then the device  execution/memory spaces will default to the host execution/memory spaces, and any part of the code operating on a <code class="docutils literal notranslate"><span class="pre">DeviceDisNet</span></code> instance will be normally executed on the host CPU.</p>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">DisNetManager</span></code> object keeps track of the last requested instance of the dislocation network by marking it as active. When calling the <code class="docutils literal notranslate"><span class="pre">get_*_network()</span></code> methods, a memory copy is then only triggered if the requested network type instance is not currently marked as active to eliminate unnecessary memory transfers between host and device memory spaces.</p>
+<p>For instance, in the following code example</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">function1</span><span class="p">(</span><span class="n">System</span><span class="o">*</span><span class="w"> </span><span class="n">system</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">DeviceDisNet</span><span class="o">*</span><span class="w"> </span><span class="n">net</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">system</span><span class="o">-&gt;</span><span class="n">get_device_network</span><span class="p">();</span>
+<span class="w">    </span><span class="c1">// do some stuff</span>
+<span class="p">}</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">function2</span><span class="p">(</span><span class="n">System</span><span class="o">*</span><span class="w"> </span><span class="n">system</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">DeviceDisNet</span><span class="o">*</span><span class="w"> </span><span class="n">net</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">system</span><span class="o">-&gt;</span><span class="n">get_device_network</span><span class="p">();</span>
+<span class="w">    </span><span class="c1">// do some stuff</span>
+<span class="p">}</span>
+<span class="c1">// Main body</span>
+<span class="n">function1</span><span class="p">(</span><span class="n">system</span><span class="p">);</span>
+<span class="n">function2</span><span class="p">(</span><span class="n">system</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>no memory copy is triggered in <code class="docutils literal notranslate"><span class="pre">function2</span></code> because the <code class="docutils literal notranslate"><span class="pre">DeviceDisNet</span></code> instance was already marked as active when executing <code class="docutils literal notranslate"><span class="pre">function1</span></code>.</p>
+<p>Conversely, in the following code example</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">function1</span><span class="p">(</span><span class="n">System</span><span class="o">*</span><span class="w"> </span><span class="n">system</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">SerialDisNet</span><span class="o">*</span><span class="w"> </span><span class="n">net</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">system</span><span class="o">-&gt;</span><span class="n">get_serial_network</span><span class="p">();</span>
+<span class="w">    </span><span class="c1">// do some stuff</span>
+<span class="p">}</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">function2</span><span class="p">(</span><span class="n">System</span><span class="o">*</span><span class="w"> </span><span class="n">system</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">DeviceDisNet</span><span class="o">*</span><span class="w"> </span><span class="n">net</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">system</span><span class="o">-&gt;</span><span class="n">get_device_network</span><span class="p">();</span>
+<span class="w">    </span><span class="c1">// do some stuff</span>
+<span class="p">}</span>
+<span class="c1">// Main body</span>
+<span class="n">function1</span><span class="p">(</span><span class="n">system</span><span class="p">);</span>
+<span class="n">function2</span><span class="p">(</span><span class="n">system</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>a copy of the network instance from the host space to the device space will be triggered in <code class="docutils literal notranslate"><span class="pre">function2</span></code> to ensure that an up-to-date instance of the network (e.g. which may have been modified in <code class="docutils literal notranslate"><span class="pre">function1</span></code>) is accessible from the device.</p>
+</section>
+</section>
+<section id="example-1-computing-the-total-dislocation-density">
+<h2>Example 1: computing the total dislocation density<a class="headerlink" href="#example-1-computing-the-total-dislocation-density" title="Link to this heading">¶</a></h2>
+<p>As a concrete example, let’s implement a function to compute the total dislocation density in the system. Calculating the dislocation density is a good starting example because it involves looping over each segment of the network, accessing their end-nodes to compute the segment length, summing up their lengths, and dividing the total length by the simulation cell volume (using appropriate units).</p>
+<section id="serial-implementation">
+<h3>Serial implementation<a class="headerlink" href="#serial-implementation" title="Link to this heading">¶</a></h3>
+<p>As a prototype, we may start to implement this function for serial/host execution for simplicity. We could implement the following function:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="kt">double</span><span class="w"> </span><span class="nf">compute_dislocation_density</span><span class="p">(</span><span class="n">System</span><span class="o">*</span><span class="w"> </span><span class="n">system</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// Request a `SerialDisNet` instance of the dislocation network</span>
+<span class="w">    </span><span class="n">SerialDisNet</span><span class="o">*</span><span class="w"> </span><span class="n">net</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">system</span><span class="o">-&gt;</span><span class="n">get_serial_network</span><span class="p">();</span>
+<span class="w">    </span>
+<span class="w">    </span><span class="c1">// Loop over the local segments, compute and sum their lengths</span>
+<span class="w">    </span><span class="kt">double</span><span class="w"> </span><span class="n">density</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0</span><span class="p">;</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">net</span><span class="o">-&gt;</span><span class="n">Nsegs_local</span><span class="p">();</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">auto</span><span class="w"> </span><span class="n">nodes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">net</span><span class="o">-&gt;</span><span class="n">get_nodes</span><span class="p">();</span><span class="w"> </span><span class="c1">// generic node accessor</span>
+<span class="w">        </span><span class="k">auto</span><span class="w"> </span><span class="n">segs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">net</span><span class="o">-&gt;</span><span class="n">get_segs</span><span class="p">();</span><span class="w"> </span><span class="c1">// generic segment accessor</span>
+<span class="w">        </span><span class="k">auto</span><span class="w"> </span><span class="n">cell</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">net</span><span class="o">-&gt;</span><span class="n">cell</span><span class="p">;</span>
+<span class="w">        </span>
+<span class="w">        </span><span class="c1">// Get segment end nodes indices</span>
+<span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">n1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">segs</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">n1</span><span class="p">;</span><span class="w"> </span><span class="c1">// end-node 1 of segment i</span>
+<span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">n2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">segs</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">n2</span><span class="p">;</span><span class="w"> </span><span class="c1">// end-node 2 of segment i</span>
+<span class="w">        </span>
+<span class="w">        </span><span class="c1">// Compute segment length</span>
+<span class="w">        </span><span class="n">Vec3</span><span class="w"> </span><span class="n">r1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nodes</span><span class="p">[</span><span class="n">n1</span><span class="p">].</span><span class="n">pos</span><span class="p">;</span>
+<span class="w">        </span><span class="n">Vec3</span><span class="w"> </span><span class="n">r2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cell</span><span class="p">.</span><span class="n">pbc_position</span><span class="p">(</span><span class="n">r1</span><span class="p">,</span><span class="w"> </span><span class="n">nodes</span><span class="p">[</span><span class="n">n2</span><span class="p">].</span><span class="n">pos</span><span class="p">);</span><span class="w"> </span><span class="c1">// account for PBC</span>
+<span class="w">        </span><span class="kt">double</span><span class="w"> </span><span class="n">Lseg</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">r2</span><span class="o">-</span><span class="n">r1</span><span class="p">).</span><span class="n">norm</span><span class="p">();</span>
+<span class="w">        </span>
+<span class="w">        </span><span class="c1">// Increment density value by segment length</span>
+<span class="w">        </span><span class="n">density</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">Lseg</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">        </span>
+<span class="w">    </span><span class="c1">// Normalize by the volume and convert to 1/m^2 units</span>
+<span class="w">    </span><span class="kt">double</span><span class="w"> </span><span class="n">burgmag</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">system</span><span class="o">-&gt;</span><span class="n">params</span><span class="p">.</span><span class="n">burgmag</span><span class="p">;</span><span class="w"> </span><span class="c1">// Burgers vector magnitude in m</span>
+<span class="w">    </span><span class="n">density</span><span class="w"> </span><span class="o">*=</span><span class="w"> </span><span class="mf">1.0</span><span class="o">/</span><span class="n">net</span><span class="o">-&gt;</span><span class="n">cell</span><span class="p">.</span><span class="n">volume</span><span class="p">()</span><span class="o">/</span><span class="n">burgmag</span><span class="o">/</span><span class="n">burgmag</span><span class="p">;</span><span class="w"> </span><span class="c1">// 1/m^2 units</span>
+<span class="w">        </span>
+<span class="w">    </span><span class="c1">// Return the dislocation density value</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">density</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="parallel-implementation">
+<h3>Parallel implementation<a class="headerlink" href="#parallel-implementation" title="Link to this heading">¶</a></h3>
+<p>For high-performance, we may need to implement the same function for device spaces (e.g. GPU execution). To achieve this, what we need to do is to replace the serial <code class="docutils literal notranslate"><span class="pre">for</span></code> loop by a parallel loop and operate on a <code class="docutils literal notranslate"><span class="pre">DeviceDisNet</span></code> instance of the network. Here, since we are summing the segments length into a single variable <code class="docutils literal notranslate"><span class="pre">density</span></code>, we also need to be careful to avoid race conditions (several parallel threads attempting to modify the value of the same variable will result in incorrect results). For this, Kokkos provides the <code class="docutils literal notranslate"><span class="pre">parallel_reduce()</span></code> algorithm. Our parallel implementation could look like:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="kt">double</span><span class="w"> </span><span class="nf">compute_dislocation_density</span><span class="p">(</span><span class="n">System</span><span class="o">*</span><span class="w"> </span><span class="n">system</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// Request a `DeviceDisNet` instance of the dislocation network</span>
+<span class="w">    </span><span class="n">DeviceDisNet</span><span class="o">*</span><span class="w"> </span><span class="n">net</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">system</span><span class="o">-&gt;</span><span class="n">get_device_network</span><span class="p">();</span>
+<span class="w">    </span>
+<span class="w">    </span><span class="c1">// Loop over the local segments, compute and sum their lengths</span>
+<span class="w">    </span><span class="kt">double</span><span class="w"> </span><span class="n">density</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0</span><span class="p">;</span>
+<span class="w">    </span><span class="n">Kokkos</span><span class="o">::</span><span class="n">parallel_reduce</span><span class="p">(</span><span class="n">net</span><span class="o">-&gt;</span><span class="n">Nsegs_local</span><span class="p">,</span><span class="w"> </span><span class="n">KOKKOS_LAMBDA</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="o">&amp;</span><span class="w"> </span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="o">&amp;</span><span class="w"> </span><span class="n">density_sum</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">auto</span><span class="w"> </span><span class="n">nodes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">net</span><span class="o">-&gt;</span><span class="n">get_nodes</span><span class="p">();</span><span class="w"> </span><span class="c1">// generic node accessor</span>
+<span class="w">        </span><span class="k">auto</span><span class="w"> </span><span class="n">segs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">net</span><span class="o">-&gt;</span><span class="n">get_segs</span><span class="p">();</span><span class="w"> </span><span class="c1">// generic segment accessor</span>
+<span class="w">        </span><span class="k">auto</span><span class="w"> </span><span class="n">cell</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">net</span><span class="o">-&gt;</span><span class="n">cell</span><span class="p">;</span>
+<span class="w">        </span>
+<span class="w">        </span><span class="c1">// Get segment end nodes indices</span>
+<span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">n1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">segs</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">n1</span><span class="p">;</span><span class="w"> </span><span class="c1">// end-node 1 of segment i</span>
+<span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">n2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">segs</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">n2</span><span class="p">;</span><span class="w"> </span><span class="c1">// end-node 2 of segment i</span>
+<span class="w">        </span>
+<span class="w">        </span><span class="c1">// Compute segment length</span>
+<span class="w">        </span><span class="n">Vec3</span><span class="w"> </span><span class="n">r1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nodes</span><span class="p">[</span><span class="n">n1</span><span class="p">].</span><span class="n">pos</span><span class="p">;</span>
+<span class="w">        </span><span class="n">Vec3</span><span class="w"> </span><span class="n">r2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cell</span><span class="p">.</span><span class="n">pbc_position</span><span class="p">(</span><span class="n">r1</span><span class="p">,</span><span class="w"> </span><span class="n">nodes</span><span class="p">[</span><span class="n">n2</span><span class="p">].</span><span class="n">pos</span><span class="p">);</span><span class="w"> </span><span class="c1">// account for PBC</span>
+<span class="w">        </span><span class="kt">double</span><span class="w"> </span><span class="n">Lseg</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">r2</span><span class="o">-</span><span class="n">r1</span><span class="p">).</span><span class="n">norm</span><span class="p">();</span>
+<span class="w">        </span>
+<span class="w">        </span><span class="c1">// Increment density value by segment length</span>
+<span class="w">        </span><span class="n">density_sum</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">Lseg</span><span class="p">;</span>
+<span class="w">    </span><span class="p">},</span><span class="w"> </span><span class="n">density</span><span class="p">);</span>
+<span class="w">        </span>
+<span class="w">    </span><span class="c1">// Normalize by the volume and convert to 1/m^2 units</span>
+<span class="w">    </span><span class="kt">double</span><span class="w"> </span><span class="n">burgmag</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">system</span><span class="o">-&gt;</span><span class="n">params</span><span class="p">.</span><span class="n">burgmag</span><span class="p">;</span><span class="w"> </span><span class="c1">// Burgers vector magnitude in m</span>
+<span class="w">    </span><span class="n">density</span><span class="w"> </span><span class="o">*=</span><span class="w"> </span><span class="mf">1.0</span><span class="o">/</span><span class="n">net</span><span class="o">-&gt;</span><span class="n">cell</span><span class="p">.</span><span class="n">volume</span><span class="p">()</span><span class="o">/</span><span class="n">burgmag</span><span class="o">/</span><span class="n">burgmag</span><span class="p">;</span><span class="w"> </span><span class="c1">// 1/m^2 units</span>
+<span class="w">        </span>
+<span class="w">    </span><span class="c1">// Return the dislocation density value</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">density</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>which only requires a few modifications of the serial version above.</p>
+</section>
+<section id="templated-implementation">
+<h3>Templated implementation<a class="headerlink" href="#templated-implementation" title="Link to this heading">¶</a></h3>
+<p>As a more advanced implementation, it may be beneficial to have our function working indifferently with both host/device spaces and corresponding instance types of the network. For this, we could implement the following templated version of our function:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">template</span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">N</span><span class="o">&gt;</span>
+<span class="kt">double</span><span class="w"> </span><span class="n">compute_dislocation_density</span><span class="p">(</span><span class="n">System</span><span class="o">*</span><span class="w"> </span><span class="n">system</span><span class="p">,</span><span class="w"> </span><span class="n">N</span><span class="o">*</span><span class="w"> </span><span class="n">net</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// Define execution policy based on network instance type</span>
+<span class="w">    </span><span class="k">using</span><span class="w"> </span><span class="n">policy</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Kokkos</span><span class="o">::</span><span class="n">RangePolicy</span><span class="o">&lt;</span><span class="k">typename</span><span class="w"> </span><span class="nc">N</span><span class="o">::</span><span class="n">ExecutionSpace</span><span class="o">&gt;</span><span class="p">;</span>
+<span class="w">    </span>
+<span class="w">    </span><span class="c1">// Loop over the local segments, compute and sum their lengths</span>
+<span class="w">    </span><span class="kt">double</span><span class="w"> </span><span class="n">density</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0</span><span class="p">;</span>
+<span class="w">    </span><span class="n">Kokkos</span><span class="o">::</span><span class="n">parallel_reduce</span><span class="p">(</span><span class="n">policy</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">net</span><span class="o">-&gt;</span><span class="n">Nsegs_local</span><span class="p">),</span><span class="w"> </span><span class="n">KOKKOS_LAMBDA</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="o">&amp;</span><span class="w"> </span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="o">&amp;</span><span class="w"> </span><span class="n">density_sum</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">auto</span><span class="w"> </span><span class="n">nodes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">net</span><span class="o">-&gt;</span><span class="n">get_nodes</span><span class="p">();</span><span class="w"> </span><span class="c1">// generic node accessor</span>
+<span class="w">        </span><span class="k">auto</span><span class="w"> </span><span class="n">segs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">net</span><span class="o">-&gt;</span><span class="n">get_segs</span><span class="p">();</span><span class="w"> </span><span class="c1">// generic segment accessor</span>
+<span class="w">        </span><span class="k">auto</span><span class="w"> </span><span class="n">cell</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">net</span><span class="o">-&gt;</span><span class="n">cell</span><span class="p">;</span>
+<span class="w">        </span>
+<span class="w">        </span><span class="c1">// Get segment end nodes indices</span>
+<span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">n1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">segs</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">n1</span><span class="p">;</span><span class="w"> </span><span class="c1">// end-node 1 of segment i</span>
+<span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">n2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">segs</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">n2</span><span class="p">;</span><span class="w"> </span><span class="c1">// end-node 2 of segment i</span>
+<span class="w">        </span>
+<span class="w">        </span><span class="c1">// Compute segment length</span>
+<span class="w">        </span><span class="n">Vec3</span><span class="w"> </span><span class="n">r1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nodes</span><span class="p">[</span><span class="n">n1</span><span class="p">].</span><span class="n">pos</span><span class="p">;</span>
+<span class="w">        </span><span class="n">Vec3</span><span class="w"> </span><span class="n">r2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cell</span><span class="p">.</span><span class="n">pbc_position</span><span class="p">(</span><span class="n">r1</span><span class="p">,</span><span class="w"> </span><span class="n">nodes</span><span class="p">[</span><span class="n">n2</span><span class="p">].</span><span class="n">pos</span><span class="p">);</span><span class="w"> </span><span class="c1">// account for PBC</span>
+<span class="w">        </span><span class="kt">double</span><span class="w"> </span><span class="n">Lseg</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">r2</span><span class="o">-</span><span class="n">r1</span><span class="p">).</span><span class="n">norm</span><span class="p">();</span>
+<span class="w">        </span>
+<span class="w">        </span><span class="c1">// Increment density value by segment length</span>
+<span class="w">        </span><span class="n">density_sum</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">Lseg</span><span class="p">;</span>
+<span class="w">    </span><span class="p">},</span><span class="w"> </span><span class="n">density</span><span class="p">);</span>
+<span class="w">        </span>
+<span class="w">    </span><span class="c1">// Normalize by the volume and convert to 1/m^2 units</span>
+<span class="w">    </span><span class="kt">double</span><span class="w"> </span><span class="n">burgmag</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">system</span><span class="o">-&gt;</span><span class="n">params</span><span class="p">.</span><span class="n">burgmag</span><span class="p">;</span><span class="w"> </span><span class="c1">// Burgers vector magnitude in m</span>
+<span class="w">    </span><span class="n">density</span><span class="w"> </span><span class="o">*=</span><span class="w"> </span><span class="mf">1.0</span><span class="o">/</span><span class="n">net</span><span class="o">-&gt;</span><span class="n">cell</span><span class="p">.</span><span class="n">volume</span><span class="p">()</span><span class="o">/</span><span class="n">burgmag</span><span class="o">/</span><span class="n">burgmag</span><span class="p">;</span><span class="w"> </span><span class="c1">// 1/m^2 units</span>
+<span class="w">        </span>
+<span class="w">    </span><span class="c1">// Return the dislocation density value</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">density</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>which would equally work when called for serial/host execution:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">SerialDisNet</span><span class="o">*</span><span class="w"> </span><span class="n">net</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">system</span><span class="o">-&gt;</span><span class="n">get_serial_network</span><span class="p">();</span>
+<span class="kt">double</span><span class="w"> </span><span class="n">density</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">compute_dislocation_density</span><span class="p">(</span><span class="n">system</span><span class="p">,</span><span class="w"> </span><span class="n">net</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>or parallel/device execution:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">DeviceDisNet</span><span class="o">*</span><span class="w"> </span><span class="n">net</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">system</span><span class="o">-&gt;</span><span class="n">get_device_network</span><span class="p">();</span>
+<span class="kt">double</span><span class="w"> </span><span class="n">density</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">compute_dislocation_density</span><span class="p">(</span><span class="n">system</span><span class="p">,</span><span class="w"> </span><span class="n">net</span><span class="p">);</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="example-2-implementing-a-simple-force-module">
+<h2>Example 2: implementing a simple force module<a class="headerlink" href="#example-2-implementing-a-simple-force-module" title="Link to this heading">¶</a></h2>
+<p>As another example, let’s assume we want to create a new force module <code class="docutils literal notranslate"><span class="pre">ForceConstant</span></code> that sets all nodal forces to a constant vector <code class="docutils literal notranslate"><span class="pre">fval</span></code>.</p>
+<section id="force-base-class">
+<h3>Force base class<a class="headerlink" href="#force-base-class" title="Link to this heading">¶</a></h3>
+<p>For force calculation modules, the base class is the <code class="docutils literal notranslate"><span class="pre">Force</span></code> class defined in <code class="docutils literal notranslate"><span class="pre">src/force.h</span></code>, and we can create the following new class:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">ForceConstant</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">Force</span><span class="w"> </span><span class="p">{</span>
+<span class="k">private</span><span class="o">:</span>
+<span class="w">    </span><span class="c1">// Member properties</span>
+<span class="w">    </span><span class="n">Vec3</span><span class="w"> </span><span class="n">fval</span><span class="p">;</span>
+<span class="w">    </span>
+<span class="k">public</span><span class="o">:</span>
+<span class="w">    </span><span class="c1">// Force parameters</span>
+<span class="w">    </span><span class="k">struct</span><span class="w"> </span><span class="nc">Params</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">Vec3</span><span class="w"> </span><span class="n">fval</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0</span><span class="p">;</span>
+<span class="w">        </span><span class="n">Params</span><span class="p">()</span><span class="w"> </span><span class="p">{}</span>
+<span class="w">        </span><span class="n">Params</span><span class="p">(</span><span class="n">Vec3</span><span class="w"> </span><span class="n">val</span><span class="p">)</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">fval</span><span class="p">(</span><span class="n">val</span><span class="p">)</span><span class="w"> </span><span class="p">{}</span>
+<span class="w">    </span><span class="p">};</span>
+<span class="w">    </span>
+<span class="w">    </span><span class="c1">// Constructor</span>
+<span class="w">    </span><span class="n">ForceConstant</span><span class="p">(</span><span class="n">System</span><span class="o">*</span><span class="w"> </span><span class="n">system</span><span class="p">,</span><span class="w"> </span><span class="n">Params</span><span class="w"> </span><span class="n">params</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// Initialize</span>
+<span class="w">        </span><span class="n">fval</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">params</span><span class="p">.</span><span class="n">fval</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span>
+<span class="w">    </span><span class="c1">// Pre-compute operation</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="n">pre_compute</span><span class="p">(</span><span class="n">System</span><span class="o">*</span><span class="w"> </span><span class="n">system</span><span class="p">)</span><span class="w"> </span><span class="p">{}</span><span class="w"> </span><span class="c1">// nothing to pre-compute here</span>
+<span class="w">    </span>
+<span class="w">    </span><span class="c1">// Global compute</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="n">compute</span><span class="p">(</span><span class="n">System</span><span class="o">*</span><span class="w"> </span><span class="n">system</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">zero</span><span class="o">=</span><span class="nb">true</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// Set nodal forces to fval</span>
+<span class="w">        </span><span class="p">...</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span>
+<span class="w">    </span><span class="c1">// Individual compute</span>
+<span class="w">    </span><span class="n">Vec3</span><span class="w"> </span><span class="n">node_force</span><span class="p">(</span><span class="n">System</span><span class="o">*</span><span class="w"> </span><span class="n">system</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="o">&amp;</span><span class="w"> </span><span class="n">i</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// Compute individual force at node i</span>
+<span class="w">        </span><span class="n">Vec3</span><span class="w"> </span><span class="n">fi</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">...</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">fi</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span>
+<span class="w">    </span><span class="c1">// Team individual node force implementation (optional)</span>
+<span class="w">    </span><span class="k">template</span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">N</span><span class="o">&gt;</span>
+<span class="w">    </span><span class="n">KOKKOS_INLINE_FUNCTION</span>
+<span class="w">    </span><span class="n">Vec3</span><span class="w"> </span><span class="n">node_force</span><span class="p">(</span><span class="n">System</span><span class="o">*</span><span class="w"> </span><span class="n">system</span><span class="p">,</span><span class="w"> </span><span class="n">N</span><span class="o">*</span><span class="w"> </span><span class="n">net</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="o">&amp;</span><span class="w"> </span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">team_handle</span><span class="o">&amp;</span><span class="w"> </span><span class="n">team</span><span class="p">)</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// Compute individual force at node i using a team of workers</span>
+<span class="w">        </span><span class="n">Vec3</span><span class="w"> </span><span class="n">fi</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">...</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">fi</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">};</span>
+</pre></div>
+</div>
+<p>The guideline in ExaDiS is for each module to possess its own <code class="docutils literal notranslate"><span class="pre">Param</span></code> struct that serves to define the dedicated parameters of the module, and provide it to the constructor. After that, we need to implemented the various methods associated with the <code class="docutils literal notranslate"><span class="pre">Force</span></code> base class.</p>
+<p>For a <code class="docutils literal notranslate"><span class="pre">Force</span></code> module, the 3 required methods to implement are:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">pre_compute()</span></code>: method to perform any pre-computation that may be required to compute nodal forces. In the traditional cycle, the pre-compute function is called once at the beginning of each simulation time step. For instance, for the <code class="docutils literal notranslate"><span class="pre">ForceFFT</span></code> module, the pre-computation step is used to compute and tabulate the long-range stress field on a grid. In the <code class="docutils literal notranslate"><span class="pre">ForceSegSegList</span></code> module, the pre-computation step is used to build the list of segment pair interactions.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">compute()</span></code>: method to perform a global computation of nodal forces, i.e. to compute the forces on all nodes of the network.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">node_force()</span></code>: method to perform an individual force computation, i.e. to compute the force on a given node of the network. Optionally, this function can also be implemented when using a team of workers for parallel execution on device (GPU), where the individual node force computation can itself be parallelized across several concurrent threads using hierarchical parallelization.</p></li>
+</ul>
+</section>
+<section id="id1">
+<h3>Serial implementation<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h3>
+<p>In our simple example, there is no need to perform any pre-computation, so we can leave the <code class="docutils literal notranslate"><span class="pre">pre_compute()</span></code> method empty. The next step is to implement the <code class="docutils literal notranslate"><span class="pre">compute()</span></code> method. Recall we want to set the nodal forces to a constant value. As a first attempt/prototype, we may want to implement this method in serial on the CPU for simplicity. Here, we could do something like this:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Global compute (serial implementation)</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span><span class="n">System</span><span class="o">*</span><span class="w"> </span><span class="n">system</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">zero</span><span class="o">=</span><span class="nb">true</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// Request a `SerialDisNet` instance of the dislocation network</span>
+<span class="w">    </span><span class="n">SerialDisNet</span><span class="o">*</span><span class="w"> </span><span class="n">net</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">system</span><span class="o">-&gt;</span><span class="n">get_serial_network</span><span class="p">();</span>
+<span class="w">    </span>
+<span class="w">    </span><span class="c1">// Zero out the nodal forces if requested (mandatory instruction)</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">zero</span><span class="p">)</span><span class="w"> </span><span class="n">zero_force</span><span class="p">(</span><span class="n">net</span><span class="p">);</span>
+<span class="w">    </span>
+<span class="w">    </span><span class="c1">// Set nodal forces to fval using a simple for loop</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">net</span><span class="o">-&gt;</span><span class="n">Nnodes_local</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">auto</span><span class="w"> </span><span class="n">nodes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">net</span><span class="o">-&gt;</span><span class="n">get_nodes</span><span class="p">();</span><span class="w"> </span><span class="c1">// generic node accessor</span>
+<span class="w">        </span><span class="n">nodes</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">f</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fval</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>where we loop over the local nodes and assign <code class="docutils literal notranslate"><span class="pre">fval</span></code> to their force property. We’re done, and we can check with a test case that this is working properly.</p>
+</section>
+<section id="id2">
+<h3>Parallel implementation<a class="headerlink" href="#id2" title="Link to this heading">¶</a></h3>
+<p>Now, let’s imagine that we are happy with our implementation, but want to use this module in a production run on GPU. In this case, executing the <code class="docutils literal notranslate"><span class="pre">compute()</span></code> method in the serial execution space is going to be very inefficient. (This would be the case even for such a trivial force module. This is because other force/mobility modules used in the simulation will likely be executed on GPU, hence the call to the <code class="docutils literal notranslate"><span class="pre">system-&gt;get_serial_network()</span></code> will trigger memory copies from the GPU to the CPU, while the <code class="docutils literal notranslate"><span class="pre">system-&gt;get_device_network()</span></code> in the other GPU modules will trigger the reverse memory copies. These back-and-forth movements may significantly hit the performance.) Alternatively, we can now implement a new version of the <code class="docutils literal notranslate"><span class="pre">compute()</span></code> method that will be executed on the device space. Here, the implementation is trivial because each index <code class="docutils literal notranslate"><span class="pre">i</span></code> of the loop is independent and thus can be parallelized. As such, all we need to do is to replace the serial <code class="docutils literal notranslate"><span class="pre">for</span></code> loop with a <code class="docutils literal notranslate"><span class="pre">Kokkos::parallel_for</span></code> loop, while now operating on a <code class="docutils literal notranslate"><span class="pre">DeviceDisNet</span></code> object:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Global compute (parallel implementation)</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span><span class="n">System</span><span class="o">*</span><span class="w"> </span><span class="n">system</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">zero</span><span class="o">=</span><span class="nb">true</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// Request a `DeviceDisNet` instance of the dislocation network</span>
+<span class="w">    </span><span class="n">DeviceDisNet</span><span class="o">*</span><span class="w"> </span><span class="n">net</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">system</span><span class="o">-&gt;</span><span class="n">get_device_network</span><span class="p">();</span>
+<span class="w">    </span>
+<span class="w">    </span><span class="c1">// Zero out the nodal forces if requested (mandatory instruction)</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">zero</span><span class="p">)</span><span class="w"> </span><span class="n">zero_force</span><span class="p">(</span><span class="n">net</span><span class="p">);</span>
+<span class="w">    </span>
+<span class="w">    </span><span class="c1">// Set nodal forces to fval using a parallel_for loop</span>
+<span class="w">    </span><span class="n">Vec3</span><span class="w"> </span><span class="n">f</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fval</span><span class="p">;</span><span class="w"> </span><span class="c1">// set vector variable in local scope</span>
+<span class="w">    </span><span class="n">Kokkos</span><span class="o">::</span><span class="n">parallel_for</span><span class="p">(</span><span class="n">net</span><span class="o">-&gt;</span><span class="n">Nnodes_local</span><span class="p">,</span><span class="w"> </span><span class="n">KOKKOS_LAMBDA</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">auto</span><span class="w"> </span><span class="n">nodes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">net</span><span class="o">-&gt;</span><span class="n">get_nodes</span><span class="p">();</span>
+<span class="w">        </span><span class="n">nodes</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">f</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">f</span><span class="p">;</span>
+<span class="w">    </span><span class="p">});</span>
+<span class="w">    </span><span class="n">Kokkos</span><span class="o">::</span><span class="n">fence</span><span class="p">();</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Here we are using a lambda expression to define the parallel kernel using the <code class="docutils literal notranslate"><span class="pre">KOKKOS_LAMBDA</span></code> macro. Note that the vector <code class="docutils literal notranslate"><span class="pre">fval</span></code> is copied to a local vector <code class="docutils literal notranslate"><span class="pre">f</span></code> in the method scope in order to avoid implicit capture of a class member in the lambda function. As slightly more advanced implementations, we could use class <code class="docutils literal notranslate"><span class="pre">operator()</span></code> or a dedicated functor to define the same parallel kernel without using lambda functions. Note that we also need to call the <code class="docutils literal notranslate"><span class="pre">Kokkos::fence()</span></code> function to make sure we have finished executing the potentially asynchronous <code class="docutils literal notranslate"><span class="pre">parallel_for</span></code> kernel launch before leaving the method.</p>
+<p>Finally, we can also implement the <code class="docutils literal notranslate"><span class="pre">node_force()</span></code> method to compute the force on a single node. Here this is trivial and we can just have:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Individual compute</span>
+<span class="n">Vec3</span><span class="w"> </span><span class="nf">node_force</span><span class="p">(</span><span class="n">System</span><span class="o">*</span><span class="w"> </span><span class="n">system</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="o">&amp;</span><span class="w"> </span><span class="n">i</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// Compute individual force at node i</span>
+<span class="w">    </span><span class="n">Vec3</span><span class="w"> </span><span class="n">fi</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fval</span><span class="p">;</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">fi</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>and we can implement the same for the <code class="docutils literal notranslate"><span class="pre">node_force()</span></code> method using team workers. The team implementation is optional but allows other modules that use <code class="docutils literal notranslate"><span class="pre">node_force()</span></code> calls in parallel kernels (e.g. module <code class="docutils literal notranslate"><span class="pre">TopologyParallel</span></code>) to be used with our <code class="docutils literal notranslate"><span class="pre">ForceConstant</span></code> module.</p>
+</section>
+</section>
+<section id="example-3-implementing-a-segment-based-force-module">
+<h2>Example 3: implementing a segment-based force module<a class="headerlink" href="#example-3-implementing-a-segment-based-force-module" title="Link to this heading">¶</a></h2>
+<p>As a slightly more complex example, let’s now imagine that we want to implement a force module <code class="docutils literal notranslate"><span class="pre">ForceSegConstant</span></code> for which the force on each segment is the constant <code class="docutils literal notranslate"><span class="pre">fval</span></code> multiplied by the length of the segment, and that the segment force is equally distributed between the two end-nodes.</p>
+<section id="id3">
+<h3>Serial implementation<a class="headerlink" href="#id3" title="Link to this heading">¶</a></h3>
+<p>In a serial fashion, we could write the <code class="docutils literal notranslate"><span class="pre">compute()</span></code> function as:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Global compute (serial implementation)</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span><span class="n">System</span><span class="o">*</span><span class="w"> </span><span class="n">system</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">zero</span><span class="o">=</span><span class="nb">true</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// Request a `SerialDisNet` instance of the dislocation network</span>
+<span class="w">    </span><span class="n">SerialDisNet</span><span class="o">*</span><span class="w"> </span><span class="n">net</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">system</span><span class="o">-&gt;</span><span class="n">get_serial_network</span><span class="p">();</span>
+<span class="w">    </span>
+<span class="w">    </span><span class="c1">// Zero out the nodal forces if requested (mandatory instruction)</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">zero</span><span class="p">)</span><span class="w"> </span><span class="n">zero_force</span><span class="p">(</span><span class="n">net</span><span class="p">);</span>
+<span class="w">    </span>
+<span class="w">    </span><span class="c1">// Loop over segments to aggregate forces at the nodes</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">net</span><span class="o">-&gt;</span><span class="n">Nsegs_local</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">auto</span><span class="w"> </span><span class="n">nodes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">net</span><span class="o">-&gt;</span><span class="n">get_nodes</span><span class="p">();</span><span class="w"> </span><span class="c1">// generic node accessor</span>
+<span class="w">        </span><span class="k">auto</span><span class="w"> </span><span class="n">segs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">net</span><span class="o">-&gt;</span><span class="n">get_segs</span><span class="p">();</span><span class="w"> </span><span class="c1">// generic segment accessor</span>
+<span class="w">        </span><span class="k">auto</span><span class="w"> </span><span class="n">cell</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">net</span><span class="o">-&gt;</span><span class="n">cell</span><span class="p">;</span>
+<span class="w">        </span>
+<span class="w">        </span><span class="c1">// Get segment end nodes indices</span>
+<span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">n1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">segs</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">n1</span><span class="p">;</span><span class="w"> </span><span class="c1">// end-node 1 of segment i</span>
+<span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">n2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">segs</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">n2</span><span class="p">;</span><span class="w"> </span><span class="c1">// end-node 2 of segment i</span>
+<span class="w">        </span>
+<span class="w">        </span><span class="c1">// Compute segment length</span>
+<span class="w">        </span><span class="n">Vec3</span><span class="w"> </span><span class="n">r1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nodes</span><span class="p">[</span><span class="n">n1</span><span class="p">].</span><span class="n">pos</span><span class="p">;</span>
+<span class="w">        </span><span class="n">Vec3</span><span class="w"> </span><span class="n">r2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cell</span><span class="p">.</span><span class="n">pbc_position</span><span class="p">(</span><span class="n">r1</span><span class="p">,</span><span class="w"> </span><span class="n">nodes</span><span class="p">[</span><span class="n">n2</span><span class="p">].</span><span class="n">pos</span><span class="p">);</span><span class="w"> </span><span class="c1">// account for PBC</span>
+<span class="w">        </span><span class="kt">double</span><span class="w"> </span><span class="n">L</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">r2</span><span class="o">-</span><span class="n">r1</span><span class="p">).</span><span class="n">norm</span><span class="p">();</span>
+<span class="w">        </span>
+<span class="w">        </span><span class="c1">// Distribute segment force at nodes</span>
+<span class="w">        </span><span class="n">nodes</span><span class="p">[</span><span class="n">n1</span><span class="p">].</span><span class="n">f</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="mf">0.5</span><span class="o">*</span><span class="n">L</span><span class="o">*</span><span class="n">fval</span><span class="p">;</span>
+<span class="w">        </span><span class="n">nodes</span><span class="p">[</span><span class="n">n2</span><span class="p">].</span><span class="n">f</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="mf">0.5</span><span class="o">*</span><span class="n">L</span><span class="o">*</span><span class="n">fval</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Here, we now loop over the local segments, compute the segments length from their end-nodes positions, and distribute the segment force equally by incrementing the end-nodes force values.</p>
+</section>
+<section id="id4">
+<h3>Parallel implementation<a class="headerlink" href="#id4" title="Link to this heading">¶</a></h3>
+<p>We can notice that if we want to implement the same method in a parallel fashion, we would need to be careful. This is because indices <code class="docutils literal notranslate"><span class="pre">i</span></code> in the loop are no longer fully independent: two distinct segments <code class="docutils literal notranslate"><span class="pre">i</span></code> may need to access some of the same nodes <code class="docutils literal notranslate"><span class="pre">n1</span></code> or <code class="docutils literal notranslate"><span class="pre">n2</span></code>. When running the above loop kernel in parallel, this may create race conditions and yield incorrect results.</p>
+<p>To simplify the implementation, ExaDiS provides additional base classes that abstract away this type of complexity. In this particular case, base class <code class="docutils literal notranslate"><span class="pre">ForceSeg</span></code> in <code class="docutils literal notranslate"><span class="pre">src/force.h</span></code> provides a simple way to implement our desired parallel kernel without having to worry about the parallelism aspect of it. All what base class <code class="docutils literal notranslate"><span class="pre">ForceSeg</span></code> requires is the kernel inside of the parallel loop to be provided in the form of a <code class="docutils literal notranslate"><span class="pre">segment_force()</span></code> method that returns end-nodes forces. To provide it, we simply need to define a struct that implements our desired <code class="docutils literal notranslate"><span class="pre">segment_force()</span></code> kernel:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">SegConstant</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="c1">// Flags to instruct what kernels are implemented in the struct</span>
+<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">has_pre_compute</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">has_compute_team</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">has_node_force</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">    </span>
+<span class="w">    </span><span class="n">Vec3</span><span class="w"> </span><span class="n">fval</span><span class="p">;</span>
+<span class="w">    </span>
+<span class="w">    </span><span class="c1">// Force parameters</span>
+<span class="w">    </span><span class="k">struct</span><span class="w"> </span><span class="nc">Params</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">Vec3</span><span class="w"> </span><span class="n">fval</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0</span><span class="p">;</span>
+<span class="w">        </span><span class="n">Params</span><span class="p">()</span><span class="w"> </span><span class="p">{}</span>
+<span class="w">        </span><span class="n">Params</span><span class="p">(</span><span class="n">Vec3</span><span class="w"> </span><span class="n">val</span><span class="p">)</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">fval</span><span class="p">(</span><span class="n">val</span><span class="p">)</span><span class="w"> </span><span class="p">{}</span>
+<span class="w">    </span><span class="p">};</span>
+<span class="w">    </span>
+<span class="w">    </span><span class="c1">// Constructor</span>
+<span class="w">    </span><span class="n">SegConstant</span><span class="p">(</span><span class="n">System</span><span class="o">*</span><span class="w"> </span><span class="n">system</span><span class="p">,</span><span class="w"> </span><span class="n">Params</span><span class="w"> </span><span class="n">params</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// Initialize</span>
+<span class="w">        </span><span class="n">fval</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">params</span><span class="p">.</span><span class="n">fval</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span>
+<span class="w">    </span><span class="c1">// Segment force kernel</span>
+<span class="w">    </span><span class="k">template</span><span class="o">&lt;</span><span class="k">class</span><span class="w"> </span><span class="nc">N</span><span class="o">&gt;</span>
+<span class="w">    </span><span class="n">KOKKOS_INLINE_FUNCTION</span>
+<span class="w">    </span><span class="n">SegForce</span><span class="w"> </span><span class="n">segment_force</span><span class="p">(</span><span class="n">System</span><span class="o">*</span><span class="w"> </span><span class="n">system</span><span class="p">,</span><span class="w"> </span><span class="n">N</span><span class="o">*</span><span class="w"> </span><span class="n">net</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="o">&amp;</span><span class="w"> </span><span class="n">i</span><span class="p">)</span><span class="w"> </span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">        </span><span class="k">auto</span><span class="w"> </span><span class="n">nodes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">net</span><span class="o">-&gt;</span><span class="n">get_nodes</span><span class="p">();</span><span class="w"> </span><span class="c1">// generic node accessor</span>
+<span class="w">        </span><span class="k">auto</span><span class="w"> </span><span class="n">segs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">net</span><span class="o">-&gt;</span><span class="n">get_segs</span><span class="p">();</span><span class="w"> </span><span class="c1">// generic segment accessor</span>
+<span class="w">        </span><span class="k">auto</span><span class="w"> </span><span class="n">cell</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">net</span><span class="o">-&gt;</span><span class="n">cell</span><span class="p">;</span>
+<span class="w">        </span>
+<span class="w">        </span><span class="c1">// Get segment end nodes indices</span>
+<span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">n1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">segs</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">n1</span><span class="p">;</span><span class="w"> </span><span class="c1">// end-node 1 of segment i</span>
+<span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">n2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">segs</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">n2</span><span class="p">;</span><span class="w"> </span><span class="c1">// end-node 2 of segment i</span>
+<span class="w">        </span>
+<span class="w">        </span><span class="c1">// Compute segment length</span>
+<span class="w">        </span><span class="n">Vec3</span><span class="w"> </span><span class="n">r1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nodes</span><span class="p">[</span><span class="n">n1</span><span class="p">].</span><span class="n">pos</span><span class="p">;</span>
+<span class="w">        </span><span class="n">Vec3</span><span class="w"> </span><span class="n">r2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cell</span><span class="p">.</span><span class="n">pbc_position</span><span class="p">(</span><span class="n">r1</span><span class="p">,</span><span class="w"> </span><span class="n">nodes</span><span class="p">[</span><span class="n">n2</span><span class="p">].</span><span class="n">pos</span><span class="p">);</span><span class="w"> </span><span class="c1">// account for PBC</span>
+<span class="w">        </span><span class="kt">double</span><span class="w"> </span><span class="n">L</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">r2</span><span class="o">-</span><span class="n">r1</span><span class="p">).</span><span class="n">norm</span><span class="p">();</span>
+<span class="w">        </span>
+<span class="w">        </span><span class="n">Vec3</span><span class="w"> </span><span class="n">f1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.5</span><span class="o">*</span><span class="n">L</span><span class="o">*</span><span class="n">fval</span><span class="p">;</span>
+<span class="w">        </span><span class="n">Vec3</span><span class="w"> </span><span class="n">f2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.5</span><span class="o">*</span><span class="n">L</span><span class="o">*</span><span class="n">fval</span><span class="p">;</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">SegForce</span><span class="p">(</span><span class="n">f1</span><span class="p">,</span><span class="w"> </span><span class="n">f2</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span>
+<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="o">*</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;SegConstant&quot;</span><span class="p">;</span>
+<span class="p">};</span>
+</pre></div>
+</div>
+<p>and then declare our <code class="docutils literal notranslate"><span class="pre">ForceSegConstant</span></code> force module as the base class <code class="docutils literal notranslate"><span class="pre">ForceSeg</span></code> templated with our struct <code class="docutils literal notranslate"><span class="pre">SegConstant</span></code> implementing the kernel:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">typedef</span><span class="w"> </span><span class="n">ForceSeg</span><span class="o">&lt;</span><span class="n">SegConstant</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ForceSegConstant</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>In struct <code class="docutils literal notranslate"><span class="pre">SegConstant</span></code>, all we had to do is to pretty much copy the inside of our serial loop into the <code class="docutils literal notranslate"><span class="pre">segment_force()</span></code> method. We have also templated the network instance type <code class="docutils literal notranslate"><span class="pre">N</span></code> so that the same kernel can be compiled for serial or device execution spaces using indifferently <code class="docutils literal notranslate"><span class="pre">SerialDisNet</span></code> or <code class="docutils literal notranslate"><span class="pre">DeviceDisNet</span></code> instances of the network. When compiled for GPU, the segment forces will be computed in a highly parallel fashion on the device (GPU) space by default, and forces at nodes will be aggregated properly avoiding race conditions, following the machinery implemented in base class <code class="docutils literal notranslate"><span class="pre">ForceSeg</span></code> and here abstracted from the user. In addition, when using this approach the associated <code class="docutils literal notranslate"><span class="pre">node_force()</span></code> method becomes automatically created as well, without us having to explicitly define it. However, if we want to implement a dedicated <code class="docutils literal notranslate"><span class="pre">node_force()</span></code> method, we could also do that by setting flag <code class="docutils literal notranslate"><span class="pre">has_node_force</span> <span class="pre">=</span> <span class="pre">true</span></code> and implementing method <code class="docutils literal notranslate"><span class="pre">node_force()</span></code> in our <code class="docutils literal notranslate"><span class="pre">SegConstant</span></code> struct, in which case its base class implementation will be overridden. Similarly, we could provide a team implementation or pre-compute methods.</p>
+<p>In the code, base class <code class="docutils literal notranslate"><span class="pre">ForceSeg</span></code> is for instance used to compute the core force in <code class="docutils literal notranslate"><span class="pre">src/force_types/force_lt.h</span></code>, or implement the N^2 force model in <code class="docutils literal notranslate"><span class="pre">src/force_types/force_n2.h</span></code>.</p>
+</section>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="python_binding.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">Binding modules to python</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="code_architecture.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Code architecture and data structures</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2024, OpenDiS
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            <div class="icons">
+              <a class="muted-link " href="https://opendis.github.io/OpenDiS/contributors.html" aria-label="Contributors">
+                <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path>
+                </svg>
+            </a>
+              
+            </div>
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Developing modules</a><ul>
+<li><a class="reference internal" href="#general-implementation-approach">General implementation approach</a><ul>
+<li><a class="reference internal" href="#accessing-the-dislocation-network">Accessing the dislocation network</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#example-1-computing-the-total-dislocation-density">Example 1: computing the total dislocation density</a><ul>
+<li><a class="reference internal" href="#serial-implementation">Serial implementation</a></li>
+<li><a class="reference internal" href="#parallel-implementation">Parallel implementation</a></li>
+<li><a class="reference internal" href="#templated-implementation">Templated implementation</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#example-2-implementing-a-simple-force-module">Example 2: implementing a simple force module</a><ul>
+<li><a class="reference internal" href="#force-base-class">Force base class</a></li>
+<li><a class="reference internal" href="#id1">Serial implementation</a></li>
+<li><a class="reference internal" href="#id2">Parallel implementation</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#example-3-implementing-a-segment-based-force-module">Example 3: implementing a segment-based force module</a><ul>
+<li><a class="reference internal" href="#id3">Serial implementation</a></li>
+<li><a class="reference internal" href="#id4">Parallel implementation</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../../../_static/documentation_options.js?v=01f34227"></script>
+    <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/scripts/furo.js?v=5fa4622c"></script>
+    <script src="../../../_static/tabs.js?v=3ee01567"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../../_static/custom.js?v=72377513"></script>
+    </body>
+</html>
