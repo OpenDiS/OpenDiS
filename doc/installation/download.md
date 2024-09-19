@@ -14,7 +14,7 @@ Use the following steps to download OpenDiS into the location specified by your 
 
 ```bash
 mkdir -p ${OPENDIS_DIR}
-git clone --recurse-submodule https://gitlab.com/micronano/OpenDiS.git ${OPENDIS_DIR}
+git clone --recurse-submodule https://github.com/OpenDiS/OpenDiS.git ${OPENDIS_DIR}
 cd ${OPENDIS_DIR}
 ```
 
@@ -24,7 +24,7 @@ cd ${OPENDIS_DIR}
 Alternatively, you can use the following commands to achieve the same result.
 ```bash
 mkdir -p ${OPENDIS_DIR}
-git clone https://gitlab.com/micronano/OpenDiS.git ${OPENDIS_DIR}
+git clone https://github.com/OpenDiS/OpenDiS.git ${OPENDIS_DIR}
 cd ${OPENDIS_DIR}
 git submodule update --init --recursive
 ```
