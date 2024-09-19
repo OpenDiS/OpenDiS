@@ -328,7 +328,7 @@
 <h2>Download OpenDiS together with submodules<a class="headerlink" href="#download-opendis-together-with-submodules" title="Link to this heading">¶</a></h2>
 <p>Use the following steps to download OpenDiS into the location specified by your <code class="docutils literal notranslate"><span class="pre">${OPENDIS_DIR}</span></code> variable.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mkdir<span class="w"> </span>-p<span class="w"> </span><span class="si">${</span><span class="nv">OPENDIS_DIR</span><span class="si">}</span>
-git<span class="w"> </span>clone<span class="w"> </span>--recurse-submodule<span class="w"> </span>https://gitlab.com/micronano/OpenDiS.git<span class="w"> </span><span class="si">${</span><span class="nv">OPENDIS_DIR</span><span class="si">}</span>
+git<span class="w"> </span>clone<span class="w"> </span>--recurse-submodule<span class="w"> </span>https://github.com/OpenDiS/OpenDiS.git<span class="w"> </span><span class="si">${</span><span class="nv">OPENDIS_DIR</span><span class="si">}</span>
 <span class="nb">cd</span><span class="w"> </span><span class="si">${</span><span class="nv">OPENDIS_DIR</span><span class="si">}</span>
 </pre></div>
 </div>
@@ -337,7 +337,7 @@ git<span class="w"> </span>clone<span class="w"> </span>--recurse-submodule<span
 <h2>Download OpenDiS and obtain submodules separately<a class="headerlink" href="#download-opendis-and-obtain-submodules-separately" title="Link to this heading">¶</a></h2>
 <p>Alternatively, you can use the following commands to achieve the same result.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mkdir<span class="w"> </span>-p<span class="w"> </span><span class="si">${</span><span class="nv">OPENDIS_DIR</span><span class="si">}</span>
-git<span class="w"> </span>clone<span class="w"> </span>https://gitlab.com/micronano/OpenDiS.git<span class="w"> </span><span class="si">${</span><span class="nv">OPENDIS_DIR</span><span class="si">}</span>
+git<span class="w"> </span>clone<span class="w"> </span>https://github.com/OpenDiS/OpenDiS.git<span class="w"> </span><span class="si">${</span><span class="nv">OPENDIS_DIR</span><span class="si">}</span>
 <span class="nb">cd</span><span class="w"> </span><span class="si">${</span><span class="nv">OPENDIS_DIR</span><span class="si">}</span>
 git<span class="w"> </span>submodule<span class="w"> </span>update<span class="w"> </span>--init<span class="w"> </span>--recursive
 </pre></div>
