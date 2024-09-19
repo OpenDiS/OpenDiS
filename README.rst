@@ -1,8 +1,9 @@
 Welcome To OpenDiS!
 ===================
 
-Please see `OpenDiS Documentation <https://opendis.github.io/OpenDiS>`
-----------------------------------------------------------------------
+OpenDiS Documentation
+---------------------
+Please see `opendis.github.io <https://opendis.github.io/OpenDiS>`
 
 
 OpenDiS Manifesto
