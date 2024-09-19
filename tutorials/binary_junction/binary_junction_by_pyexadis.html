@@ -3,15 +3,16 @@
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link href="../../_static/favicon.ico" rel="icon" type="image/x-icon"><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" /><link rel="next" title="Strain Hardening" href="../strain_hardening/index.html" /><link rel="prev" title="Binary Junction by Pure Python" href="binary_junction_by_python.html" />
+    <link href="../../_static/favicon_node.ico" rel="icon" type="image/x-icon"><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" /><link rel="next" title="Strain Hardening" href="../strain_hardening/index.html" /><link rel="prev" title="Binary Junction by Pure Python" href="binary_junction_by_python.html" />
 
-    <!-- Generated with Sphinx 7.3.7 and Furo 2024.05.06 -->
+    <!-- Generated with Sphinx 7.4.7 and Furo 2024.08.06 -->
         <title>Binary Junction by Python calling ExaDiS - OpenDiS 0.1.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=a746c00c" />
-    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=387cc868" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=354aac6f" />
     <link rel="stylesheet" type="text/css" href="../../_static/tabs.css?v=4c969af8" />
     <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
-    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=36a5483c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=ed3bf6ad" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=302659d7" />
     
     
 
@@ -90,19 +91,6 @@
       <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
     </svg>
   </symbol>
-  <symbol id="svg-sun-half" viewBox="0 0 24 24">
-    <title>Auto light/dark mode</title>
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
-      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-      <circle cx="12" cy="12" r="9" />
-      <path d="M13 12h5" />
-      <path d="M13 15h4" />
-      <path d="M13 18h1" />
-      <path d="M13 9h4" />
-      <path d="M13 6h1" />
-    </svg>
-  </symbol>
   <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
     <title>Auto light/dark, in light mode</title>
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -143,7 +131,7 @@
       <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
       <path d="M13.5 6.5l4 4" />
       <path d="M20 21l2 -2l-2 -2" />
-      <path d="M17 17l-2 2l2 2" /
+      <path d="M17 17l-2 2l2 2" />
     </svg>
   </symbol>
   <symbol id="svg-eye" viewBox="0 0 24 24">
@@ -193,7 +181,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
         <div class="visually-hidden">Toggle table of contents sidebar</div>
         <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
       </label>
@@ -205,7 +193,7 @@
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
   
   <div class="sidebar-logo-container">
-    <img class="sidebar-logo" src="../../_static/logo_box_upright.png" alt="Logo"/>
+    <img class="sidebar-logo" src="../../_static/nodebox_logo.png" alt="Logo"/>
   </div>
   
   <span class="sidebar-brand-text">OpenDiS 0.1.0 documentation</span>
@@ -222,10 +210,12 @@
 <li class="toctree-l2"><a class="reference internal" href="../../installation/download.html">How to get the code</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../installation/requirements.html">System Requirements</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../../installation/compilation/index.html">Compilation</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of Compilation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../installation/compilation/compilation_overview.html">Compilation Overview</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../installation/compilation/compile_on_mac.html">Compile on Mac</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../installation/compilation/compile_on_ubuntu.html">Compile on Linux (Ubuntu)</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../installation/compilation/compile_on_sherlock.html">Compile on Sherlock</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../installation/compilation/compile_on_mc3.html">Compile on MC3</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../installation/compilation/compile_on_cms3.html">Compile on CMS3</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../installation/compilation/compile_on_rpi.html">Compile on Raspberry Pi</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../installation/compilation/compile_on_termux.html">Compile on Android Phone (Termux)</a></li>
 </ul>
@@ -236,6 +226,8 @@
 <li class="toctree-l2 has-children"><a class="reference internal" href="../frank_read_src/index.html">Frank-Read Source</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle navigation of Frank-Read Source</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../frank_read_src/frank_read_src_by_python.html">Frank-Read Source by Pure Python</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../frank_read_src/frank_read_src_by_pyexadis.html">Frank-Read Source by Python calling ExaDiS</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../frank_read_src/graph_data_conversion.html">Graph Data Conversion</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../frank_read_src/frank_read_src_by_pydis_pyexadis.html">Inter-operability between PyDiS and ExaDiS Modules</a></li>
 </ul>
 </li>
 <li class="toctree-l2 current has-children"><a class="reference internal" href="index.html">Binary Junction</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle navigation of Binary Junction</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
@@ -250,7 +242,38 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="../../documentation.html">Documentation Instructions</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../code_structure/index.html">Code Structure</a><input class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><div class="visually-hidden">Toggle navigation of Code Structure</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../code_structure/project_overview.html">Project Overview</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../code_structure/data_structure/index.html">Data Structure</a><input class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><div class="visually-hidden">Toggle navigation of Data Structure</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../code_structure/data_structure/disnetmanager_class.html">DisNetManager Class</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../code_structure/data_structure/disnet_class.html">DisNet Class</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../code_structure/data_structure/exadisnet_class.html">ExaDisNet Class</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../core_libraries/index.html">Core Libraries</a><input class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><div class="visually-hidden">Toggle navigation of Core Libraries</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../core_libraries/pydis_documentation/index.html">PyDiS Documentation</a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><div class="visually-hidden">Toggle navigation of PyDiS Documentation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../core_libraries/exadis_documentation/index.html">ExaDiS Documentation</a><input class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><div class="visually-hidden">Toggle navigation of ExaDiS Documentation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../core_libraries/exadis_documentation/user_guide/index.html">User guide</a><input class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><div class="visually-hidden">Toggle navigation of User guide</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../core_libraries/exadis_documentation/user_guide/obtaining.html">Obtaining, building and running the code</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../core_libraries/exadis_documentation/user_guide/tutorials.html">Tutorials</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../core_libraries/exadis_documentation/user_guide/python_modules.html">Python modules: pyexadis</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../core_libraries/exadis_documentation/developer_guide/index.html">Developer guide</a><input class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" role="switch" type="checkbox"/><label for="toctree-checkbox-13"><div class="visually-hidden">Toggle navigation of Developer guide</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../core_libraries/exadis_documentation/developer_guide/code_architecture.html">Code architecture and data structures</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../core_libraries/exadis_documentation/developer_guide/developing_modules.html">Developing modules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../core_libraries/exadis_documentation/developer_guide/python_binding.html">Binding modules to python</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../core_libraries/exadis_documentation/developer_guide/python_modules.html">Calling user-defined python modules</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 
 </div>
@@ -285,7 +308,7 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
             <div class="visually-hidden">Toggle table of contents sidebar</div>
             <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
           </label>
@@ -293,14 +316,134 @@
         <article role="main" id="furo-main-content">
           <section id="binary-junction-by-python-calling-exadis">
 <h1>Binary Junction by Python calling ExaDiS<a class="headerlink" href="#binary-junction-by-python-calling-exadis" title="Link to this heading">¶</a></h1>
-<p><strong>Run OMP version</strong></p>
-<p>By calling exadis, you can run OMP version where you are able to control the number of OMP threads.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>~/Codes/OpenDiS.git/examples/03_binary_junction
+<p>We can run the same Binary Junction example using ExaDiS (after compilation) using the following commands.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span><span class="si">${</span><span class="nv">OPENDIS_DIR</span><span class="si">}</span>
+<span class="nb">cd</span><span class="w"> </span>examples/03_binary_junction
 <span class="nb">export</span><span class="w"> </span><span class="nv">OMP_NUM_THREADS</span><span class="o">=</span><span class="m">8</span>
-python3<span class="w"> </span>-i<span class="w"> </span>test_binary_junction_exadis.py<span class="w"> </span><span class="o">(</span>to<span class="w"> </span>be<span class="w"> </span>created<span class="o">)</span>
+python3<span class="w"> </span>-i<span class="w"> </span>test_binary_junction_exadis.py
 </pre></div>
 </div>
-<p>The initial conditions, boundary conditions, and expected dislocation behaviors are identical to those written in <a class="reference external" href="https://caiwei-stanford.github.io/opendis-doc/tutorials/binary_junction/binary_junction_by_python.html">Sec. 3.2.1</a>. In fact, you will be able to observe significant speed increase since nunber of computing threads has increased to 8 via <code class="docutils literal notranslate"><span class="pre">export</span> <span class="pre">OMP_NUM_THREADS=8</span></code>.</p>
+<p>This is assuming ExaDis has been compiled using OpenMP, and <code class="docutils literal notranslate"><span class="pre">OMP_NUM_THREADS=8</span></code> specifies the number of threads used for the OpenMP run.  The behavior should be similar to the previous test case (using pydis), except that the simulation should run much faster.</p>
+<section id="explore-dislocation-network">
+<h2>Explore Dislocation Network<a class="headerlink" href="#explore-dislocation-network" title="Link to this heading">¶</a></h2>
+<p>After the simulation has finished, we can examine the data stored in object <code class="docutils literal notranslate"><span class="pre">G</span></code> by typing the following command in the Python terminal.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">G</span>
+</pre></div>
+</div>
+<p>The output is</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="o">&lt;</span><span class="n">pyexadis_base</span><span class="o">.</span><span class="n">ExaDisNet</span> <span class="nb">object</span> <span class="n">at</span> <span class="mh">0xffffabedbca0</span><span class="o">&gt;</span>
+</pre></div>
+</div>
+<p>We can see that <code class="docutils literal notranslate"><span class="pre">G</span></code> is an <code class="docutils literal notranslate"><span class="pre">ExaDiSNet</span></code> object (so that we cannot interact with it the same way as a <code class="docutils literal notranslate"><span class="pre">DisNet</span></code> object).</p>
+<p>We can use the following command to see the content of G.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">G</span><span class="o">.</span><span class="n">export_data</span><span class="p">()</span>
+</pre></div>
+</div>
+<details>
+  <summary>
+   Here is the output for this command.
+  </summary>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="s1">&#39;cell&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;h&#39;</span><span class="p">:</span> <span class="n">array</span><span class="p">([[</span><span class="mf">8.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+       <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">8.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+       <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">8.</span><span class="p">]]),</span> <span class="s1">&#39;origin&#39;</span><span class="p">:</span> <span class="n">array</span><span class="p">([</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">]),</span> <span class="s1">&#39;is_periodic&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]},</span> <span class="s1">&#39;nodes&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;tags&#39;</span><span class="p">:</span> <span class="n">array</span><span class="p">([[</span> <span class="mi">0</span><span class="p">,</span>  <span class="mi">0</span><span class="p">],</span>
+       <span class="p">[</span> <span class="mi">0</span><span class="p">,</span>  <span class="mi">5</span><span class="p">],</span>
+       <span class="p">[</span> <span class="mi">0</span><span class="p">,</span>  <span class="mi">2</span><span class="p">],</span>
+       <span class="p">[</span> <span class="mi">0</span><span class="p">,</span>  <span class="mi">3</span><span class="p">],</span>
+       <span class="p">[</span> <span class="mi">0</span><span class="p">,</span>  <span class="mi">4</span><span class="p">],</span>
+       <span class="o">...</span><span class="p">,</span>
+       <span class="p">[</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">26</span><span class="p">],</span>
+       <span class="p">[</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">27</span><span class="p">],</span>
+       <span class="p">[</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">28</span><span class="p">],</span>
+       <span class="p">[</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">29</span><span class="p">],</span>
+       <span class="p">[</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">30</span><span class="p">]]),</span> <span class="s1">&#39;positions&#39;</span><span class="p">:</span> <span class="n">array</span><span class="p">([[</span><span class="mf">4.</span>        <span class="p">,</span> <span class="mf">3.</span>        <span class="p">,</span> <span class="mf">3.</span>        <span class="p">],</span>
+       <span class="p">[</span><span class="mf">5.</span>        <span class="p">,</span> <span class="mf">4.</span>        <span class="p">,</span> <span class="mf">5.</span>        <span class="p">],</span>
+       <span class="p">[</span><span class="mf">4.</span>        <span class="p">,</span> <span class="mf">5.</span>        <span class="p">,</span> <span class="mf">5.</span>        <span class="p">],</span>
+       <span class="p">[</span><span class="mf">3.</span>        <span class="p">,</span> <span class="mf">4.</span>        <span class="p">,</span> <span class="mf">3.</span>        <span class="p">],</span>
+       <span class="p">[</span><span class="mf">4.23214185</span><span class="p">,</span> <span class="mf">4.23214185</span><span class="p">,</span> <span class="mf">4.23214185</span><span class="p">],</span>
+       <span class="o">...</span><span class="p">,</span>
+       <span class="p">[</span><span class="mf">3.89698369</span><span class="p">,</span> <span class="mf">3.35282098</span><span class="p">,</span> <span class="mf">3.35282098</span><span class="p">],</span>
+       <span class="p">[</span><span class="mf">4.17372627</span><span class="p">,</span> <span class="mf">4.39481591</span><span class="p">,</span> <span class="mf">4.39481591</span><span class="p">],</span>
+       <span class="p">[</span><span class="mf">3.35282098</span><span class="p">,</span> <span class="mf">3.89698369</span><span class="p">,</span> <span class="mf">3.35282098</span><span class="p">],</span>
+       <span class="p">[</span><span class="mf">4.39481591</span><span class="p">,</span> <span class="mf">4.17372627</span><span class="p">,</span> <span class="mf">4.39481591</span><span class="p">],</span>
+       <span class="p">[</span><span class="mf">3.75646582</span><span class="p">,</span> <span class="mf">3.75646582</span><span class="p">,</span> <span class="mf">3.75646582</span><span class="p">]]),</span> <span class="s1">&#39;constraints&#39;</span><span class="p">:</span> <span class="n">array</span><span class="p">([[</span><span class="mi">7</span><span class="p">],</span>
+       <span class="p">[</span><span class="mi">7</span><span class="p">],</span>
+       <span class="p">[</span><span class="mi">7</span><span class="p">],</span>
+       <span class="p">[</span><span class="mi">7</span><span class="p">],</span>
+       <span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+       <span class="o">...</span><span class="p">,</span>
+       <span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+       <span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+       <span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+       <span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+       <span class="p">[</span><span class="mi">0</span><span class="p">]])},</span> <span class="s1">&#39;segs&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;nodeids&#39;</span><span class="p">:</span> <span class="n">array</span><span class="p">([[</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">18</span><span class="p">],</span>
+       <span class="p">[</span> <span class="mi">5</span><span class="p">,</span>  <span class="mi">2</span><span class="p">],</span>
+       <span class="p">[</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">20</span><span class="p">],</span>
+       <span class="p">[</span><span class="mi">21</span><span class="p">,</span>  <span class="mi">1</span><span class="p">],</span>
+       <span class="p">[</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">11</span><span class="p">],</span>
+       <span class="o">...</span><span class="p">,</span>
+       <span class="p">[</span><span class="mi">26</span><span class="p">,</span>  <span class="mi">6</span><span class="p">],</span>
+       <span class="p">[</span><span class="mi">27</span><span class="p">,</span>  <span class="mi">7</span><span class="p">],</span>
+       <span class="p">[</span><span class="mi">28</span><span class="p">,</span>  <span class="mi">8</span><span class="p">],</span>
+       <span class="p">[</span><span class="mi">29</span><span class="p">,</span>  <span class="mi">9</span><span class="p">],</span>
+       <span class="p">[</span><span class="mi">19</span><span class="p">,</span> <span class="mi">13</span><span class="p">]]),</span> <span class="s1">&#39;burgers&#39;</span><span class="p">:</span> <span class="n">array</span><span class="p">([[</span><span class="o">-</span><span class="mf">1.</span><span class="p">,</span>  <span class="mf">1.</span><span class="p">,</span>  <span class="mf">1.</span><span class="p">],</span>
+       <span class="p">[</span><span class="o">-</span><span class="mf">1.</span><span class="p">,</span>  <span class="mf">1.</span><span class="p">,</span>  <span class="mf">1.</span><span class="p">],</span>
+       <span class="p">[</span> <span class="mf">1.</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.</span><span class="p">,</span>  <span class="mf">1.</span><span class="p">],</span>
+       <span class="p">[</span> <span class="mf">1.</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.</span><span class="p">,</span>  <span class="mf">1.</span><span class="p">],</span>
+       <span class="p">[</span> <span class="mf">0.</span><span class="p">,</span>  <span class="mf">0.</span><span class="p">,</span> <span class="o">-</span><span class="mf">2.</span><span class="p">],</span>
+       <span class="o">...</span><span class="p">,</span>
+       <span class="p">[</span><span class="o">-</span><span class="mf">1.</span><span class="p">,</span>  <span class="mf">1.</span><span class="p">,</span>  <span class="mf">1.</span><span class="p">],</span>
+       <span class="p">[</span><span class="o">-</span><span class="mf">1.</span><span class="p">,</span>  <span class="mf">1.</span><span class="p">,</span>  <span class="mf">1.</span><span class="p">],</span>
+       <span class="p">[</span> <span class="mf">1.</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.</span><span class="p">,</span>  <span class="mf">1.</span><span class="p">],</span>
+       <span class="p">[</span> <span class="mf">1.</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.</span><span class="p">,</span>  <span class="mf">1.</span><span class="p">],</span>
+       <span class="p">[</span> <span class="mf">0.</span><span class="p">,</span>  <span class="mf">0.</span><span class="p">,</span> <span class="o">-</span><span class="mf">2.</span><span class="p">]]),</span> <span class="s1">&#39;planes&#39;</span><span class="p">:</span> <span class="n">array</span><span class="p">([[</span> <span class="mf">0.</span>        <span class="p">,</span>  <span class="mf">0.70710678</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.70710678</span><span class="p">],</span>
+       <span class="p">[</span> <span class="mf">0.</span>        <span class="p">,</span>  <span class="mf">0.70710678</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.70710678</span><span class="p">],</span>
+       <span class="p">[</span><span class="o">-</span><span class="mf">0.70710678</span><span class="p">,</span>  <span class="mf">0.</span>        <span class="p">,</span>  <span class="mf">0.70710678</span><span class="p">],</span>
+       <span class="p">[</span><span class="o">-</span><span class="mf">0.70710678</span><span class="p">,</span>  <span class="mf">0.</span>        <span class="p">,</span>  <span class="mf">0.70710678</span><span class="p">],</span>
+       <span class="p">[</span> <span class="mf">0.</span>        <span class="p">,</span>  <span class="mf">0.</span>        <span class="p">,</span>  <span class="mf">0.</span>        <span class="p">],</span>
+       <span class="o">...</span><span class="p">,</span>
+       <span class="p">[</span> <span class="mf">0.</span>        <span class="p">,</span>  <span class="mf">0.70710678</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.70710678</span><span class="p">],</span>
+       <span class="p">[</span> <span class="mf">0.</span>        <span class="p">,</span>  <span class="mf">0.70710678</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.70710678</span><span class="p">],</span>
+       <span class="p">[</span><span class="o">-</span><span class="mf">0.70710678</span><span class="p">,</span>  <span class="mf">0.</span>        <span class="p">,</span>  <span class="mf">0.70710678</span><span class="p">],</span>
+       <span class="p">[</span><span class="o">-</span><span class="mf">0.70710678</span><span class="p">,</span>  <span class="mf">0.</span>        <span class="p">,</span>  <span class="mf">0.70710678</span><span class="p">],</span>
+       <span class="p">[</span> <span class="mf">0.</span>        <span class="p">,</span>  <span class="mf">0.</span>        <span class="p">,</span>  <span class="mf">0.</span>        <span class="p">]])}}</span>
+</pre></div>
+</div>
+</details>
+<p>We can use the following command to convert an <code class="docutils literal notranslate"><span class="pre">ExaDiSNet</span></code> object to a <code class="docutils literal notranslate"><span class="pre">DisNet</span></code> object, so that we can interact with it using the same approach as in the previous test case.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pydis</span> <span class="kn">import</span> <span class="n">DisNet</span>
+<span class="n">G1</span><span class="o">=</span><span class="n">DisNet</span><span class="p">()</span>
+<span class="n">G1</span><span class="o">.</span><span class="n">import_data</span><span class="p">(</span><span class="n">G</span><span class="o">.</span><span class="n">export_data</span><span class="p">())</span>
+</pre></div>
+</div>
+<div class="admonition hint">
+<p class="admonition-title">Hint</p>
+<p>This can also be accomplished using the <code class="docutils literal notranslate"><span class="pre">get_disnet</span></code> function of DisNetManger <code class="docutils literal notranslate"><span class="pre">net</span></code>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pydis</span> <span class="kn">import</span> <span class="n">DisNet</span>
+<span class="n">G1</span><span class="o">=</span><span class="n">net</span><span class="o">.</span><span class="n">get_disnet</span><span class="p">(</span><span class="n">DisNet</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>Now the object <code class="docutils literal notranslate"><span class="pre">G1</span></code> is a DisNet object.  We can use the same command as in the previous test case to interact with <code class="docutils literal notranslate"><span class="pre">G1</span></code>, such as,</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">G1</span><span class="o">.</span><span class="n">all_nodes_tags</span><span class="p">()</span>
+<span class="o">&gt;&gt;</span> <span class="n">dict_keys</span><span class="p">([(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">31</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">6</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">7</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">9</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">12</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">32</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">14</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">15</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">16</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">17</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">18</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">19</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">20</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">33</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">22</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">23</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">24</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">25</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">26</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">27</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">28</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">29</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">30</span><span class="p">)])</span>
+
+<span class="n">G1</span><span class="o">.</span><span class="n">nodes</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">))</span><span class="o">.</span><span class="n">view</span><span class="p">()</span>
+<span class="o">&gt;&gt;</span> <span class="p">{</span><span class="s1">&#39;R&#39;</span><span class="p">:</span> <span class="n">array</span><span class="p">([</span><span class="mf">4.</span><span class="p">,</span> <span class="mf">3.</span><span class="p">,</span> <span class="mf">3.</span><span class="p">]),</span> <span class="s1">&#39;constraint&#39;</span><span class="p">:</span> <span class="mi">7</span><span class="p">}</span>
+
+<span class="nb">list</span><span class="p">(</span><span class="n">G1</span><span class="o">.</span><span class="n">all_segments_tags</span><span class="p">())</span>
+<span class="o">&gt;&gt;</span> <span class="p">[((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">18</span><span class="p">)),</span> <span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">31</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">)),</span> <span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">20</span><span class="p">)),</span> <span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">33</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">5</span><span class="p">)),</span> <span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span> <span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">6</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">22</span><span class="p">)),</span> <span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">7</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">23</span><span class="p">)),</span> <span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">24</span><span class="p">)),</span> <span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">9</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">25</span><span class="p">)),</span> <span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">26</span><span class="p">)),</span> <span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">27</span><span class="p">)),</span> <span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">12</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">28</span><span class="p">)),</span> <span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">29</span><span class="p">)),</span> <span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">14</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">30</span><span class="p">)),</span> <span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">15</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">31</span><span class="p">)),</span> <span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">16</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">30</span><span class="p">)),</span> <span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">17</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">33</span><span class="p">)),</span> <span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">18</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">)),</span> <span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">19</span><span class="p">)),</span> <span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">20</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">12</span><span class="p">)),</span> <span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">32</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">30</span><span class="p">)),</span> <span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">22</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">14</span><span class="p">)),</span> <span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">23</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">15</span><span class="p">)),</span> <span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">24</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">16</span><span class="p">)),</span> <span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">25</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">17</span><span class="p">)),</span> <span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">26</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">6</span><span class="p">)),</span> <span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">27</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">7</span><span class="p">)),</span> <span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">28</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">8</span><span class="p">)),</span> <span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">29</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">9</span><span class="p">)),</span> <span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">19</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">32</span><span class="p">))]</span>
+
+<span class="n">G1</span><span class="o">.</span><span class="n">segments</span><span class="p">(((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">18</span><span class="p">)))</span><span class="o">.</span><span class="n">view</span><span class="p">()</span>
+<span class="o">&gt;&gt;</span> <span class="p">{</span><span class="s1">&#39;source_tag&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="s1">&#39;target_tag&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">18</span><span class="p">),</span> <span class="s1">&#39;burg_vec&#39;</span><span class="p">:</span> <span class="n">array</span><span class="p">([</span><span class="o">-</span><span class="mf">1.</span><span class="p">,</span>  <span class="mf">1.</span><span class="p">,</span>  <span class="mf">1.</span><span class="p">]),</span> <span class="s1">&#39;plane_normal&#39;</span><span class="p">:</span> <span class="n">array</span><span class="p">([</span> <span class="mf">0.</span>        <span class="p">,</span>  <span class="mf">0.70710678</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.70710678</span><span class="p">])}</span>
+
+<span class="n">G1</span><span class="o">.</span><span class="n">segments</span><span class="p">(((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">18</span><span class="p">)))</span><span class="o">.</span><span class="n">burg_vec_from</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+<span class="o">&gt;&gt;</span> <span class="n">array</span><span class="p">([</span><span class="o">-</span><span class="mf">1.</span><span class="p">,</span>  <span class="mf">1.</span><span class="p">,</span>  <span class="mf">1.</span><span class="p">])</span>
+
+<span class="n">G1</span><span class="o">.</span><span class="n">segments</span><span class="p">(((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">18</span><span class="p">)))</span><span class="o">.</span><span class="n">burg_vec_from</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">18</span><span class="p">))</span>
+<span class="o">&gt;&gt;</span> <span class="n">array</span><span class="p">([</span> <span class="mf">1.</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.</span><span class="p">])</span>
+</pre></div>
+</div>
+</section>
 </section>
 
         </article>
@@ -340,14 +483,40 @@ python3<span class="w"> </span>-i<span class="w"> </span>test_binary_junction_ex
             
           </div>
           <div class="right-details">
-            
+            <div class="icons">
+              <a class="muted-link " href="https://caiwei-stanford.github.io/opendis-doc/contributors.html" aria-label="Contributors">
+                <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path>
+                </svg>
+            </a>
+              
+            </div>
           </div>
         </div>
         
       </footer>
     </div>
-    <aside class="toc-drawer no-toc">
+    <aside class="toc-drawer">
       
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Binary Junction by Python calling ExaDiS</a><ul>
+<li><a class="reference internal" href="#explore-dislocation-network">Explore Dislocation Network</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
       
       
     </aside>
@@ -355,9 +524,10 @@ python3<span class="w"> </span>-i<span class="w"> </span>test_binary_junction_ex
 </div><script src="../../_static/documentation_options.js?v=01f34227"></script>
     <script src="../../_static/doctools.js?v=9a2dae69"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
-    <script src="../../_static/scripts/furo.js?v=4e2eecee"></script>
+    <script src="../../_static/scripts/furo.js?v=5fa4622c"></script>
     <script src="../../_static/tabs.js?v=3ee01567"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
     <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/custom.js?v=72377513"></script>
     </body>
 </html>

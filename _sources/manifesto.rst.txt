@@ -1,5 +1,10 @@
+
 OpenDiS Manifesto
 -----------------
+
+
+
+
 
 **Open Dislocation Simulator -- Revolutionizing Dislocation Dynamics Simulations Through Open Source Collaboration**
 
@@ -9,7 +14,7 @@ The OpenDiS Project is a community-driven initiative aimed at developing a robus
 Our Goals
 ~~~~~~~~~
 
-- **Open Access**: We maintain a public Git repository that welcomes all to download and use the code.
+- **Open Access**: We maintain a `public Git repository <https://github.com/OpenDiS/OpenDiS>`_ that welcomes all to download and use the code.
 - **Community Development**: We prioritize ease of development for all, making it accessible for anyone to create extension modules and contribute to the expanding OpenDiS repository.
 - **Embracing Innovation**: We constantly strive to adapt and harness the power of existing and emerging computing architectures, including GPU acceleration and distributed massively parallel computing thus ensuring that OpenDiS stays at the forefront of computational efficiency.
 
@@ -29,4 +34,32 @@ Key Features
 
 - **Rigorous Testing and Continuous Integration:** Unit tests and continuous integration practices will ensure the code's stability and reliability, providing users with confidence in their simulation results.
 
-We invite you to join the OpenDiS project to shape the future of dislocation dynamics. Together, we can build an open-source code and develop an open collaboration platform for accelerating scientific innovation.
+We invite you to join the OpenDiS project to shape the future of dislocation dynamics. Together, we can build an open-source code and develop an open collaboration platform for accelerating scientific innovation. 
+
+.. raw:: html
+
+   <style>
+   .no-underline {
+       text-decoration: none;
+       color: inherit;
+       position: relative;
+   }
+   .no-underline:hover {
+       color: blue;
+   }
+   .no-underline:hover::after {
+       content: '🐣';
+       position: absolute;
+       left: 50%;
+       transform: translateX(-50%);
+       bottom: -1.2em;
+       font-size: 3.5em;
+       color: purple;
+   }
+   </style>
+
+   <a href="./documentation" class="no-underline">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a>
+
+.. raw:: html
+
+   <a href="./documentation" style="text-decoration: none;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a>

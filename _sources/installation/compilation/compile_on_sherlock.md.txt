@@ -1,6 +1,6 @@
 ### Compile on Sherlock
 
-Sherlock.stanford.edu is a Linux (CentOS) cluster.
+[Sherlock](https://www.sherlock.stanford.edu/).stanford.edu is a Linux (CentOS) cluster.
 
 #### Load modules 
 
@@ -22,7 +22,7 @@ python3 -m pip install matplotlib --user
 #### Build ExaDiS/KOKKOS (OMP version)
 
 ````bash
-cd ~/Codes/OpenDiS.git
+cd ${OPENDIS_DIR}
 rm -rf build/; ./configure.sh -DSYS=sherlock
 cmake --build build -j 8 ; cmake --build build --target install
 ````
@@ -41,10 +41,7 @@ When compilation is successful, you should see a file like ``pyexadis.cpython*.s
 
 ````bash
 export OMP_NUM_THREADS=8
+cd ${OPENDIS_DIR}
 cd examples/02_frank_read_src
 python3 -i test_frank_read_src_exadis.py
 ````
-
-#### Build ExaDiS/KOKKOS (GPU version)
-
-<mark>To do</mark>

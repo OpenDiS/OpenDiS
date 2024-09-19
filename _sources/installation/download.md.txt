@@ -1,40 +1,39 @@
 ## How to get the code
 
+````{important}
+For clarity, throughout this documentation variable ```OPENDIS_DIR``` is used to designate the directory that contains your downloaded OpenDiS code. For instance, you may set this directory via an environment variable ```OPENDIS_DIR``` using
+```bash
+export OPENDIS_DIR=${HOME}/Codes/OpenDiS.git
+```
+You may specify a different path that you prefer. If you use ```bash```, you can include the above line in your ```~/.bash_profile``` file so that this line is automatically executed every time you log in.
+````
+
 ### Download OpenDiS together with submodules
 
-Use the following steps to download OpenDiS in your ``${HOME}/Codes`` folder:
+Use the following steps to download OpenDiS into the location specified by your ```${OPENDIS_DIR}``` variable.
 
 ```bash
-mkdir -p ~/Codes
-cd ~/Codes
-git clone --recurse-submodule https://gitlab.com/micronano/OpenDiS.git OpenDiS.git
+mkdir -p ${OPENDIS_DIR}
+git clone --recurse-submodule https://gitlab.com/micronano/OpenDiS.git ${OPENDIS_DIR}
+cd ${OPENDIS_DIR}
 ```
 
-Alternatively, you can use the following commands to achieve the same:
 
+### Download OpenDiS and obtain submodules separately
+
+Alternatively, you can use the following commands to achieve the same result.
 ```bash
-mkdir -p ~/Codes
-cd ~/Codes
-git clone https://gitlab.com/micronano/OpenDiS.git OpenDiS.git
+mkdir -p ${OPENDIS_DIR}
+git clone https://gitlab.com/micronano/OpenDiS.git ${OPENDIS_DIR}
+cd ${OPENDIS_DIR}
 git submodule update --init --recursive
 ```
 
-### Getting OpenDiS and submodules separately
+### Update OpenDiS and submodules after download
 
-While we do not recommend the following approach, you could download OpenDiS without the submodules and then download its submodules individually, e.g. using the following commands.
-
+If you have already downloaded OpenDiS, you can use the following commands to update it to the latest release version.
 ```bash
-mkdir -p ~/Codes
-cd ~/Codes
-git clone https://gitlab.com/micronano/OpenDiS.git OpenDiS.git
-cd OpenDiS.git
-cd core
-git clone https://github.com/LLNL/exadis exadis
-cd pydis/python
-git clone https://github.com/davidjamesca/ctypesgen.git
-cd ../..
-cd exadis
-git clone https://github.com/kokkos/kokkos.git --branch 4.2.00
-cd python
-git clone https://github.com/pybind/pybind11.git
+cd ${OPENDIS_DIR}
+git pull
+git submodule update --init --recursive
 ```

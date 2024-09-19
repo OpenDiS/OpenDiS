@@ -8,7 +8,7 @@ sudo apt-get install libfftw3-dev libfftw3-doc
 
 #### Build ExaDiS/KOKKOS
 ```bash
-cd ~/Codes/OpenDiS.git/
+cd ${OPENDIS_DIR}
 rm -rf build/; ./configure.sh -DSYS=ubuntu
 cmake --build build -j 8 ; cmake --build build --target install
 ```
@@ -27,6 +27,7 @@ When compilation is successful, you should see a file like ``pyexadis.cpython*.s
 
 ```bash
 export OMP_NUM_THREADS=8
+cd ${OPENDIS_DIR}
 cd examples/02_frank_read_src
 python3 -i test_frank_read_src_exadis.py
 ```
