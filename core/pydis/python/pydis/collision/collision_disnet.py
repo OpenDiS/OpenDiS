@@ -6,6 +6,7 @@ Provide collision handling functions given a DisNet object
 
 import numpy as np
 from ..disnet import DisNet, DisNode
+from framework.collision_base import Collision_Base
 from framework.disnet_manager import DisNetManager
 
 try:
