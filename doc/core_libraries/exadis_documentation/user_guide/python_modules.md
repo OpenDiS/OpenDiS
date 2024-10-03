@@ -211,6 +211,16 @@ Available mobility types are:
     - `vmax` (optional): maximum dislocation velocity in m/s. A relativistic capping of the velocity is applied if specified. Default: none.
 
 
+* `mobility_law='FCC_0_FRIC'`: same mobility law as `FCC_0` but with the possibility to define friction stresses and spatially varying mobility/friction fields. Specific mobility parameters:
+    - `Medge` (required): mobility coefficient used for edge dislocation component in 1/(Pa.s)
+    - `Mscrew` (required): mobility coefficient used for screw dislocation component in 1/(Pa.s)
+    - `vmax` (optional): maximum dislocation velocity in m/s. A relativistic capping of the velocity is applied if specified. Default: none.
+    - `Fedge` (optional): friction stress used for edge dislocation component in Pa. Default: 0.0.
+    - `Fscrew` (optional): friction stress used for screw dislocation component in Pa. Default: 0.0.
+    - `mobility_field` (optional): path to a file defining field values by which the mobility coefficient will be scaled throughout the simulation volume. File format must be the following: the 3 first rows specify the grid size in the 3 directions (Nx, Ny, Nz), and the remaining rows are the grid values (Nx x Ny x Nz values) in C-like index order (last axis index changing fastest). If one of the grid dimension is 0 or 1, then the field will be treated as 2D and constant along this dimension.
+    - `friction_field` (optional): path to a file defining field values by which the friction stress will be scaled throughout the simulation volume. File format is the same of for `mobility_field` parameter.
+
+
 * `mobility_law='BCC_0b'`: generic linear mobility law for BCC crystals. Requires `crystal` to be set to `'bcc'` in the global parameters dictionary. The mobility matrix on glissile segments is constructed by summing a contribution from a pencil glide behavior of the screw segment component with a contribution from a planar behavior of the edge segment component. Specific mobility parameters:
     - `Medge` (required): mobility coefficient used for edge dislocation component in 1/(Pa.s)
     - `Mscrew` (required): mobility coefficient used for screw dislocation component in 1/(Pa.s)
