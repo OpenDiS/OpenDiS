@@ -35,15 +35,19 @@ Folder `examples/` contains a number of ExaDiS simulation examples:
 * `04_bcc_junction`: Formation of a binary junction in a BCC crystal
 * `05_fcc_junctions`: Formation of several types of binary reactions in a FCC crystal
 * `06_nodal_xslip`: Example of nodal x-slip mechanisms (zipping and unzipping) in an elementary BCC network
+* `07_cross_slip`: Example of cross-slip of a screw portion of a dislocation source
 * `20_compare_forces`: Example of a script to compare force calculation between pydis and ExaDiS modules. This example requires OpenDiS.
 * `21_bcc_Ta_100nm_2e8`: Example of a large-scale strength simulation of a BCC tantalum crystal loaded at ultra-high strain rate
 * `22_fcc_Cu_15um_1e3`: Example of a large-scale strain-hardening simulation of a FCC copper crystal loaded at high strain rate
+* `23_fcc_Cu_15um_1e3_cell_friction`: Example of a large-scale strain-hardening simulation of a FCC copper crystal loaded at high strain rate with spatially varying friction field along cellular walls
 
 
 ### Setting up a python driven simulation
 This section shows how to setup and drive an ExaDiS simulation using a python script.
 
-Note: a major advantage of driving a simulation through the python interface is that is does not need compilation of the simulation file, as is required when driving a simulation through the C++ interface.
+```{note}
+A major advantage of driving a simulation through the python interface is that is does not need compilation of the simulation file, as is required when driving a simulation through the C++ interface.
+```
 
 #### Importing the pyexadis modules
 First, we need to make sure that the path to the `pyexadis` library is included in the python path. A successful compilation of ExaDiS produces library file `python/pyexadis.cpython-*.so`. To add the path of this library to python, we can add the following lines at the beginning of our script, for instance:
@@ -95,6 +99,7 @@ or using a user-defined python function that creates an initial configuration, e
 ```python
 G = init_frank_read_src_loop(pbc=False)
 ```
+More ways and functions to initialize dislocation configurations are detailed in the [Dislocation network](python_modules.md#dislocation-network) section.
 
 Then, we need to wrap the `ExaDisNet` object into a `DisNetManager` object
 ```python
@@ -135,13 +140,13 @@ Global simulation parameters are used internally in ExaDiS and must be consisten
 * `split3node` (optional): Toggle to enable splitting of 3-nodes (only for BCC crystals). Default: 1.
 
 #### Simulation modules
-Next we define the simulation modules to be used in the simulation. A full simulation typically uses the following modules corresponding to the different elementary stages of the DDD simulation cycle: `CalForce`, `MobilityLaw`, `TimeIntegration`, `Collision`, `Topology`, `Remesh`. Each ExaDiS module must be instantiated by passing the global state dictionary `state` and module specific arguments, e.g.
+Next we define the simulation modules to be used in the simulation. A full simulation typically uses the following modules corresponding to the different elementary stages of the DDD simulation cycle: `CalForce`, `MobilityLaw`, `TimeIntegration`, `CrossSlip`, `Collision`, `Topology`, `Remesh`. Each ExaDiS module must be instantiated by passing the global state dictionary `state` and module specific arguments, e.g.
 ```python
 mobility = MobilityLaw(mobility_law='FCC_0', state=state, Medge=64103.0, Mscrew=64103.0, vmax=4000.0)
 ```
-Modules parameters and options are documented in the Modules section of this guide.
+Modules parameters and options available from the python interface are documented in the [Python modules](python_modules) section of this guide.
 
-Finally, special modules `SimulateNetwork` (or `SimulateNetworkPerf`) and `VisualizeNetwork` can be defined. Module `SimulateNetwork` (or `SimulateNetworkPerf`) is the simulation driver used to run a simulation. It must be defined by passing all base modules defined above (`CalForce`, `MobilityLaw`, etc.) plus some additional parameters defining the simulation run, e.g. strain rate, number of steps, etc. Once the `SimulateNetwork` object is instantiated, the simulation is run with method `run()` passing the initial dislocation network `DisNetManager` object and `state` dictionary as its arguments
+Finally, special modules `SimulateNetwork` (or `SimulateNetworkPerf`) and `VisualizeNetwork` can be defined. Module `SimulateNetwork` (or `SimulateNetworkPerf`) is the simulation driver used to run a simulation. It must be defined by passing all base modules defined above (`CalForce`, `MobilityLaw`, etc.) plus some additional parameters defining the simulation run, e.g. strain rate, number of steps, etc, see [here](python_modules.md#simulation-driver). Once the `SimulateNetwork` object is instantiated, the simulation is run with method `run()` passing the initial dislocation network `DisNetManager` object and `state` dictionary as its arguments
 ```python
 sim = SimulateNetwork(...)
 sim.run(N, state)
