@@ -382,6 +382,30 @@ Available remesh rules are:
 - `state = Remesh.Remesh(DisNetManager, state)`: Remesh the dislocation network and modify its topology accordingly.
 
 
+
+### Cross-slip
+A cross-slip module is declared using the `CrossSlip` class from `python/pyexadis_base.py`. `CrossSlip` is a wrapper class for handling cross-slip of dislocation segments.
+
+#### Usage
+A `CrossSlip` module is instantiated by providing the global `state` dictionary, the cross-slip mode, and specific parameters to the cross-slip mode:
+```python
+cross_slip = CrossSlip(state=state, cross_slip_mode='CrossSlipName', ...)
+```
+Available cross-slip modes are:
+
+* `cross_slip_mode='ForceBasedSerial'`: Cross-slip procedure where near screw segments are cross-slipped to a new plane when the resolved force on the new plane exceeds that of the original plane by some threshold. This module is executed in serial fashion on the host. Specific cross-slip parameters:
+    - `force`: `CalForce` force module to evaluate the force-based cross-slip criterion.
+
+
+#### Properties
+- `CrossSlip.cross_slip_mode`: name of the cross-slip mode
+- `CrossSlip.cross_slip`: pointer to the ExaDiS cross-slip binding object
+
+#### Methods
+- `state = CrossSlip.Handle(DisNetManager, state)`: Handle cross-slip operations and update the dislocation network accordingly.
+
+
+
 ### Simulation driver
 A simulation driver is declared using the `SimulateNetwork` or `SimulateNetworkPerf` class from `python/pyexadis_base.py`. `SimulateNetwork` and `SimulateNetworkPerf` are base classes to drive a traditional DDD simulation that invoke the different stages of the simulation cycle. It must be defined by passing all base modules to be used for the simulation (`CalForce`, `MobilityLaw`, etc.) plus some additional parameters defining the simulation control, e.g. strain rate, number of steps, etc. For instance:
 ```python
