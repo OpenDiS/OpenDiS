@@ -404,6 +404,10 @@ Available cross-slip modes are:
     - `force`: `CalForce` force module to evaluate the force-based cross-slip criterion.
 
 
+* `cross_slip_mode='ForceBasedParallel'`: Same cross-slip procedure as `ForceBasedSerial` but where the module is executed in parallel fashion on the device (GPU). Specific cross-slip parameters:
+    - `force`: `CalForce` force module to evaluate the force-based cross-slip criterion.
+
+
 #### Properties
 - `CrossSlip.cross_slip_mode`: name of the cross-slip mode
 - `CrossSlip.cross_slip`: pointer to the ExaDiS cross-slip binding object
