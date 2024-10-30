@@ -65,6 +65,8 @@ Once configuration is completed, build and install the codes using the following
 ```bash
 cmake --build build -j 8 ; cmake --build build --target install
 ```
+A successful compilation will produce various files in `${OPENDIS_DIR}/lib`, and shared library file `${OPENDIS_DIR}/core/exadis/python/pyexadis.cpython-*.so`.
+
 ```{note}
 Building for GPU (e.g. with `nvcc` or `hipcc`) may be pretty slow, please be patient!
 ```
