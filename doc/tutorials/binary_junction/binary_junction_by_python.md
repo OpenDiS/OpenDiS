@@ -11,13 +11,13 @@ python3 -i test_binary_junction_pydis.py
 ```
 
 #### Initial Condition
-The initial configuration of this simulation is two dislocation lines, where they intersect at a single point. Each dislocation line consists of three nodes and end nodes have their constraint == PINNED. On the other hand, nodes in the middle of the lines are unconstrained. This allows the two dislocation lines to form a binary junction under zero stress condition.
+The initial configuration for this simulation is made of two dislocation lines intersecting at a single point. Each dislocation line consists of three nodes, and their end nodes are pinned (constraint == PINNED_NODE). On the other hand, nodes in the middle of the lines are unconstrained. This allows the two dislocation lines to form a binary junction under zero stress condition.
 
 #### Boundary Condition
 
 Periodic boundary condition (PBC) is turned off, as specified in the following line of the test script.
 ```python
-   net = init_two_disl_lines(z0=z0, box_length=Lbox, pbc=False)
+net = init_two_disl_lines(z0=z0, box_length=Lbox, pbc=False)
 ```
 
 #### Simulation Behavior
@@ -39,7 +39,7 @@ If you do not see a new window displaying the dislocation configuration, it is p
 ```
 
 
-#### Explore Dislocation Network
+#### Dislocation Network Examination
 
 Since we ran the test case in Python interactive mode (with the ```-i``` option), we can examine the data structure representing the dislocation network (i.e. a graph) at the end of the simulation.  For example, use the following command to see all the nodes (DisNode) in the dislocation network (DisNet).
 
@@ -47,7 +47,7 @@ Since we ran the test case in Python interactive mode (with the ```-i``` option)
 G.all_nodes_tags()
 ```
 Each node is labeled by a tag, which is a tuple of two integers, (domainID, index).  This is following the convention of ParaDiS.  In this example, the domainID equals 0 for all nodes.
-The output of the above command is,
+The output of the above command is
 ```python
 dict_keys([(0, 0), (0, 2), (0, 3), (0, 4), (0, 5), (0, 1), (0, 6), (0, 7), (0, 8), (0, 9), (0, 10), (0, 12), (0, 14), (0, 15), (0, 18), (0, 19), (0, 21), (0, 22), (0, 23), (0, 25), (0, 26), (0, 27), (0, 28), (0, 29), (0, 31), (0, 33), (0, 24), (0, 30), (0, 20)])
 ```
@@ -71,7 +71,7 @@ Use the following command to see all the segments (DisEdge) in the dislocation n
 ```python
 list(G.all_segments_tags())
 ```
-The output of the above command is,
+The output of the above command is
 ```python
 [((0, 3), (0, 18)), ((0, 18), (0, 10)), ((0, 10), (0, 19)), ((0, 19), (0, 1)), ((0, 21), (0, 6)), ((0, 6), (0, 22)), ((0, 22), (0, 12)), ((0, 12), (0, 23)), ((0, 23), (0, 5)), ((0, 25), (0, 7)), ((0, 7), (0, 26)), ((0, 26), (0, 14)), ((0, 14), (0, 27)), ((0, 27), (0, 2)), ((0, 8), (0, 28)), ((0, 28), (0, 15)), ((0, 15), (0, 29)), ((0, 29), (0, 0)), ((0, 31), (0, 8)), ((0, 33), (0, 1)), ((0, 4), (0, 30)), ((0, 30), (0, 24)), ((0, 24), (0, 20)), ((0, 20), (0, 9)), ((0, 9), (0, 33)), ((0, 25), (0, 4)), ((0, 31), (0, 9)), ((0, 21), (0, 4))]
 ```
@@ -106,7 +106,7 @@ array([-1.,  1., -1.])
 ```
 
 
-We can also examine the information for the simulation cell as follows.
+We can also examine the information for the simulation cell as follows
 ```python
 G.cell.view()
 ```
