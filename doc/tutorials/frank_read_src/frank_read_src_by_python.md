@@ -41,7 +41,7 @@ If you do not see a new window displaying the dislocation configuration, it is p
 ```
 
 
-#### Explore Dislocation Network
+#### Dislocation Network Examination
 
 Since we ran the test case in Python interactive mode (with the ```-i``` option), we can examine the data structure representing the dislocation network (i.e. a graph) at the end of the simulation.  For example, use the following command to see all the nodes (DisNode) in the dislocation network (DisNet).
 
