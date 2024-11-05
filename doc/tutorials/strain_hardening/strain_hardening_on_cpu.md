@@ -11,7 +11,7 @@ python3 test_strain_hardening_exadis.py
 
 #### Initial Condition
 
-The initial dislocation configuration for this simulation is read from a data file ```180chains_16.10e.data``` (in ParaDiS data format) by the following Python commands.
+The initial dislocation configuration for this simulation is read from a data file ```180chains_16.10e.data``` (in ParaDiS data format) by the following Python commands
 ```bash
 G = ExaDisNet()
 G.read_paradis('180chains_16.10e.data')
@@ -26,7 +26,7 @@ Click [here](./Ovito_settings.png) to see the Ovito settings used to generate th
 
 #### Simulation Setup
 
-Many simulation parameters are specified in the dictionary variable ```state```.  The ```sim``` objects contains all the information, including the sub-modules of the simulation.  In particular, ```max_step``` specifies the number of simulation steps (here it is 100).  The following line in the Python program executes the simulation.
+Many simulation parameters are specified in the dictionary variable ```state```.  The ```sim``` objects contains all the information, including the sub-modules of the simulation.  In particular, ```max_strain``` specifies the maximum strain to be reached in the simulation (here running up to 0.01 = 1% strain).  The following line in the Python program executes the simulation
 ```bash
 sim.run(net, state)
 ```
@@ -34,7 +34,7 @@ sim.run(net, state)
 #### Simulation Behavior
 The simulation creates a folder called ```output_fcc_Cu_15um_1e3``` to store the results files.  On MC3.stanford.edu (with 8 OMP threads), it takes about 12 minutes to run the first 100 steps of the simulation.
 
-To run a longer simulation, we can modify the constructor for ```sim``` from ```max_step=100``` to ```max_step=1600```.  The simulation takes about 21 hours on MC3.stanford.edu (with 8 OMP threads). The simulation will write a data file to the output folder for every 100 steps.  The [stress_strain_dens_1600_CPU.dat](./stress_strain_dens_1600_CPU.dat) file stores certain essential information of the tensile test --- it contains 5 columns corresponding to step, strain, stress (Pa), dislocation density (m<sup>-2</sup>) and wall-clock time (sec), respectively.
+To specify a different stopping criterion, we can modify the constructor for ```sim```, e.g. by switching from ```max_strain=0.01``` to ```max_step=1600``` to run the simulation for 1600 time steps.  The simulation takes about 21 hours on MC3.stanford.edu (with 8 OMP threads) to complete. The simulation will write a data file to the output folder for every 100 steps.  The [stress_strain_dens_1600_CPU.dat](./stress_strain_dens_1600_CPU.dat) file stores certain essential information of the tensile test --- it contains 5 columns corresponding to step, strain, stress (Pa), dislocation density (m<sup>-2</sup>) and wall-clock time (sec), respectively.
 
 The final dislocation configuration (config.1600.data) after 1600 steps is shown below.
 ```{figure} CPU_final_configuration_Ovito.png
