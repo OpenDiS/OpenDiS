@@ -1,6 +1,6 @@
 ### Frank-Read Source by Python calling ExaDiS
 
-We can run the same Frank-Read Source example using ExaDiS (after compilation) using the following commands.
+We can run the same Frank-Read Source example using ExaDiS (after compilation) using the following commands
 
 ```bash
 cd ${OPENDIS_DIR}
@@ -16,7 +16,7 @@ topology  = None
 ```
 The purpose is just to demonstrate that, without a topology module (which handles split_multi_node), the Frank-Read source test case can still behave properly.
 
-#### Explore Dislocation Network
+#### Dislocation Network Examination
 
 After the simulation has finished, we can examine the data stored in object ```G``` by typing the following command in the Python terminal.
 ```python
