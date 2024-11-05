@@ -30,13 +30,13 @@ The following line in the python code
 ```python
 G1 = net.get_disnet(DisNet)
 ```
-converts the dislocation graph to ```G1``` in the ```DisNet``` format, which is more convenient to interact with by a human.  For example, the ```DisNet``` has a function for sanity checks (e.g. the Burgers vectors for all dislocation lines going out of any node sum up to zero), which can be called as follows.
+converts the dislocation graph to ```G1``` in the ```DisNet``` format, which may be more convenient to interact with for some purposes.  For example, the ```DisNet``` has a function for sanity checks (e.g. the Burgers vectors for all dislocation lines going out of any node sum up to zero), which can be called as follows.
 ```python
 G1_sanity_check = G1.is_sane()
 ```
 If ```G1_sanity_check``` is ```True```, then the first test passes.
 
-#### Conversion using export_data and import_data Functions
+#### Conversion using export_data() and import_data() Functions
 
 Both ```DisNet``` and ```ExaDisNet``` implement the ```export_data()``` and ```import_data()``` functions that can be used to convert data to different formats.  As a self-consistency check, we first create an empty ```DisNet``` object ```G2```, and then import the data exported by ```G1``` as follows.
 ```python
