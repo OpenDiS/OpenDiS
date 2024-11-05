@@ -1,6 +1,6 @@
 ### Binary Junction by Python calling ExaDiS
 
-We can run the same Binary Junction example using ExaDiS (after compilation) using the following commands.
+We can run the same Binary Junction example using ExaDiS (after compilation) using the following commands
 
 ```bash
 cd ${OPENDIS_DIR}
@@ -10,9 +10,9 @@ python3 -i test_binary_junction_exadis.py
 ```
 This is assuming ExaDis has been compiled using OpenMP, and ```OMP_NUM_THREADS=8``` specifies the number of threads used for the OpenMP run.  The behavior should be similar to the previous test case (using pydis), except that the simulation should run much faster.
 
-#### Explore Dislocation Network
+#### Dislocation Network Examination
 
-After the simulation has finished, we can examine the data stored in object ```G``` by typing the following command in the Python terminal.
+After the simulation has finished, we can examine the data stored in object ```G``` by typing the following command in the Python terminal
 ```python
 G
 ```
@@ -22,7 +22,7 @@ The output is
 ```
 We can see that ```G``` is an ```ExaDiSNet``` object (so that we cannot interact with it the same way as a ```DisNet``` object).
 
-We can use the following command to see the content of G.
+We can use the following command to see the content of G
 
 ```python
 G.export_data()
@@ -101,7 +101,7 @@ G.export_data()
 </details>
 
 
-We can use the following command to convert an ```ExaDiSNet``` object to a ```DisNet``` object, so that we can interact with it using the same approach as in the previous test case.
+We can use the following command to convert an ```ExaDiSNet``` object to a ```DisNet``` object, so that we can interact with it using the same approach as in the previous test case
 ```python
 from pydis import DisNet
 G1=DisNet()
