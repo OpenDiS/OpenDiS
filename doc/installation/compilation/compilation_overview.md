@@ -92,7 +92,12 @@ Besides the standard `CMAKE` options and the `SYS` option, most OpenDiS build op
 
 ## Troubleshooting
 
-The most common running errors are due to python not being able to import `pyexadis` (python binding to the ExaDiS core library), with errors such as
+This section reports common errors encountered by OpenDiS users. If you encounter other issues or bugs, please also browse the [Issues](https://github.com/OpenDiS/OpenDiS/issues) section and/or open a new issue.
+
+
+### pyexadis import errors
+
+Issue: Python is not being able to import `pyexadis` (python binding to the ExaDiS core library), with errors such as
 
 ```bash
 import pyexadis
@@ -103,6 +108,7 @@ or
 raise ImportError('Cannot import pyexadis')
 ImportError: Cannot import pyexadis
 ```
+
 This typically happens when the python installation used for compilation is not the same as the python installation used to run the code.
 
 When running the `./configure.sh` script, the python executable to be used for compilation should be indicated, e.g.:
@@ -125,3 +131,43 @@ in which case one should be able to run the scripts with, e.g.
 ```bash
 python3 test_frank_read_src_exadis.py
 ```
+
+### Hanging simulations
+
+Issue: Simulations appear to be hanging after initialization, e.g. after diplaying
+```
+Run for X steps
+```
+
+The cause of this issue is generally an inter-operability issue between the compilers, or between python and the compiler(s).
+
+First, identify whether this issue is specific to `pyexadis` or also occurs for regular ExaDiS simulations. To do so, rebuild the code with option `-DEXADIS_BUILD_TESTS=On`, e.g.
+```bash
+cd ${OPENDIS_DIR}
+rm -rf build/
+./configure.sh \
+    -DKokkos_ENABLE_CUDA=On \
+    -DKokkos_ENABLE_CUDA_LAMBDA=On \
+    -DKokkos_ARCH_VOLTA70=On
+    -DEXADIS_BUILD_TESTS=On
+cmake --build build -j 8 ; cmake --build build --target install
+```
+This should create a few executables in directory `${OPENDIS_DIR}/build/core/exadis/tests`. Run these executables to help identify the source of the issue:
+```bash
+cd ${OPENDIS_DIR}/build/core/exadis/tests
+./test_cuda # if compiled with -DKokkos_ENABLE_CUDA=On
+./test_kokkos
+./test_exadis 0
+./test_exadis 1
+...
+./test_exadis 8
+```
+* If none of the tests fail but the hanging still happens when running the python-based examples, then the issue is with the compilation of `pyexadis`. First make sure that the python installation used to run is the same as the python installation used for compilation, e.g. see [previous issue](#pyexadis-import-errors). If the issue remains, try using a different combination of compilers and python installations.
+* If `test_cuda` fails then the issue is likely with the CUDA compiler
+* If `test_kokkos` fails then the issue is with the compilation of Kokkos
+* If `test_exadis` fails then the issue is with the compilation of ExaDiS
+
+Try using a different combination of compilers to resolve compatibility issues. Some known issues are:
+* Compatibility issues between gcc11 and some versions of cuda11
+* Compatibility issues have been reported between Kokkos and gcc12
+* Newest versions of cuda (e.g. 12.5+) have not been fully tested with Kokkos and pybind11 and may trigger compatibility issues
