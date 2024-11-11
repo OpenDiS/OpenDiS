@@ -86,7 +86,7 @@ class CalForce(CalForce_Base):
             'Elasticity_SBA': self.OneNodeForce_Elasticity_SBA,
             'Elasticity_SBN1_SBA': self.OneNodeForce_Elasticity_SBN1_SBA }
 
-    def NodeForce(self, DM: DisNetManager, state: dict) -> dict:
+    def NodeForce(self, DM: DisNetManager, state: dict, pre_compute: bool=True) -> dict:
         """NodeForce: return nodal forces in a dictionary
 
         Using different force calculation functions depending on force_mode

@@ -17,7 +17,7 @@ class CalForce_Base(ABC):
     """
 
     @abstractmethod
-    def NodeForce(self, DM: DisNetManager, state: dict) -> dict:
+    def NodeForce(self, DM: DisNetManager, state: dict, pre_compute: bool=True) -> dict:
         """NodeForce: return nodal forces in a dictionary
         """
         pass
