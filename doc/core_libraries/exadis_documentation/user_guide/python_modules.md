@@ -67,11 +67,13 @@ G = ExaDisNet()
 G.read_paradis('config.data')
 ```
 
-**Important**: When used in ExaDiS or OpenDiS modules, the dislocation network defined in a `ExaDisNet` object must first be wrapped into a `DisNetManager` object before it can be used within modules (see next section), e.g.
+````{Important}
+When used in ExaDiS or OpenDiS modules, the dislocation network defined in a `ExaDisNet` object must first be wrapped into a `DisNetManager` object before it can be used within modules (see next section), e.g.
 ```python
 G = ExaDisNet(...)
 N = DisNetManager(G)
 ```
+````
 
 ##### Properties
 - `ExaDisNet.net`: pointer to the ExaDiS network binding object
@@ -120,7 +122,7 @@ where `data` is a dictionary containing the following entries:
 * `data["nodes"]`: dictionary containing the nodes attributes within the following entries:
     - `data["nodes"]["tags"]`: array of nodes tags (domain,index), size=(Nnodes,2)
     - `data["nodes"]["positions"]`: array of nodes positions, size=(Nnodes,3)
-    - `data["nodes"]["constrains"]`: array of nodes constraints, size=(Nnodes,1)
+    - `data["nodes"]["constraints"]`: array of nodes constraints, size=(Nnodes,1)
 * `data["segs"]`: dictionary containing the segments attributes within the following entries:
     - `data["segs"]["nodeids"]`: array of indices of segments end-nodes (node1,node2), size=(Nsegs,2)
     - `data["segs"]["burgers"]`: array of segments Burgers vectors, size=(Nsegs,3)
@@ -187,16 +189,16 @@ The node tags are used to keep track of the nodes across modules, as different m
 - `CalForce.force`: pointer to the ExaDiS force binding object
 
 ##### Methods
-- `state = CalForce.NodeForce(DisNetManager, state)`: Computes nodal forces for all nodes and place the result in the `state` dictionary.
-- `state = CalForce.PreCompute(DisNetManager, state)`: Call to the force pre-compute operation, which may be required before calls to the `OneNodeForce()` method. This is because some force modules (e.g. FFT) requires certain values to be pre-computed and up-to-date before forces can be evaluated efficiently. There is no need to call `PreCompute()` before a call to the global `NodeForce()` method, as the pre-compute step is always called internally in `NodeForce()`.
-- `f = CalForce.OneNodeForce(DisNetManager, state, tag, update_state)`: Compute the nodal force `f` on a single node specified by its `tag`. The `PreCompute()` operation may need to be called before calling `OneNodeForce()`.
+- `state = CalForce.NodeForce(N: DisNetManager, state: dict, pre_compute=True)`: Computes nodal forces for all nodes and place the result in the `state` dictionary. By default, option `pre_compute=True`, meaning that a call to the `PreCompute()` operation will be made before evaluating the forces.
+- `state = CalForce.PreCompute(N: DisNetManager, state: dict)`: Call to the force pre-compute operation, e.g. as some force modules (e.g. FFT) requires certain values to be pre-computed and up-to-date before forces can be evaluated efficiently. In general, there is no need to call `PreCompute()` before a call to the global `NodeForce()` method, as by default the pre-compute step is called internally in `NodeForce()`. However, a call to `PreCompute()` may be required before calling `OneNodeForce()` (e.g. if the network has been updated since the last call to `NodeForce()`). 
+- `f = CalForce.OneNodeForce(N: DisNetManager, state: state, tag, update_state=True)`: Compute the nodal force `f` on a single node specified by its `tag`. The `PreCompute()` operation may need to be called before calling `OneNodeForce()`.
 
 
 #### Force calculation wrappers
 In addition to `CalForce` modules, `pyexadis` provides wrappers to some internal ExaDiS force calculation functions, which can be called from python with `pyexadis.<function>(...)`. The following functions are currently available:
-- `f = pyexadis.compute_force_n2(ExaDisNet, mu, nu, a)`: compute elastic interaction forces using a brute-force N^2 segment pair summation.
-- `f = pyexadis.compute_force_cutoff(ExaDisNet, mu, nu, a, cutoff, maxseg)`: compute elastic forces including interactions up to a given cutoff distance between segment pairs. Argument `maxseg` is needed to ensure that no segment pair is missed when building the neighbor list.
-- `f = pyexadis.compute_force_segseglist(ExaDisNet, mu, nu, a, segseglist)`: compute elastic forces provided a list user-defined list of segment pairs. Argument `segseglist` must be an array of size=(Npair,2) indicating the indices of each pair of segments to consider in the calculation. Each pair must be unique, e.g. if pair (2,3) is included, then pair (3,2) must not be included or its contribution will be double-counted. Self-interactions, e.g. pair (2,2), must not be included.
+- `f = pyexadis.compute_force_n2(G: ExaDisNet, mu, nu, a)`: compute elastic interaction forces using a brute-force N^2 segment pair summation.
+- `f = pyexadis.compute_force_cutoff(G: ExaDisNet, mu, nu, a, cutoff, maxseg)`: compute elastic forces including interactions up to a given cutoff distance between segment pairs. Argument `maxseg` is needed to ensure that no segment pair is missed when building the neighbor list.
+- `f = pyexadis.compute_force_segseglist(G: ExaDisNet, mu, nu, a, segseglist)`: compute elastic forces provided a list user-defined list of segment pairs. Argument `segseglist` must be an array of size=(Npair,2) indicating the indices of each pair of segments to consider in the calculation. Each pair must be unique, e.g. if pair (2,3) is included, then pair (3,2) must not be included or its contribution will be double-counted. Self-interactions, e.g. pair (2,2), must not be included.
 
 
 
@@ -256,8 +258,8 @@ The node tags are used to keep track of the nodes across modules, as different m
 - `MobilityLaw.mobility`: pointer to the ExaDiS mobility binding object
 
 #### Methods
-- `state = MobilityLaw.Mobility(DisNetManager, state)`: Computes nodal velocities for all nodes and place the result in the `state` dictionary.
-- `v = MobilityLaw.OneNodeMobility(DisNetManager, state, tag, f)`: Compute the nodal velocity `v` on a single node specified by its `tag`. The nodal force must be provided with argument `f`.
+- `state = MobilityLaw.Mobility(N: DisNetManager, state: dict)`: Computes nodal velocities for all nodes and place the result in the `state` dictionary.
+- `v = MobilityLaw.OneNodeMobility(N: DisNetManager, state: dict, tag, f)`: Compute the nodal velocity `v` on a single node specified by its `tag`. The nodal force must be provided with argument `f`.
 
 
 
@@ -282,7 +284,7 @@ Available time-integrator types are:
     - `mobility`: `MobilityLaw` module to be used for nodal velocities calculations.
     - `state["rtol"]`: integrator tolerance in `burgmag` units.
     - `multi` (optional): multi time-stepping parameter that defines the number of sub time steps to execute the integrator for during a single global time step. Default value: 1 (no multi-step).
-    - `state["nexdt"]` (optional): initial trial value for the time step size in s. Default: 1e-12.
+    - `state["nextdt"]` (optional): initial trial value for the time step size in s. Default: 1e-12.
     - `state["maxdt"]` (optional): maximum value for the time step size in s. Default: 1e-7.
 
 
@@ -293,18 +295,18 @@ Available time-integrator types are:
     - `rtolrel` (optional): relative tolerance in `burgmag` units. Default: 0.1. 
     - `rtolth` (optional): threshold tolerance in `burgmag` units. Default: 1.0.
     - `multi` (optional): multi time-stepping parameter that defines the number of sub time steps to execute the integrator for during a single global time step. Default value: 1 (no multi-step).
-    - `state["nexdt"]` (optional): initial trial value for the time step size in s. Default: 1e-12.
+    - `state["nextdt"]` (optional): initial trial value for the time step size in s. Default: 1e-12.
     - `state["maxdt"]` (optional): maximum value for the time step size in s. Default: 1e-7.
 
 
-* `integrator='Subcycling'`: Subcycling time integrator where force contributions are separated in various groups (5 groups) based on segment pair distances and integrated in turn in an asynchronous fashion. Force and mobility modules must be provided as arguments. Specific integrator parameters:
-    - `force`: `CalForce` module to be used for nodal force calculations.
+* `integrator='Subcycling'`: Subcycling time integrator where force contributions are separated in various groups (5 groups) based on segment pair distances and integrated in turn in an asynchronous fashion. The force model must be `SUBCYCLING_MODEL`. Specific integrator parameters:
+    - `force`: `CalForce` module to be used for nodal force calculations. Must be a `CalForce` `SUBCYCLING_MODEL` model.
     - `mobility`: `MobilityLaw` module to be used for nodal velocities calculations.
     - `rgroups`: list of group radii in increasing order. Must be a list of size 4.
     - `state["rtol"]`: absolute tolerance in `burgmag` units.
     - `rtolrel` (optional): relative tolerance in `burgmag` units. Default: 0.1. 
     - `rtolth` (optional): threshold tolerance in `burgmag` units. Default: 1.0.
-    - `state["nexdt"]` (optional): initial trial value for the time step size in s. Default: 1e-12.
+    - `state["nextdt"]` (optional): initial trial value for the time step size in s. Default: 1e-12.
     - `state["maxdt"]` (optional): maximum value for the time step size in s. Default: 1e-7.
 
 
@@ -314,7 +316,7 @@ Available time-integrator types are:
 - `TimeIntegration.integrator`: pointer to the ExaDiS integrator binding object
 
 #### Methods
-- `state = TimeIntegration.Update(DisNetManager, state)`: Perform a time-integration step and update the nodal positions accordingly.
+- `state = TimeIntegration.Update(N: DisNetManager, state: dict)`: Perform a time-integration step and update the nodal positions accordingly.
 
 
 
@@ -332,12 +334,19 @@ Available collision modes are:
     - `state["rann"]` (optional): annihilation/capture radius for proximity collisions. Default: 2*`state["rtol"]`.
 
 
+* `collision_mode='Proximity'`: Will default to the retroactive collision procedure above. Specific collision parameters:
+    - `state["rann"]` (optional): annihilation/capture radius for proximity collisions. Default: 2*`state["rtol"]`.
+
+
+* `collision_mode='None'`: No collision procedure.
+
+
 #### Properties
 - `Collision.collision_mode`: name of the collision mode
 - `Collision.collision`: pointer to the ExaDiS collision binding object
 
 #### Methods
-- `state = Collision.HandleCol(DisNetManager, state)`: Handle collisions and modify the topology of the dislocation network accordingly.
+- `state = Collision.HandleCol(N: DisNetManager, state: dict)`: Handle collisions and modify the topology of the dislocation network accordingly.
 
 
 ### Topology
@@ -362,12 +371,15 @@ Available topology modes are:
     - `splitMultiNodeAlpha` (optional): noise coefficient for the split-multi-nodes procedure. Default: 1e-3.
 
 
+* `topology_mode='None'`: No topology procedure.
+
+
 #### Properties
 - `Topology.topology_mode`: name of the topology mode
 - `Topology.topology`: pointer to the ExaDiS topology binding object
 
 #### Methods
-- `state = Topology.Handle(DisNetManager, state)`: Handle topological changes (e.g. split-multi-nodes) and modify the topology of the dislocation network accordingly.
+- `state = Topology.Handle(N: DisNetManager, state: dict)`: Handle topological changes (e.g. split-multi-nodes) and modify the topology of the dislocation network accordingly.
 
 
 ### Remesh
@@ -385,12 +397,15 @@ Available remesh rules are:
     - `state["minseg"]`: minimum segment discretization size length in units of `burgmag`.
 
 
+* `remesh_rule='None'`: No remesh procedure.
+
+
 #### Properties
 - `Remesh.remesh_rule`: name of the remesh rule
 - `Remesh.remesh`: pointer to the ExaDiS remesh binding object
 
 #### Methods
-- `state = Remesh.Remesh(DisNetManager, state)`: Remesh the dislocation network and modify its topology accordingly.
+- `state = Remesh.Remesh(N: DisNetManager, state: dict)`: Remesh the dislocation network and modify its topology accordingly.
 
 
 
@@ -412,12 +427,15 @@ Available cross-slip modes are:
     - `force`: `CalForce` force module to evaluate the force-based cross-slip criterion.
 
 
+* `cross_slip_mode='None'`: No cross-slip procedure.
+
+
 #### Properties
 - `CrossSlip.cross_slip_mode`: name of the cross-slip mode
 - `CrossSlip.cross_slip`: pointer to the ExaDiS cross-slip binding object
 
 #### Methods
-- `state = CrossSlip.Handle(DisNetManager, state)`: Handle cross-slip operations and update the dislocation network accordingly.
+- `state = CrossSlip.Handle(N: DisNetManager, state: dict)`: Handle cross-slip operations and update the dislocation network accordingly.
 
 
 
