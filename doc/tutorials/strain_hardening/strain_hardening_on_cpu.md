@@ -16,7 +16,7 @@ The initial dislocation configuration for this simulation is read from a data fi
 G = ExaDisNet()
 G.read_paradis('180chains_16.10e.data')
 ```
-The simulation cell size is 15 𝜇m × 15 𝜇m × 15 𝜇m, subjected to periodic boundary conditions in all three directions. The initial dislocation density is 𝜌<sub>0</sub> ≈ 1.2 × 10^{12} m^{−2}.  The initial dislocation structure can be visualized by [Ovito](https://www.ovito.org/) as shown below.  The dislocation lines are colored according to the dislocation character angle.
+The simulation cell size is 15 𝜇m × 15 𝜇m × 15 𝜇m, subjected to periodic boundary conditions in all three directions. The initial dislocation density is 𝜌<sub>0</sub> ≈ 1.2 × 10<sup>12</sup> m<sup>-2</sup>.  The initial dislocation structure can be visualized by [Ovito](https://www.ovito.org/) as shown below.  The dislocation lines are colored according to the dislocation character angle.
 ```{figure} initial_configuration_Ovito.png
 :alt: Screenshot of the final configuration
 :width: 552px
@@ -34,7 +34,7 @@ sim.run(net, state)
 #### Simulation Behavior
 The simulation creates a folder called ```output_fcc_Cu_15um_1e3``` to store the results files.  On MC3.stanford.edu (with 8 OMP threads), it takes about 12 minutes to run the first 100 steps of the simulation.
 
-To specify a different stopping criterion, we can modify the constructor for ```sim```, e.g. by switching from ```max_strain=0.01``` to ```max_step=1600``` to run the simulation for 1600 time steps.  The simulation takes about 21 hours on MC3.stanford.edu (with 8 OMP threads) to complete. The simulation will write a data file to the output folder for every 100 steps.  The [stress_strain_dens_1600_CPU.dat](./stress_strain_dens_1600_CPU.dat) file stores certain essential information of the tensile test --- it contains 5 columns corresponding to step, strain, stress (Pa), dislocation density (m<sup>-2</sup>) and wall-clock time (sec), respectively.
+To specify a different stopping criterion, we can modify the constructor for ```sim```, e.g. by switching from ```max_strain=0.01``` to ```max_step=1600``` to run the simulation for 1600 time steps.  The simulation takes about 21 hours on MC3.stanford.edu (with 8 OMP threads) to complete. The simulation will write a data file to the output folder for every 100 steps.  The [stress_strain_dens_1600_CPU.dat](./stress_strain_dens_1600_CPU.dat) file stores certain essential information of the tensile test --- here it contains 5 columns corresponding to step, strain, stress (Pa), dislocation density (m<sup>-2</sup>) and wall-clock time (sec), respectively.
 
 The final dislocation configuration (config.1600.data) after 1600 steps is shown below.
 ```{figure} CPU_final_configuration_Ovito.png
