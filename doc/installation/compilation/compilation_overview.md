@@ -124,7 +124,7 @@ Alternatively, one can explicitly specify the python executable to be used by pa
 ./configure.sh \
     -DKokkos_ENABLE_CUDA=On \
     -DKokkos_ENABLE_CUDA_LAMBDA=On \
-    -DKokkos_ARCH_VOLTA70=On
+    -DKokkos_ARCH_VOLTA70=On \
     -DPYTHON_EXECUTABLE=$(which python3)
 ```
 in which case one should be able to run the scripts with, e.g.
@@ -148,7 +148,7 @@ rm -rf build/
 ./configure.sh \
     -DKokkos_ENABLE_CUDA=On \
     -DKokkos_ENABLE_CUDA_LAMBDA=On \
-    -DKokkos_ARCH_VOLTA70=On
+    -DKokkos_ARCH_VOLTA70=On \
     -DEXADIS_BUILD_TESTS=On
 cmake --build build -j 8 ; cmake --build build --target install
 ```
