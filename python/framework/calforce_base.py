@@ -7,6 +7,7 @@ Defines the interface for the CalForce module
 from abc import ABC, abstractmethod 
 from framework.disnet_manager import DisNetManager
 
+import numpy as np
 from typing import Tuple
 Tag = Tuple[int, int]
 
