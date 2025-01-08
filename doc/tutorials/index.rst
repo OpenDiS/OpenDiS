@@ -8,4 +8,4 @@ Tutorials
    frank_read_src/index
    binary_junction/index
    strain_hardening/index
-
+   initial_configuration
