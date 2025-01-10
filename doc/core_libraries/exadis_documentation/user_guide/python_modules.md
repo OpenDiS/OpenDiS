@@ -145,7 +145,7 @@ calforce = CalForce(state=state, force_mode='ForceName', ...)
 ```
 Available force modes are:
 
-* `force_mode='DDD_FFT_MODEL'`: DDD-FFT model where forces are computed by summing (i) external PK forces, (ii) core forces, (iii) short-range elastic interactions computed with the non-singular model, and (iv) long-range forces computed using FFT. Specific mode parameters are:
+* `force_mode='DDD_FFT_MODEL'`: DDD-FFT model where forces are computed by summing (i) external PK forces from the applied stress, (ii) core forces, (iii) short-range elastic interactions computed with the non-singular model, and (iv) long-range forces computed using FFT. Specific mode parameters are:
     - `Ngrid` (required): size of the FFT grid along each dimension.
     - `cell` (required): simulation cell object.
     - `Ec` (optional): core energy factor in Pa. If not provided or negative, it defaults to the standard value Ec=mu/4/pi*ln(a/0.1).
@@ -160,13 +160,13 @@ Available force modes are:
     - `Ecore_junc_fact` (optional): ratio of the core energy of junction to native Burgers vectors. Default: 1.0.
 
 
-* `force_mode='CUTOFF_MODEL'`: Cutoff model where forces are computed by summing (i) external PK forces, (ii) core forces, and (iii) short-range elastic interactions up to a given cutoff distance between segment pairs, computed with the non-singular model. Specific mode parameters are:
+* `force_mode='CUTOFF_MODEL'`: Cutoff model where forces are computed by summing (i) external PK forces from the applied stress, (ii) core forces, and (iii) short-range elastic interactions up to a given cutoff distance between segment pairs, computed with the non-singular model. Specific mode parameters are:
     - `cutoff` (required): cutoff for segment pair interaction distance.
     - `Ec` (optional): core energy factor in Pa. If not provided or negative, it defaults to the standard value Ec=mu/4/pi*ln(a/0.1).
     - `Ecore_junc_fact` (optional): ratio of the core energy of junction to native Burgers vectors. Default: 1.0.
 
 
-* `force_mode='LINE_TENSION_MODEL'` or `force_mode='LineTension'`: line-tension model where forces are computed from (i) the external PK force and (ii) the line energy (core force), and no pairwise elastic interaction is accounted for. Specific mode parameters are:
+* `force_mode='LINE_TENSION_MODEL'` or `force_mode='LineTension'`: line-tension model where forces are computed from (i) the external PK force from the applied stress and (ii) the line energy (core force), and no pairwise elastic interaction is accounted for. Specific mode parameters are:
     - `Ec` (optional): core energy factor in Pa. If not provided or negative, it defaults to the standard value Ec=mu/4/pi*ln(a/0.1).
     - `Ecore_junc_fact` (optional): ratio of the core energy of junction to native Burgers vectors. Default: 1.0.
 
@@ -179,7 +179,7 @@ The `NodeForce()` method takes a dislocation network `DisNetManager` object and 
 ```python
 forces = state["nodeforces"]
 tags = state["nodeforcetags"]
-print(forces[0]) # print force on node tags[0]
+print(forces[0]) # print force at node "tags[0]"
 ```
 The node tags are used to keep track of the nodes across modules, as different modules (e.g. in OpenDiS) may use different data structures and may shuffle the nodes ordering when being converted from one data structure to another via the `DisNetManager` object.
 
@@ -189,7 +189,7 @@ The node tags are used to keep track of the nodes across modules, as different m
 - `CalForce.force`: pointer to the ExaDiS force binding object
 
 ##### Methods
-- `state = CalForce.NodeForce(N: DisNetManager, state: dict, pre_compute=True)`: Computes nodal forces for all nodes and place the result in the `state` dictionary. By default, option `pre_compute=True`, meaning that a call to the `PreCompute()` operation will be made before evaluating the forces.
+- `state = CalForce.NodeForce(N: DisNetManager, state: dict, pre_compute=True)`: Computes nodal forces for all nodes and places the result in the `state` dictionary. By default, option `pre_compute=True`, meaning that a call to the `PreCompute()` operation will be made before evaluating the forces.
 - `state = CalForce.PreCompute(N: DisNetManager, state: dict)`: Call to the force pre-compute operation, e.g. as some force modules (e.g. FFT) requires certain values to be pre-computed and up-to-date before forces can be evaluated efficiently. In general, there is no need to call `PreCompute()` before a call to the global `NodeForce()` method, as by default the pre-compute step is called internally in `NodeForce()`. However, a call to `PreCompute()` may be required before calling `OneNodeForce()` (e.g. if the network has been updated since the last call to `NodeForce()`). 
 - `f = CalForce.OneNodeForce(N: DisNetManager, state: state, tag, update_state=True)`: Compute the nodal force `f` on a single node specified by its `tag`. The `PreCompute()` operation may need to be called before calling `OneNodeForce()`.
 
@@ -198,7 +198,7 @@ The node tags are used to keep track of the nodes across modules, as different m
 In addition to `CalForce` modules, `pyexadis` provides wrappers to some internal ExaDiS force calculation functions, which can be called from python with `pyexadis.<function>(...)`. The following functions are currently available:
 - `f = pyexadis.compute_force_n2(G: ExaDisNet, mu, nu, a)`: compute elastic interaction forces using a brute-force N^2 segment pair summation.
 - `f = pyexadis.compute_force_cutoff(G: ExaDisNet, mu, nu, a, cutoff, maxseg)`: compute elastic forces including interactions up to a given cutoff distance between segment pairs. Argument `maxseg` is needed to ensure that no segment pair is missed when building the neighbor list.
-- `f = pyexadis.compute_force_segseglist(G: ExaDisNet, mu, nu, a, segseglist)`: compute elastic forces provided a list user-defined list of segment pairs. Argument `segseglist` must be an array of size=(Npair,2) indicating the indices of each pair of segments to consider in the calculation. Each pair must be unique, e.g. if pair (2,3) is included, then pair (3,2) must not be included or its contribution will be double-counted. Self-interactions, e.g. pair (2,2), must not be included.
+- `f = pyexadis.compute_force_segseglist(G: ExaDisNet, mu, nu, a, segseglist)`: compute elastic forces provided a user-defined list of segment pairs. Argument `segseglist` must be an array of size=(Npair,2) indicating the indices of each pair of segments to consider in the calculation. Each pair must be unique, e.g. if pair (2,3) is included, then pair (3,2) must not be included or its contribution will be double-counted. Self-interactions, e.g. pair (2,2), must not be included.
 
 
 
@@ -212,13 +212,13 @@ mobility = MobilityLaw(state=state, mobility_law='MobilityName', ...)
 ```
 Available mobility types are:
 
-* `mobility_law='SimpleGlide'`: simple linear mobility law where dislocation segments glide on the planes defined by their normal (nx,ny,nz). It does not require a crystal type and thus does not check whether the planes are crystallographically relevant. All Burgers vectors are treated equally. Is provided for testing purposes only. Specific mobility parameters:
+* `mobility_law='SimpleGlide'`: simple linear mobility law where dislocation segments glide on the planes defined by their normal (nx,ny,nz). It does not require a crystal type and thus does not check whether the planes are crystallographically relevant. All Burgers vectors are treated equally. It is provided for testing purposes only. Specific mobility parameters:
     - `mob` (optional): isotropic mobility coefficient used for all dislocation character angles in 1/(Pa.s). Default: 1.0
     - `Medge` (optional): mobility coefficient used for the edge dislocation component in 1/(Pa.s). Must be used in pair with `Mscrew`. Mixed dislocation mobility coefficient will be linearly interpolated between edge and screw values. Default value: none.
     - `Mscrew` (optional): mobility coefficient used for the screw dislocation component in 1/(Pa.s). Must be used in pair with `Medge`. Default value: none.
 
 
-* `mobility_law='FCC_0'`: generic linear mobility law for FCC crystals. Requires `crystal` to be set to `'fcc'` in the global parameters dictionary. Motion is only allowed on {111} planes. Junction nodes are restricted to move along their line direction (glide plane intersections). Mobility coefficients are linearly interpolated between edge and screw values. Specific mobility parameters:
+* `mobility_law='FCC_0'`: generic planar, linear mobility law for FCC crystals. Requires `crystal` to be set to `'fcc'` in the global parameters dictionary. Motion is only strictly allowed on {111} planes. Junction nodes are restricted to move along their line direction (glide plane intersections). By default, glide constraints are enforced by systematically projecting node velocities onto their glide planes. Mobility coefficients are linearly interpolated between edge and screw values. Specific mobility parameters:
     - `Medge` (required): mobility coefficient used for edge dislocation component in 1/(Pa.s)
     - `Mscrew` (required): mobility coefficient used for screw dislocation component in 1/(Pa.s)
     - `vmax` (optional): maximum dislocation velocity in m/s. A relativistic capping of the velocity is applied if specified. Default: none.
@@ -230,11 +230,18 @@ Available mobility types are:
     - `vmax` (optional): maximum dislocation velocity in m/s. A relativistic capping of the velocity is applied if specified. Default: none.
     - `Fedge` (optional): friction stress used for edge dislocation component in Pa. Default: 0.0.
     - `Fscrew` (optional): friction stress used for screw dislocation component in Pa. Default: 0.0.
-    - `mobility_field` (optional): path to a file defining field values by which the mobility coefficient will be scaled throughout the simulation volume. File format must be the following: the 3 first rows specify the grid size in the 3 directions (Nx, Ny, Nz), and the remaining rows are the grid values (Nx x Ny x Nz values) in C-like index order (last axis index changing fastest). If one of the grid dimension is 0 or 1, then the field will be treated as 2D and constant along this dimension.
-    - `friction_field` (optional): path to a file defining field values by which the friction stress will be scaled throughout the simulation volume. File format is the same of for `mobility_field` parameter.
+    - `mobility_field` (optional): path to a file defining field values by which the mobility coefficient will be scaled throughout the simulation volume. File format must be the following: the 3 first rows specify the grid size in the 3 directions (Nx, Ny, Nz), and the remaining rows are the grid values (Nx x Ny x Nz values) in C-like index order (last axis index changing the fastest). If one of the grid dimensions is 0 or 1, then the field will be treated as 2D and constant along this dimension.
+    - `friction_field` (optional): path to a file defining field values by which the friction stress will be scaled throughout the simulation volume. File format is the same as for the `mobility_field` parameter.
 
 
-* `mobility_law='BCC_0b'`: generic linear mobility law for BCC crystals. Requires `crystal` to be set to `'bcc'` in the global parameters dictionary. The mobility matrix on glissile segments is constructed by summing a contribution from a pencil glide behavior of the screw segment component with a contribution from a planar behavior of the edge segment component. Specific mobility parameters:
+* `mobility_law='FCC_0B'`: generic non-planar, linear mobility law for FCC crystals . Requires `crystal` to be set to `'fcc'` in the global parameters dictionary. In contrast to `FCC_0`, it is modeled after the `BCC_0B` mobility and allows for a climb component of the velocity. To allow for climb, option `state["enforce_glide_planes"] = 0` must be specified, otherwise node velocities will be projected back to glide planes. Specific mobility parameters:
+    - `Medge` (required): mobility coefficient used for edge dislocation component in 1/(Pa.s)
+    - `Mscrew` (required): mobility coefficient used for screw dislocation component in 1/(Pa.s)
+    - `Mclimb` (required): mobility coefficient used for the climb component in 1/(Pa.s)
+    - `vmax` (optional): maximum dislocation velocity in m/s. A relativistic capping of the velocity is applied if specified. Default: none.
+
+
+* `mobility_law='BCC_0B'`: generic linear mobility law for BCC crystals. Requires `crystal` to be set to `'bcc'` in the global parameters dictionary. The mobility matrix on glissile segments is constructed by summing a contribution from a pencil glide behavior of the screw segment component with a contribution from a planar behavior of the edge segment component. By default, no explicit glide planes are defined (non-planar mobility). To use and enforce glide planes (planar mobility), option `state["use_glide_planes"] = 1` and `state["enforce_glide_planes"] = 1` must be specified. Specific mobility parameters:
     - `Medge` (required): mobility coefficient used for edge dislocation component in 1/(Pa.s)
     - `Mscrew` (required): mobility coefficient used for screw dislocation component in 1/(Pa.s)
     - `Mclimb` (required): mobility coefficient used for the climb component in 1/(Pa.s)
@@ -249,7 +256,7 @@ The `Mobility()` method takes a dislocation network `DisNetManager` object and t
 ```python
 vels = state["nodevels"]
 tags = state["nodeveltags"]
-print(vels[0]) # print velocity of node tags[0]
+print(vels[0]) # print velocity of node "tags[0]"
 ```
 The node tags are used to keep track of the nodes across modules, as different modules (e.g. in OpenDiS) may use different data structures and may shuffle the nodes ordering when being converted from one data structure to another via the `DisNetManager` object.
 
@@ -258,7 +265,7 @@ The node tags are used to keep track of the nodes across modules, as different m
 - `MobilityLaw.mobility`: pointer to the ExaDiS mobility binding object
 
 #### Methods
-- `state = MobilityLaw.Mobility(N: DisNetManager, state: dict)`: Computes nodal velocities for all nodes and place the result in the `state` dictionary.
+- `state = MobilityLaw.Mobility(N: DisNetManager, state: dict)`: Computes nodal velocities for all nodes and places the result in the `state` dictionary.
 - `v = MobilityLaw.OneNodeMobility(N: DisNetManager, state: dict, tag, f)`: Compute the nodal velocity `v` on a single node specified by its `tag`. The nodal force must be provided with argument `f`.
 
 
@@ -271,7 +278,7 @@ A `TimeIntegration` module is instantiated by providing the global `state` dicti
 ```python
 timeint = TimeIntegration(state=state, integrator='IntegratorName', ...)
 ```
-Most integrators requires `force` and `mobility` arguments pointing to force/mobility modules to be provided, as nodal forces and mobilities generally need to be evaluated internally during an integration step.
+Most integrators require `force` and `mobility` arguments pointing to force/mobility modules to be provided, as nodal forces and mobilities generally need to be evaluated internally during an integration step.
 
 Available time-integrator types are:
 
@@ -359,7 +366,7 @@ topology = Topology(state=state, topology_mode='TopologyName', force=calforce, m
 ```
 Available topology modes are:
 
-* `topology_mode='TopologySerial'`: Topology class that performs the split-multi-nodes procedure in a serial fashion on the host. One should prefer the much more efficient `topology_mode='TopologyParallel'` for production runs on GPU. Specific topology parameters:
+* `topology_mode='TopologySerial'`: Topology class that performs the split-multi-nodes procedure in a serial fashion on the host. Note: one should prefer the much more efficient `'TopologyParallel'` mode for production runs on GPU. Specific topology parameters:
     - `state["rann"]` (optional): annihilation/capture radius used to set the trial node splitting distance. Default: 2*`state["rtol"]`.
     - `state["split3node"]` (optional): flag to enable the splitting of 3-nodes (nodal cross-slip). Only operational for bcc crystals for now. Default: 1.
     - `splitMultiNodeAlpha` (optional): noise coefficient for the split-multi-nodes procedure. Default: 1e-3.
