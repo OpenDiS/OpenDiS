@@ -135,9 +135,12 @@ Global simulation parameters are used internally in ExaDiS and must be consisten
 * `Rorient` (optional): Crystal orientation matrix. Default: Identity matrix.
 * `rtol` (optional): Integration tolerance in `burgmag` units. Default: 0.25*`a`.
 * `rann` (optional): Annihilation radius in `burgmag` units. Default: 2*`rtol`.
-* `maxdt` (optional): Maximum timestep size. Default: 1e-7 s.
+* `maxdt` (optional): Maximum timestep size. Default: 1e-7 s.s
 * `nextdt` (optional): Initial timestep size. Default: 1e-12 s.
 * `split3node` (optional): Toggle to enable splitting of 3-nodes (only for BCC crystals). Default: 1.
+* `use_glide_planes` (optional): Toggle to enable the use of glide planes. Default: 1 for `'fcc'`, 0 for `'bcc'`.
+* `enforce_glide_planes` (optional): Toggle to enforce glide constraints by systematically projecting node velocities onto glide planes. Default: value of `use_glide_planes`. 
+
 
 #### Simulation modules
 Next we define the simulation modules to be used in the simulation. A full simulation typically uses the following modules corresponding to the different elementary stages of the DDD simulation cycle: `CalForce`, `MobilityLaw`, `TimeIntegration`, `CrossSlip`, `Collision`, `Topology`, `Remesh`. Each ExaDiS module must be instantiated by passing the global state dictionary `state` and module specific arguments, e.g.
