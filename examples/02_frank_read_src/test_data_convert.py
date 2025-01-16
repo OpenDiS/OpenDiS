@@ -1,8 +1,8 @@
 import numpy as np
 import sys, os
 
-pyexadis_paths = ['../../python', '../../lib', '../../core/exadis/python','../../core/pydis/python']
-[sys.path.append(os.path.abspath(path)) for path in pyexadis_paths if not path in sys.path]
+opendis_paths = ['../../python', '../../lib', '../../core/exadis/python','../../core/pydis/python']
+[sys.path.append(os.path.abspath(path)) for path in opendis_paths if not path in sys.path]
 np.set_printoptions(threshold=20, edgeitems=5)
 
 from pyexadis_base import ExaDisNet

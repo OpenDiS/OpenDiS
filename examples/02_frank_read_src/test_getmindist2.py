@@ -1,7 +1,8 @@
 import numpy as np
 import sys, os
 
-sys.path.extend([os.path.abspath('../../python'),os.path.abspath('../../lib')])
+pydis_paths = ['../../python', '../../lib', '../../core/pydis/python']
+[sys.path.append(os.path.abspath(path)) for path in pydis_paths if not path in sys.path]
 
 from pydis.collision.getmindist2_paradis import GetMinDist2_paradis
 from pydis.collision.getmindist2_python  import GetMinDist2_python

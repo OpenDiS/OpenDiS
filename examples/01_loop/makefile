@@ -11,8 +11,8 @@ help:
 	@echo " your PYTHONPATH=$(PYTHONPATH)"
 	@echo "      CTYPESGEN_DIR=$(CTYPESGEN_DIR)"
 
-run: test_disnet_loop.py
-	python3 -i test_disnet_loop.py
+run: test_disl_loop_pydis.py
+	python3 -i test_disl_loop_pydis.py
 
 clean: 
 	rm -rf test_loop_results

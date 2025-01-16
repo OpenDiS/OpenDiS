@@ -1,9 +1,10 @@
 import numpy as np
 import sys, os
 
-sys.path.extend([os.path.abspath('../../python'),os.path.abspath('../../lib')])
+pydis_paths = ['../../python', '../../lib', '../../core/pydis/python']
+[sys.path.append(os.path.abspath(path)) for path in pydis_paths if not path in sys.path]
 
-from pydis.disnet import DisNet, DisNode, Cell, CellList
+from pydis import DisNet, DisNode, Cell, CellList
 
 L = 10
 R = (np.random.rand(1000,3)-0.15) * 1.1 * L
@@ -14,7 +15,7 @@ cell_list = CellList(cell=cell, n_div=n_div)
 
 cell_list.sort_points_to_list(R)
 
-R_mapped = cell.map_to(R, np.zeros(3))
+R_mapped = cell.closest_image(Rref=np.zeros(3), R=R)
 
 points_within_bounds = True
 
