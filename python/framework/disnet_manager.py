@@ -124,7 +124,7 @@ class DisNetManager:
 
     @property
     def G(self):
-        """Return networkx graph of DisNet
+        """Return graph of DisNet
         """
         G = self.get_disnet()
         return G
@@ -135,6 +135,18 @@ class DisNetManager:
         """
         G = self.get_disnet()
         return G.cell
+        
+    def num_nodes(self):
+        """Return total number of nodes in DisNet
+        """
+        G = self.get_disnet()
+        return G.num_nodes()
+
+    def num_segments(self):
+        """Return total number of segments in DisNet
+        """
+        G = self.get_disnet()
+        return G.num_segments()
 
     def is_sane(self, disnet_type=None):
         """Check if DisNet is sane
