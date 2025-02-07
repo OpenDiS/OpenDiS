@@ -26,7 +26,7 @@ class CellList:
         s = np.dot(self.cell.hinv, R.T - np.broadcast_to(self.cell.center(), shape=R.shape).T).T
         s -= np.round(s)
         ind = np.floor((s+0.5)*self.n_div).astype(int)
-        ind = np.minimum(np.maximum(ind, 0), np.array(self.n_div)-1)
+        ind = np.mod(ind, np.array(self.n_div))
         return ind
 
     def sort_points_to_list(self, R: np.ndarray) -> None:
