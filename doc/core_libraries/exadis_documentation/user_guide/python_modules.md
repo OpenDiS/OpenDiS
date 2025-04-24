@@ -489,8 +489,8 @@ Note that when using `SimulateNetwork` however, ExaDiS simulation modules may su
 `SimulateNetworkPerf` also provides a restart mechanism to resume a simulation from a previous run, using the `restart` argument (e.g. see example `examples/22_fcc_Cu_15um_1e3/example_fcc_Cu_15um_1e3.py` for how to use the restart feature).
 
 Similar to the backend C++ driver, `SimulateNetworkPerf` provides several ways for setting the stopping criterion for a simulation via the following input arguments:
-- `num_steps`: number of simulation steps to reach for the current loading instance
-- `max_steps`: total number of simulation steps to reach across all loading instances (e.g. including all restarts)
+- `num_step`: number of simulation steps to reach for the current loading instance
+- `max_step`: total number of simulation steps to reach across all loading instances (e.g. including all restarts)
 - `max_strain`: maximum (total) strain to reach for the simulation
 - `max_time`: maximum physical simulation time (cumulative time step sizes) in s to reach for the simulation
 - `max_walltime`: maximum wall-clock (execution) time in s to reach for the simulation
