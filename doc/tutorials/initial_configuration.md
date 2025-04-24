@@ -145,7 +145,7 @@ plane = np.array([-1.,1.,1.]) # plane normal
 # Simulation cell object
 cell = Cell(h=Lbox*np.eye(3), is_periodic=[True,True,True])
 
-# List of nodes, rn = [x,y,z,constraint]
+# List of nodes, nodes = [x,y,z,constraint]
 linevec = Ldis*burg # line vector
 rn = np.array([[*(-0.5*linevec), DisNode.Constraints.PINNED_NODE],
                [*( 0.0*linevec), DisNode.Constraints.UNCONSTRAINED],
@@ -178,14 +178,14 @@ plane = np.array([-1.,1.,1.]) # plane normal
 # Simulation cell object
 cell = pyexadis.Cell(h=Lbox*np.eye(3), is_periodic=[True,True,True])
 
-# List of nodes, rn = [x,y,z,constraint]
+# List of nodes, nodes = [x,y,z,constraint]
 linevec = Ldis*burg # line vector
 nodes = np.array([[*(-0.5*linevec), NodeConstraints.PINNED_NODE],
                   [*( 0.0*linevec), NodeConstraints.UNCONSTRAINED],
                   [*( 0.5*linevec), NodeConstraints.PINNED_NODE]])
 nodes[:,0:3] += cell.center() # translate line to the center of the box
 
-# List of segments, links = [node1,node2,burg,plane]
+# List of segments, segs = [node1,node2,burg,plane]
 segs = np.array([[0, 1, *burg, *plane],
                  [1, 2, *burg, *plane]])
 
@@ -210,7 +210,7 @@ pyexadis.initialize()
 Lbox = 1000.0 # simulation box size
 maxseg = 0.05*Lbox # line discretization
 burg = 1.0/np.sqrt(2.0)*np.array([1.,1.,0.]) # Burgers vector
-plane = np.array([1.,1.,1.]) # plane normal
+plane = np.array([-1.,1.,1.]) # plane normal
 theta = 90.0 # character angle in degrees
 
 # Crystal orientation
@@ -239,8 +239,10 @@ N = DisNetManager(ExaDisNet(cell, nodes, segs))
 
 As done in the above, rotation of the `burg` and `plane` vectors are necessary as these vectors must always be expressed in the global frame in the `segs` array.
 
-As a consequence, when using rotated crystal frames, it is also important to specify the corresponding orientation matrix in the `state` dictionary before running a simulation:
-
+````{Warning}
+When using rotated crystal frames, it is required to specify the corresponding orientation matrix in the `state` dictionary before running a simulation,
 ```python
 state["Rorient"] = Rorient
 ```
+so that the code can internally retrieve Burgers vectors and plane normal vectors in the crystal frame when needed.
+````
