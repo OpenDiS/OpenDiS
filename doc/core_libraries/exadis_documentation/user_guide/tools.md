@@ -18,10 +18,10 @@ Tool `exadis_stress_field` in folder `bin/` (or `core/exadis/bin/`) allows to co
 * `-a`, `--core_radius` (required): Dislocation core radius (b)
 * `-N`, `--ngrid` (optional): Grid resolution [N] to compute the stress field. Default: `32`.
 * `-Nxyz`, `--ngridxyz` (optional): Grid resolution [Nx,Ny,Nz] to compute the stress field. Default: none.
-* `-o`, `--output`" (required): Output file name. Default: `stress.dat`.
-* `-Nimg`, `--nimages` (required): Number of periodic images to compute the stress field. Default: `1`.
-* `-pbc`, `--pbc_flags` (required): Periodic boundary conditions along the 3 directions. Default: `1 1 1`.
-* `-reg`, `--regularize_convergence` (required): Apply regularization of the conditional convergence. Default: `1`.
+* `-o`, `--output`" (optional): Output file name. Default: `stress.dat`.
+* `-Nimg`, `--nimages` (optional): Number of periodic images to compute the stress field. Default: `1`.
+* `-pbc`, `--pbc_flags` (optional): Periodic boundary conditions along the 3 directions. Default: `1 1 1`.
+* `-reg`, `--regularize_convergence` (optional): Apply regularization of the conditional convergence. Default: `1`.
 
 
 ### Computing displacement gradient fields
@@ -37,7 +37,7 @@ Tool `exadis_dispgrad_field` in folder `bin/` (or `core/exadis/bin/`) allows to 
 * `-a`, `--core_radius` (required): Dislocation core radius (b)
 * `-N`, `--ngrid` (optional): Grid resolution [N] to compute the stress field. Default: `32`.
 * `-Nxyz`, `--ngridxyz` (optional): Grid resolution [Nx,Ny,Nz] to compute the stress field. Default: none.
-* `-o`, `--output`" (required): Output file name. Default: `stress.dat`.
-* `-Nimg`, `--nimages` (required): Number of periodic images to compute the stress field. Default: `1`.
-* `-pbc`, `--pbc_flags` (required): Periodic boundary conditions along the 3 directions. Default: `1 1 1`.
-* `-reg`, `--regularize_convergence` (required): Apply regularization of the conditional convergence. Default: `1`.
+* `-o`, `--output`" (optional): Output file name. Default: `stress.dat`.
+* `-Nimg`, `--nimages` (optional): Number of periodic images to compute the stress field. Default: `1`.
+* `-pbc`, `--pbc_flags` (optional): Periodic boundary conditions along the 3 directions. Default: `1 1 1`.
+* `-reg`, `--regularize_convergence` (optional): Apply regularization of the conditional convergence. Default: `1`.
