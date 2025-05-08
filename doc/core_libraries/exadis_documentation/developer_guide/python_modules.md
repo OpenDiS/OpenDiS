@@ -62,7 +62,7 @@ class MyCalForceModule:
         # ...
         return state
     
-    def NodeForce(self, N: DisNetManager, state: dict) -> dict:
+    def NodeForce(self, N: DisNetManager, state: dict, pre_compute=True) -> dict:
         # Get dislocation network in module-specific format
         G = N.get_disnet(MyLibraryDisNet)
         # Compute forces on network G
