@@ -8,3 +8,4 @@ User guide
    obtaining
    tutorials
    python_modules
+   tools
