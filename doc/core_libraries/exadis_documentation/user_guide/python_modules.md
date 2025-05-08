@@ -10,7 +10,7 @@ Before going through this section, make sure you have read the [tutorial section
 #### `ExaDisNet`
 Dislocation networks are defined as instances of the `ExaDisNet` class from `python/pyexadis_base.py`. `ExaDisNet` is a wrapper class around the internal data structure representation of the dislocation network in ExaDiS, which internally handles memory movements between the different execution spaces (e.g. CPU to GPU).
 
-An `ExaDisNet` network can be instantiated in several ways. The native way is to provide a cell, an array of nodes, and an array of segments as arguments:
+An `ExaDisNet` network can be instantiated in several ways (also see [Creating initial dislocation configurations](../../../tutorials/initial_configuration)). The native way is to provide a cell, an array of nodes, and an array of segments as arguments:
 ```python
 G = ExaDisNet(cell, nodes, segs)
 ```
