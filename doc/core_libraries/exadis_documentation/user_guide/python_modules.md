@@ -81,17 +81,21 @@ N = DisNetManager(G)
 
 ##### Methods
 - `ExaDisNet.import_data(data)`: Set the content of the `ExaDisNet` object by importing it from a `data` dictionary. Argument `data` must be the output of an `export_data()` method.
-- `data = ExaDisNet.export_data()`: Export the `ExaDisNet` object into a `data` dictionary.
+- `ExaDisNet.export_data()`: Export the `ExaDisNet` object into a `data` dictionary.
 - `ExaDisNet.read_paradis(datafile)`: Set the content of the `ExaDisNet` object by reading a legacy ParaDiS data file.
 - `ExaDisNet.write_data(datafile)`: Write the network into a legacy ParaDiS data file.
 - `ExaDisNet.generate_prismatic_config(crystal, Lbox, numsources, radius, maxseg=-1, Rorient=None, seed=1234)`: Set the content of the `ExaDisNet` object by generating a configuration made of prismatic dislocation loops.
 - `ExaDisNet.generate_line_config(crystal, Lbox, num_lines, theta=None, maxseg=-1, Rorient=None, seed=-1, verbose=True)`: Set the content of the `ExaDisNet` object by generating a configuration made of straight, infinite lines/dipoles.
-- `nodes_data = ExaDisNet.get_nodes_data()`: Returns a dictionary of nodes data, containing entries `tags`, `positions`, and `constraints`.
+- `ExaDisNet.num_nodes()`: Returns the number of nodes in the network.
+- `ExaDisNet.num_segments()`: Returns the number of segments in the network.
+- `ExaDisNet.is_sane()`: Checks if the network connectivity is sane.
+- `ExaDisNet.get_nodes_data()`: Returns a dictionary of nodes data, containing entries `tags`, `positions`, and `constraints`.
+- `ExaDisNet.get_segs_data()`: Returns a dictionary of segments data, containing entries `nodeids`, `burgers`, and `planes`.
 - `ExaDisNet.get_tags()`: Returns an array of the nodes tags (domain,index), size=(Nnodes,2).
 - `ExaDisNet.get_positions()`: Returns an array of the nodes positions, size=(Nnodes,3).
+- `ExaDisNet.set_positions(pos)`: Sets the nodes positions by providing array `pos` of size=(Nnodes,3)
 - `ExaDisNet.get_forces()`: Returns an array of the nodes forces, size=(Nnodes,3).
 - `ExaDisNet.get_velocities()`: Returns an array of the nodes velocities, size=(Nnodes,3).
-- `ExaDisNet.get_segs_data()`: Returns a dictionary of segments data, containing entries `nodeids`, `burgers`, and `planes`.
 
 
 #### `DisNetManager`
@@ -110,27 +114,7 @@ class MyExaDisModule():
 ```
 Internally, `DisNetManager` retains the type of the active network instance to minimize the number of conversion and memory transfer operations.
 
-The `DisNetManager` provides the `export_data()` method that returns the raw network data stored in a dictionary:
-```python
-data = N.export_data()
-```
-where `data` is a dictionary containing the following entries:
-* `data["cell"]`: dictionary defining the simulation cell, containing the following entries:
-    - `data["cell"]["h"]`: simulation cell matrix (columns are the cell vectors)
-    - `data["cell"]["origin"]`: simulation cell origin
-    - `data["cell"]["is_periodic"]`: periodic flag along the three dimensions
-* `data["nodes"]`: dictionary containing the nodes attributes within the following entries:
-    - `data["nodes"]["tags"]`: array of nodes tags (domain,index), size=(Nnodes,2)
-    - `data["nodes"]["positions"]`: array of nodes positions, size=(Nnodes,3)
-    - `data["nodes"]["constraints"]`: array of nodes constraints, size=(Nnodes,1)
-* `data["segs"]`: dictionary containing the segments attributes within the following entries:
-    - `data["segs"]["nodeids"]`: array of indices of segments end-nodes (node1,node2), size=(Nsegs,2)
-    - `data["segs"]["burgers"]`: array of segments Burgers vectors, size=(Nsegs,3)
-    - `data["segs"]["plane"]`: array of segments plane normal, size=(Nsegs,3)
-
-##### Methods
-- `G = DisNetManager.get_disnet(disnet_type)`: Converts the dislocation network into the desired `disnet_type` object.
-- `data = DisNetManager.export_data()`: Export the network into a `data` dictionary.
+See section [DisNetManager Class](../../../code_structure/data_structure/disnetmanager_class.md) to get more information.
 
 
 ### Forces
