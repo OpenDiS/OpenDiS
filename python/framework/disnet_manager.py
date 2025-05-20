@@ -153,3 +153,7 @@ class DisNetManager:
         """
         G = self.get_disnet(disnet_type)
         return G.is_sane()
+        
+    def __repr__(self):
+        return f"framework.DisNetManager(num_nodes={self.num_nodes()}, " \
+               f"num_segments={self.num_segments()})"
