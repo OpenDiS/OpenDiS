@@ -20,7 +20,7 @@ This test case first run the same simulation as in ```test_frank_read_src_exadis
 
 #### Conversion between ExaDiS and PyDiS using DisNetManager
 
-At the end of the simulation, the final dislocation network is managed by the ```DisNetManager``` called ```net```.  The following line in the python code
+At the end of the simulation, the final dislocation network is managed by the [`DisNetManager`](../../code_structure/data_structure/disnetmanager_class.md) object called ```net```.  The following line in the python code
 ```python
 G0 = net.get_disnet(ExaDisNet)
 ```
