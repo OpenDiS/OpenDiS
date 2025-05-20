@@ -1,4 +1,7 @@
-#### ExaDisNet Class
+## ExaDisNet Class
+
+### Description
+
 In `pyexadis`, dislocation networks are defined as instances of the `ExaDisNet` class from `python/pyexadis_base.py`. `ExaDisNet` is a wrapper class around the internal data structure representation of the dislocation network in ExaDiS, which internally handles memory movements between the different execution spaces (e.g. CPU to GPU).
 
 An `ExaDisNet` network can be instantiated in several ways. The native way is to provide a cell, an array of nodes, and an array of segments as arguments:
@@ -46,11 +49,31 @@ G = ExaDisNet()
 G.read_paradis('config.data')
 ```
 
-Then, the dislocation network defined in a `ExaDisNet` object must be wrapped into a `DisNetManager` object before it can be used within modules, e.g.
+Then, the dislocation network defined in a `ExaDisNet` object must be wrapped into a [`DisNetManager`](disnetmanager_class.md) object before it can be used within modules, e.g.
 ```python
 G = ExaDisNet(...)
 N = DisNetManager(G)
 ```
 
-DisNetManager provides a convenient way to convert the data between DisNet and ExaDisNet.
-Section [Graph Data Conversion](../../tutorials/frank_read_src/graph_data_conversion.md) describes how to convert between DisNet and ExaDiSNet objects.
+
+### Properties
+- `ExaDisNet.net`: pointer to the ExaDiS network binding object
+- `ExaDisNet.cell`: ExaDiS network cell object
+
+### Methods
+- `ExaDisNet.import_data(data)`: Set the content of the `ExaDisNet` object by importing it from a `data` dictionary. Argument `data` must be the output of an `export_data()` method.
+- `ExaDisNet.export_data()`: Export the `ExaDisNet` object into a `data` dictionary.
+- `ExaDisNet.read_paradis(datafile)`: Set the content of the `ExaDisNet` object by reading a legacy ParaDiS data file.
+- `ExaDisNet.write_data(datafile)`: Write the network into a legacy ParaDiS data file.
+- `ExaDisNet.generate_prismatic_config(crystal, Lbox, numsources, radius, maxseg=-1, Rorient=None, seed=1234)`: Set the content of the `ExaDisNet` object by generating a configuration made of prismatic dislocation loops.
+- `ExaDisNet.generate_line_config(crystal, Lbox, num_lines, theta=None, maxseg=-1, Rorient=None, seed=-1, verbose=True)`: Set the content of the `ExaDisNet` object by generating a configuration made of straight, infinite lines/dipoles.
+- `ExaDisNet.num_nodes()`: Returns the number of nodes in the network.
+- `ExaDisNet.num_segments()`: Returns the number of segments in the network.
+- `ExaDisNet.is_sane()`: Checks if the network connectivity is sane.
+- `ExaDisNet.get_nodes_data()`: Returns a dictionary of nodes data, containing entries `tags`, `positions`, and `constraints`.
+- `ExaDisNet.get_segs_data()`: Returns a dictionary of segments data, containing entries `nodeids`, `burgers`, and `planes`.
+- `ExaDisNet.get_tags()`: Returns an array of the nodes tags (domain,index), size=(Nnodes,2).
+- `ExaDisNet.get_positions()`: Returns an array of the nodes positions, size=(Nnodes,3).
+- `ExaDisNet.set_positions(pos)`: Sets the nodes positions by providing array `pos` of size=(Nnodes,3)
+- `ExaDisNet.get_forces()`: Returns an array of the nodes forces, size=(Nnodes,3).
+- `ExaDisNet.get_velocities()`: Returns an array of the nodes velocities, size=(Nnodes,3).
