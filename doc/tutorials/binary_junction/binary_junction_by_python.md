@@ -52,12 +52,6 @@ The output of the above command is
 dict_keys([(0, 0), (0, 2), (0, 3), (0, 4), (0, 5), (0, 1), (0, 6), (0, 7), (0, 8), (0, 9), (0, 10), (0, 12), (0, 14), (0, 15), (0, 18), (0, 19), (0, 21), (0, 22), (0, 23), (0, 25), (0, 26), (0, 27), (0, 28), (0, 29), (0, 31), (0, 33), (0, 24), (0, 30), (0, 20)])
 ```
 
-```{hint}
-In other test cases, if ```G``` is not available, you can use ```net.G``` instead, e.g.
-```python
-net.G.all_nodes_tags()
-```
-
 To examine the information (i.e. attributes) of a node, use the following command, e.g.
 ```python
 G.nodes((0,0)).view()

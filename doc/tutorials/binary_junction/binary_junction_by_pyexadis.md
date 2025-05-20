@@ -16,13 +16,13 @@ After the simulation has finished, we can examine the data stored in object ```G
 ```python
 G
 ```
-The output is
+The output looks like
 ```python
 <pyexadis_base.ExaDisNet object at 0xffffabedbca0>
 ```
-We can see that ```G``` is an ```ExaDiSNet``` object (so that we cannot interact with it the same way as a ```DisNet``` object).
+We can see that ```G``` is an ```ExaDisNet``` object (so that we cannot interact with it the same way as a ```DisNet``` object).
 
-We can use the following command to see the content of G
+We can use the following command to see the raw data of G
 
 ```python
 G.export_data()
@@ -101,21 +101,13 @@ G.export_data()
 </details>
 
 
-We can use the following command to convert an ```ExaDiSNet``` object to a ```DisNet``` object, so that we can interact with it using the same approach as in the previous test case
+We can use the ```get_disnet()``` method of [`DisNetManager`](../../code_structure/data_structure/disnetmanager_class.md) object ```net``` to convert an ```ExaDisNet``` object to a ```DisNet``` object, so that we can interact with it using the same approach as in the previous test case
 ```python
 from pydis import DisNet
-G1=DisNet()
-G1.import_data(G.export_data())
+G1 = net.get_disnet(DisNet)
 ```
 
-```{hint}
-This can also be accomplished using the ```get_disnet``` function of DisNetManger ```net```.
-```python
-from pydis import DisNet
-G1=net.get_disnet(DisNet)
-```
-
-Now the object ```G1``` is a DisNet object.  We can use the same command as in the previous test case to interact with ```G1```, such as,
+Now object ```G1``` is a DisNet object.  We can use the same command as in the previous test case to interact with ```G1```, such as,
 ```python
 G1.all_nodes_tags()
 >> dict_keys([(0, 0), (0, 5), (0, 2), (0, 3), (0, 4), (0, 31), (0, 6), (0, 7), (0, 8), (0, 9), (0, 10), (0, 1), (0, 12), (0, 32), (0, 14), (0, 15), (0, 16), (0, 17), (0, 18), (0, 19), (0, 20), (0, 33), (0, 22), (0, 23), (0, 24), (0, 25), (0, 26), (0, 27), (0, 28), (0, 29), (0, 30)])
