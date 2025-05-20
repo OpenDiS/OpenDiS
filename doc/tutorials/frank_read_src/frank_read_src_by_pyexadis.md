@@ -18,18 +18,18 @@ The purpose is just to demonstrate that, without a topology module (which handle
 
 #### Dislocation Network Examination
 
-After the simulation has finished, we can examine the data stored in object ```G``` by typing the following command in the Python terminal.
+After the simulation has finished, we can examine the data stored in object ```G``` by typing it in the Python terminal
 ```python
 G
 ```
-The output is
+The output looks like
 ```python
 <pyexadis_base.ExaDisNet object at 0x10342fd30>
 ```
-We can see that ```G``` is an ```ExaDiSNet``` object (so that we cannot interact with it the same way as a ```DisNet``` object).
+We can see that ```G``` is an ```ExaDisNet``` object (so that we cannot interact with it the same way as a ```DisNet``` object).
 
 
-We can use the following command to see the content of G.
+We can use the following command to see the raw data of G:
 
 ```python
 G.export_data()
@@ -108,21 +108,13 @@ G.export_data()
 </details>
 
 
-We can use the following command to convert an ```ExaDiSNet``` object to a ```DisNet``` object, so that we can interact with it using the same approach as in the previous test case.
+We can use the ```get_disnet()``` method of [`DisNetManager`](../../code_structure/data_structure/disnetmanager_class.md) object ```net``` to convert an ```ExaDisNet``` object to a ```DisNet``` object, so that we can interact with it using the same approach as in the previous test case.
 ```python
 from pydis import DisNet
-G1=DisNet()
-G1.import_data(G.export_data())
+G1 = net.get_disnet(DisNet)
 ```
 
-```{hint}
-This can also be accomplished using the ```get_disnet``` function of DisNetManger ```net```.
-```python
-from pydis import DisNet
-G1=net.get_disnet(DisNet)
-```
-
-Now the object ```G1``` is a DisNet object.  We can use the same command as in the previous test case to interact with ```G1```, such as,
+Now object ```G1``` is a DisNet object.  We can use the same command as in the previous test case to interact with ```G1```, such as,
 ```python
 G1.all_nodes_tags()
 G1.nodes((0,0)).view()

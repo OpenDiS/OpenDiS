@@ -19,7 +19,7 @@ The data structure of the initial condition is explained in Section [DisNet Clas
 
 Periodic boundary condition (PBC) is applied in all three directions, as specified in the following line of the test script.
 ```python
-   net = init_frank_read_src_loop(box_length=Lbox, arm_length=0.125*Lbox, pbc=True)
+net = init_frank_read_src_loop(box_length=Lbox, arm_length=0.125*Lbox, pbc=True)
 ```
 
 #### Simulation Behavior
@@ -55,9 +55,9 @@ dict_keys([(0, 0), (0, 2), (0, 3), (0, 4), (0, 11), (0, 12), (0, 17), (0, 18), (
 ```
 
 ```{hint}
-In other test cases, if ```G``` is not available, you can use ```net.G``` instead, e.g.
+In other test cases, if ```G``` is not available, you can request a pydis DisNet instance first, e.g.
 ```python
-net.G.all_nodes_tags()
+net.get_disnet(DisNet).all_nodes_tags()
 ```
 
 To examine the information (i.e. attributes) of a node, use the following command, e.g.
