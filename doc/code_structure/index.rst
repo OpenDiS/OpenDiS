@@ -7,3 +7,4 @@ Code Structure
 
    project_overview
    data_structure/index.rst
+   modules
