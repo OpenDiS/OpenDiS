@@ -3,6 +3,14 @@
     font-weight: bold;
 }
 
+.medium {
+    font-size: medium;
+}
+
+.large {
+    font-size: large;
+}
+
 /* .sidebar-logo-container::after {
   content: "Logo by Jonathan Lin \a jlin1212@termpail.umd.edu";
   font-size: 8pt;
