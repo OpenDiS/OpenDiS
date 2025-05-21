@@ -4,6 +4,8 @@
 
 `DisNetManager` is a container class that allows different core implementations of dislocation network data structures to co-exist and interact with each other within the OpenDiS framework. This allows for inter-operability between modules coming from different core libraries (e.g. PyDiS and ExaDiS). Before any core network object, e.g. `DisNet` or `ExaDisNet`, can be used in modules, they need to be wrapped into a `DisNetManager` object, e.g.:
 ```python
+from framework.disnet_manager import DisNetManager
+
 G = ExaDisNet(...)
 N = DisNetManager(G)
 ```
@@ -35,7 +37,7 @@ where `data` is a dictionary containing the following entries:
     - `data["segs"]["plane"]`: array of segments plane normal, size=(Nsegs,3)
 
 
-Core network classes [`DisNet`](disnet_class.md) from PyDiS and [`ExaDisNet`](exadisnet_class.md) from ExaDiS are the native data structures used to handle dislocation networks in OpenDiS. However, if desired, a user can use or implement its own data structure to interact with dislocation networks in OpenDiS, as long as the new data structure (or wrapper to it) abides by the [DisNet_Base](https://github.com/OpenDiS/OpenDiS/blob/main/python/framework/disnet_base.py) abstract class.
+Core network classes [`DisNet`](disnet_class.md) from PyDiS and [`ExaDisNet`](exadisnet_class.md) from ExaDiS are the native data structures used to handle dislocation networks in OpenDiS. However, if desired, a user can use or implement its own data structure to interact with dislocation networks in OpenDiS, as long as the new data structure (or wrapper to it) adheres to the [DisNet_Base](https://github.com/OpenDiS/OpenDiS/blob/main/python/framework/disnet_base.py) specification class.
 
 
 ### Properties
