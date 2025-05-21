@@ -24,12 +24,31 @@ class DisNet_Base(ABC):
         """export_data: export network to data
         """
         pass
-
+    
     @abstractmethod
     def import_data(self, data):
         """import_data: import network from data
         """
         pass
+    
+    @abstractmethod
+    def num_nodes(self):
+        """num_nodes: return total number of nodes
+        """
+        pass
+    
+    @abstractmethod
+    def num_segments(self):
+        """num_segments: return total number of segments
+        """
+        pass
+    
+    @abstractmethod
+    def is_sane(self):
+        """is_sane: check if the network is sane
+        """
+        pass
+
 
 class DisNet_Python(DisNet_Base):
     """DisNet_Python: base class for DisNet inherited by PyDiS
