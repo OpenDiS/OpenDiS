@@ -9,3 +9,4 @@ Tutorials
    binary_junction/index
    strain_hardening/index
    initial_configuration
+   setting_simulation
