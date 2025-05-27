@@ -10,3 +10,4 @@ Data Structure
    disnetmanager_class
    disnet_class
    exadisnet_class
+   state_dictionary
