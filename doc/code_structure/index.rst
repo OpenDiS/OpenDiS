@@ -6,5 +6,5 @@ Code Structure
    :maxdepth: 4
 
    project_overview
-   data_structure/index.rst
    modules
+   data_structure/index.rst

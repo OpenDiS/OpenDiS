@@ -37,13 +37,13 @@ class MyModule:
     * Can modify the network (e.g. topological operations)
     * Returns an updated state dictionary
 
-- Special core modules such as Force calculation and Mobility law modules have additional specifications to guarantee consistency of the implementations:
+- Special base modules such as Force calculation and Mobility law modules have additional specifications to guarantee consistency of the implementations:
     * Force calculations modules: see the [CalForce_Base](https://github.com/OpenDiS/OpenDiS/blob/main/python/framework/calforce_base.py) specification class.
     * Mobility law modules: see the [MobilityLaw_Base](https://github.com/OpenDiS/OpenDiS/blob/main/python/framework/mobility_base.py) specification class.
 
 - Compatibility and inter-operability between modules is maintained via the two following objects:
     * `DisNetManager`: container class that allows for co-existence and conversion between various dislocation network data structures. This allows for different modules to use their own data structures to manipulate the networks. See [DisNetManager class](data_structure/disnetmanager_class.md).
-    * `state` dictionary: dictionary containing all relevant parameters (e.g. materials parameters, simulation settings, nodal forces, etc.) pertaining to the state of a simulation / analysis. Modules can communicate by writing/reading items into the state dictionary.
+    * `state`: dictionary containing the global parameters (e.g. materials parameters, simulation settings, nodal forces, etc.) pertaining to the state of a simulation / analysis. Modules can communicate by writing/reading items into the state dictionary. See [State Dictionary](data_structure/state_dictionary.md).
 
 
 ### Building a simulation
@@ -57,7 +57,7 @@ In the general sense, a simulation (or analysis pipeline) in OpenDiS can be cons
 
 where individual modules may come from different core libraries or implementations.
 
-For running traditional DDD simulations, simulation drivers are provided in core libraries (e.g. see [Simulation driver section](../core_libraries/exadis_documentation/user_guide/python_modules.md#simulation-driver)). They loop over a sequence of modules that constitute the traditional DDD cycle, e.g.
+For running traditional DDD simulations, simulation drivers are provided in core libraries (e.g. see [Simulation driver section](../core_libraries/exadis_documentation/user_guide/python_modules.md#simulation-driver)). These drivers loop over a sequence of modules that define the traditional DDD cycle, e.g.
 1. Force module
 2. Mobility module
 3. Time-integration module
