@@ -17,9 +17,9 @@ with
     * Attributes for all nodes must be of the following formats:
         - x, y, z
         - x, y, z, constraint
-        - domain, local_id, x, y, z
-        - domain, local_id, x, y, z, constraint
-    * where x, y, z are the nodes coordinates, constraint is the node constraint (`pyexadis_base.NodeConstraints.UNCONSTRAINED` or `pyexadis_base.NodeConstraints.PINNED_NODE`), domain is the simulation domain, local_id is the local id of the node in the domain.
+        - domain_id, local_id, x, y, z
+        - domain_id, local_id, x, y, z, constraint
+    * where x, y, z are the nodes coordinates, constraint is the node constraint (`pyexadis_base.NodeConstraints.UNCONSTRAINED` or `pyexadis_base.NodeConstraints.PINNED_NODE`), domain_id is the simulation domain index, local_id is the local index of the node in the domain.
 * `segs`: array of segments defining the directed dislocation graph.
     * Segments must be defined only once, e.g. if a segment from node i to node j is defined, then the segment from node j to node i must not be defined.
     * Attributes of the segments must be of the following formats:
@@ -41,7 +41,7 @@ segs = np.array([[0, 1, b[0], b[1], b[2], 0.0, 1.0, 0.0],
                  [1, 2, b[0], b[1], b[2], 0.0, 1.0, 0.0]])
 G = ExaDisNet(cell, nodes, segs)
 ```
-Some utility functions are also provided in file `python/pyexadis_utils.py` to generate basic dislocation graphs (Frank-Read source, infinite lines, etc.).
+Some utility functions are also provided in file `python/pyexadis_utils.py` to generate basic dislocation graphs (Frank-Read source, infinite lines, etc.). See [Creating initial dislocation configurations](../../../tutorials/initial_configuration) for more information.
 
 Another convenient method is to initialize a `ExaDisNet` object by reading a dislocation network in legacy ParaDiS format from file using built-in method `read_paradis()`:
 ```python
@@ -49,7 +49,7 @@ G = ExaDisNet()
 G.read_paradis('config.data')
 ```
 
-Then, the dislocation network defined in a `ExaDisNet` object must be wrapped into a [`DisNetManager`](disnetmanager_class.md) object before it can be used within modules, e.g.
+A dislocation network defined in a `ExaDisNet` object must be wrapped into a [`DisNetManager`](disnetmanager_class.md) object before it can be used within modules, e.g.
 ```python
 G = ExaDisNet(...)
 N = DisNetManager(G)
@@ -65,7 +65,7 @@ N = DisNetManager(G)
 - `ExaDisNet.export_data()`: Export the `ExaDisNet` object into a `data` dictionary.
 - `ExaDisNet.read_paradis(datafile)`: Set the content of the `ExaDisNet` object by reading a legacy ParaDiS data file.
 - `ExaDisNet.write_data(datafile)`: Write the network into a legacy ParaDiS data file.
-- `ExaDisNet.generate_prismatic_config(crystal, Lbox, numsources, radius, maxseg=-1, Rorient=None, seed=1234)`: Set the content of the `ExaDisNet` object by generating a configuration made of prismatic dislocation loops.
+- `ExaDisNet.generate_prismatic_config(crystal, Lbox, num_loops, radius, maxseg=-1, Rorient=None, seed=1234, uniform=False)`: Set the content of the `ExaDisNet` object by generating a configuration made of prismatic dislocation loops.
 - `ExaDisNet.generate_line_config(crystal, Lbox, num_lines, theta=None, maxseg=-1, Rorient=None, seed=-1, verbose=True)`: Set the content of the `ExaDisNet` object by generating a configuration made of straight, infinite lines/dipoles.
 - `ExaDisNet.num_nodes()`: Returns the number of nodes in the network.
 - `ExaDisNet.num_segments()`: Returns the number of segments in the network.
