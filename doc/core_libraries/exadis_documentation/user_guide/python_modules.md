@@ -389,6 +389,10 @@ sim.run(N, state)
 
 Note that when using `SimulateNetwork` however, ExaDiS simulation modules may suffer some performance hit (compared to a native C++ driven simulation) due to data flow through the python pipeline. This may be particularly apparent when running on GPU. This overhead is generally reasonable (e.g. 20%) and allows for a great flexibility of the code. If maximum performance is desired, it is advised to use the `SimulateNetworkPerf` driver instead.
 
+Currently, the two following stopping criteria are available:
+- `max_step`: maximum simulation step number to reach (across all loading instances)
+- `num_steps`: number of simulation steps to perform for the current loading instance
+
 
 #### `SimulateNetworkPerf`
 
@@ -397,8 +401,8 @@ Note that when using `SimulateNetwork` however, ExaDiS simulation modules may su
 `SimulateNetworkPerf` also provides a restart mechanism to resume a simulation from a previous run, using the `restart` argument (e.g. see example `examples/22_fcc_Cu_15um_1e3/example_fcc_Cu_15um_1e3.py` for how to use the restart feature).
 
 Similar to the backend C++ driver, `SimulateNetworkPerf` provides several ways for setting the stopping criterion for a simulation via the following input arguments:
-- `num_step`: number of simulation steps to reach for the current loading instance
-- `max_step`: total number of simulation steps to reach across all loading instances (e.g. including all restarts)
+- `num_steps`: number of simulation steps to perform for the current loading instance
+- `max_step`: maximum simulation step number to reach across all loading instances (e.g. including all restarts)
 - `max_strain`: maximum (total) strain to reach for the simulation
 - `max_time`: maximum physical simulation time (cumulative time step sizes) in s to reach for the simulation
 - `max_walltime`: maximum wall-clock (execution) time in s to reach for the simulation
@@ -460,16 +464,39 @@ A set of utility functions are provided in file `python/pyexadis_utils.py`. Avai
     - `seed`: seed for random number generation
     - `verbose`: print information
 
+* `generate_prismatic_config(crystal, Lbox, num_loops, radius, maxseg=-1, Rorient=None, seed=-1, uniform=False)`: Generate a configuration made of prismatic dislocation loops into an `ExaDisNet` object
+    - `crystal`: crystal structure
+    - `Lbox`: box size or network cell object
+    - `num_loops`: number of dislocation loops
+    - `radius`: loop radius or [min_radius, max_radius] range
+    - `maxseg`: maximum discretization length of the lines
+    - `Rorient`: crystal orientation matrix
+    - `seed`: seed for random number generation
+    - `uniform`: make the spatial loop distribution close to uniform
+
+#### Network manipulation
+
+* `combine_networks(Nlist)`: Combine several DisNetManager into a single network
+    - `Nlist`: list of `DisNetManager` objects
+    
+* `extract_segments(N: DisNetManager, seglist)`: Return a new network that contains a subset of segments from the input network
+    - `N`: `DisNetManager` object
+    - `seglist`: list of segment indices to extract
+
+* `delete_segments(N: DisNetManager, seglist)`: Return a new network in which segments have been deleted from the input network
+    - `N`: `DisNetManager` object
+    - `seglist`: list of segment indices to delete
+
 #### Network properties
 
-* `get_segments_length(N: DisNetManager)`: Returns the list of dislocation segment lenghts of the network
+* `get_segments_length(N: DisNetManager)`: Return the list of dislocation segment lenghts of the network
     - `N`: `DisNetManager` object
 
-* `dislocation_density(N: DisNetManager, burgmag: float)`: Returns the dislocation density of the network
+* `dislocation_density(N: DisNetManager, burgmag: float)`: Return the dislocation density of the network
     - `N`: `DisNetManager` object
     - `burgmag`: Burgers vector scale to return the density in units of 1/m^2.
     
-* `dislocation_charge(N: DisNetManager)`: Returns the dislocation charge (net Nye's tensor) of the network
+* `dislocation_charge(N: DisNetManager)`: Return the dislocation charge (net Nye's tensor) of the network
     - `N`: `DisNetManager` object
 
 #### Input / output
