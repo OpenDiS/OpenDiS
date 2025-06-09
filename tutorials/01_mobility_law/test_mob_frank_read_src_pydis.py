@@ -7,7 +7,7 @@ np.set_printoptions(threshold=20, edgeitems=5)
 
 from framework.disnet_manager import DisNetManager
 from pydis import DisNode, DisNet, Cell, CellList
-from pydis import CalForce, TimeIntegration, Topology
+from pydis import CalForce, TimeIntegration
 from pydis import Collision, Remesh, VisualizeNetwork, SimulateNetwork
 
 from user_utils import My_MobilityLaw, My_Topology
