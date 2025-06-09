@@ -5,11 +5,10 @@ Provide mobility law functions given a DisNet object
 """
 
 import numpy as np
-from ..disnet import DisNet, DisNode
+from ..disnet import DisNet, DisNode, Tag
 from framework.disnet_manager import DisNetManager
 
 from typing import Tuple
-Tag = Tuple[int, int]
 
 
 class MobilityLaw:
