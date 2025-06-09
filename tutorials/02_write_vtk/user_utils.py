@@ -86,10 +86,10 @@ def save_DisNet_to_vtp(DM: DisNetManager, filename: str):
 class My_SimulateNetwork(SimulateNetwork):
     def step_write_files(self, DM: DisNetManager, state: dict):
         if self.write_freq != None:
-            tstep = state['tstep']
-            if tstep % self.write_freq == 0:
-                #DM.write_json(os.path.join(self.write_dir, f'disnet_{tstep}.json'))
-                save_DisNet_to_vtp(DM, os.path.join(self.write_dir, f'disnet_{tstep}.vtp'))
+            istep = state['istep']
+            if istep % self.write_freq == 0:
+                #DM.write_json(os.path.join(self.write_dir, f'disnet_{istep}.json'))
+                save_DisNet_to_vtp(DM, os.path.join(self.write_dir, f'disnet_{istep}.vtp'))
                 if self.save_state:
-                    with open(os.path.join(self.write_dir, f'state_{tstep}.pickle'), 'wb') as file:
+                    with open(os.path.join(self.write_dir, f'state_{istep}.pickle'), 'wb') as file:
                         pickle.dump(state, file)

@@ -107,24 +107,24 @@ class SimulateNetwork:
 
     def step_write_files(self, DM: DisNetManager, state: dict):
         if self.write_freq != None:
-            tstep = state['tstep']
-            if tstep % self.write_freq == 0:
-                DM.write_json(os.path.join(self.write_dir, f'disnet_{tstep}.json'))
+            istep = state['istep']
+            if istep % self.write_freq == 0:
+                DM.write_json(os.path.join(self.write_dir, f'disnet_{istep}.json'))
                 if self.save_state:
-                    with open(os.path.join(self.write_dir, f'state_{tstep}.pickle'), 'wb') as file:
+                    with open(os.path.join(self.write_dir, f'state_{istep}.pickle'), 'wb') as file:
                         pickle.dump(state, file)
 
     def step_print_info(self, DM: DisNetManager, state: dict):
         if self.print_freq != None:
-            tstep = state['tstep']
-            if tstep % self.print_freq == 0:
-                print("step = %d dt = %e"%(tstep, self.timeint.dt))
+            istep = state['istep']
+            if istep % self.print_freq == 0:
+                print("step = %d dt = %e"%(istep, self.timeint.dt))
 
     def step_visualize(self, DM: DisNetManager, state: dict):
         G = DM.get_disnet(DisNet)
         if self.plot_freq != None:
-            tstep = state['tstep']
-            if tstep % self.plot_freq == 0:
+            istep = state['istep']
+            if istep % self.plot_freq == 0:
                 self.vis.plot_disnet(G, fig=self.fig, ax=self.ax, trim=True, block=False, pause_seconds=self.plot_pause_seconds)
 
     def step_end(self, DM: DisNetManager, state: dict):
@@ -172,8 +172,8 @@ class SimulateNetwork:
             # plot initial configuration
             self.vis.plot_disnet(G, fig=self.fig, ax=self.ax, trim=True, block=False)
 
-        for tstep in range(self.max_step):
-            state['tstep'] = tstep
+        for istep in range(self.max_step):
+            state['istep'] = istep
             self.step(DM, state)
 
 
