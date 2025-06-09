@@ -8,7 +8,7 @@ np.set_printoptions(threshold=20, edgeitems=5)
 from framework.disnet_manager import DisNetManager
 from pydis import DisNode, DisNet, Cell, CellList
 from pydis import CalForce, MobilityLaw, TimeIntegration, Topology
-from pydis import Collision, Remesh, VisualizeNetwork, SimulateNetwork
+from pydis import Collision, Remesh, VisualizeNetwork
 
 from user_utils import My_SimulateNetwork
 

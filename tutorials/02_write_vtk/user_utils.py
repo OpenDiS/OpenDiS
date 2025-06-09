@@ -9,8 +9,6 @@ from pydis import DisNode, DisNet, Cell, CellList
 from pydis import CalForce, MobilityLaw, TimeIntegration, Topology
 from pydis import Collision, Remesh, VisualizeNetwork, SimulateNetwork
 
-from pydis.disnet import Tag
-
 try:
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D
@@ -20,7 +18,7 @@ except ImportError:
     print(' cannot import matplotlib or mpl_toolkits')
     print('-----------------------------------------')
 
-def save_DisNet_to_vtp(G, filename):
+def save_DisNet_to_vtp(DM: DisNetManager, filename: str):
     # Adapted from save_graph_for_paraview() written by Mychul Kim (@mckim2023) and Hanfeng Zhai (@hanfengzhai2)
     # ToDo: refactor this to be a member function of DisNet class
     import numpy as np
@@ -31,6 +29,7 @@ def save_DisNet_to_vtp(G, filename):
     start_time = time.time()
     if not filename.endswith('.vtp'): filename += '.vtp'
 
+    G = DM.get_disnet(DisNet)
     # ToDo: refactor code to not use networkx as an intermediate data structure
     nx_digraph = G.to_networkx()
     node_list = list(nx_digraph.nodes())
@@ -85,41 +84,12 @@ def save_DisNet_to_vtp(G, filename):
     print(f"  Saved to {filename} ({file_size_mb:.2f} MB) in {elapsed_time:.2f} seconds")
 
 class My_SimulateNetwork(SimulateNetwork):
-    def run(self, DM: DisNetManager, state: dict):
+    def step_write_files(self, DM: DisNetManager, state: dict):
         if self.write_freq != None:
-            os.makedirs(self.write_dir, exist_ok=True)
-
-        G = DM.get_disnet(DisNet)
-        if self.plot_freq != None:
-            try: 
-                fig = plt.figure(figsize=(8,8))
-                ax = plt.axes(projection='3d')
-            except NameError: print('plt not defined'); return
-            # plot initial configuration
-            self.vis.plot_disnet(G, fig=fig, ax=ax, trim=True, block=False)
-
-        for tstep in range(self.max_step):
-            self.step(DM, state)
-
-            if self.write_freq != None:
-                if tstep % self.write_freq == 0:
-                    #DM.write_json(os.path.join(self.write_dir, f'disnet_{tstep}.json'))
-                    print("I would like to write vtk file instead of json")
-                    save_DisNet_to_vtp(G, os.path.join(self.write_dir, f'disnet_{tstep}.vtp'))
-                    if self.save_state:
-                        with open(os.path.join(self.write_dir, f'state_{tstep}.pickle'), 'wb') as file:
-                            pickle.dump(state, file)
-
-            if self.print_freq != None:
-                if tstep % self.print_freq == 0:
-                    print("step = %d dt = %e"%(tstep, self.timeint.dt))
-
-            G = DM.get_disnet(DisNet)
-            if self.plot_freq != None:
-                if tstep % self.plot_freq == 0:
-                    self.vis.plot_disnet(G, fig=fig, ax=ax, trim=True, block=False, pause_seconds=self.plot_pause_seconds)
-
-        # plot final configuration
-        if self.plot_freq != None:
-            G = DM.get_disnet(DisNet)
-            self.vis.plot_disnet(G, fig=fig, ax=ax, trim=True, block=False)
+            tstep = state['tstep']
+            if tstep % self.write_freq == 0:
+                #DM.write_json(os.path.join(self.write_dir, f'disnet_{tstep}.json'))
+                save_DisNet_to_vtp(DM, os.path.join(self.write_dir, f'disnet_{tstep}.vtp'))
+                if self.save_state:
+                    with open(os.path.join(self.write_dir, f'state_{tstep}.pickle'), 'wb') as file:
+                        pickle.dump(state, file)
