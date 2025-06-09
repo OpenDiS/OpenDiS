@@ -22,6 +22,7 @@ except ImportError:
     print(' cannot import matplotlib or mpl_toolkits')
     print('-----------------------------------------')
 
+#class SimulateNetwork(SimulateNetwork_Base):
 class SimulateNetwork:
     """SimulateNetwork: class for simulating dislocation network
 
@@ -61,26 +62,100 @@ class SimulateNetwork:
 
         state["applied_stress"] = np.array(applied_stress)
 
-    def step(self, DM: DisNetManager, state: dict):
-        """step: take a time step of DD simulation on DisNet G
+    def step_begin(self, DM: DisNetManager, state: dict):
+        """step_begin: invoked at the begining of each time step
         """
+        pass
+
+    def step_integrate(self, DM: DisNetManager, state: dict):
+        """step_integrate: invoked for time-integration at each time step
+        """
+        #self.save_old_nodes(DM, state)
         state = self.calforce.NodeForce(DM, state)
-
         state = self.mobility.Mobility(DM, state)
-
         state = self.timeint.Update(DM, state)
-        
+        #self.plastic_strain(DM, state)
+
+    def step_post_integrate(self, DM: DisNetManager, state: dict):
+        """step_post_integrate: invoked after time-integration of each time step
+        """
+        pass
+
+    def step_topological_operations(self, DM: DisNetManager, state: dict):
+        """step_topological_operations: invoked for handling topological events at each time step
+        """
         if self.cross_slip is not None:
             self.cross_slip.Handle(DM, state)
-        
+
+        # The order of topology vs collision is opposite to ExaDiS
         if self.topology is not None:
-            state = self.topology.Handle(DM, state)
+            self.topology.Handle(DM, state)
 
         if self.collision is not None:
-            state = self.collision.HandleCol(DM, state)
+            self.collision.HandleCol(DM, state)
 
         if self.remesh is not None:
-            state = self.remesh.Remesh(DM, state)
+            self.remesh.Remesh(DM, state)
+
+    def step_update_response(self, DM: DisNetManager, state: dict):
+        """step_update_response: update applied stress and rotation if needed
+        """
+        if self.loading_mode != 'stress':
+            raise ValueError("invalide loading_mode in PyDiS SimulateNetwork")
+
+        return state
+
+    def step_write_files(self, DM: DisNetManager, state: dict):
+        if self.write_freq != None:
+            tstep = state['tstep']
+            if tstep % self.write_freq == 0:
+                DM.write_json(os.path.join(self.write_dir, f'disnet_{tstep}.json'))
+                if self.save_state:
+                    with open(os.path.join(self.write_dir, f'state_{tstep}.pickle'), 'wb') as file:
+                        pickle.dump(state, file)
+
+    def step_print_info(self, DM: DisNetManager, state: dict):
+        if self.print_freq != None:
+            tstep = state['tstep']
+            if tstep % self.print_freq == 0:
+                print("step = %d dt = %e"%(tstep, self.timeint.dt))
+
+    def step_visualize(self, DM: DisNetManager, state: dict):
+        G = DM.get_disnet(DisNet)
+        if self.plot_freq != None:
+            tstep = state['tstep']
+            if tstep % self.plot_freq == 0:
+                self.vis.plot_disnet(G, fig=self.fig, ax=self.ax, trim=True, block=False, pause_seconds=self.plot_pause_seconds)
+
+    def step_end(self, DM: DisNetManager, state: dict):
+        """step_end: invoked at the end of each time step
+        """
+        pass
+
+    def step(self, DM: DisNetManager, state: dict):
+        """step: take a time step of DD simulation on DisNetManager DM
+        """
+        # Step begin
+        self.step_begin(DM, state)
+
+        # Step time-integrate
+        self.step_integrate(DM, state)
+
+        # Step post-integrate
+        self.step_post_integrate(DM, state)
+
+        # Step topological operations
+        self.step_topological_operations(DM, state)
+
+        # Step update response
+        self.step_update_response(DM, state)
+
+        self.step_write_files(DM, state)
+        self.step_print_info(DM, state)
+        self.step_visualize(DM, state)
+
+        # Step end
+        self.step_end(DM, state)
 
         return state
 
@@ -91,34 +166,20 @@ class SimulateNetwork:
         G = DM.get_disnet(DisNet)
         if self.plot_freq != None:
             try: 
-                fig = plt.figure(figsize=(8,8))
-                ax = plt.axes(projection='3d')
+                self.fig = plt.figure(figsize=(8,8))
+                self.ax = plt.axes(projection='3d')
             except NameError: print('plt not defined'); return
             # plot initial configuration
-            self.vis.plot_disnet(G, fig=fig, ax=ax, trim=True, block=False)
+            self.vis.plot_disnet(G, fig=self.fig, ax=self.ax, trim=True, block=False)
 
         for tstep in range(self.max_step):
+            state['tstep'] = tstep
             self.step(DM, state)
 
-            if self.write_freq != None:
-                if tstep % self.write_freq == 0:
-                    DM.write_json(os.path.join(self.write_dir, f'disnet_{tstep}.json'))
-                    if self.save_state:
-                        with open(os.path.join(self.write_dir, f'state_{tstep}.pickle'), 'wb') as file:
-                            pickle.dump(state, file)
-
-            if self.print_freq != None:
-                if tstep % self.print_freq == 0:
-                    print("step = %d dt = %e"%(tstep, self.timeint.dt))
-
-            G = DM.get_disnet(DisNet)
-            if self.plot_freq != None:
-                if tstep % self.plot_freq == 0:
-                    self.vis.plot_disnet(G, fig=fig, ax=ax, trim=True, block=False, pause_seconds=self.plot_pause_seconds)
 
         # plot final configuration
         if self.plot_freq != None:
             G = DM.get_disnet(DisNet)
-            self.vis.plot_disnet(G, fig=fig, ax=ax, trim=True, block=False)
+            self.vis.plot_disnet(G, fig=self.fig, ax=self.ax, trim=True, block=False)
 
         return state
