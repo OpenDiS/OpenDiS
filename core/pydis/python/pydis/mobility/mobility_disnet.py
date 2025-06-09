@@ -7,11 +7,12 @@ Provide mobility law functions given a DisNet object
 import numpy as np
 from ..disnet import DisNet, DisNode, Tag
 from framework.disnet_manager import DisNetManager
+from framework.mobility_base import MobilityLaw_Base
 
 from typing import Tuple
 
 
-class MobilityLaw:
+class MobilityLaw(MobilityLaw_Base):
     """MobilityLaw: class for mobility laws
     """
     def __init__(self, state: dict={}, mobility_law: str='Relax', vmax: float=1e9) -> None:
