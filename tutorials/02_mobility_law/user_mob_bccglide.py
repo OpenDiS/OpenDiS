@@ -5,13 +5,11 @@ pydis_paths = ['../../python', '../../lib', '../../core/pydis/python']
 [sys.path.append(os.path.abspath(path)) for path in pydis_paths if not path in sys.path]
 
 from framework.disnet_manager import DisNetManager
-from pydis import DisNode, DisNet, Cell, CellList
-from pydis import CalForce, MobilityLaw, TimeIntegration, Topology
-from pydis import Collision, Remesh, VisualizeNetwork, SimulateNetwork
-
+from pydis import DisNode, DisNet, Cell
+from pydis import Topology
 from pydis.disnet import Tag
-
 from framework.mobility_base import MobilityLaw_Base
+
 
 class My_MobilityLaw(MobilityLaw_Base):
     """MobilityLaw: class for mobility laws
@@ -140,7 +138,7 @@ class My_Topology(Topology):
             print("Topology: force.__module__ = ", self.force.__module__)
             raise ValueError("Topology: force must come compatible modules")
         self.mobility = kwargs.get('mobility')
-        if not self.mobility.__module__.split('.')[0] in ['pydis', 'user_utils']:
+        if not self.mobility.__module__.split('.')[0] in ['pydis', 'user_mob_bccglide']:
             print("Topology: mobility.__module__ = ", self.mobility.__module__)
             raise ValueError("Topology: mobility must come compatible modules")
         self.Handle_Functions = {
