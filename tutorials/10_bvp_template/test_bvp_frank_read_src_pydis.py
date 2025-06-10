@@ -7,11 +7,11 @@ np.set_printoptions(threshold=20, edgeitems=5)
 
 from framework.disnet_manager import DisNetManager
 from pydis import DisNode, DisNet, Cell, CellList
-from pydis import CalForce, MobilityLaw, TimeIntegration, Topology
+from pydis import CalForce as CalForce_Bulk, MobilityLaw as MobilityLaw_Bulk, TimeIntegration, Topology
 from pydis import Collision, Remesh, VisualizeNetwork
 
-from bvp_dis import SimulationDriver, CalImageStress, CalImageForce
-from bvp_dis import Surface_MobilityLaw, Surface_Topology
+from bvp_dis import SimulationDriver, CalImageStress, CalForce, Surface_Topology
+from bvp_dis import CalForce as CalForce_withSurface, MobilityLaw as MobilityLaw_withSurface
 
 def init_frank_read_src_loop(arm_length=1.0, box_length=8.0, burg_vec=np.array([1.0,0.0,0.0]), pbc=False):
     '''Generate an initial Frank-Read source configuration
@@ -46,23 +46,23 @@ def main():
 
     state = {"burgmag": 3e-10, "mu": 50e9, "nu": 0.3, "a": 1.0, "maxseg": 0.04*Lbox, "minseg": 0.01*Lbox, "rann": 3.0, "mob": 1.0}
 
-    calforce  = CalForce(force_mode='LineTension', state=state)
-    mobility  = MobilityLaw(mobility_law='SimpleGlide', state=state)
+    calforce_bulk  = CalForce_Bulk(force_mode='LineTension', state=state)
+    mobility_bulk  = MobilityLaw_Bulk(mobility_law='SimpleGlide', state=state)
     timeint   = TimeIntegration(integrator='EulerForward', dt=1.0e-8, state=state)
-    topology  = Topology(split_mode='MaxDiss', state=state, force=calforce, mobility=mobility)
     collision = Collision(collision_mode='Proximity', state=state, nbrlist=nbrlist)
     remesh    = Remesh(remesh_rule='LengthBased', state=state)
 
-    # ToDo: Add image_stress and image_force modules
     image_stress = CalImageStress(state=state)
-    image_force = CalImageForce(state=state)
-    surface_mobility  = Surface_MobilityLaw(mobility_law='project', state=state)
-    surface_topology  = Surface_Topology(enforce_mode='CutSeg', state=state, force=calforce, mobility=mobility)
+    calforce = CalForce_withSurface(state=state, calforce_bulk=calforce_bulk)
+    mobility = MobilityLaw_withSurface(state=state, mobility_bulk=mobility_bulk)
+
+    # may need to define new Topology class to use compatible force module and mobility module
+    topology  = Topology(split_mode='MaxDiss', state=state, force=calforce_bulk, mobility=mobility_bulk)
+    surface_topology  = Surface_Topology(state=state, force=calforce, mobility=mobility)
 
     sim = SimulationDriver(calforce=calforce, mobility=mobility, timeint=timeint,
                           topology=topology, collision=collision, remesh=remesh, vis=vis,
-                          image_stress=image_stress, image_force=image_force,
-                          surface_mobility=surface_mobility, surface_topology=surface_topology,
+                          image_stress=image_stress, surface_topology=surface_topology,
                           state=state, max_step=2, loading_mode="stress",
                           applied_stress=np.array([0.0, 0.0, 0.0, 0.0, -4.0e8, 0.0]),
                           print_freq=10, plot_freq=10, plot_pause_seconds=0.01,
