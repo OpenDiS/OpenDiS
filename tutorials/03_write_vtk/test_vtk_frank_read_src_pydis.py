@@ -10,7 +10,8 @@ from pydis import DisNode, DisNet, Cell, CellList
 from pydis import CalForce, MobilityLaw, TimeIntegration, Topology
 from pydis import Collision, Remesh, VisualizeNetwork
 
-from user_utils import My_SimulateNetwork
+from user_write_vtk_1 import My_SimulateNetwork
+
 
 def init_frank_read_src_loop(arm_length=1.0, box_length=8.0, burg_vec=np.array([1.0,0.0,0.0]), pbc=False):
     '''Generate an initial Frank-Read source configuration

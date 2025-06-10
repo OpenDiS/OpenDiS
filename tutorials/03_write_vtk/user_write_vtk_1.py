@@ -5,18 +5,8 @@ pydis_paths = ['../../python', '../../lib', '../../core/pydis/python']
 [sys.path.append(os.path.abspath(path)) for path in pydis_paths if not path in sys.path]
 
 from framework.disnet_manager import DisNetManager
-from pydis import DisNode, DisNet, Cell, CellList
-from pydis import CalForce, MobilityLaw, TimeIntegration, Topology
-from pydis import Collision, Remesh, VisualizeNetwork, SimulateNetwork
+from pydis import DisNet, SimulateNetwork
 
-try:
-    import matplotlib.pyplot as plt
-    from mpl_toolkits.mplot3d import Axes3D
-    from mpl_toolkits.mplot3d.art3d import Line3DCollection
-except ImportError:
-    print('-----------------------------------------')
-    print(' cannot import matplotlib or mpl_toolkits')
-    print('-----------------------------------------')
 
 def save_DisNet_to_vtp(DM: DisNetManager, filename: str):
     # Adapted from save_graph_for_paraview() written by Mychul Kim (@mckim2023) and Hanfeng Zhai (@hanfengzhai2)
@@ -82,6 +72,7 @@ def save_DisNet_to_vtp(DM: DisNetManager, filename: str):
     elapsed_time = time.time() - start_time
     file_size_mb = os.path.getsize(filename) / (1024 * 1024)
     print(f"  Saved to {filename} ({file_size_mb:.2f} MB) in {elapsed_time:.2f} seconds")
+
 
 class My_SimulateNetwork(SimulateNetwork):
     def step_write_files(self, DM: DisNetManager, state: dict):
