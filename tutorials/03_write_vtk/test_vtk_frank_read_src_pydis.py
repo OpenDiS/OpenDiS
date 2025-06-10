@@ -10,8 +10,6 @@ from pydis import DisNode, DisNet, Cell, CellList
 from pydis import CalForce, MobilityLaw, TimeIntegration, Topology
 from pydis import Collision, Remesh, VisualizeNetwork
 
-from user_write_vtk_1 import My_SimulateNetwork
-
 
 def init_frank_read_src_loop(arm_length=1.0, box_length=8.0, burg_vec=np.array([1.0,0.0,0.0]), pbc=False):
     '''Generate an initial Frank-Read source configuration
@@ -35,6 +33,7 @@ def init_frank_read_src_loop(arm_length=1.0, box_length=8.0, burg_vec=np.array([
 
     return DisNetManager(DisNet(cell=cell, rn=rn, links=links))
 
+
 def main():
     global net, sim, state
 
@@ -53,6 +52,18 @@ def main():
     collision = Collision(collision_mode='Proximity', state=state, nbrlist=nbrlist)
     remesh    = Remesh(remesh_rule='LengthBased', state=state)
 
+    option = sys.argv[1] if len(sys.argv) > 1 else "1"
+    
+    # Import user-defined driver generating vtk output files based on option number
+    if option == "1":
+        print('Use My_SimulateNetwork from user_write_vtk_1.py')
+        from user_write_vtk_1 import My_SimulateNetwork
+    elif option == "2":
+        print('Use My_SimulateNetwork from user_write_vtk_2.py')
+        from user_write_vtk_2 import My_SimulateNetwork
+    else:
+        raise ValueError(f'invalid option {option}')
+    
     sim = My_SimulateNetwork(calforce=calforce, mobility=mobility, timeint=timeint,
                           topology=topology, collision=collision, remesh=remesh, vis=vis,
                           state=state, max_step=200, loading_mode="stress",
