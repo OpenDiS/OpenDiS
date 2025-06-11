@@ -36,13 +36,23 @@ def init_frank_read_src_loop(arm_length=1.0, box_length=8.0, burg_vec=np.array([
 
     return DisNetManager(ExaDisNet(cell, rn, links))
     
-def main():
+def main(plot=True):
     global net, sim, state
     
     Lbox = 1000.0
     net = init_frank_read_src_loop(box_length=Lbox, arm_length=0.125*Lbox, pbc=True)
 
-    vis = VisualizeNetwork()
+    if plot:
+        try:
+            vis = VisualizeNetwork()
+        except:
+            print("")
+            print("Failed to create VisualizeNetwork object")
+            print("Try run with option  --no-plot")
+            print("")
+            raise
+    else:
+        vis = None
     
     state = {"burgmag": 3e-10, "mu": 50e9, "nu": 0.3, "a": 1.0, "maxseg": 0.04*Lbox, "minseg": 0.01*Lbox, "rann": 3.0}
     
@@ -65,7 +75,12 @@ def main():
 if __name__ == "__main__":
     pyexadis.initialize()
 
-    main()
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--no-plot', dest='plot', action='store_false', default=True)
+    args = parser.parse_args()
+
+    main(plot=args.plot)
 
     # explore the network after simulation
     G  = net.get_disnet(ExaDisNet)
