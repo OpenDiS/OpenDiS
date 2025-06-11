@@ -20,11 +20,9 @@ def save_DisNet_to_vtp(DM: DisNetManager, filename: str):
     if not filename.endswith('.vtp'): filename += '.vtp'
 
     G = DM.get_disnet(DisNet)
-    # ToDo: refactor code to not use networkx as an intermediate data structure
-    nx_digraph = G.to_networkx()
-    node_list = list(nx_digraph.nodes())
+    node_list = list(G.all_nodes_tags())
     node_to_index = {node: i for i, node in enumerate(node_list)}
-    positions = {node: nx_digraph.nodes[node]['R'] for node in node_list}
+    positions = {node: G.nodes(node).view()['R'] for node in node_list}
     
     # Create points for nodes
     points = vtkPoints()
@@ -44,19 +42,18 @@ def save_DisNet_to_vtp(DM: DisNetManager, filename: str):
     # Store all lines in a single array
     all_lines = vtkCellArray()
     
-    for u, v in nx_digraph.edges():
-        if u > v:
-            R1 = positions[u]
-            R2 = positions[v]
-            image_pos = G.cell.closest_image(Rref=R1, R=R2)
-            all_points.InsertNextPoint(image_pos[0], image_pos[1], image_pos[2])
+    for u, v in G.all_segments_tags():
+        R1 = positions[u]
+        R2 = positions[v]
+        image_pos = G.cell.closest_image(Rref=R1, R=R2)
+        all_points.InsertNextPoint(image_pos[0], image_pos[1], image_pos[2])
+
+        line = vtkLine()
+        line.GetPointIds().SetId(0, node_to_index[u])
+        line.GetPointIds().SetId(1, point_count)
+        all_lines.InsertNextCell(line)
             
-            line = vtkLine()
-            line.GetPointIds().SetId(0, node_to_index[u])
-            line.GetPointIds().SetId(1, point_count)
-            all_lines.InsertNextCell(line)
-            
-            point_count += 1
+        point_count += 1
 
     # Create polydata with all points and lines
     polydata = vtkPolyData()
