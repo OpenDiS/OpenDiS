@@ -8,10 +8,8 @@ from framework.disnet_manager import DisNetManager
 from pydis import DisNet, SimulateNetwork
 
 
-def save_DisNet_to_vtp(DM: DisNetManager, filename: str):
+def save_DisNet_to_vtp(DM: DisNetManager, filename: str, pbc_tol=1e-10):
     # Adapted from save_graph_for_paraview() written by Mychul Kim (@mckim2023) and Hanfeng Zhai (@hanfengzhai2)
-    # ToDo: refactor this to be a member function of DisNet class
-    import numpy as np
     from vtk import (vtkPoints, vtkCellArray, vtkPolyData, vtkLine, 
                     vtkFloatArray, vtkXMLPolyDataWriter, vtkIdList)
     import time
@@ -24,12 +22,6 @@ def save_DisNet_to_vtp(DM: DisNetManager, filename: str):
     node_to_index = {node: i for i, node in enumerate(node_list)}
     positions = {node: G.nodes(node).view()['R'] for node in node_list}
     
-    # Create points for nodes
-    points = vtkPoints()
-    for node in node_list:
-        pos = positions[node]
-        points.InsertNextPoint(pos[0], pos[1], pos[2])
-    
     # Process edges correctly with PBC
     point_count = len(node_list)  # Starting index for periodic image points
     
@@ -41,20 +33,23 @@ def save_DisNet_to_vtp(DM: DisNetManager, filename: str):
     
     # Store all lines in a single array
     all_lines = vtkCellArray()
-    
+
     for u, v in G.all_segments_tags():
         R1 = positions[u]
         R2 = positions[v]
         image_pos = G.cell.closest_image(Rref=R1, R=R2)
-        all_points.InsertNextPoint(image_pos[0], image_pos[1], image_pos[2])
-
         line = vtkLine()
         line.GetPointIds().SetId(0, node_to_index[u])
-        line.GetPointIds().SetId(1, point_count)
+
+        if np.max(np.abs(image_pos - R2)) > pbc_tol:
+            all_points.InsertNextPoint(image_pos[0], image_pos[1], image_pos[2])
+            line.GetPointIds().SetId(1, point_count)
+            point_count += 1
+        else:
+            line.GetPointIds().SetId(1, node_to_index[v])
+
         all_lines.InsertNextCell(line)
             
-        point_count += 1
-
     # Create polydata with all points and lines
     polydata = vtkPolyData()
     polydata.SetPoints(all_points)
