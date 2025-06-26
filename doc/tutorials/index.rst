@@ -10,3 +10,4 @@ Tutorials
    strain_hardening/index
    initial_configuration
    setting_simulation
+   workshop/workshop
