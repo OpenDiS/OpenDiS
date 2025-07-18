@@ -33,7 +33,7 @@ class SimulateNetwork:
                  dt0: float=1.0e-8,
                  max_step: int=10,
                  loading_mode: str=None,
-                 applied_stress: np.ndarray=None,
+                 applied_stress: np.ndarray=np.zeros(6),
                  print_freq: int=None,
                  plot_freq: int=None,
                  plot_pause_seconds: float=None,
@@ -101,7 +101,7 @@ class SimulateNetwork:
         """step_update_response: update applied stress and rotation if needed
         """
         if self.loading_mode != 'stress':
-            raise ValueError("invalide loading_mode in PyDiS SimulateNetwork")
+            raise ValueError("invalid loading_mode in PyDiS SimulateNetwork")
 
         return state
 
@@ -121,11 +121,10 @@ class SimulateNetwork:
                 print("step = %d dt = %e"%(istep, self.timeint.dt))
 
     def step_visualize(self, DM: DisNetManager, state: dict):
-        G = DM.get_disnet(DisNet)
-        if self.plot_freq != None:
+        if self.vis != None and self.plot_freq != None:
             istep = state['istep']
             if istep % self.plot_freq == 0:
-                self.vis.plot_disnet(G, fig=self.fig, ax=self.ax, trim=True, block=False, pause_seconds=self.plot_pause_seconds)
+                self.vis.plot_disnet(DM, fig=self.fig, ax=self.ax, trim=True, block=False, pause_seconds=self.plot_pause_seconds)
 
     def step_end(self, DM: DisNetManager, state: dict):
         """step_end: invoked at the end of each time step
@@ -163,14 +162,13 @@ class SimulateNetwork:
         if self.write_freq != None:
             os.makedirs(self.write_dir, exist_ok=True)
 
-        G = DM.get_disnet(DisNet)
-        if self.plot_freq != None:
+        if self.vis != None and self.plot_freq != None:
             try: 
                 self.fig = plt.figure(figsize=(8,8))
                 self.ax = plt.axes(projection='3d')
             except NameError: print('plt not defined'); return
             # plot initial configuration
-            self.vis.plot_disnet(G, fig=self.fig, ax=self.ax, trim=True, block=False)
+            self.vis.plot_disnet(DM, fig=self.fig, ax=self.ax, trim=True, block=False)
 
         for istep in range(self.max_step):
             state['istep'] = istep
@@ -178,8 +176,7 @@ class SimulateNetwork:
 
 
         # plot final configuration
-        if self.plot_freq != None:
-            G = DM.get_disnet(DisNet)
-            self.vis.plot_disnet(G, fig=self.fig, ax=self.ax, trim=True, block=False)
+        if self.vis != None and self.plot_freq != None:
+            self.vis.plot_disnet(DM, fig=self.fig, ax=self.ax, trim=True, block=False)
 
         return state

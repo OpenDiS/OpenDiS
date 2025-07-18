@@ -6,6 +6,7 @@ Provide plotting functions given a DisNet object
 
 import numpy as np
 from ..disnet import DisNet
+from framework.disnet_manager import DisNetManager
 
 try:
     import matplotlib.pyplot as plt
@@ -24,7 +25,7 @@ class VisualizeNetwork:
     def __init__(self, **kwargs) -> None:
         pass
 
-    def plot_disnet(self, G: DisNet,
+    def plot_disnet(self, DM: DisNetManager, state: dict={},
                     plot_links=True, trim=False,
                     fig=None, ax=None, block=False, pause_seconds=0.01):
         if fig==None:
@@ -34,6 +35,7 @@ class VisualizeNetwork:
             try: ax = plt.axes(projection='3d')
             except NameError: print('plt not defined'); return
 
+        G = DM.get_disnet(DisNet)
         self.bounds = np.array([-0.5*np.diag(G.cell.h), 0.5*np.diag(G.cell.h)]) + G.cell.center()
 
         rn = G.pos_array()
