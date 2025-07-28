@@ -13,7 +13,7 @@ except ImportError:
 
 import matplotlib.pyplot as plt
 
-from user_precipitates import Precipitate, SimulationDriver, VisualizeNetworkPrecips
+from user_precipitates import Precipitate, My_SimulateNetwork, My_VisualizeNetwork
 
 
 def init_line_config(Lbox, burg, plane, theta, maxseg):
@@ -87,7 +87,7 @@ if __name__ == "__main__":
     precips = [Precipitate(p, r) for p, r in zip(ppos, rp)]
     
     #vis = None
-    vis = VisualizeNetworkPrecips(precips=precips)
+    vis = My_VisualizeNetwork(precips=precips)
     
     applied_stress = np.array([0.0, 0.0, 0.0, 0.0, 1e8, 0.0]) # xx,yy,zz,yz,xz,xy in Pa
     
@@ -99,7 +99,7 @@ if __name__ == "__main__":
     remesh     = Remesh(remesh_rule='LengthBased', state=state)
     cross_slip = CrossSlip(cross_slip_mode='ForceBasedSerial', state=state, force=calforce)
     
-    sim = SimulationDriver(
+    sim = My_SimulateNetwork(
         calforce=calforce, mobility=mobility, timeint=timeint, collision=collision,
         topology=topology, remesh=remesh, cross_slip=cross_slip, vis=vis,
         loading_mode='stress', applied_stress=applied_stress,

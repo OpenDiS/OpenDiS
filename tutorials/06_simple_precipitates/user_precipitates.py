@@ -23,12 +23,12 @@ class Precipitate:
         self.radius = radius
 
 
-class VisualizeNetworkPrecips(VisualizeNetwork):
-    """VisualizeNetworkPrecips
+class My_VisualizeNetwork(VisualizeNetwork):
+    """My_VisualizeNetwork
     User-defined visualizer to plot dislocations and precipitates
     """
     def __init__(self, *args, **kwargs) -> None:
-        super(VisualizeNetworkPrecips, self).__init__(*args, **kwargs)
+        super(My_VisualizeNetwork, self).__init__(*args, **kwargs)
         self.precips = kwargs.get("precips")
         
     def plot_sphere(self, ax, pos, radius):
@@ -55,12 +55,12 @@ class VisualizeNetworkPrecips(VisualizeNetwork):
         plt.pause(pause_seconds)
 
 
-class SimulationDriver(SimulateNetwork):
-    """SimulationDriver
+class My_SimulateNetwork(SimulateNetwork):
+    """My_SimulateNetwork
     User-defined simulation driver that adds the precipitate-dislocation interaction
     """
     def __init__(self, *args, **kwargs) -> None:
-        super(SimulationDriver, self).__init__(*args, **kwargs)
+        super(My_SimulateNetwork, self).__init__(*args, **kwargs)
         self.precips = kwargs.get("precips")
     
     def precipitates_intersection(self, N: DisNetManager, state: dict, xold):

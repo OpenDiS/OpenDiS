@@ -11,7 +11,7 @@ try:
 except ImportError:
     raise ImportError('Cannot import pyexadis')
 
-from user_rate_tensor import SimulationDriver
+from user_rate_tensor import My_SimulateNetwork
 
 
 def example_fcc_Cu_15um_1e3_rate_tensor():
@@ -55,12 +55,12 @@ def example_fcc_Cu_15um_1e3_rate_tensor():
     
     strain_rate_tensor = 1e3*np.array([1.,1.,-1.,0.,0.,0.]) # xx,yy,zz,yz,xz,xy
     
-    sim = SimulationDriver(calforce=calforce, mobility=mobility, timeint=timeint, collision=collision, 
-                           topology=topology, remesh=remesh, cross_slip=cross_slip, vis=vis,
-                           loading_mode='strain_rate_tensor', strain_rate_tensor=strain_rate_tensor,
-                           max_step=100, burgmag=state["burgmag"], state=state,
-                           print_freq=1, plot_freq=10, plot_pause_seconds=0.0001,
-                           write_freq=100, write_dir=output_dir)
+    sim = My_SimulateNetwork(calforce=calforce, mobility=mobility, timeint=timeint, collision=collision, 
+                             topology=topology, remesh=remesh, cross_slip=cross_slip, vis=vis,
+                             loading_mode='strain_rate_tensor', strain_rate_tensor=strain_rate_tensor,
+                             max_step=100, burgmag=state["burgmag"], state=state,
+                             print_freq=1, plot_freq=10, plot_pause_seconds=0.0001,
+                             write_freq=100, write_dir=output_dir)
     sim.run(net, state)
     
     
