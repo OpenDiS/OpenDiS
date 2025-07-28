@@ -31,6 +31,8 @@ class TimeIntegration:
         applied_stress = state["applied_stress"]
         self.Update_Functions[self.integrator](G, vel_dict, applied_stress)
         state["dt"] = self.dt
+        t = state.get('time', 0.0)
+        state["time"] = t + state["dt"]
         return state
 
     def Update_EulerForward(self, G: DisNet, vel_dict: dict, applied_stress: np.ndarray) -> None:
