@@ -137,6 +137,11 @@ class Cell:
         """
         return self.origin + 0.5*np.dot(self.h, np.ones(3))
 
+    def volume(self) -> float:
+        """volume: return the volume of the cell
+        """
+        return np.abs(np.linalg.det(self.h))
+
     def copy(self):
         """copy: return a deep copy of the cell
         """
