@@ -34,7 +34,7 @@ if option == "1":
     G = DisNet(cell=cell, rn=rn, links=links)
     N = DisNetManager(G)
 
-    VisualizeNetwork().plot_disnet(G, block=True)
+    VisualizeNetwork().plot_disnet(N, block=True)
 
 
 elif option == "2":
