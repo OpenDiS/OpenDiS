@@ -214,10 +214,10 @@ Available time-integrator types are:
     - `state["maxdt"]` (optional): maximum value for the time step size in s. Default: 1e-7.
 
 
-* `integrator='Subcycling'`: Subcycling time integrator where force contributions are separated in various groups (5 groups) based on segment pair distances and integrated in turn in an asynchronous fashion. The force model must be `SUBCYCLING_MODEL`. Specific integrator parameters:
+* `integrator='Subcycling'`: Subcycling time integrator where force contributions are separated in Ng groups (Ng_max = 5 groups) based on segment pair distances and integrated in turn in an asynchronous fashion. The force model must be `SUBCYCLING_MODEL`. Specific integrator parameters:
     - `force`: `CalForce` module to be used for nodal force calculations. Must be a `CalForce` `SUBCYCLING_MODEL` model.
     - `mobility`: `MobilityLaw` module to be used for nodal velocities calculations.
-    - `rgroups`: list of group radii in increasing order. Must be a list of size 4.
+    - `rgroups`: list of group radii in increasing order. Must be a list of size Ng-1.
     - `state["rtol"]`: absolute tolerance in `burgmag` units.
     - `rtolrel` (optional): relative tolerance in `burgmag` units. Default: 0.1. 
     - `rtolth` (optional): threshold tolerance in `burgmag` units. Default: 1.0.
@@ -298,7 +298,7 @@ Available topology modes are:
 
 
 ### Remesh
-A remesh module is declared using the `Remesh` class from `python/pyexadis_base.py`. `Collision` is a wrapper class for performing remeshing of the dislocation segments.
+A remesh module is declared using the `Remesh` class from `python/pyexadis_base.py`. `Remesh` is a wrapper class for performing remeshing of the dislocation segments.
 
 #### Usage
 A `Remesh` module is instantiated by providing the global `state` dictionary, the remesh rule, and specific parameters to the remesh rule:
@@ -310,6 +310,8 @@ Available remesh rules are:
 * `remesh_rule='LengthBased'`: Remeshing procedure based on minimum and maximum segment length parameters. Segments longer than `state["maxseg"]` will be bisected. End-nodes of segments shorter than `state["maxseg"]` will be merged when allowed. Specific remesh parameters:
     - `state["maxseg"]`: maximum segment discretization size length in units of `burgmag`.
     - `state["minseg"]`: minimum segment discretization size length in units of `burgmag`.
+    - `coarsen_mode` (optional): coarsening procedure: 0 = segment-based coarsening, 1 = node-based coarsening. Default: 1.
+    - `remove_small_loops` (optional): flag to attempt to remove small dislocation loops from the simulation that can negatively affect the time step size. Default: 0.
 
 
 * `remesh_rule='None'`: No remesh procedure.
@@ -332,6 +334,8 @@ A `CrossSlip` module is instantiated by providing the global `state` dictionary,
 ```python
 cross_slip = CrossSlip(state=state, cross_slip_mode='CrossSlipName', ...)
 ```
+Cross-slip requires the use of glide planes in a simulation. For BCC crystals, it must be explicitly enabled by setting `state["use_glide_planes"] = 1`.
+
 Available cross-slip modes are:
 
 * `cross_slip_mode='ForceBasedSerial'`: Cross-slip procedure where near screw segments are cross-slipped to a new plane when the resolved force on the new plane exceeds that of the original plane by some threshold. This module is executed in serial fashion on the host. Specific cross-slip parameters:
