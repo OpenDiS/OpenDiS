@@ -26,7 +26,7 @@ state = {
 }
 ```
 
-The global simulation parameters are generally those parameters that are shared by several modules and defining them in the `state` dictionary ensures that there value will consistent across the different modules used in a simulation. Some parameters are required and other are optional, although it is good practice to specify a maximum number of these. A description of the typical parameters is given at [Setting up a simulation section](../../tutorials/setting_simulation.md#defining-the-global-state-dictionary).
+The global simulation parameters are generally those parameters that are shared by several modules and defining them in the `state` dictionary ensures that their value will be consistent across the different modules used in a simulation. Some parameters are required and other are optional, although it is good practice to specify a maximum number of these. A description of the typical parameters is given at [Setting up a simulation section](../../tutorials/setting_simulation.md#defining-the-global-state-dictionary).
 
 By specification, the `state` dictionary needs to be passed as an argument to modules constructors.
 
