@@ -89,8 +89,11 @@ Below is a list of the various CMake build option specific to ExaDiS. The build 
 * `EXADIS_FFT` (optional, default=`On`): enable/disable compilation of the FFT-based long-range force calculation module
 * `FFTW_INC_DIR` (optional, default=''): specifies the path of the FFTW include directory
 * `FFTW_LIB_DIR` (optional, default=''): specifies the path of the FFTW library directory
+* `EXADIS_FULL_UNIFIED_MEMORY` (optional, default=`On`): enable/disable maximal use of the unified memory
+* `EXADIS_USE_COMPUTE_MAPS` (optional, default=`Off`): use compute maps instead of atomics operations
 * `EXADIS_BUILD_EXAMPLES` (optional, default=`Off`): builds examples that are in the `examples/` folder
-* `EXADIS_BUILD_TESTS` (optional, default=`Off`): builds test cases that are in the `tests/` folder
+* `EXADIS_BUILD_TESTS` (optional, default=`Off`): builds tests that are in the `tests/` folder
+* `EXADIS_BUILD_TOOLS` (optional, default=`Off`): builds tools that are in the `tools/` folder
 
 Kokkos related main build options: (see full list [here](https://kokkos.org/kokkos-core-wiki/keywords.html))
 * `Kokkos_ENABLE_SERIAL` (optional, default=`On`): enable/disable compilation with the serial (CPU) backend
