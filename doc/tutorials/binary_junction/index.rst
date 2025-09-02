@@ -9,5 +9,3 @@ Binary Junction
 
    binary_junction_by_python
    binary_junction_by_pyexadis
-   binary_junction_by_pydis_pyexadis
-   binary_junction_by_exadis
