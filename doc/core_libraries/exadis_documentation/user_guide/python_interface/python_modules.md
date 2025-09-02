@@ -1,5 +1,5 @@
-## Python modules: pyexadis
-This section documents the various ExaDiS modules available through the python interface, `pyexadis`. These modules are bindings to the backend C++ modules implemented in ExaDiS. For documentation about the backend C++ modules please see the [Developer guide](../developer_guide/index) section of the documentation.
+## Python modules: `pyexadis_base`
+This section documents the various ExaDiS modules available through the python interface `pyexadis_base`. These modules contain bindings to the backend C++ modules implemented in ExaDiS that follow the OpenDiS specifications. For documentation about the raw python binding exposed in the `pyexadis` library object, see [Python binding: `pyexadis`](python_binding.md). For documentation about the backend C++ modules please see the [Developer guide](../../developer_guide/index) section of the documentation.
 
 ```{hint}
 Before going through this section, make sure you have read the [tutorial section](tutorials.md#setting-up-a-python-driven-simulation) on how to set up a script/simulation using the `pyexadis` interface to ExaDiS.
@@ -10,9 +10,9 @@ Before going through this section, make sure you have read the [tutorial section
 #### `ExaDisNet`
 Dislocation networks are defined as instances of the `ExaDisNet` class from `python/pyexadis_base.py`. `ExaDisNet` is a wrapper class around the internal data structure representation of the dislocation network in ExaDiS, which internally handles memory movements between the different execution spaces (e.g. CPU to GPU).
 
-See section [ExaDisNet Class](../../../code_structure/data_structure/exadisnet_class.md) for more information.
+See section [ExaDisNet Class](../../../../code_structure/data_structure/exadisnet_class.md) for more information.
 
-An `ExaDisNet` network can be instantiated in several ways, see section [Creating initial dislocation configurations](../../../tutorials/initial_configuration).
+An `ExaDisNet` network can be instantiated in several ways, see section [Creating initial dislocation configurations](../../../../tutorials/initial_configuration).
 
 ````{Important}
 When used in ExaDiS or OpenDiS modules, the dislocation network defined in a `ExaDisNet` object must first be wrapped into a `DisNetManager` object before it can be used within modules (see next section), e.g.
@@ -38,7 +38,7 @@ class MyExaDisModule():
 ```
 Internally, `DisNetManager` retains the type of the active network instance to minimize the number of conversion and memory transfer operations.
 
-See section [DisNetManager Class](../../../code_structure/data_structure/disnetmanager_class.md) to get more information.
+See section [DisNetManager Class](../../../../code_structure/data_structure/disnetmanager_class.md) to get more information.
 
 
 ### Forces

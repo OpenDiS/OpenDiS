@@ -7,5 +7,5 @@ User guide
 
    obtaining
    tutorials
-   python_modules
+   python_interface/index
    tools
