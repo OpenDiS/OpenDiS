@@ -64,6 +64,10 @@ This is to make sure that Kokkos is initialized and terminated properly on the c
 * `num_threads`: specifies the number of OpenMP threads to be used. For instance, use `pyexadis.initialize(num_threads=8)` to run a simulation using 8 threads. If not specified (default), ExaDiS will use the maximum number of threads available on the machine or defined from the `OMP_NUM_THREADS` environment variable if set.
 * `device_id`: specifies the id of the device (GPU) to be used. If not specified (default), ExaDiS will select the first entry in the list of available devices.
 
+If `pyexadis.initialize()` is not called before execution of a `pyexadis` function, the code will throw an error of the following type:
+```
+Constructing View and initializing data with uninitialized execution space
+```
 
 #### 3. Defining the global state dictionary
 
