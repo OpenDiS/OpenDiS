@@ -9,7 +9,7 @@ An `ExaDisNet` network can be instantiated in several ways. The native way is to
 G = ExaDisNet(cell, nodes, segs)
 ```
 with
-* `cell`: `pyexadis.Cell` object defining the simulation cell. Constructor arguments:
+* `cell`: [`pyexadis.Cell`](../../core_libraries/exadis_documentation/user_guide/python_interface/python_binding.rst#pyexadis.Cell) object defining the simulation cell. Constructor arguments:
     - `h` (required): simulation cell matrix (columns are the cell vectors)
     - `origin` (optional): cell origin. Default: (0,0,0)
     - `is_periodic` (optional): periodic flag along the three dimensions. Default: [true,true,true].
@@ -58,7 +58,7 @@ N = DisNetManager(G)
 
 ### Properties
 - `ExaDisNet.net`: pointer to the ExaDiS network binding object
-- `ExaDisNet.cell`: ExaDiS network cell object
+- `ExaDisNet.cell`: ExaDiS network [cell object](../../core_libraries/exadis_documentation/user_guide/python_interface/python_binding.rst#pyexadis.Cell)
 
 ### Methods
 - `ExaDisNet.import_data(data)`: Set the content of the `ExaDisNet` object by importing it from a `data` dictionary. Argument `data` must be the output of an `export_data()` method.
