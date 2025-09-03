@@ -109,6 +109,7 @@ For ExaDiS modules, the following global parameters can be specified:
 * `split3node` (optional): Toggle to enable splitting of 3-nodes (only for BCC crystals). Default: 1.
 * `use_glide_planes` (optional): Toggle to enable the use of glide planes. Default: 1 for `'fcc'`, 0 for `'bcc'`.
 * `enforce_glide_planes` (optional): Toggle to enforce glide constraints by systematically projecting node velocities onto glide planes. Default: value of `use_glide_planes`.
+* `num_bcc_plane_families` (optional): Option to specify the number of BCC plane families when `use_glide_planes = 1`. Valid options: `1`: {110} planes, `2`: {110} and {112} planes, `3`: {110}, {112}, and {123} planes. Default: `2`.
 
 By specification, the `state` dictionary needs to be later passed as an argument when initializing simulation modules.
 
