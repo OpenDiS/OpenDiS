@@ -1,8 +1,8 @@
 ## Python modules: `pyexadis_base`
-This section documents the various ExaDiS modules available through the python interface `pyexadis_base`. These modules contain bindings to the backend C++ modules implemented in ExaDiS that follow the OpenDiS specifications. For documentation about the raw python binding exposed in the `pyexadis` library object, see [Python binding: `pyexadis`](python_binding.md). For documentation about the backend C++ modules please see the [Developer guide](../../developer_guide/index) section of the documentation.
+This section documents the various ExaDiS modules available through the python interface `pyexadis_base`. These modules contain bindings to the backend C++ modules implemented in ExaDiS that follow the OpenDiS specifications. For documentation about the raw python binding exposed in the `pyexadis` library object, see [Python binding: `pyexadis`](python_binding.rst). For documentation about the backend C++ modules please see the [Developer guide](../../developer_guide/index) section of the documentation.
 
 ```{hint}
-Before going through this section, make sure you have read the [tutorial section](tutorials.md#setting-up-a-python-driven-simulation) on how to set up a script/simulation using the `pyexadis` interface to ExaDiS.
+Before going through this section, make sure you have read the [tutorial section](../tutorials.md#setting-up-a-python-driven-simulation) on how to set up a script/simulation using the `pyexadis` interface to ExaDiS.
 ```
 
 ### Dislocation network
@@ -492,6 +492,9 @@ A set of utility functions are provided in file `python/pyexadis_utils.py`. Avai
     - `seglist`: list of segment indices to delete
 
 #### Network properties
+
+* `get_segments_end_points(N: DisNetManager)`: Return the list of dislocation segments end points of the network for which the closest image convention is applied to the second end point
+    - `N`: `DisNetManager` object
 
 * `get_segments_length(N: DisNetManager)`: Return the list of dislocation segment lenghts of the network
     - `N`: `DisNetManager` object
