@@ -48,12 +48,8 @@ General Classes
       :param nextdt: Starting timestep size
       :param split3node: Enable splitting of 3-nodes
 
-   .. py:method:: set_crystal(crystal)
-
-      Set the crystal type.
-
-   .. py:attribute:: crystal
-      :type: str
+   .. py:attribute:: crystalparams
+      :type: CrystalParams
 
       Crystal parameters.
 
@@ -116,7 +112,11 @@ General Classes
 
 .. py:class:: pyexadis.CrystalParams
 
-   Parameters for crystal orientation and glide planes.
+   Parameters for crystal type, orientation, and glide planes.
+   
+   .. py:method:: set_crystal_type(str)
+
+      Set the crystal type.
 
    .. py:attribute:: R
       :type: array
@@ -154,6 +154,11 @@ General Classes
 
       Initialize with crystal type and orientation matrix.
 
+   .. py:method:: __init__(crystalparams)
+      :noindex:
+
+      Initialize with crystal parameters.
+
    .. py:attribute:: type
       :type: int
 
@@ -177,7 +182,7 @@ General Classes
 
 .. py:class:: pyexadis.Cell
 
-   Simulation cell, periodic boundary conditions, and geometry.
+   Simulation cell and periodic boundary conditions.
 
    .. py:method:: __init__(Lbox, centered=False)
       :noindex:
@@ -408,7 +413,7 @@ General Classes
 
       :rtype: int
 
-   .. py:method:: dislocation_density()
+   .. py:method:: dislocation_density(burgmag)
 
       Get the dislocation density.
 
@@ -421,36 +426,36 @@ General Classes
 
    .. py:method:: nodes(i)
 
-      Get the i-th node.
+      Get the i-th node by reference.
 
       :param i: Node index (int)
       :rtype: DisNode
 
    .. py:method:: segs(i)
 
-      Get the i-th segment.
+      Get the i-th segment by reference.
 
       :param i: Segment index (int)
       :rtype: DisSeg
 
    .. py:method:: conn(i)
 
-      Get the connectivity for the i-th node.
+      Get the connectivity object for the i-th node by reference.
 
       :param i: Node index (int)
       :rtype: Conn
 
-   .. py:method:: find_connection(node, seg)
+   .. py:method:: find_connection(n1, n2)
 
-      Find a connection.
+      Find connection index c in the Conn array of node 1 that connects to node 2, i.e. where Conn(n1).node(c) == n2.
 
-      :param node: Node index (int)
-      :param seg: Segment index (int)
+      :param n1: Node 1 index (int)
+      :param n2: Node 2 index (int)
       :rtype: int
 
    .. py:method:: generate_connectivity()
 
-      Generate connectivity information for the network.
+      Generate internal connectivity array for the network.
 
    .. py:method:: _add_node(pos, constraint=UNCONSTRAINED)
 
@@ -468,39 +473,48 @@ General Classes
       :param burg: Burgers vector (Vec3)
       :param plane: Plane normal (Vec3, default zero vector)
 
-   .. py:method:: move_node(node_index, new_pos)
+   .. py:method:: move_node(node_index, new_pos, dEp)
 
       Move a node to a new position.
 
       :param node_index: Index of node (int)
       :param new_pos: New position (Vec3)
+      :param dEp: Reference to the plastic strain variable to be incremented (Mat33)
 
-   .. py:method:: split_seg(seg_index)
+   .. py:method:: split_seg(seg_index, new_pos)
 
-      Split a segment.
+      Split a segment by inserting a new node at new_pos.
 
       :param seg_index: Segment index (int)
+      :param new_pos: New node position (Vec3)
+      :returns: Index of the new node (int)
 
-   .. py:method:: split_node(node_index)
+   .. py:method:: split_node(node_index, arms)
 
-      Split a node.
+      Split a node given the list of arms to be transferred to the new node.
 
       :param node_index: Node index (int)
+      :param arms: Node arms (array)
+      :returns: Index of the new node (int)
 
-   .. py:method:: merge_nodes(node_index1, node_index2)
+   .. py:method:: merge_nodes(node_index1, node_index2, dEp)
 
-      Merge two nodes.
+      Merge two nodes into the first node.
 
       :param node_index1: First node index (int)
       :param node_index2: Second node index (int)
+      :param dEp: Reference to the plastic strain variable to be incremented (Mat33)
+      :returns: Merge error (bool)
 
-   .. py:method:: merge_nodes_position(node_index1, node_index2, new_pos)
+   .. py:method:: merge_nodes_position(node_index1, node_index2, new_pos, dEp)
 
-      Merge two nodes and set new position.
+      Merge two nodes into the first node at the new position.
 
       :param node_index1: First node index (int)
       :param node_index2: Second node index (int)
       :param new_pos: New position (Vec3)
+      :param dEp: Reference to the plastic strain variable to be incremented (Mat33)
+      :returns: Merge error (bool)
 
    .. py:method:: remove_segs(seg_indices)
 
@@ -569,7 +583,7 @@ General Classes
 
    .. py:method:: get_cell()
 
-      Get the cell containing the network.
+      Get the cell containing the network by value.
 
       :rtype: Cell
 
@@ -623,9 +637,9 @@ General Classes
 
    .. py:method:: get_plastic_strain()
 
-      Returns plastic strain as computed since the last integration step.
+      Returns the plastic strain, plastic spin, and dislocation density, as computed since the last integration step.
 
-      :returns: Plastic strain value (float or array)
+      :returns: Plastic strain array, plastic spin array, dislocation density
 
    .. py:method:: physical_links()
 
@@ -633,23 +647,29 @@ General Classes
 
       :returns: List of segment indices for each link
 
+   .. py:method:: _get_crystal()
+
+      Get the Crystal object by reference.
+
+      :rtype: Crystal
+
    .. py:method:: _get_serial_network()
 
-      Get the underlying SerialDisNet object.
+      Get the underlying SerialDisNet object by reference.
 
       :rtype: SerialDisNet
 
 ---
 
-.. py:class:: pyexadis.System
+.. py:class:: pyexadis.System(pyexadis.ExaDisNet)
 
    ExaDiS simulation system, combining a network and simulation parameters.
 
-   .. py:method:: __init__(network, params)
+   .. py:method:: __init__(net, params)
 
       Construct a system from a network and parameters.
 
-      :param network: ExaDisNet object
+      :param net: ExaDisNet object
       :param params: Params object
 
    .. py:method:: set_neighbor_cutoff(cutoff)
@@ -679,8 +699,8 @@ General Functions
 
    Initialize the python binding module.
 
-   :param num_threads: Number of threads (default: -1)
-   :param device_id: Device ID (default: 0)
+   :param num_threads: Number of OMP threads (default: -1)
+   :param device_id: Device GPU index (default: 0)
 
 .. py:function:: pyexadis.finalize()
 
@@ -691,6 +711,7 @@ General Functions
    Read ParaDiS data file.
 
    :param filename: Path to ParaDiS data file
+   :rtype: ExaDisNet
 
 .. py:function:: pyexadis.generate_prismatic_config(crystal, Lbox, numsources, radius, maxseg=-1, seed=1234, uniform=False)
    :noindex:
@@ -704,6 +725,7 @@ General Functions
    :param maxseg: Maximum segment length (default: -1)
    :param seed: Random seed (default: 1234)
    :param uniform: Uniform distribution (default: False)
+   :rtype: ExaDisNet
 
 .. py:function:: pyexadis.generate_prismatic_config(crystal, cell, numsources, radius, maxseg=-1, seed=1234, uniform=False)
 
@@ -716,6 +738,7 @@ General Functions
    :param maxseg: Maximum segment length (default: -1)
    :param seed: Random seed (default: 1234)
    :param uniform: Uniform distribution (default: False)
+   :rtype: ExaDisNet
 
 
 Force
@@ -726,7 +749,7 @@ Force Modules and Factories
 
 .. py:class:: pyexadis.Force.Force
 
-   Direct binding to the C++ ExaDiS base force class.
+   ExaDiS base force class.
 
    .. py:method:: name()
 
@@ -768,6 +791,7 @@ Force Modules and Factories
       :param params: General simulation parameters
       :param fparams: ForceFFT.Params object
       :param cell: Cell object
+      :rtype: ForceBind
 
    .. py:method:: get_neighbor_cutoff()
 
@@ -799,6 +823,7 @@ Force Modules and Factories
 
       :param params: Global simulation parameters
       :param coreparams: CORE_SELF_PKEXT.Params object
+      :rtype: ForceBind
 
 ---
 
@@ -821,6 +846,7 @@ Force Modules and Factories
 
       :param params: Global simulation parameters
       :param fparams: CUTOFF_MODEL.Params object
+      :rtype: ForceBind
 
 ---
 
@@ -844,6 +870,7 @@ Force Modules and Factories
       :param params: Global simulation parameters
       :param fparams: DDD_FFT_MODEL.Params object
       :param cell: Cell object
+      :rtype: ForceBind
 
 ---
 
@@ -869,6 +896,7 @@ Force Modules and Factories
       :param params: Global simulation parameters
       :param fparams: SUBCYCLING_MODEL.Params object
       :param cell: Cell object
+      :rtype: ForceBind
 
 ---
 
@@ -882,6 +910,7 @@ Force Modules and Factories
 
       :param params: Global simulation parameters
       :param force: CalForce python object implementing force methods
+      :rtype: ForceBind
 
 ---
 
@@ -1210,11 +1239,6 @@ Drivers
 
    Main simulation driver, manages simulation state, modules, and execution.
 
-   .. py:attribute:: outputdir
-      :type: str
-
-      Output directory path for the simulation.
-
    .. py:method:: __init__()
 
       Default constructor.
@@ -1225,6 +1249,11 @@ Drivers
       Construct driver with a system.
 
       :param system: SystemBind object
+
+   .. py:attribute:: outputdir
+      :type: str
+
+      Output directory path for the simulation.
 
    .. py:method:: update_state(state)
 
@@ -1276,26 +1305,6 @@ Drivers
    .. py:method:: oprec_replay(ctrl, oprec_files)
 
       Replay the simulation from OpRec files.
-
-   .. py:method:: NUM_STEPS(nsteps)
-
-      Iterate to a number of steps.
-
-   .. py:method:: MAX_STEPS(maxsteps)
-
-      Iterate to a maximum number of steps.
-
-   .. py:method:: MAX_STRAIN(strain)
-
-      Iterate to a maximum strain.
-
-   .. py:method:: MAX_TIME(time)
-
-      Iterate to a maximum simulation time.
-
-   .. py:method:: MAX_WALLTIME(time)
-
-      Iterate to a maximum wall clock time.
 
 ---
 
@@ -1371,7 +1380,7 @@ Driver Control
 
       OpRec nodal positions save frequency.
 
-   .. py:method:: set_props()
+   .. py:method:: set_props(prop_fields)
 
       Set property fields for the output.
 
@@ -1407,6 +1416,26 @@ Driver Stepper
 
       :param type: Stopping type
       :param stopval: Stopping value
+
+   .. py:method:: NUM_STEPS(nsteps)
+
+      Construct stepper that iterates to a number of steps.
+
+   .. py:method:: MAX_STEPS(maxsteps)
+
+      Construct stepper that iterates to a maximum number of steps.
+
+   .. py:method:: MAX_STRAIN(strain)
+
+      Construct stepper that iterates to a maximum strain.
+
+   .. py:method:: MAX_TIME(time)
+
+      Construct stepper that iterates to a maximum simulation time.
+
+   .. py:method:: MAX_WALLTIME(time)
+
+      Construct stepper that iterates to a maximum wall clock time.
 
    .. py:method:: iterate(driver)
 
