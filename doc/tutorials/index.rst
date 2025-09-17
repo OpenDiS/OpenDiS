@@ -10,4 +10,5 @@ Tutorials
    strain_hardening/index
    initial_configuration
    setting_simulation
+   visualizing_dislocations
    workshop/workshop
