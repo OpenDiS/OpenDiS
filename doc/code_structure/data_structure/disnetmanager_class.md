@@ -18,6 +18,11 @@ class MyExaDisModule():
 ```
 Internally, `DisNetManager` performs the conversion between different network object types by invoking the `export_data()` / `import_data()` methods implemented in the core network classes. It also retains the type of the active network instance to minimize the number of conversion and memory transfer operations. See section [Graph Data Conversion](../../tutorials/frank_read_src/graph_data_conversion.md) for an example of how to convert between DisNet and ExaDiSNet objects.
 
+Core network classes [`DisNet`](disnet_class.md) from PyDiS and [`ExaDisNet`](exadisnet_class.md) from ExaDiS are the native data structures used to handle dislocation networks in OpenDiS. However, if desired, a user can use or implement its own data structure to interact with dislocation networks in OpenDiS, as long as the new data structure (or wrapper to it) adheres to the [DisNet_Base](https://github.com/OpenDiS/OpenDiS/blob/main/python/framework/disnet_base.py) specification class.
+
+
+### Accessing raw data
+
 The `DisNetManager` provides the `export_data()` method that returns the raw network data stored in a dictionary:
 ```python
 data = N.export_data()
@@ -34,23 +39,102 @@ where `data` is a dictionary containing the following entries:
 * `data["segs"]`: dictionary containing the segments attributes within the following entries:
     - `data["segs"]["nodeids"]`: array of indices of segments end-nodes (node1,node2), size=(Nsegs,2)
     - `data["segs"]["burgers"]`: array of segments Burgers vectors, size=(Nsegs,3)
-    - `data["segs"]["plane"]`: array of segments plane normal, size=(Nsegs,3)
+    - `data["segs"]["planes"]`: array of segments plane normals, size=(Nsegs,3)
 
 
-Core network classes [`DisNet`](disnet_class.md) from PyDiS and [`ExaDisNet`](exadisnet_class.md) from ExaDiS are the native data structures used to handle dislocation networks in OpenDiS. However, if desired, a user can use or implement its own data structure to interact with dislocation networks in OpenDiS, as long as the new data structure (or wrapper to it) adheres to the [DisNet_Base](https://github.com/OpenDiS/OpenDiS/blob/main/python/framework/disnet_base.py) specification class.
+### Attributes and methods
 
+```{eval-rst}
+.. py:class:: DisNetManager()
+    :noindex:
 
-### Properties
-- `DisNetManager.cell`: network cell object
+    Class for managing multiple implementations of dislocation network.
+    Implements synchronization between different implementations of DisNet.
 
+    **Attributes**
+    
+    .. py:property:: G
+        :noindex:
 
-### Methods
-- `DisNetManager.get_disnet(disnet_type)`: Converts the dislocation network into the requested `disnet_type` object.
-- `DisNetManager.get_active_type()`: Returns the type of network object that is currently active.
-- `DisNetManager.export_data()`: Exports the raw network data into a `data` dictionary.
-- `DisNetManager.import_data(data)`: Set the content of the network by importing it from a `data` dictionary. Argument `data` must be the output of an `export_data()` method.
-- `DisNetManager.write_json(filename)`: Writes the DisNetManager data to a JSON file.
-- `DisNetManager.read_json(filename)`: Reads the DisNetManager data from a JSON file.
-- `DisNetManager.num_nodes()`: Returns the number of nodes in the network.
-- `DisNetManager.num_segments()`: Returns the number of segments in the network.
-- `DisNetManager.is_sane()`: Checks if the network is sane.
+        Get the active network instance.
+    
+    .. py:property:: cell
+        :noindex:
+
+        Get the simulation cell object.
+
+    **Constructor**
+
+    .. py:method:: __init__(disnet)
+        :noindex:
+
+        Constructs a DisNetManager from an existing dislocation network object.
+        
+        :param disnet: existing dislocation network object
+
+    **Methods**
+    
+    .. py:method:: get_disnet(disnet_type)
+        :noindex:
+
+        Converts the dislocation network into the requested `disnet_type` object.
+
+        :rtype: disnet_type network object
+        
+    .. py:method:: get_active_type()
+        :noindex:
+
+        Returns the type of network object that is currently active.
+
+        :rtype: disnet_type
+
+    .. py:method:: import_data(data)
+        :noindex:
+
+        Imports raw network data from a `data` dictionary. Argument `data` must be the output of an `export_data()` method.
+
+        :param data: Dictionary with keys "cell", "nodes", "segs"
+
+    .. py:method:: export_data()
+        :noindex:
+
+        Exports the raw network data into a `data` dictionary.
+
+        :returns: Dictionary with keys "cell", "nodes", "segs"
+
+    .. py:method:: write_json(filename)
+        :noindex:
+
+        Writes the DisNetManager data to a JSON file.
+
+        :param filename: Path to JSON file (str)
+
+    .. py:method:: read_json(filename)
+        :noindex:
+
+        Reads the DisNetManager data from a JSON file.
+
+        :param filename: Path to JSON file (str)
+
+    .. py:method:: num_nodes()
+        :noindex:
+
+        Returns the number of nodes in the network.
+
+        :rtype: int
+
+    .. py:method:: num_segments()
+        :noindex:
+
+        Returns the number of segments in the network.
+
+        :rtype: int
+
+    .. py:method:: is_sane()
+        :noindex:
+
+        Checks if the network is sane.
+
+        :rtype: bool
+       
+```
