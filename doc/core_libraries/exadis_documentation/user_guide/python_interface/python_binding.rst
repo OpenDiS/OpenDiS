@@ -778,19 +778,20 @@ General Classes
 
       Print simulation timers.
 
-      :param dev: If True, print device timers (bool, default False)
+      :param dev: If True, print development timers (bool, default False)
 
 ---
 
 General Functions
 -----------------
 
-.. py:function:: pyexadis.initialize(num_threads=-1, device_id=0)
+.. py:function:: pyexadis.initialize(num_threads=-1, device_id=0, verbose=True)
 
    Initialize the python binding module.
 
    :param num_threads: Number of OMP threads (default: -1)
    :param device_id: Device GPU index (default: 0)
+   :param verbose: Print info, e.g. execution spaces (default: True)
 
 .. py:function:: pyexadis.finalize()
 
