@@ -1,0 +1,710 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link href="../_static/favicon_node.ico" rel="icon" type="image/x-icon"><link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="Setting up a simulation" href="setting_simulation.html"><link rel="prev" title="Strain Hardening Simulation on GPU" href="strain_hardening/strain_hardening_on_gpu.html">
+        <link rel="prefetch" href="../_static/nodebox_logo.png" as="image">
+
+    <!-- Generated with Sphinx 8.2.3 and Furo 2025.09.25 -->
+        <title>Creating initial dislocation configurations - OpenDiS 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=580074bf" />
+    <link rel="stylesheet" type="text/css" href="../_static/tabs.css?v=4c969af8" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=09ae5b3d" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">OpenDiS 0.1.0 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="../_static/nodebox_logo.png" alt="Logo"/>
+  </div>
+  
+  <span class="sidebar-brand-text">OpenDiS 0.1.0 documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../manifesto.html">OpenDiS Manifesto</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../installation/index.html">Installation</a><input aria-label="Toggle navigation of Installation" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../installation/download.html">How to get the code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../installation/requirements.html">System Requirements</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../installation/compilation/index.html">Compilation</a><input aria-label="Toggle navigation of Compilation" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../installation/compilation/compilation_overview.html">Compilation Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../installation/compilation/compile_on_mac.html">Compile on Mac</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../installation/compilation/compile_on_ubuntu.html">Compile on Linux (Ubuntu)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../installation/compilation/compile_on_sherlock.html">Compile on Sherlock</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../installation/compilation/compile_on_mc3.html">Compile on MC3</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../installation/compilation/compile_on_cms3.html">Compile on CMS3</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../installation/compilation/compile_on_rpi.html">Compile on Raspberry Pi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../installation/compilation/compile_on_termux.html">Compile on Android Phone (Termux)</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">Tutorials</a><input aria-label="Toggle navigation of Tutorials" checked="" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l2 has-children"><a class="reference internal" href="frank_read_src/index.html">Frank-Read Source</a><input aria-label="Toggle navigation of Frank-Read Source" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="frank_read_src/frank_read_src_by_python.html">Frank-Read Source by Pure Python</a></li>
+<li class="toctree-l3"><a class="reference internal" href="frank_read_src/frank_read_src_by_pyexadis.html">Frank-Read Source by Python calling ExaDiS</a></li>
+<li class="toctree-l3"><a class="reference internal" href="frank_read_src/graph_data_conversion.html">Graph Data Conversion</a></li>
+<li class="toctree-l3"><a class="reference internal" href="frank_read_src/frank_read_src_by_pydis_pyexadis.html">Inter-operability between PyDiS and ExaDiS Modules</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="binary_junction/index.html">Binary Junction</a><input aria-label="Toggle navigation of Binary Junction" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="binary_junction/binary_junction_by_python.html">Binary Junction by Pure Python</a></li>
+<li class="toctree-l3"><a class="reference internal" href="binary_junction/binary_junction_by_pyexadis.html">Binary Junction by Python calling ExaDiS</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="strain_hardening/index.html">Strain Hardening</a><input aria-label="Toggle navigation of Strain Hardening" class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="strain_hardening/strain_hardening_on_cpu.html">Strain Hardening Simulation on CPU</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strain_hardening/strain_hardening_on_gpu.html">Strain Hardening Simulation on GPU</a></li>
+</ul>
+</li>
+<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Creating initial dislocation configurations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="setting_simulation.html">Setting up a simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="visualizing_dislocations.html">Visualizing dislocation evolution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="workshop/workshop.html">OpenDiS workshop</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../code_structure/index.html">Code Structure</a><input aria-label="Toggle navigation of Code Structure" class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../code_structure/project_overview.html">Project Structure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../code_structure/modules.html">Modules Structure</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../code_structure/data_structure/index.html">Data Structure</a><input aria-label="Toggle navigation of Data Structure" class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../code_structure/data_structure/disnetmanager_class.html">DisNetManager Class</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../code_structure/data_structure/disnet_class.html">DisNet Class</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../code_structure/data_structure/exadisnet_class.html">ExaDisNet Class</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../code_structure/data_structure/state_dictionary.html">State Dictionary</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../core_libraries/index.html">Core Libraries</a><input aria-label="Toggle navigation of Core Libraries" class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../core_libraries/pydis_documentation/index.html">PyDiS Documentation</a><input aria-label="Toggle navigation of PyDiS Documentation" class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../core_libraries/exadis_documentation/index.html">ExaDiS Documentation</a><input aria-label="Toggle navigation of ExaDiS Documentation" class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../core_libraries/exadis_documentation/user_guide/index.html">User guide</a><input aria-label="Toggle navigation of User guide" class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../core_libraries/exadis_documentation/user_guide/obtaining.html">Obtaining, building and running the code</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../core_libraries/exadis_documentation/user_guide/tutorials.html">Tutorials</a></li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="../core_libraries/exadis_documentation/user_guide/python_interface/index.html">Python interface</a><input aria-label="Toggle navigation of Python interface" class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" role="switch" type="checkbox"/><label for="toctree-checkbox-13"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="../core_libraries/exadis_documentation/user_guide/python_interface/python_modules.html">Python modules: <code class="docutils literal notranslate"><span class="pre">pyexadis_base</span></code></a></li>
+<li class="toctree-l5 has-children"><a class="reference internal" href="../core_libraries/exadis_documentation/user_guide/python_interface/python_binding.html">Python binding: <code class="docutils literal notranslate"><span class="pre">pyexadis</span></code></a><input aria-label="Toggle navigation of Python binding: pyexadis" class="toctree-checkbox" id="toctree-checkbox-14" name="toctree-checkbox-14" role="switch" type="checkbox"/><label for="toctree-checkbox-14"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="simple">
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../core_libraries/exadis_documentation/user_guide/tools.html">ExaDiS tools</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../core_libraries/exadis_documentation/developer_guide/index.html">Developer guide</a><input aria-label="Toggle navigation of Developer guide" class="toctree-checkbox" id="toctree-checkbox-15" name="toctree-checkbox-15" role="switch" type="checkbox"/><label for="toctree-checkbox-15"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../core_libraries/exadis_documentation/developer_guide/code_architecture.html">Code architecture and data structures</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../core_libraries/exadis_documentation/developer_guide/developing_modules.html">Developing modules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../core_libraries/exadis_documentation/developer_guide/python_binding.html">Binding modules to python</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../core_libraries/exadis_documentation/developer_guide/python_modules.html">Calling user-defined python modules</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="../_sources/tutorials/initial_configuration.md.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="creating-initial-dislocation-configurations">
+<h1>Creating initial dislocation configurations<a class="headerlink" href="#creating-initial-dislocation-configurations" title="Link to this heading">¶</a></h1>
+<p>Initial dislocation configurations for OpenDiS simulations can be created in various ways.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Independently on how it was created, any dislocation network must be wrapped into a <a class="reference internal" href="../code_structure/data_structure/disnetmanager_class.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">DisNetManager</span></code></span></a> object before it can be used within OpenDiS modules.</p>
+</div>
+<section id="reading-from-a-file">
+<h2>Reading from a file<a class="headerlink" href="#reading-from-a-file" title="Link to this heading">¶</a></h2>
+<p>A dislocation network object can be read from a legacy ParaDiS format file <code class="docutils literal notranslate"><span class="pre">.data</span></code> using the <a class="reference internal" href="#../core_libraries/exadis_documentation/user_guide/python_modules.md#exadisnet"><span class="xref myst"><code class="docutils literal notranslate"><span class="pre">ExaDisNet</span></code></span></a> built-in method <code class="docutils literal notranslate"><span class="pre">read_paradis()</span></code>, e.g.:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">framework.disnet_manager</span><span class="w"> </span><span class="kn">import</span> <span class="n">DisNetManager</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pyexadis</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyexadis_base</span><span class="w"> </span><span class="kn">import</span> <span class="n">ExaDisNet</span>
+<span class="n">pyexadis</span><span class="o">.</span><span class="n">initialize</span><span class="p">()</span>
+
+<span class="n">G</span> <span class="o">=</span> <span class="n">ExaDisNet</span><span class="p">()</span>
+<span class="n">G</span><span class="o">.</span><span class="n">read_paradis</span><span class="p">(</span><span class="s1">&#39;config.data&#39;</span><span class="p">)</span>
+<span class="n">N</span> <span class="o">=</span> <span class="n">DisNetManager</span><span class="p">(</span><span class="n">G</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="using-utility-functions">
+<h2>Using utility functions<a class="headerlink" href="#using-utility-functions" title="Link to this heading">¶</a></h2>
+<p>Some utility functions are provided in class <a class="reference internal" href="#../core_libraries/exadis_documentation/user_guide/python_modules.md#exadisnet"><span class="xref myst"><code class="docutils literal notranslate"><span class="pre">ExaDisNet</span></code></span></a> and in file <code class="docutils literal notranslate"><span class="pre">core/exadis/python/pyexadis_utils.py</span></code> to generate basic dislocation configurations (Frank-Read source, infinite lines, etc.).</p>
+<section id="ensemble-of-infinite-lines-or-dipoles">
+<h3>Ensemble of infinite lines or dipoles<a class="headerlink" href="#ensemble-of-infinite-lines-or-dipoles" title="Link to this heading">¶</a></h3>
+<p>Utility method <code class="docutils literal notranslate"><span class="pre">generate_line_config()</span></code> can be used to generate a collection of randomly positioned infinite lines or dipoles, e.g.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">framework.disnet_manager</span><span class="w"> </span><span class="kn">import</span> <span class="n">DisNetManager</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pyexadis</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyexadis_base</span><span class="w"> </span><span class="kn">import</span> <span class="n">ExaDisNet</span>
+<span class="n">pyexadis</span><span class="o">.</span><span class="n">initialize</span><span class="p">()</span>
+
+<span class="n">G</span> <span class="o">=</span> <span class="n">ExaDisNet</span><span class="p">()</span>
+<span class="n">G</span><span class="o">.</span><span class="n">generate_line_config</span><span class="p">(</span><span class="n">crystal</span><span class="p">,</span> <span class="n">Lbox</span><span class="p">,</span> <span class="n">num_lines</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">maxseg</span><span class="p">,</span> <span class="n">Rorient</span><span class="p">,</span> <span class="n">seed</span><span class="p">,</span> <span class="n">verbose</span><span class="p">)</span>
+<span class="n">N</span> <span class="o">=</span> <span class="n">DisNetManager</span><span class="p">(</span><span class="n">G</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>with</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">crystal</span></code>: crystal structure, e.g. <code class="docutils literal notranslate"><span class="pre">'fcc'</span></code> or <code class="docutils literal notranslate"><span class="pre">'bcc'</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Lbox</span></code>: simulation cell object or the cell size</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">num_lines</span></code>: number of lines to generate</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">theta</span></code> (optional): list of character angles in degrees</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">maxseg</span></code> (optional): maximum segment size to discretize the dislocation lines</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Rorient</span></code> (optional): crystal orientation matrix</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">seed</span></code> (optional): seed number for the random generation</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">verbose</span></code> (optional): print out lines information</p></li>
+</ul>
+<p>The dislocations are generated by cycling through the list of signed (+/- Burgers vectors) slip systems (1/2&lt;110&gt;{111} systems in <code class="docutils literal notranslate"><span class="pre">fcc</span></code> and 1/2&lt;111&gt;{110} systems in <code class="docutils literal notranslate"><span class="pre">bcc</span></code>). To create dipoles (neutral Burgers charge), <code class="docutils literal notranslate"><span class="pre">num_lines</span></code> must be a multiple of 24 (=12*2). If a list of character angles <code class="docutils literal notranslate"><span class="pre">theta</span></code> (optional) is provided, each dislocation will be randomly assigned one of the character angles from the list. If not provided, the character angles will be chosen such that the dislocation density is roughly equal between all slip systems.</p>
+</section>
+<section id="ensemble-of-prismatic-loops">
+<h3>Ensemble of prismatic loops<a class="headerlink" href="#ensemble-of-prismatic-loops" title="Link to this heading">¶</a></h3>
+<p>Utility method <code class="docutils literal notranslate"><span class="pre">generate_prismatic_config()</span></code> can be used to generate a collection of randomly positioned prismatic (i.e. with all arms of edge character) dislocation loops, e.g.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">framework.disnet_manager</span><span class="w"> </span><span class="kn">import</span> <span class="n">DisNetManager</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pyexadis</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyexadis_base</span><span class="w"> </span><span class="kn">import</span> <span class="n">ExaDisNet</span>
+<span class="n">pyexadis</span><span class="o">.</span><span class="n">initialize</span><span class="p">()</span>
+
+<span class="n">G</span> <span class="o">=</span> <span class="n">ExaDisNet</span><span class="p">()</span>
+<span class="n">G</span><span class="o">.</span><span class="n">generate_prismatic_config</span><span class="p">(</span><span class="n">crystal</span><span class="p">,</span> <span class="n">Lbox</span><span class="p">,</span> <span class="n">num_loops</span><span class="p">,</span> <span class="n">radius</span><span class="p">,</span> <span class="n">maxseg</span><span class="p">,</span> <span class="n">Rorient</span><span class="p">,</span> <span class="n">seed</span><span class="p">,</span> <span class="n">uniform</span><span class="p">)</span>
+<span class="n">N</span> <span class="o">=</span> <span class="n">DisNetManager</span><span class="p">(</span><span class="n">G</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>with</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">crystal</span></code>: crystal structure, e.g. <code class="docutils literal notranslate"><span class="pre">'fcc'</span></code> or <code class="docutils literal notranslate"><span class="pre">'bcc'</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Lbox</span></code>: simulation cell object or the cell size</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">num_loops</span></code>: number of loops to generate</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">radius</span></code>: radius of the loops, or radius range [min_radius, max_radius]</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">maxseg</span></code> (optional): maximum segment size to discretize the loops</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Rorient</span></code> (optional): crystal orientation matrix</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">seed</span></code> (optional): seed number for the random generation</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">uniform</span></code> (optional): make the spatial loop distribution close to uniform</p></li>
+</ul>
+<p>The dislocation loops are generated by cycling through the list of native Burgers vectors for the crystal structure (6 1/2&lt;110&gt; Burgers vectors for <code class="docutils literal notranslate"><span class="pre">fcc</span></code> and 4 1/2&lt;111&gt; Burgers vectors for <code class="docutils literal notranslate"><span class="pre">bcc</span></code>).</p>
+</section>
+<section id="individual-frank-read-source">
+<h3>Individual Frank-Read source<a class="headerlink" href="#individual-frank-read-source" title="Link to this heading">¶</a></h3>
+<p>Utility function <code class="docutils literal notranslate"><span class="pre">insert_frank_read_src()</span></code> from <code class="docutils literal notranslate"><span class="pre">pyexadis_utils</span></code> can be used to insert a Frank-Read source, e.g.:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">framework.disnet_manager</span><span class="w"> </span><span class="kn">import</span> <span class="n">DisNetManager</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pyexadis</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyexadis_base</span><span class="w"> </span><span class="kn">import</span> <span class="n">ExaDisNet</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyexadis_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">insert_frank_read_src</span>
+<span class="n">pyexadis</span><span class="o">.</span><span class="n">initialize</span><span class="p">()</span>
+
+<span class="c1"># Define box</span>
+<span class="n">Lbox</span> <span class="o">=</span> <span class="mf">1000.0</span>
+<span class="n">cell</span> <span class="o">=</span> <span class="n">pyexadis</span><span class="o">.</span><span class="n">Cell</span><span class="p">(</span><span class="n">Lbox</span><span class="p">)</span>
+<span class="n">nodes</span><span class="p">,</span> <span class="n">segs</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+
+<span class="c1"># Insert Frank-Read source</span>
+<span class="n">burg</span> <span class="o">=</span> <span class="mf">1.0</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">2.0</span><span class="p">)</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.</span><span class="p">,</span><span class="mf">1.</span><span class="p">,</span><span class="mf">0.</span><span class="p">])</span>
+<span class="n">plane</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="o">-</span><span class="mf">1.</span><span class="p">,</span><span class="mf">1.</span><span class="p">,</span><span class="mf">1.</span><span class="p">])</span>
+<span class="n">length</span> <span class="o">=</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">Lbox</span>
+<span class="n">center</span> <span class="o">=</span> <span class="n">cell</span><span class="o">.</span><span class="n">center</span><span class="p">()</span>
+<span class="n">nodes</span><span class="p">,</span> <span class="n">segs</span> <span class="o">=</span> <span class="n">insert_frank_read_src</span><span class="p">(</span><span class="n">cell</span><span class="p">,</span> <span class="n">nodes</span><span class="p">,</span> <span class="n">segs</span><span class="p">,</span> <span class="n">burg</span><span class="p">,</span> <span class="n">plane</span><span class="p">,</span>
+                                    <span class="n">length</span><span class="p">,</span> <span class="n">center</span><span class="p">,</span> <span class="n">theta</span><span class="o">=</span><span class="mf">90.0</span><span class="p">,</span> <span class="n">numnodes</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="n">G</span> <span class="o">=</span> <span class="n">ExaDisNet</span><span class="p">(</span><span class="n">cell</span><span class="p">,</span> <span class="n">nodes</span><span class="p">,</span> <span class="n">segs</span><span class="p">)</span>
+<span class="n">N</span> <span class="o">=</span> <span class="n">DisNetManager</span><span class="p">(</span><span class="n">G</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>To insert multiple Frank-Read sources into the same configuration, one can call <code class="docutils literal notranslate"><span class="pre">insert_frank_read_src()</span></code> repeatedly, e.g.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="o">...</span>
+<span class="c1"># Frank-Read source 1</span>
+<span class="n">nodes</span><span class="p">,</span> <span class="n">segs</span> <span class="o">=</span> <span class="n">insert_frank_read_src</span><span class="p">(</span><span class="n">cell</span><span class="p">,</span> <span class="n">nodes</span><span class="p">,</span> <span class="n">segs</span><span class="p">,</span> <span class="n">burg1</span><span class="p">,</span> <span class="n">plane1</span><span class="p">,</span>
+                                    <span class="n">length1</span><span class="p">,</span> <span class="n">center1</span><span class="p">,</span> <span class="n">theta1</span><span class="p">,</span> <span class="n">numnodes1</span><span class="p">)</span>
+<span class="c1"># Frank-Read source 2</span>
+<span class="n">nodes</span><span class="p">,</span> <span class="n">segs</span> <span class="o">=</span> <span class="n">insert_frank_read_src</span><span class="p">(</span><span class="n">cell</span><span class="p">,</span> <span class="n">nodes</span><span class="p">,</span> <span class="n">segs</span><span class="p">,</span> <span class="n">burg2</span><span class="p">,</span> <span class="n">plane2</span><span class="p">,</span>
+                                    <span class="n">length2</span><span class="p">,</span> <span class="n">center2</span><span class="p">,</span> <span class="n">theta2</span><span class="p">,</span> <span class="n">numnodes2</span><span class="p">)</span>
+<span class="o">...</span>
+</pre></div>
+</div>
+</section>
+<section id="individual-infinite-line">
+<h3>Individual infinite line<a class="headerlink" href="#individual-infinite-line" title="Link to this heading">¶</a></h3>
+<p>Utility function <code class="docutils literal notranslate"><span class="pre">insert_infinite_line()</span></code> from <code class="docutils literal notranslate"><span class="pre">pyexadis_utils</span></code> can be used to insert an infinite, straight dislocation line, e.g.:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">framework.disnet_manager</span><span class="w"> </span><span class="kn">import</span> <span class="n">DisNetManager</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pyexadis</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyexadis_base</span><span class="w"> </span><span class="kn">import</span> <span class="n">ExaDisNet</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyexadis_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">insert_infinite_line</span>
+<span class="n">pyexadis</span><span class="o">.</span><span class="n">initialize</span><span class="p">()</span>
+
+<span class="n">nodes</span><span class="p">,</span> <span class="n">segs</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+
+<span class="n">nodes</span><span class="p">,</span> <span class="n">segs</span> <span class="o">=</span> <span class="n">insert_infinite_line</span><span class="p">(</span><span class="n">cell</span><span class="p">,</span> <span class="n">nodes</span><span class="p">,</span> <span class="n">segs</span><span class="p">,</span> <span class="n">burg</span><span class="p">,</span> <span class="n">plane</span><span class="p">,</span> <span class="n">origin</span><span class="p">,</span>
+                                   <span class="n">theta</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">linedir</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">maxseg</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">trial</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">G</span> <span class="o">=</span> <span class="n">ExaDisNet</span><span class="p">(</span><span class="n">cell</span><span class="p">,</span> <span class="n">nodes</span><span class="p">,</span> <span class="n">segs</span><span class="p">)</span>
+<span class="n">N</span> <span class="o">=</span> <span class="n">DisNetManager</span><span class="p">(</span><span class="n">G</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>with</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">cell</span></code>: network cell object or cell size</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">nodes</span></code>: list of nodes to which the line will be appended</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">segs</span></code>: list of segments to which the line will be appended</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">burg</span></code>: Burgers vector of the line</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">plane</span></code>: habit plane normal of the line</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">origin</span></code>: position of the origin of the line</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">theta</span></code>: character angle of the line in degrees</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">linedir</span></code>: line direction vector</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">maxseg</span></code> (optional): maximum discretization size of the line</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">trial</span></code> (optional): flag to specify a trial insertion only</p></li>
+</ul>
+<p>The character angle is specified with either <code class="docutils literal notranslate"><span class="pre">theta</span></code> the character angle of the line in degrees, or <code class="docutils literal notranslate"><span class="pre">linedir</span></code> the line direction vector. Parameter <code class="docutils literal notranslate"><span class="pre">trial</span></code> (optional) is a flag to do a trial insertion only to test if insertion is possible (depending on the cell size and crystal orientation, insertion of an infinite line may result in an unacceptably long line under PBC). When <code class="docutils literal notranslate"><span class="pre">trial=True</span></code>, the function returns the length of the trial line (if insertion is successful) or -1 (if insertion failed), instead of returning the <code class="docutils literal notranslate"><span class="pre">nodes</span></code> and <code class="docutils literal notranslate"><span class="pre">segs</span></code> lists.</p>
+</section>
+</section>
+<section id="manual-generation">
+<h2>Manual generation<a class="headerlink" href="#manual-generation" title="Link to this heading">¶</a></h2>
+<p>One can create a dislocation configuration manually by specifying the lists of nodes and segments properties. Configurations can be created using both <code class="docutils literal notranslate"><span class="pre">pydis</span></code> or <code class="docutils literal notranslate"><span class="pre">pyexadis</span></code> data structures.</p>
+<p>As an example, let’s assume one wants to insert a 1/2&lt;110&gt; screw dislocation line of length 100b lying on the (-1,1,1) plane and discretized into 3 nodes.</p>
+<section id="using-pydis">
+<h3>Using pydis<a class="headerlink" href="#using-pydis" title="Link to this heading">¶</a></h3>
+<p>To create the example configuration using <code class="docutils literal notranslate"><span class="pre">pydis</span></code>, one can do</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">framework.disnet_manager</span><span class="w"> </span><span class="kn">import</span> <span class="n">DisNetManager</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydis</span><span class="w"> </span><span class="kn">import</span> <span class="n">DisNode</span><span class="p">,</span> <span class="n">DisNet</span><span class="p">,</span> <span class="n">Cell</span>
+
+<span class="n">Ldis</span> <span class="o">=</span> <span class="mf">100.0</span> <span class="c1"># dislocation length</span>
+<span class="n">Lbox</span> <span class="o">=</span> <span class="mi">2</span><span class="o">*</span><span class="n">Ldis</span> <span class="c1"># simulation box size</span>
+<span class="n">burg</span> <span class="o">=</span> <span class="mf">1.0</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">2.0</span><span class="p">)</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.</span><span class="p">,</span><span class="mf">1.</span><span class="p">,</span><span class="mf">0.</span><span class="p">])</span> <span class="c1"># Burgers vector</span>
+<span class="n">plane</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="o">-</span><span class="mf">1.</span><span class="p">,</span><span class="mf">1.</span><span class="p">,</span><span class="mf">1.</span><span class="p">])</span> <span class="c1"># plane normal</span>
+
+<span class="c1"># Simulation cell object</span>
+<span class="n">cell</span> <span class="o">=</span> <span class="n">Cell</span><span class="p">(</span><span class="n">h</span><span class="o">=</span><span class="n">Lbox</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span> <span class="n">is_periodic</span><span class="o">=</span><span class="p">[</span><span class="kc">True</span><span class="p">,</span><span class="kc">True</span><span class="p">,</span><span class="kc">True</span><span class="p">])</span>
+
+<span class="c1"># List of nodes, nodes = [x,y,z,constraint]</span>
+<span class="n">linevec</span> <span class="o">=</span> <span class="n">Ldis</span><span class="o">*</span><span class="n">burg</span> <span class="c1"># line vector</span>
+<span class="n">rn</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="o">*</span><span class="p">(</span><span class="o">-</span><span class="mf">0.5</span><span class="o">*</span><span class="n">linevec</span><span class="p">),</span> <span class="n">DisNode</span><span class="o">.</span><span class="n">Constraints</span><span class="o">.</span><span class="n">PINNED_NODE</span><span class="p">],</span>
+               <span class="p">[</span><span class="o">*</span><span class="p">(</span> <span class="mf">0.0</span><span class="o">*</span><span class="n">linevec</span><span class="p">),</span> <span class="n">DisNode</span><span class="o">.</span><span class="n">Constraints</span><span class="o">.</span><span class="n">UNCONSTRAINED</span><span class="p">],</span>
+               <span class="p">[</span><span class="o">*</span><span class="p">(</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">linevec</span><span class="p">),</span> <span class="n">DisNode</span><span class="o">.</span><span class="n">Constraints</span><span class="o">.</span><span class="n">PINNED_NODE</span><span class="p">]])</span>
+<span class="n">rn</span><span class="p">[:,</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span> <span class="o">+=</span> <span class="n">cell</span><span class="o">.</span><span class="n">center</span><span class="p">()</span> <span class="c1"># translate line to the center of the box</span>
+
+<span class="c1"># List of segments, links = [node1,node2,burg,plane]</span>
+<span class="n">links</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">*</span><span class="n">burg</span><span class="p">,</span> <span class="o">*</span><span class="n">plane</span><span class="p">],</span>
+                  <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="o">*</span><span class="n">burg</span><span class="p">,</span> <span class="o">*</span><span class="n">plane</span><span class="p">]])</span>
+
+<span class="n">G</span> <span class="o">=</span> <span class="n">DisNet</span><span class="p">(</span><span class="n">cell</span><span class="o">=</span><span class="n">cell</span><span class="p">,</span> <span class="n">rn</span><span class="o">=</span><span class="n">rn</span><span class="p">,</span> <span class="n">links</span><span class="o">=</span><span class="n">links</span><span class="p">)</span>
+<span class="n">N</span> <span class="o">=</span> <span class="n">DisNetManager</span><span class="p">(</span><span class="n">G</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="using-pyexadis">
+<h3>Using pyexadis<a class="headerlink" href="#using-pyexadis" title="Link to this heading">¶</a></h3>
+<p>To create the example configuration using <code class="docutils literal notranslate"><span class="pre">pyexadis</span></code>, one can do</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">framework.disnet_manager</span><span class="w"> </span><span class="kn">import</span> <span class="n">DisNetManager</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pyexadis</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyexadis_base</span><span class="w"> </span><span class="kn">import</span> <span class="n">ExaDisNet</span><span class="p">,</span> <span class="n">NodeConstraints</span>
+<span class="n">pyexadis</span><span class="o">.</span><span class="n">initialize</span><span class="p">()</span>
+
+<span class="n">Ldis</span> <span class="o">=</span> <span class="mf">100.0</span> <span class="c1"># dislocation length</span>
+<span class="n">Lbox</span> <span class="o">=</span> <span class="mi">2</span><span class="o">*</span><span class="n">Ldis</span> <span class="c1"># simulation box size</span>
+<span class="n">burg</span> <span class="o">=</span> <span class="mf">1.0</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">2.0</span><span class="p">)</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.</span><span class="p">,</span><span class="mf">1.</span><span class="p">,</span><span class="mf">0.</span><span class="p">])</span> <span class="c1"># Burgers vector</span>
+<span class="n">plane</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="o">-</span><span class="mf">1.</span><span class="p">,</span><span class="mf">1.</span><span class="p">,</span><span class="mf">1.</span><span class="p">])</span> <span class="c1"># plane normal</span>
+
+<span class="c1"># Simulation cell object</span>
+<span class="n">cell</span> <span class="o">=</span> <span class="n">pyexadis</span><span class="o">.</span><span class="n">Cell</span><span class="p">(</span><span class="n">h</span><span class="o">=</span><span class="n">Lbox</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span> <span class="n">is_periodic</span><span class="o">=</span><span class="p">[</span><span class="kc">True</span><span class="p">,</span><span class="kc">True</span><span class="p">,</span><span class="kc">True</span><span class="p">])</span>
+
+<span class="c1"># List of nodes, nodes = [x,y,z,constraint]</span>
+<span class="n">linevec</span> <span class="o">=</span> <span class="n">Ldis</span><span class="o">*</span><span class="n">burg</span> <span class="c1"># line vector</span>
+<span class="n">nodes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="o">*</span><span class="p">(</span><span class="o">-</span><span class="mf">0.5</span><span class="o">*</span><span class="n">linevec</span><span class="p">),</span> <span class="n">NodeConstraints</span><span class="o">.</span><span class="n">PINNED_NODE</span><span class="p">],</span>
+                  <span class="p">[</span><span class="o">*</span><span class="p">(</span> <span class="mf">0.0</span><span class="o">*</span><span class="n">linevec</span><span class="p">),</span> <span class="n">NodeConstraints</span><span class="o">.</span><span class="n">UNCONSTRAINED</span><span class="p">],</span>
+                  <span class="p">[</span><span class="o">*</span><span class="p">(</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">linevec</span><span class="p">),</span> <span class="n">NodeConstraints</span><span class="o">.</span><span class="n">PINNED_NODE</span><span class="p">]])</span>
+<span class="n">nodes</span><span class="p">[:,</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span> <span class="o">+=</span> <span class="n">cell</span><span class="o">.</span><span class="n">center</span><span class="p">()</span> <span class="c1"># translate line to the center of the box</span>
+
+<span class="c1"># List of segments, segs = [node1,node2,burg,plane]</span>
+<span class="n">segs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">*</span><span class="n">burg</span><span class="p">,</span> <span class="o">*</span><span class="n">plane</span><span class="p">],</span>
+                 <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="o">*</span><span class="n">burg</span><span class="p">,</span> <span class="o">*</span><span class="n">plane</span><span class="p">]])</span>
+
+<span class="n">G</span> <span class="o">=</span> <span class="n">ExaDisNet</span><span class="p">(</span><span class="n">cell</span><span class="p">,</span> <span class="n">nodes</span><span class="p">,</span> <span class="n">segs</span><span class="p">)</span>
+<span class="n">N</span> <span class="o">=</span> <span class="n">DisNetManager</span><span class="p">(</span><span class="n">G</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="combining-several-networks">
+<h2>Combining several networks<a class="headerlink" href="#combining-several-networks" title="Link to this heading">¶</a></h2>
+<p>Dislocation networks coming from different sources can be combined together into a single network using utility function <code class="docutils literal notranslate"><span class="pre">combine_networks()</span></code> from file <code class="docutils literal notranslate"><span class="pre">pyexadis_utils</span></code>. This can be useful to easily assemble complex initial configurations, e.g.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">framework.disnet_manager</span><span class="w"> </span><span class="kn">import</span> <span class="n">DisNetManager</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydis</span><span class="w"> </span><span class="kn">import</span> <span class="n">DisNet</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pyexadis</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyexadis_base</span><span class="w"> </span><span class="kn">import</span> <span class="n">ExaDisNet</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyexadis_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">combine_networks</span>
+<span class="n">pyexadis</span><span class="o">.</span><span class="n">initialize</span><span class="p">()</span>
+
+<span class="c1"># Configuration created with pydis</span>
+<span class="n">G1</span> <span class="o">=</span> <span class="n">DisNet</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+<span class="n">N1</span> <span class="o">=</span> <span class="n">DisNetManager</span><span class="p">(</span><span class="n">G1</span><span class="p">)</span>
+
+<span class="c1"># Configuration created with pyexadis</span>
+<span class="n">G2</span> <span class="o">=</span> <span class="n">ExaDisNet</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+<span class="n">N2</span> <span class="o">=</span> <span class="n">DisNetManager</span><span class="p">(</span><span class="n">G2</span><span class="p">)</span>
+
+<span class="n">N</span> <span class="o">=</span> <span class="n">combine_networks</span><span class="p">([</span><span class="n">N1</span><span class="p">,</span> <span class="n">N2</span><span class="p">])</span>
+</pre></div>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Simulation cells must be identical for all input networks in order for them to be successfully combined into a single network. The user must also ensure that the input networks are defined in the same reference frame.</p>
+</div>
+</section>
+<section id="rotated-crystal-frames">
+<h2>Rotated crystal frames<a class="headerlink" href="#rotated-crystal-frames" title="Link to this heading">¶</a></h2>
+<p>It can be convenient or desirable to create a dislocation configuration in a user-defined rotated crystal frame, e.g. such as to align the line direction or slip plane of a given dislocation with the simulation box axes.</p>
+<p>As an example, let’s assume one wants to insert an infinite dislocation line with line direction along the y-axis and glide plane normal along the z-axis into a FCC crystal. Since FCC plane normals are along the {111} crystallographic directions, this requires to rotate the crystal frame. This can be done as in the following example:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">framework.disnet_manager</span><span class="w"> </span><span class="kn">import</span> <span class="n">DisNetManager</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pyexadis</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyexadis_base</span><span class="w"> </span><span class="kn">import</span> <span class="n">ExaDisNet</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyexadis_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">insert_infinite_line</span>
+<span class="n">pyexadis</span><span class="o">.</span><span class="n">initialize</span><span class="p">()</span>
+
+<span class="n">Lbox</span> <span class="o">=</span> <span class="mf">1000.0</span> <span class="c1"># simulation box size</span>
+<span class="n">maxseg</span> <span class="o">=</span> <span class="mf">0.05</span><span class="o">*</span><span class="n">Lbox</span> <span class="c1"># line discretization</span>
+<span class="n">burg</span> <span class="o">=</span> <span class="mf">1.0</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">2.0</span><span class="p">)</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.</span><span class="p">,</span><span class="mf">1.</span><span class="p">,</span><span class="mf">0.</span><span class="p">])</span> <span class="c1"># Burgers vector</span>
+<span class="n">plane</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="o">-</span><span class="mf">1.</span><span class="p">,</span><span class="mf">1.</span><span class="p">,</span><span class="mf">1.</span><span class="p">])</span> <span class="c1"># plane normal</span>
+<span class="n">theta</span> <span class="o">=</span> <span class="mf">90.0</span> <span class="c1"># character angle in degrees</span>
+
+<span class="c1"># Crystal orientation</span>
+<span class="n">plane</span> <span class="o">=</span> <span class="n">plane</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">plane</span><span class="p">)</span>
+<span class="n">b</span> <span class="o">=</span> <span class="n">burg</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">burg</span><span class="p">)</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">plane</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">y</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+<span class="n">linedir</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">theta</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">180.0</span><span class="p">)</span><span class="o">*</span><span class="n">b</span><span class="o">+</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">theta</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">180.0</span><span class="p">)</span><span class="o">*</span><span class="n">y</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">linedir</span><span class="p">,</span> <span class="n">plane</span><span class="p">)</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">x</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<span class="n">Rorient</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">x</span><span class="p">,</span> <span class="n">linedir</span><span class="p">,</span> <span class="n">plane</span><span class="p">])</span>
+
+<span class="n">burg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">Rorient</span><span class="p">,</span> <span class="n">burg</span><span class="p">)</span>
+<span class="n">plane</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">Rorient</span><span class="p">,</span> <span class="n">plane</span><span class="p">)</span>
+<span class="n">linedir</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">Rorient</span><span class="p">,</span> <span class="n">linedir</span><span class="p">)</span>
+
+<span class="c1"># Create the cell and insert the line</span>
+<span class="n">cell</span> <span class="o">=</span> <span class="n">pyexadis</span><span class="o">.</span><span class="n">Cell</span><span class="p">(</span><span class="n">Lbox</span><span class="p">)</span>
+<span class="n">nodes</span><span class="p">,</span> <span class="n">segs</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+<span class="n">origin</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">cell</span><span class="o">.</span><span class="n">origin</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">cell</span><span class="o">.</span><span class="n">h</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">nodes</span><span class="p">,</span> <span class="n">segs</span> <span class="o">=</span> <span class="n">insert_infinite_line</span><span class="p">(</span><span class="n">cell</span><span class="p">,</span> <span class="n">nodes</span><span class="p">,</span> <span class="n">segs</span><span class="p">,</span> <span class="n">burg</span><span class="p">,</span> <span class="n">plane</span><span class="p">,</span> <span class="n">origin</span><span class="p">,</span>
+                                   <span class="n">linedir</span><span class="o">=</span><span class="n">linedir</span><span class="p">,</span> <span class="n">maxseg</span><span class="o">=</span><span class="n">maxseg</span><span class="p">)</span>
+    
+<span class="n">N</span> <span class="o">=</span> <span class="n">DisNetManager</span><span class="p">(</span><span class="n">ExaDisNet</span><span class="p">(</span><span class="n">cell</span><span class="p">,</span> <span class="n">nodes</span><span class="p">,</span> <span class="n">segs</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>As done in the above, rotation of the <code class="docutils literal notranslate"><span class="pre">burg</span></code> and <code class="docutils literal notranslate"><span class="pre">plane</span></code> vectors are necessary as these vectors must always be expressed in the global frame in the <code class="docutils literal notranslate"><span class="pre">segs</span></code> array.</p>
+<div class="admonition attention">
+<p class="admonition-title">Attention</p>
+<p>When using rotated crystal frames, it is required to specify the corresponding orientation matrix in the <code class="docutils literal notranslate"><span class="pre">state</span></code> dictionary before running a simulation,</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;Rorient&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Rorient</span>
+</pre></div>
+</div>
+<p>so that the code can internally retrieve Burgers vectors and plane normal vectors in the crystal frame when needed.</p>
+</div>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="setting_simulation.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">Setting up a simulation</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="strain_hardening/strain_hardening_on_gpu.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Strain Hardening Simulation on GPU</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2024-2025, OpenDiS
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            <div class="icons">
+              <a class="muted-link " href="https://opendis.github.io/OpenDiS/contributors.html" aria-label="Contributors">
+                <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path>
+                </svg>
+            </a>
+              
+            </div>
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Creating initial dislocation configurations</a><ul>
+<li><a class="reference internal" href="#reading-from-a-file">Reading from a file</a></li>
+<li><a class="reference internal" href="#using-utility-functions">Using utility functions</a><ul>
+<li><a class="reference internal" href="#ensemble-of-infinite-lines-or-dipoles">Ensemble of infinite lines or dipoles</a></li>
+<li><a class="reference internal" href="#ensemble-of-prismatic-loops">Ensemble of prismatic loops</a></li>
+<li><a class="reference internal" href="#individual-frank-read-source">Individual Frank-Read source</a></li>
+<li><a class="reference internal" href="#individual-infinite-line">Individual infinite line</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#manual-generation">Manual generation</a><ul>
+<li><a class="reference internal" href="#using-pydis">Using pydis</a></li>
+<li><a class="reference internal" href="#using-pyexadis">Using pyexadis</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#combining-several-networks">Combining several networks</a></li>
+<li><a class="reference internal" href="#rotated-crystal-frames">Rotated crystal frames</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/documentation_options.js?v=01f34227"></script>
+    <script src="../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/scripts/furo.js?v=46bd48cc"></script>
+    <script src="../_static/tabs.js?v=3ee01567"></script>
+    <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/custom.js?v=72377513"></script>
+    </body>
+</html>
