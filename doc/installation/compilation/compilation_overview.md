@@ -32,12 +32,11 @@ Below are various examples of how OpenDiS can be configured:
 ./configure.sh
 ```
 
-* Example: GPU build with ExaDiS `CUDA` backend and device architecture `VOLTA70`
+* Example: GPU build with ExaDiS `CUDA` backend and device architecture `AMPERE80` (e.g. A100)
 ```bash
 ./configure.sh \
     -DKokkos_ENABLE_CUDA=On \
-    -DKokkos_ENABLE_CUDA_LAMBDA=On \
-    -DKokkos_ARCH_VOLTA70=On
+    -DKokkos_ARCH_AMPERE80=On
 ```
 
 * Example: use a pre-defined build options defined in `cmake/sys.cmake.<system>`, and then pass build argument `-DSYS=<system>`. E.g., to build for `SYS=mac` (i.e. using options set in file `cmake/sys.cmake.mac`):
@@ -58,6 +57,13 @@ If no `SYS` option is passed to `configure.sh`, e.g. as for a default build
 ```
 then by default the configuration will attempt to read build options from file `cmake/sys.cmake.ext` if it exists. Thus, file `cmake/sys.cmake.ext` can be used as a sandbox to test different build configurations.
 ````
+````{Important}
+In general, it is recommended to test the installation of ExaDiS by making sure that important unit tests execute correctly and return the right results. To enable the testing, add build option `-DEXADIS_BUILD_TESTS=On`, e.g.
+```bash
+./configure.sh -DSYS=mysystem -DEXADIS_BUILD_TESTS=On
+```
+````
+
 
 ### Step 3: Build and install the codes
 
@@ -82,7 +88,15 @@ python3 test_frank_read_src_exadis.py
 ```
 More information about these two examples can be found in the [Frank-Read Source](../../tutorials/frank_read_src/index) section, and more examples are detailed in the [Tutorials](../../tutorials/index) section.
 
-If errors occur when trying to run the examples, please refer to the [Troubleshooting](#troubleshooting) section.
+````{Note}
+When the code was built with option `-DEXADIS_BUILD_TESTS=On` (recommended), ExaDiS unit tests are performed as follows:
+```bash
+cd core/exadis/tests/unit_tests
+python3 run_tests.py
+```
+All tests should pass.
+````
+If errors occur when trying to run the examples or unit tests, please refer to the [Troubleshooting](#troubleshooting) section.
 
 
 ## Build options
@@ -108,6 +122,11 @@ or
 raise ImportError('Cannot import pyexadis')
 ImportError: Cannot import pyexadis
 ```
+or
+```bash
+[Test_Pyexadis_Import] FAIL
+[Test_Pyexadis_Init] FAIL
+```
 
 This typically happens when the python installation used for compilation is not the same as the python installation used to run the code.
 
@@ -123,8 +142,7 @@ Alternatively, one can explicitly specify the python executable to be used by pa
 ```bash
 ./configure.sh \
     -DKokkos_ENABLE_CUDA=On \
-    -DKokkos_ENABLE_CUDA_LAMBDA=On \
-    -DKokkos_ARCH_VOLTA70=On \
+    -DKokkos_ARCH_AMPERE80=On \
     -DPYTHON_EXECUTABLE=$(which python3)
 ```
 in which case one should be able to run the scripts with, e.g.
@@ -147,8 +165,7 @@ cd ${OPENDIS_DIR}
 rm -rf build/
 ./configure.sh \
     -DKokkos_ENABLE_CUDA=On \
-    -DKokkos_ENABLE_CUDA_LAMBDA=On \
-    -DKokkos_ARCH_VOLTA70=On \
+    -DKokkos_ARCH_AMPERE80=On \
     -DEXADIS_BUILD_TESTS=On
 cmake --build build -j 8 ; cmake --build build --target install
 ```
@@ -157,6 +174,7 @@ This should create a few executables in directory `${OPENDIS_DIR}/build/core/exa
 cd ${OPENDIS_DIR}/build/core/exadis/tests
 ./test_cuda # if compiled with -DKokkos_ENABLE_CUDA=On
 ./test_kokkos
+./test_system
 ./test_exadis 0
 ./test_exadis 1
 ...
@@ -165,6 +183,7 @@ cd ${OPENDIS_DIR}/build/core/exadis/tests
 * If none of the tests fail but the hanging still happens when running the python-based examples, then the issue is with the compilation of `pyexadis`. First make sure that the python installation used to run is the same as the python installation used for compilation, e.g. see [previous issue](#pyexadis-import-errors). If the issue remains, try using a different combination of compilers and python installations.
 * If `test_cuda` fails then the issue is likely with the CUDA compiler
 * If `test_kokkos` fails then the issue is with the compilation of Kokkos
+* If `test_system` fails then the issue is likely with the use of unified memory
 * If `test_exadis` fails then the issue is with the compilation of ExaDiS
 
 Try using a different combination of compilers to resolve compatibility issues. Some known issues are:
