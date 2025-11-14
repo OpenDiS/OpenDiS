@@ -1,8 +1,8 @@
-import numpy as np
 import sys, os
+pydis_paths = ['../../python', '../../lib', '../../core/pydis/python']
+[sys.path.append(os.path.abspath(path)) for path in pydis_paths if not path in sys.path]
 
-sys.path.extend([os.path.abspath('../../python'),os.path.abspath('../../lib')])
-
+import numpy as np
 from pydis.disnet import DisNet
 
 def init_loop_from_file(rn_file, links_file):
@@ -10,7 +10,7 @@ def init_loop_from_file(rn_file, links_file):
     G = DisNet()
     rn = np.loadtxt(rn_file)[:, 1:]
     links = np.loadtxt(links_file)
-    G.add_nodes_links_from_list(rn, links)
+    G.add_nodes_segments_from_list(rn, links)
     return G
 
 def main():

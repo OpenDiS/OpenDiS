@@ -1,9 +1,8 @@
-import networkx as nx
-import numpy as np
 import sys, os
+pydis_paths = ['../../python', '../../lib', '../../core/pydis/python']
+[sys.path.append(os.path.abspath(path)) for path in pydis_paths if not path in sys.path]
 
-sys.path.extend([os.path.abspath('../../python'),os.path.abspath('../../lib')])
-
+import numpy as np
 from pydis.calforce.compute_stress_analytic_paradis       import compute_seg_stress_coord_dep, compute_seg_stress_coord_indep
 
 mu = 1000.0

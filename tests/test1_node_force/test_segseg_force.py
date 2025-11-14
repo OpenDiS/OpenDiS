@@ -1,9 +1,8 @@
-import networkx as nx
-import numpy as np
 import sys, os
+pydis_paths = ['../../python', '../../lib', '../../core/pydis/python']
+[sys.path.append(os.path.abspath(path)) for path in pydis_paths if not path in sys.path]
 
-sys.path.extend([os.path.abspath('../../python'),os.path.abspath('../../lib')])
-
+import numpy as np
 from pydis.calforce.compute_stress_force_analytic_paradis import compute_segseg_force_vec
 from pydis.calforce.compute_stress_force_analytic_python import python_segseg_force_vec
 
