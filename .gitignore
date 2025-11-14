@@ -2,7 +2,12 @@ __pycache__
 *.o
 build
 cmake/sys.cmake.ext
+output*
 *.png
 *.dat
 *.txt
 *.data
+*.vtp
+*.sav*
+*.new*
+*.old*
