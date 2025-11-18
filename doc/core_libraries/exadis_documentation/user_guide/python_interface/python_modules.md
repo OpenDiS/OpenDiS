@@ -132,14 +132,15 @@ Available mobility types are:
     - `vmax` (optional): maximum dislocation velocity in m/s. A relativistic capping of the velocity is applied if specified. Default: none.
 
 
-* `mobility_law='FCC_0_FRIC'`: same mobility law as `FCC_0` but with the possibility to define friction stresses and spatially varying mobility/friction fields. Specific mobility parameters:
+* `mobility_law='FCC_0_FRIC'`: same mobility law as `FCC_0` but with the possibility to define friction stresses and spatially varying mobility/friction fields tabulated on a grid. Specific mobility parameters:
     - `Medge` (required): mobility coefficient used for edge dislocation component in 1/(Pa.s)
     - `Mscrew` (required): mobility coefficient used for screw dislocation component in 1/(Pa.s)
     - `vmax` (optional): maximum dislocation velocity in m/s. A relativistic capping of the velocity is applied if specified. Default: none.
     - `Fedge` (optional): friction stress used for edge dislocation component in Pa. Default: 0.0.
     - `Fscrew` (optional): friction stress used for screw dislocation component in Pa. Default: 0.0.
     - `mobility_field` (optional): path to a file defining field values by which the mobility coefficient will be scaled throughout the simulation volume. File format must be the following: the 3 first rows specify the grid size in the 3 directions (Nx, Ny, Nz), and the remaining rows are the grid values (Nx x Ny x Nz values) in C-like index order (last axis index changing the fastest). If one of the grid dimensions is 0 or 1, then the field will be treated as 2D and constant along this dimension.
-    - `friction_field` (optional): path to a file defining field values by which the friction stress will be scaled throughout the simulation volume. File format is the same as for the `mobility_field` parameter.
+    - `friction_field` (optional): path to a file defining field values for the friction stress. The field values will be scaled by parameter `Fscale` and added to the interpolated `Fedge`/`Fscrew` values, i.e. the total friction stress is defined as F = F<sub>edge</sub> + (F<sub>screw</sub>-F<sub>edge</sub>) |cos(θ)| + F<sub>scale</sub> * friction_field(x). File format is the same as for the `mobility_field` parameter.
+    - `Fscale` (optional): scaling factor for the friction stress field read from the `friction_field` file. Default: 1.0.
 
 
 * `mobility_law='FCC_0B'`: generic non-planar, linear mobility law for FCC crystals . Requires `crystal` to be set to `'fcc'` in the global parameters dictionary. In contrast to `FCC_0`, it is modeled after the `BCC_0B` mobility and allows for a climb component of the velocity. To allow for climb, option `state["enforce_glide_planes"] = 0` must be specified, otherwise node velocities will be projected back to glide planes. Specific mobility parameters:
