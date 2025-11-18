@@ -1,0 +1,2715 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../../../../">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link href="../../../../_static/favicon_node.ico" rel="icon" type="image/x-icon"><link rel="index" title="Index" href="../../../../genindex.html"><link rel="search" title="Search" href="../../../../search.html"><link rel="next" title="ExaDiS tools" href="../tools.html"><link rel="prev" title="Python modules: pyexadis_base" href="python_modules.html">
+        <link rel="prefetch" href="../../../../_static/nodebox_logo.png" as="image">
+
+    <!-- Generated with Sphinx 8.2.3 and Furo 2025.09.25 -->
+        <title>Python binding: pyexadis - OpenDiS 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo.css?v=580074bf" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/tabs.css?v=4c969af8" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=09ae5b3d" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../../../../index.html"><div class="brand">OpenDiS 0.1.0 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../../index.html">
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="../../../../_static/nodebox_logo.png" alt="Logo"/>
+  </div>
+  
+  <span class="sidebar-brand-text">OpenDiS 0.1.0 documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../../../../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../../manifesto.html">OpenDiS Manifesto</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../../installation/index.html">Installation</a><input aria-label="Toggle navigation of Installation" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../installation/download.html">How to get the code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../installation/requirements.html">System Requirements</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../../installation/compilation/index.html">Compilation</a><input aria-label="Toggle navigation of Compilation" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../installation/compilation/compilation_overview.html">Compilation Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../installation/compilation/compile_on_mac.html">Compile on Mac</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../installation/compilation/compile_on_ubuntu.html">Compile on Linux (Ubuntu)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../installation/compilation/compile_on_sherlock.html">Compile on Sherlock</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../installation/compilation/compile_on_mc3.html">Compile on MC3</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../installation/compilation/compile_on_cms3.html">Compile on CMS3</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../installation/compilation/compile_on_rpi.html">Compile on Raspberry Pi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../installation/compilation/compile_on_termux.html">Compile on Android Phone (Termux)</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../../tutorials/index.html">Tutorials</a><input aria-label="Toggle navigation of Tutorials" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../../tutorials/frank_read_src/index.html">Frank-Read Source</a><input aria-label="Toggle navigation of Frank-Read Source" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../tutorials/frank_read_src/frank_read_src_by_python.html">Frank-Read Source by Pure Python</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../tutorials/frank_read_src/frank_read_src_by_pyexadis.html">Frank-Read Source by Python calling ExaDiS</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../tutorials/frank_read_src/graph_data_conversion.html">Graph Data Conversion</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../tutorials/frank_read_src/frank_read_src_by_pydis_pyexadis.html">Inter-operability between PyDiS and ExaDiS Modules</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../../tutorials/binary_junction/index.html">Binary Junction</a><input aria-label="Toggle navigation of Binary Junction" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../tutorials/binary_junction/binary_junction_by_python.html">Binary Junction by Pure Python</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../tutorials/binary_junction/binary_junction_by_pyexadis.html">Binary Junction by Python calling ExaDiS</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../../tutorials/strain_hardening/index.html">Strain Hardening</a><input aria-label="Toggle navigation of Strain Hardening" class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../tutorials/strain_hardening/strain_hardening_on_cpu.html">Strain Hardening Simulation on CPU</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../tutorials/strain_hardening/strain_hardening_on_gpu.html">Strain Hardening Simulation on GPU</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../tutorials/initial_configuration.html">Creating initial dislocation configurations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../tutorials/setting_simulation.html">Setting up a simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../tutorials/visualizing_dislocations.html">Visualizing dislocation evolution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../tutorials/workshop/workshop.html">OpenDiS workshop</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../../code_structure/index.html">Code Structure</a><input aria-label="Toggle navigation of Code Structure" class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../code_structure/project_overview.html">Project Structure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../code_structure/modules.html">Modules Structure</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../../code_structure/data_structure/index.html">Data Structure</a><input aria-label="Toggle navigation of Data Structure" class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../code_structure/data_structure/disnetmanager_class.html">DisNetManager Class</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../code_structure/data_structure/disnet_class.html">DisNet Class</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../code_structure/data_structure/exadisnet_class.html">ExaDisNet Class</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../code_structure/data_structure/state_dictionary.html">State Dictionary</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 current has-children"><a class="reference internal" href="../../../index.html">Core Libraries</a><input aria-label="Toggle navigation of Core Libraries" checked="" class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../pydis_documentation/index.html">PyDiS Documentation</a><input aria-label="Toggle navigation of PyDiS Documentation" class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l2 current has-children"><a class="reference internal" href="../../index.html">ExaDiS Documentation</a><input aria-label="Toggle navigation of ExaDiS Documentation" checked="" class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l3 current has-children"><a class="reference internal" href="../index.html">User guide</a><input aria-label="Toggle navigation of User guide" checked="" class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="../obtaining.html">Obtaining, building and running the code</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../tutorials.html">Tutorials</a></li>
+<li class="toctree-l4 current has-children"><a class="reference internal" href="index.html">Python interface</a><input aria-label="Toggle navigation of Python interface" checked="" class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" role="switch" type="checkbox"/><label for="toctree-checkbox-13"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l5"><a class="reference internal" href="python_modules.html">Python modules: <code class="docutils literal notranslate"><span class="pre">pyexadis_base</span></code></a></li>
+<li class="toctree-l5 current has-children current-page"><a class="current reference internal" href="#">Python binding: <code class="docutils literal notranslate"><span class="pre">pyexadis</span></code></a><input aria-label="Toggle navigation of Python binding: pyexadis" checked="" class="toctree-checkbox" id="toctree-checkbox-14" name="toctree-checkbox-14" role="switch" type="checkbox"/><label for="toctree-checkbox-14"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="simple">
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../tools.html">ExaDiS tools</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../developer_guide/index.html">Developer guide</a><input aria-label="Toggle navigation of Developer guide" class="toctree-checkbox" id="toctree-checkbox-15" name="toctree-checkbox-15" role="switch" type="checkbox"/><label for="toctree-checkbox-15"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../developer_guide/code_architecture.html">Code architecture and data structures</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../developer_guide/developing_modules.html">Developing modules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../developer_guide/python_binding.html">Binding modules to python</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../developer_guide/python_modules.html">Calling user-defined python modules</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="../../../../_sources/core_libraries/exadis_documentation/user_guide/python_interface/python_binding.rst.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="python-binding-pyexadis">
+<h1>Python binding: <code class="docutils literal notranslate"><span class="pre">pyexadis</span></code><a class="headerlink" href="#python-binding-pyexadis" title="Link to this heading">¶</a></h1>
+<p>This section documents the raw ExaDiS classes and functions available through the python interface, <code class="docutils literal notranslate"><span class="pre">pyexadis</span></code>.
+These modules are direct bindings to the backend C++ modules implemented in ExaDiS.
+For documentation of the ExaDiS python modules available in OpenDiS format, see <a class="reference internal" href="python_modules.html"><span class="doc">Python modules: pyexadis_base</span></a>.
+For documentation about the backend C++ modules please see the <a class="reference internal" href="../../developer_guide/index.html"><span class="doc">Developer guide</span></a> section of the documentation.</p>
+<div class="toctree-wrapper compound">
+</div>
+<section id="general-attributes">
+<h2>General Attributes<a class="headerlink" href="#general-attributes" title="Link to this heading">¶</a></h2>
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">pyexadis.</span></span><span class="sig-name descname"><span class="pre">BCC_CRYSTAL</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em></dt>
+<dd><p>Constant for BCC crystal type.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">pyexadis.</span></span><span class="sig-name descname"><span class="pre">FCC_CRYSTAL</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em></dt>
+<dd><p>Constant for FCC crystal type.</p>
+</dd></dl>
+
+</section>
+<section id="general-classes">
+<h2>General Classes<a class="headerlink" href="#general-classes" title="Link to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="pyexadis.Params">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyexadis.</span></span><span class="sig-name descname"><span class="pre">Params</span></span><a class="headerlink" href="#pyexadis.Params" title="Link to this definition">¶</a></dt>
+<dd><p>Simulation parameters.</p>
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">crystal=&quot;&quot;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">burgmag</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mu</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nu</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maxseg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">minseg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rann=-1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rtol=-1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maxdt=1e-7</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nextdt=1e-12</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">split3node=1</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Initialize parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>crystal</strong> – Crystal type (string)</p></li>
+<li><p><strong>burgmag</strong> – Burgers vector magnitude</p></li>
+<li><p><strong>mu</strong> – Shear modulus</p></li>
+<li><p><strong>nu</strong> – Poisson’s ratio</p></li>
+<li><p><strong>a</strong> – Dislocation core radius</p></li>
+<li><p><strong>maxseg</strong> – Maximum line discretization length</p></li>
+<li><p><strong>minseg</strong> – Minimum line discretization length</p></li>
+<li><p><strong>rann</strong> – Annihilation distance</p></li>
+<li><p><strong>rtol</strong> – Error tolerance</p></li>
+<li><p><strong>maxdt</strong> – Maximum timestep size</p></li>
+<li><p><strong>nextdt</strong> – Starting timestep size</p></li>
+<li><p><strong>split3node</strong> – Enable splitting of 3-nodes</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">crystalparams</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#pyexadis.CrystalParams" title="pyexadis.CrystalParams"><span class="pre">CrystalParams</span></a></em></dt>
+<dd><p>Crystal parameters.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">burgmag</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em></dt>
+<dd><p>Burgers vector magnitude (scaling length).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">mu</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em></dt>
+<dd><p>Shear modulus.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">nu</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em></dt>
+<dd><p>Poisson’s ratio.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">a</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em></dt>
+<dd><p>Dislocation core radius.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">maxseg</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em></dt>
+<dd><p>Maximum line discretization length.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">minseg</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em></dt>
+<dd><p>Minimum line discretization length.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">rann</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em></dt>
+<dd><p>Annihilation distance.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">rtol</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em></dt>
+<dd><p>Error tolerance.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">maxdt</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em></dt>
+<dd><p>Maximum timestep size.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">nextdt</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em></dt>
+<dd><p>Starting timestep size.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">split3node</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em></dt>
+<dd><p>Enable splitting of 3-nodes.</p>
+</dd></dl>
+
+</dd></dl>
+
+<p>—</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="pyexadis.CrystalParams">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyexadis.</span></span><span class="sig-name descname"><span class="pre">CrystalParams</span></span><a class="headerlink" href="#pyexadis.CrystalParams" title="Link to this definition">¶</a></dt>
+<dd><p>Parameters for crystal type, orientation, and glide planes.</p>
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">set_crystal_type</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Set the crystal type.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">R</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">array</span></em></dt>
+<dd><p>Crystal orientation matrix.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">use_glide_planes</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em></dt>
+<dd><p>Use and maintain dislocation glide planes.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">enforce_glide_planes</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em></dt>
+<dd><p>Enforce glide planes option.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">num_bcc_plane_families</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em></dt>
+<dd><p>Number of BCC plane families (1, 2, or 3).</p>
+</dd></dl>
+
+</dd></dl>
+
+<p>—</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="pyexadis.Crystal">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyexadis.</span></span><span class="sig-name descname"><span class="pre">Crystal</span></span><a class="headerlink" href="#pyexadis.Crystal" title="Link to this definition">¶</a></dt>
+<dd><p>Crystal type and orientation.</p>
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">type</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Initialize with crystal type.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">R</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Initialize with crystal type and orientation matrix.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">crystalparams</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Initialize with crystal parameters.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">type</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em></dt>
+<dd><p>Index of the crystal type.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">R</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">array</span></em></dt>
+<dd><p>Crystal orientation matrix.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">set_orientation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">R</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Set crystal orientation matrix.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">set_orientation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">euler_angles</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Set crystal orientation via Euler angles.</p>
+</dd></dl>
+
+</dd></dl>
+
+<p>—</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="pyexadis.Cell">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyexadis.</span></span><span class="sig-name descname"><span class="pre">Cell</span></span><a class="headerlink" href="#pyexadis.Cell" title="Link to this definition">¶</a></dt>
+<dd><p>Simulation cell and periodic boundary conditions.</p>
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Lbox</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centered</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Initialize cubic cell.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Lvecbox</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">centered</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Initialize cell with vector box.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bmin</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bmax</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Initialize cell with bounds.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">h</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">origin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">Vec3(0.0)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_periodic</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[PBC_BOUND,</span> <span class="pre">PBC_BOUND,</span> <span class="pre">PBC_BOUND]</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Initialize cell with matrix, origin, and periodicity.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cell</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Copy constructor.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">h</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">array</span></em></dt>
+<dd><p>Cell matrix.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">origin</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">array</span></em></dt>
+<dd><p>Origin of the cell.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">center</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span></dt>
+<dd><p>Returns the center of the cell.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">closest_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Rref</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">R</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Returns the closest image of an array of positions from another reference.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">pbc_fold</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">R</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Fold an array of positions to the primary cell.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">is_inside</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">R</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Checks if a position is inside the primary cell.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">are_inside</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">R</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Checks if an array of positions are inside the primary cell.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">is_triclinic</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span></dt>
+<dd><p>Returns if the box is triclinic.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">is_periodic</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span></dt>
+<dd><p>Get the cell periodic boundary condition flags along the 3 dimensions.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">get_bounds</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span></dt>
+<dd><p>Get the (orthorhombic) bounds of the cell.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">volume</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span></dt>
+<dd><p>Returns the volume of the cell.</p>
+</dd></dl>
+
+</dd></dl>
+
+<p>—</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="pyexadis.NodeTag">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyexadis.</span></span><span class="sig-name descname"><span class="pre">NodeTag</span></span><a class="headerlink" href="#pyexadis.NodeTag" title="Link to this definition">¶</a></dt>
+<dd><p>Tag identifying a node by domain and local index.</p>
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">domain</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index</span></span></em><span class="sig-paren">)</span></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>domain</strong> – Domain index (int)</p></li>
+<li><p><strong>index</strong> – Local index (int)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">domain</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em></dt>
+<dd><p>Domain index.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">index</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em></dt>
+<dd><p>Local index.</p>
+</dd></dl>
+
+</dd></dl>
+
+<p>—</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="pyexadis.DisNode">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyexadis.</span></span><span class="sig-name descname"><span class="pre">DisNode</span></span><a class="headerlink" href="#pyexadis.DisNode" title="Link to this definition">¶</a></dt>
+<dd><p>Dislocation node, including position, constraint, and tag.</p>
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pos</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">constraint</span></span></em><span class="sig-paren">)</span></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pos</strong> – Node position (Vec3)</p></li>
+<li><p><strong>constraint</strong> – Node constraint flag (int)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">tag</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#pyexadis.NodeTag" title="pyexadis.NodeTag"><span class="pre">NodeTag</span></a></em></dt>
+<dd><p>Node tag (domain, index).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">constraint</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em></dt>
+<dd><p>Node constraint flag.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">pos</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Vec3</span></em></dt>
+<dd><p>Node position (x, y, z).</p>
+</dd></dl>
+
+</dd></dl>
+
+<p>—</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="pyexadis.DisSeg">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyexadis.</span></span><span class="sig-name descname"><span class="pre">DisSeg</span></span><a class="headerlink" href="#pyexadis.DisSeg" title="Link to this definition">¶</a></dt>
+<dd><p>Dislocation segment between two nodes.</p>
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">burg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plane</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">Vec3(0.0)</span></span></em><span class="sig-paren">)</span></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n1</strong> – Segment start node index (int)</p></li>
+<li><p><strong>n2</strong> – Segment end node index (int)</p></li>
+<li><p><strong>burg</strong> – Segment Burgers vector (Vec3)</p></li>
+<li><p><strong>plane</strong> – Segment plane normal (Vec3, default zero vector)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">n1</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em></dt>
+<dd><p>Segment start node index.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">n2</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em></dt>
+<dd><p>Segment end node index.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">burg</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Vec3</span></em></dt>
+<dd><p>Segment Burgers vector.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">plane</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Vec3</span></em></dt>
+<dd><p>Segment plane normal.</p>
+</dd></dl>
+
+</dd></dl>
+
+<p>—</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="pyexadis.Conn">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyexadis.</span></span><span class="sig-name descname"><span class="pre">Conn</span></span><a class="headerlink" href="#pyexadis.Conn" title="Link to this definition">¶</a></dt>
+<dd><p>Connectivity information for a node.</p>
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span></dt>
+<dd><p>Default constructor.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">num</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em></dt>
+<dd><p>Number of connections.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">node</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">i</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Get the node index of the i-th connection.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>i</strong> – Connection index (int)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">seg</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">i</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Get the segment index of the i-th connection.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>i</strong> – Connection index (int)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">order</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">i</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Get the order value of the i-th connection.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>i</strong> – Connection index (int)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">add_connection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">order</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Add a connection.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>node</strong> – Node index (int)</p></li>
+<li><p><strong>seg</strong> – Segment index (int)</p></li>
+<li><p><strong>order</strong> – Order value (int)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">remove_connection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">i</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Remove the i-th connection.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>i</strong> – Connection index (int)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<p>—</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="pyexadis.SerialDisNet">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyexadis.</span></span><span class="sig-name descname"><span class="pre">SerialDisNet</span></span><a class="headerlink" href="#pyexadis.SerialDisNet" title="Link to this definition">¶</a></dt>
+<dd><p>Serial dislocation network object. This is the direct binding to the C++ implementation. In the python interface, a wrapper ExaDisNet object is usually used instead as a proxy for a SerialDisNet object.</p>
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cell</span></span></em><span class="sig-paren">)</span></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>cell</strong> – Simulation cell (Cell)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">number_of_nodes</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span></dt>
+<dd><p>Get the number of nodes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">number_of_segs</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span></dt>
+<dd><p>Get the number of segments.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">dislocation_density</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">burgmag</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Get the dislocation density.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">cell</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#pyexadis.Cell" title="pyexadis.Cell"><span class="pre">Cell</span></a></em></dt>
+<dd><p>Simulation cell.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">nodes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">i</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Get the i-th node by reference.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>i</strong> – Node index (int)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#pyexadis.DisNode" title="pyexadis.DisNode">DisNode</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">segs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">i</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Get the i-th segment by reference.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>i</strong> – Segment index (int)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#pyexadis.DisSeg" title="pyexadis.DisSeg">DisSeg</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">conn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">i</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Get the connectivity object for the i-th node by reference.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>i</strong> – Node index (int)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#pyexadis.Conn" title="pyexadis.Conn">Conn</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">find_connection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n2</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Find connection index c in the Conn array of node 1 that connects to node 2, i.e. where Conn(n1).node(c) == n2.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n1</strong> – Node 1 index (int)</p></li>
+<li><p><strong>n2</strong> – Node 2 index (int)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">generate_connectivity</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span></dt>
+<dd><p>Generate internal connectivity array for the network.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">_add_node</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pos</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">constraint</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">UNCONSTRAINED</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Add node (x, y, z[, constraint]) to the network.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pos</strong> – Position (Vec3)</p></li>
+<li><p><strong>constraint</strong> – Constraint flag (int, default UNCONSTRAINED)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">_add_seg</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">burg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plane</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">Vec3(0.0)</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Add segment (n1, n2, burg[, plane]) to the network.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n1</strong> – Start node index (int)</p></li>
+<li><p><strong>n2</strong> – End node index (int)</p></li>
+<li><p><strong>burg</strong> – Burgers vector (Vec3)</p></li>
+<li><p><strong>plane</strong> – Plane normal (Vec3, default zero vector)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">move_node</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node_index</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_pos</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dEp</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Move a node to a new position.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>node_index</strong> – Index of node (int)</p></li>
+<li><p><strong>new_pos</strong> – New position (Vec3)</p></li>
+<li><p><strong>dEp</strong> – Reference to the plastic strain variable to be incremented (Mat33)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">split_seg</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seg_index</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_pos</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Split a segment by inserting a new node at new_pos.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>seg_index</strong> – Segment index (int)</p></li>
+<li><p><strong>new_pos</strong> – New node position (Vec3)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Index of the new node (int)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">split_node</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node_index</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">arms</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Split a node given the list of arms to be transferred to the new node.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>node_index</strong> – Node index (int)</p></li>
+<li><p><strong>arms</strong> – Node arms (array)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Index of the new node (int)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">merge_nodes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node_index1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">node_index2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dEp</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Merge two nodes into the first node.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>node_index1</strong> – First node index (int)</p></li>
+<li><p><strong>node_index2</strong> – Second node index (int)</p></li>
+<li><p><strong>dEp</strong> – Reference to the plastic strain variable to be incremented (Mat33)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Merge error (bool)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">merge_nodes_position</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node_index1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">node_index2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_pos</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dEp</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Merge two nodes into the first node at the new position.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>node_index1</strong> – First node index (int)</p></li>
+<li><p><strong>node_index2</strong> – Second node index (int)</p></li>
+<li><p><strong>new_pos</strong> – New position (Vec3)</p></li>
+<li><p><strong>dEp</strong> – Reference to the plastic strain variable to be incremented (Mat33)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Merge error (bool)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">remove_segs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seg_indices</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Remove segments by indices.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>seg_indices</strong> – List of segment indices</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">remove_nodes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node_indices</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Remove nodes by indices.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>node_indices</strong> – List of node indices</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">purge_network</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span></dt>
+<dd><p>Purge the network (remove unused nodes/segs).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">update</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span></dt>
+<dd><p>Update network memory after modifications.</p>
+</dd></dl>
+
+</dd></dl>
+
+<p>—</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="pyexadis.ExaDisNet">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyexadis.</span></span><span class="sig-name descname"><span class="pre">ExaDisNet</span></span><a class="headerlink" href="#pyexadis.ExaDisNet" title="Link to this definition">¶</a></dt>
+<dd><p>Dislocation network object, supporting import/export, manipulation, and analysis of network data.</p>
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span></dt>
+<dd><p>Default constructor.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cell</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nodes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">segs</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Construct network from cell, nodes, and segments.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cell</strong> – Cell object</p></li>
+<li><p><strong>nodes</strong> – List of node data (list of lists: [dom, id, x, y, z, constraint])</p></li>
+<li><p><strong>segs</strong> – List of segment data (list of lists: [n1, n2, burg, plane])</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">import_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cell</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nodes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">segs</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Set the network with (cell, nodes, segs) data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cell</strong> – Cell object</p></li>
+<li><p><strong>nodes</strong> – List of node data</p></li>
+<li><p><strong>segs</strong> – List of segment data</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">number_of_nodes</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span></dt>
+<dd><p>Returns the number of nodes in the network.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">number_of_segs</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span></dt>
+<dd><p>Returns the number of segments in the network.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">is_sane</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span></dt>
+<dd><p>Checks if the network is sane (valid connectivity, no corrupt data).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">get_cell</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span></dt>
+<dd><p>Get the cell containing the network by value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#pyexadis.Cell" title="pyexadis.Cell">Cell</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">get_nodes_array</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span></dt>
+<dd><p>Get the list of nodes in the network.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List of [dom, id, x, y, z, constraint] for each node</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">get_segs_array</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span></dt>
+<dd><p>Get the list of segments in the network.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List of [n1, n2, burg, plane] for each segment</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">get_forces</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span></dt>
+<dd><p>Get the list of node forces (fx, fy, fz) in the network.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List of [fx, fy, fz] for each node</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">get_velocities</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span></dt>
+<dd><p>Get the list of node velocities (vx, vy, vz) in the network.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List of [vx, vy, vz] for each node</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">set_positions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">positions</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Set the list of node positions (x, y, z) in the network.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>positions</strong> – List of [x, y, z] for each node</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">set_forces</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">forces</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Set the list of node forces (fx, fy, fz) in the network.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>forces</strong> – List of [fx, fy, fz] for each node</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">set_velocities</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">velocities</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Set the list of node velocities (vx, vy, vz) in the network.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>velocities</strong> – List of [vx, vy, vz] for each node</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">write_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Write network data in ParaDiS format.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>filename</strong> – Output file path (str)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">get_plastic_strain</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span></dt>
+<dd><p>Returns the plastic strain, plastic spin, and dislocation density, as computed since the last integration step.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Plastic strain array, plastic spin array, dislocation density</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">physical_links</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span></dt>
+<dd><p>Returns the list of segments for each physical dislocation link.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List of segment indices for each link</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">_get_crystal</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span></dt>
+<dd><p>Get the Crystal object by reference.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#pyexadis.Crystal" title="pyexadis.Crystal">Crystal</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">_get_serial_network</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span></dt>
+<dd><p>Get the underlying SerialDisNet object by reference.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#pyexadis.SerialDisNet" title="pyexadis.SerialDisNet">SerialDisNet</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<p>—</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="pyexadis.System">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyexadis.</span></span><span class="sig-name descname"><span class="pre">System</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pyexadis.ExaDisNet</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyexadis.System" title="Link to this definition">¶</a></dt>
+<dd><p>ExaDiS simulation system, combining a network and simulation parameters.</p>
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">net</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Construct a system from a network and parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>net</strong> – ExaDisNet object</p></li>
+<li><p><strong>params</strong> – Params object</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">set_neighbor_cutoff</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cutoff</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Set neighbor cutoff of the system.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>cutoff</strong> – Cutoff value (float)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">set_applied_stress</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stress</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Set applied stress of the system.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>stress</strong> – List or array of [xx, yy, zz, yz, xz, xy]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">print_timers</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dev</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Print simulation timers.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>dev</strong> – If True, print development timers (bool, default False)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<p>—</p>
+</section>
+<section id="general-functions">
+<h2>General Functions<a class="headerlink" href="#general-functions" title="Link to this heading">¶</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="pyexadis.initialize">
+<span class="sig-prename descclassname"><span class="pre">pyexadis.</span></span><span class="sig-name descname"><span class="pre">initialize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_threads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyexadis.initialize" title="Link to this definition">¶</a></dt>
+<dd><p>Initialize the python binding module.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>num_threads</strong> – Number of OMP threads (default: -1)</p></li>
+<li><p><strong>device_id</strong> – Device GPU index (default: 0)</p></li>
+<li><p><strong>verbose</strong> – Print info, e.g. execution spaces (default: True)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyexadis.finalize">
+<span class="sig-prename descclassname"><span class="pre">pyexadis.</span></span><span class="sig-name descname"><span class="pre">finalize</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyexadis.finalize" title="Link to this definition">¶</a></dt>
+<dd><p>Finalize the python binding module.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyexadis.read_paradis">
+<span class="sig-prename descclassname"><span class="pre">pyexadis.</span></span><span class="sig-name descname"><span class="pre">read_paradis</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyexadis.read_paradis" title="Link to this definition">¶</a></dt>
+<dd><p>Read ParaDiS data file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>filename</strong> – Path to ParaDiS data file</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#pyexadis.ExaDisNet" title="pyexadis.ExaDisNet">ExaDisNet</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">pyexadis.</span></span><span class="sig-name descname"><span class="pre">generate_prismatic_config</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">crystal</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Lbox</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">numsources</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">radius</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maxseg</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1234</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">uniform</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Generate a configuration made of prismatic loops in a cubic cell.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>crystal</strong> – Crystal object</p></li>
+<li><p><strong>Lbox</strong> – Box size</p></li>
+<li><p><strong>numsources</strong> – Number of sources</p></li>
+<li><p><strong>radius</strong> – Loop radius</p></li>
+<li><p><strong>maxseg</strong> – Maximum segment length (default: -1)</p></li>
+<li><p><strong>seed</strong> – Random seed (default: 1234)</p></li>
+<li><p><strong>uniform</strong> – Uniform distribution (default: False)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#pyexadis.ExaDisNet" title="pyexadis.ExaDisNet">ExaDisNet</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyexadis.generate_prismatic_config">
+<span class="sig-prename descclassname"><span class="pre">pyexadis.</span></span><span class="sig-name descname"><span class="pre">generate_prismatic_config</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">crystal</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cell</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">numsources</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">radius</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maxseg</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1234</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">uniform</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyexadis.generate_prismatic_config" title="Link to this definition">¶</a></dt>
+<dd><p>Generate a configuration made of prismatic loops in a custom cell.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>crystal</strong> – Crystal object</p></li>
+<li><p><strong>cell</strong> – Cell object</p></li>
+<li><p><strong>numsources</strong> – Number of sources</p></li>
+<li><p><strong>radius</strong> – Loop radius</p></li>
+<li><p><strong>maxseg</strong> – Maximum segment length (default: -1)</p></li>
+<li><p><strong>seed</strong> – Random seed (default: 1234)</p></li>
+<li><p><strong>uniform</strong> – Uniform distribution (default: False)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#pyexadis.ExaDisNet" title="pyexadis.ExaDisNet">ExaDisNet</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="force">
+<h2>Force<a class="headerlink" href="#force" title="Link to this heading">¶</a></h2>
+<section id="force-modules-and-factories">
+<h3>Force Modules and Factories<a class="headerlink" href="#force-modules-and-factories" title="Link to this heading">¶</a></h3>
+<dl class="py class">
+<dt class="sig sig-object py" id="pyexadis.Force.Force">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyexadis.Force.</span></span><span class="sig-name descname"><span class="pre">Force</span></span><a class="headerlink" href="#pyexadis.Force.Force" title="Link to this definition">¶</a></dt>
+<dd><p>ExaDiS base force class.</p>
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">name</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span></dt>
+<dd><p>Get force name.</p>
+</dd></dl>
+
+</dd></dl>
+
+<p>—</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="pyexadis.Force.CORE_SELF_PKEXT">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyexadis.Force.</span></span><span class="sig-name descname"><span class="pre">CORE_SELF_PKEXT</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pyexadis.Force.Force</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyexadis.Force.CORE_SELF_PKEXT" title="Link to this definition">¶</a></dt>
+<dd><p>Core, self, and external PK force model.</p>
+<dl class="py class">
+<dt class="sig sig-object py">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Params</span></span></dt>
+<dd><p>Parameters for CORE_SELF_PKEXT model.</p>
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Ecore</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Ecore_junc_fact</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>Ecore</strong> – Core energy (float, default -1.0)</p></li>
+<li><p><strong>Ecore_junc_fact</strong> – Junction energy factor (float, default 1.0)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</dd></dl>
+
+<p>—</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="pyexadis.Force.ForceFFT">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyexadis.Force.</span></span><span class="sig-name descname"><span class="pre">ForceFFT</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pyexadis.Force.Force</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyexadis.Force.ForceFFT" title="Link to this definition">¶</a></dt>
+<dd><p>FFT-based force model.</p>
+<dl class="py class">
+<dt class="sig sig-object py">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Params</span></span></dt>
+<dd><p>Parameters for ForceFFT model.</p>
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Ngrid</span></span></em><span class="sig-paren">)</span></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>Ngrid</strong> – Grid dimensions (list of 3 ints)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">make</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fparams</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cell</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Factory to create a ForceFFT model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>params</strong> – General simulation parameters</p></li>
+<li><p><strong>fparams</strong> – ForceFFT.Params object</p></li>
+<li><p><strong>cell</strong> – Cell object</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#pyexadis.ForceBind" title="pyexadis.ForceBind">ForceBind</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">get_neighbor_cutoff</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span></dt>
+<dd><p>Returns the neighbor cutoff used in ForceFFT.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">get_rcgrid</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span></dt>
+<dd><p>Returns the grid cutoff used in ForceFFT.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">interpolate_stress</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">R</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Interpolates stress at query positions from FFT grid values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>R</strong> – Array of positions</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">export_stress_gridval</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span></dt>
+<dd><p>Exports grid stress values.</p>
+</dd></dl>
+
+</dd></dl>
+
+<p>—</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="pyexadis.Force.LINE_TENSION_MODEL">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyexadis.Force.</span></span><span class="sig-name descname"><span class="pre">LINE_TENSION_MODEL</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pyexadis.Force.Force</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyexadis.Force.LINE_TENSION_MODEL" title="Link to this definition">¶</a></dt>
+<dd><p>Line tension force model.</p>
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">make</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coreparams</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Factory to create a LINE_TENSION_MODEL.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>params</strong> – Global simulation parameters</p></li>
+<li><p><strong>coreparams</strong> – CORE_SELF_PKEXT.Params object</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#pyexadis.ForceBind" title="pyexadis.ForceBind">ForceBind</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<p>—</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="pyexadis.Force.CUTOFF_MODEL">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyexadis.Force.</span></span><span class="sig-name descname"><span class="pre">CUTOFF_MODEL</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pyexadis.Force.Force</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyexadis.Force.CUTOFF_MODEL" title="Link to this definition">¶</a></dt>
+<dd><p>Cutoff-based force model.</p>
+<dl class="py class">
+<dt class="sig sig-object py">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Params</span></span></dt>
+<dd><p>Parameters for CUTOFF_MODEL.</p>
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">coreparams</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cutoff</span></span></em><span class="sig-paren">)</span></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>coreparams</strong> – CORE_SELF_PKEXT.Params object</p></li>
+<li><p><strong>cutoff</strong> – Cutoff distance (float)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">make</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fparams</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Factory to create a CUTOFF_MODEL.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>params</strong> – Global simulation parameters</p></li>
+<li><p><strong>fparams</strong> – CUTOFF_MODEL.Params object</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#pyexadis.ForceBind" title="pyexadis.ForceBind">ForceBind</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<p>—</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="pyexadis.Force.DDD_FFT_MODEL">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyexadis.Force.</span></span><span class="sig-name descname"><span class="pre">DDD_FFT_MODEL</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pyexadis.Force.Force</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyexadis.Force.DDD_FFT_MODEL" title="Link to this definition">¶</a></dt>
+<dd><p>DDD-FFT force model.</p>
+<dl class="py class">
+<dt class="sig sig-object py">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Params</span></span></dt>
+<dd><p>Parameters for DDD_FFT_MODEL.</p>
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">coreparams</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Ngrid</span></span></em><span class="sig-paren">)</span></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>coreparams</strong> – CORE_SELF_PKEXT.Params object</p></li>
+<li><p><strong>Ngrid</strong> – Grid dimensions (list of 3 ints)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">make</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fparams</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cell</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Factory to create a DDD_FFT_MODEL.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>params</strong> – Global simulation parameters</p></li>
+<li><p><strong>fparams</strong> – DDD_FFT_MODEL.Params object</p></li>
+<li><p><strong>cell</strong> – Cell object</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#pyexadis.ForceBind" title="pyexadis.ForceBind">ForceBind</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<p>—</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="pyexadis.Force.SUBCYCLING_MODEL">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyexadis.Force.</span></span><span class="sig-name descname"><span class="pre">SUBCYCLING_MODEL</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pyexadis.Force.Force</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyexadis.Force.SUBCYCLING_MODEL" title="Link to this definition">¶</a></dt>
+<dd><p>Subcycling force model.</p>
+<dl class="py class">
+<dt class="sig sig-object py">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Params</span></span></dt>
+<dd><p>Parameters for SUBCYCLING_MODEL.</p>
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">coreparams</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Ngrid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">drift</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flong_group0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>coreparams</strong> – CORE_SELF_PKEXT.Params object</p></li>
+<li><p><strong>Ngrid</strong> – Grid dimensions (list of 3 ints)</p></li>
+<li><p><strong>drift</strong> – Enable drift subcycling scheme (bool, default False)</p></li>
+<li><p><strong>flong_group0</strong> – Integrate long-range force in group 0 (bool, default True)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">make</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fparams</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cell</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Factory to create a SUBCYCLING_MODEL.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>params</strong> – Global simulation parameters</p></li>
+<li><p><strong>fparams</strong> – SUBCYCLING_MODEL.Params object</p></li>
+<li><p><strong>cell</strong> – Cell object</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#pyexadis.ForceBind" title="pyexadis.ForceBind">ForceBind</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<p>—</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="pyexadis.Force.ForcePython">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyexadis.Force.</span></span><span class="sig-name descname"><span class="pre">ForcePython</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pyexadis.Force.Force</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyexadis.Force.ForcePython" title="Link to this definition">¶</a></dt>
+<dd><p>Python-based force model.</p>
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">make</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Factory to create a Python-based force model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>params</strong> – Global simulation parameters</p></li>
+<li><p><strong>force</strong> – CalForce python object implementing force methods</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#pyexadis.ForceBind" title="pyexadis.ForceBind">ForceBind</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<p>—</p>
+</section>
+<section id="force-binder">
+<h3>Force Binder<a class="headerlink" href="#force-binder" title="Link to this heading">¶</a></h3>
+<dl class="py class">
+<dt class="sig sig-object py" id="pyexadis.ForceBind">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyexadis.</span></span><span class="sig-name descname"><span class="pre">ForceBind</span></span><a class="headerlink" href="#pyexadis.ForceBind" title="Link to this definition">¶</a></dt>
+<dd><p>Wrapper for force computation and related operations.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">force</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#pyexadis.Force.Force" title="pyexadis.Force.Force"><span class="pre">Force</span></a></em></dt>
+<dd><p>Internal force object.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">neighbor_cutoff</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em></dt>
+<dd><p>Neighbor cutoff distance.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">_pre_compute</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">system</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Pre-compute force of the system (internal use).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">_compute</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">system</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Compute force of the system (internal use).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">_get_force_fft</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span></dt>
+<dd><p>Return internal ForceFFT object if it exists in the internal force model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#pyexadis.Force.ForceFFT" title="pyexadis.Force.ForceFFT">ForceFFT</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">compute_force</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">net</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">applied_stress</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[0.0,</span> <span class="pre">0.0,</span> <span class="pre">0.0,</span> <span class="pre">0.0,</span> <span class="pre">0.0,</span> <span class="pre">0.0]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pre_compute</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Wrapper to compute nodal forces of the system.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>net</strong> – ExaDisNet object</p></li>
+<li><p><strong>applied_stress</strong> – Applied stress tensor (list of 6 floats)</p></li>
+<li><p><strong>pre_compute</strong> – Whether to run pre-computation (bool)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">pre_compute_force</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">net</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Wrapper to perform pre-computations before compute_node_force().</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>net</strong> – ExaDisNet object</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">compute_node_force</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">net</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">i</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">applied_stress</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Wrapper to compute the force on a single node.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>net</strong> – ExaDisNet object</p></li>
+<li><p><strong>i</strong> – Node index (int)</p></li>
+<li><p><strong>applied_stress</strong> – Applied stress tensor (list of 6 floats)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<p>—</p>
+</section>
+<section id="force-calculation-functions">
+<h3>Force Calculation Functions<a class="headerlink" href="#force-calculation-functions" title="Link to this heading">¶</a></h3>
+<dl class="py function">
+<dt class="sig sig-object py" id="pyexadis.compute_force_n2">
+<span class="sig-prename descclassname"><span class="pre">pyexadis.</span></span><span class="sig-name descname"><span class="pre">compute_force_n2</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">net</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mu</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nu</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyexadis.compute_force_n2" title="Link to this definition">¶</a></dt>
+<dd><p>Compute elastic forces using brute-force N^2 calculation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>net</strong> – ExaDisNet object</p></li>
+<li><p><strong>mu</strong> – Shear modulus (float)</p></li>
+<li><p><strong>nu</strong> – Poisson ratio (float)</p></li>
+<li><p><strong>a</strong> – Core cutoff (float)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyexadis.compute_force_cutoff">
+<span class="sig-prename descclassname"><span class="pre">pyexadis.</span></span><span class="sig-name descname"><span class="pre">compute_force_cutoff</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">net</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mu</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nu</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cutoff</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maxseg</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyexadis.compute_force_cutoff" title="Link to this definition">¶</a></dt>
+<dd><p>Compute elastic forces using a segment pair cutoff.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>net</strong> – ExaDisNet object</p></li>
+<li><p><strong>mu</strong> – Shear modulus (float)</p></li>
+<li><p><strong>nu</strong> – Poisson ratio (float)</p></li>
+<li><p><strong>a</strong> – Core cutoff (float)</p></li>
+<li><p><strong>cutoff</strong> – Cutoff distance (float)</p></li>
+<li><p><strong>maxseg</strong> – Max segment length (float, default 0.0)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyexadis.compute_force_segseglist">
+<span class="sig-prename descclassname"><span class="pre">pyexadis.</span></span><span class="sig-name descname"><span class="pre">compute_force_segseglist</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">net</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mu</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nu</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">segseglist</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyexadis.compute_force_segseglist" title="Link to this definition">¶</a></dt>
+<dd><p>Compute elastic forces given a list of segment pairs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>net</strong> – ExaDisNet object</p></li>
+<li><p><strong>mu</strong> – Shear modulus (float)</p></li>
+<li><p><strong>nu</strong> – Poisson ratio (float)</p></li>
+<li><p><strong>a</strong> – Core cutoff (float)</p></li>
+<li><p><strong>segseglist</strong> – List of segment pairs</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<p>—</p>
+</section>
+</section>
+<section id="mobility">
+<h2>Mobility<a class="headerlink" href="#mobility" title="Link to this heading">¶</a></h2>
+<section id="mobility-binder">
+<h3>Mobility Binder<a class="headerlink" href="#mobility-binder" title="Link to this heading">¶</a></h3>
+<dl class="py class">
+<dt class="sig sig-object py" id="pyexadis.Mobility">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyexadis.</span></span><span class="sig-name descname"><span class="pre">Mobility</span></span><a class="headerlink" href="#pyexadis.Mobility" title="Link to this definition">¶</a></dt>
+<dd><p>Mobility law wrapper.</p>
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">compute</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">system</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Compute mobility of the system.</p>
+</dd></dl>
+
+</dd></dl>
+
+<p>—</p>
+</section>
+<section id="mobility-law-factories">
+<h3>Mobility Law Factories<a class="headerlink" href="#mobility-law-factories" title="Link to this heading">¶</a></h3>
+<dl class="py function">
+<dt class="sig sig-object py" id="pyexadis.make_mobility_glide">
+<span class="sig-prename descclassname"><span class="pre">pyexadis.</span></span><span class="sig-name descname"><span class="pre">make_mobility_glide</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mobparams</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyexadis.make_mobility_glide" title="Link to this definition">¶</a></dt>
+<dd><p>Instantiate a GLIDE mobility law.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyexadis.make_mobility_bcc_0b">
+<span class="sig-prename descclassname"><span class="pre">pyexadis.</span></span><span class="sig-name descname"><span class="pre">make_mobility_bcc_0b</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mobparams</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyexadis.make_mobility_bcc_0b" title="Link to this definition">¶</a></dt>
+<dd><p>Instantiate a BCC_0B mobility law.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyexadis.make_mobility_bcc_nl">
+<span class="sig-prename descclassname"><span class="pre">pyexadis.</span></span><span class="sig-name descname"><span class="pre">make_mobility_bcc_nl</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mobparams</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyexadis.make_mobility_bcc_nl" title="Link to this definition">¶</a></dt>
+<dd><p>Instantiate a BCC_NL mobility law.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyexadis.make_mobility_fcc_0">
+<span class="sig-prename descclassname"><span class="pre">pyexadis.</span></span><span class="sig-name descname"><span class="pre">make_mobility_fcc_0</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mobparams</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyexadis.make_mobility_fcc_0" title="Link to this definition">¶</a></dt>
+<dd><p>Instantiate a FCC_0 mobility law.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyexadis.make_mobility_fcc_0_fric">
+<span class="sig-prename descclassname"><span class="pre">pyexadis.</span></span><span class="sig-name descname"><span class="pre">make_mobility_fcc_0_fric</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mobparams</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyexadis.make_mobility_fcc_0_fric" title="Link to this definition">¶</a></dt>
+<dd><p>Instantiate a FCC_0_FRIC mobility law.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyexadis.make_mobility_fcc_0b">
+<span class="sig-prename descclassname"><span class="pre">pyexadis.</span></span><span class="sig-name descname"><span class="pre">make_mobility_fcc_0b</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mobparams</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyexadis.make_mobility_fcc_0b" title="Link to this definition">¶</a></dt>
+<dd><p>Instantiate a FCC_0B mobility law.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyexadis.make_mobility_python">
+<span class="sig-prename descclassname"><span class="pre">pyexadis.</span></span><span class="sig-name descname"><span class="pre">make_mobility_python</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mobility</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyexadis.make_mobility_python" title="Link to this definition">¶</a></dt>
+<dd><p>Instantiate a python-based mobility model.</p>
+</dd></dl>
+
+<p>—</p>
+</section>
+<section id="mobility-calculation-functions">
+<h3>Mobility Calculation Functions<a class="headerlink" href="#mobility-calculation-functions" title="Link to this heading">¶</a></h3>
+<dl class="py function">
+<dt class="sig sig-object py" id="pyexadis.compute_mobility">
+<span class="sig-prename descclassname"><span class="pre">pyexadis.</span></span><span class="sig-name descname"><span class="pre">compute_mobility</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">net</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mobility</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nodeforces</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nodetags</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyexadis.compute_mobility" title="Link to this definition">¶</a></dt>
+<dd><p>Wrapper to compute nodal velocities.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>net</strong> – ExaDisNet object</p></li>
+<li><p><strong>mobility</strong> – Mobility object</p></li>
+<li><p><strong>nodeforces</strong> – List of node forces</p></li>
+<li><p><strong>nodetags</strong> – List of NodeTag objects (optional)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyexadis.compute_node_mobility">
+<span class="sig-prename descclassname"><span class="pre">pyexadis.</span></span><span class="sig-name descname"><span class="pre">compute_node_mobility</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">net</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">i</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mobility</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fi</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyexadis.compute_node_mobility" title="Link to this definition">¶</a></dt>
+<dd><p>Wrapper to compute the mobility of a single node.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>net</strong> – ExaDisNet object</p></li>
+<li><p><strong>i</strong> – Node index (int)</p></li>
+<li><p><strong>mobility</strong> – Mobility object</p></li>
+<li><p><strong>fi</strong> – Force on node</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<p>—</p>
+</section>
+</section>
+<section id="integrator">
+<h2>Integrator<a class="headerlink" href="#integrator" title="Link to this heading">¶</a></h2>
+<section id="integrator-binder">
+<h3>Integrator Binder<a class="headerlink" href="#integrator-binder" title="Link to this heading">¶</a></h3>
+<dl class="py class">
+<dt class="sig sig-object py" id="pyexadis.Integrator">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyexadis.</span></span><span class="sig-name descname"><span class="pre">Integrator</span></span><a class="headerlink" href="#pyexadis.Integrator" title="Link to this definition">¶</a></dt>
+<dd><p>Integrator wrapper.</p>
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">integrate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">system</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Integrate the system.</p>
+</dd></dl>
+
+</dd></dl>
+
+<p>—</p>
+</section>
+<section id="integrator-factories">
+<h3>Integrator Factories<a class="headerlink" href="#integrator-factories" title="Link to this heading">¶</a></h3>
+<dl class="py function">
+<dt class="sig sig-object py" id="pyexadis.make_integrator_trapezoid">
+<span class="sig-prename descclassname"><span class="pre">pyexadis.</span></span><span class="sig-name descname"><span class="pre">make_integrator_trapezoid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">intparams</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mobility</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyexadis.make_integrator_trapezoid" title="Link to this definition">¶</a></dt>
+<dd><p>Instantiate a trapezoid integrator.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyexadis.make_integrator_trapezoid_multi">
+<span class="sig-prename descclassname"><span class="pre">pyexadis.</span></span><span class="sig-name descname"><span class="pre">make_integrator_trapezoid_multi</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">intparams</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mobility</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyexadis.make_integrator_trapezoid_multi" title="Link to this definition">¶</a></dt>
+<dd><p>Instantiate a multi-step trapezoid integrator.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyexadis.make_integrator_rkf">
+<span class="sig-prename descclassname"><span class="pre">pyexadis.</span></span><span class="sig-name descname"><span class="pre">make_integrator_rkf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">intparams</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mobility</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyexadis.make_integrator_rkf" title="Link to this definition">¶</a></dt>
+<dd><p>Instantiate a RKF integrator.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyexadis.make_integrator_rkf_multi">
+<span class="sig-prename descclassname"><span class="pre">pyexadis.</span></span><span class="sig-name descname"><span class="pre">make_integrator_rkf_multi</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">intparams</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mobility</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyexadis.make_integrator_rkf_multi" title="Link to this definition">¶</a></dt>
+<dd><p>Instantiate a multi-step RKF integrator.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyexadis.make_integrator_subcycling">
+<span class="sig-prename descclassname"><span class="pre">pyexadis.</span></span><span class="sig-name descname"><span class="pre">make_integrator_subcycling</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">intparams</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mobility</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyexadis.make_integrator_subcycling" title="Link to this definition">¶</a></dt>
+<dd><p>Instantiate a subcycling integrator.</p>
+</dd></dl>
+
+<p>—</p>
+</section>
+<section id="integration-functions">
+<h3>Integration Functions<a class="headerlink" href="#integration-functions" title="Link to this heading">¶</a></h3>
+<dl class="py function">
+<dt class="sig sig-object py" id="pyexadis.integrate">
+<span class="sig-prename descclassname"><span class="pre">pyexadis.</span></span><span class="sig-name descname"><span class="pre">integrate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">net</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">integrator</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nodevels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">applied_stress</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nodetags</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyexadis.integrate" title="Link to this definition">¶</a></dt>
+<dd><p>Wrapper to perform a time-integration step.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyexadis.integrate_euler">
+<span class="sig-prename descclassname"><span class="pre">pyexadis.</span></span><span class="sig-name descname"><span class="pre">integrate_euler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">net</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nodevels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nodetags</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyexadis.integrate_euler" title="Link to this definition">¶</a></dt>
+<dd><p>Time-integrate positions using the Euler integrator.</p>
+</dd></dl>
+
+<p>—</p>
+</section>
+</section>
+<section id="collision">
+<h2>Collision<a class="headerlink" href="#collision" title="Link to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="pyexadis.Collision">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyexadis.</span></span><span class="sig-name descname"><span class="pre">Collision</span></span><a class="headerlink" href="#pyexadis.Collision" title="Link to this definition">¶</a></dt>
+<dd><p>Collision handler.</p>
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">handle</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">system</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Handle collision of the system.</p>
+</dd></dl>
+
+</dd></dl>
+
+<p>—</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="pyexadis.make_collision">
+<span class="sig-prename descclassname"><span class="pre">pyexadis.</span></span><span class="sig-name descname"><span class="pre">make_collision</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">collision_mode</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyexadis.make_collision" title="Link to this definition">¶</a></dt>
+<dd><p>Instantiate a collision class.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyexadis.handle_collision">
+<span class="sig-prename descclassname"><span class="pre">pyexadis.</span></span><span class="sig-name descname"><span class="pre">handle_collision</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">net</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">collision</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyexadis.handle_collision" title="Link to this definition">¶</a></dt>
+<dd><p>Wrapper to handle collisions.</p>
+</dd></dl>
+
+<p>—</p>
+</section>
+<section id="topology">
+<h2>Topology<a class="headerlink" href="#topology" title="Link to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="pyexadis.Topology">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyexadis.</span></span><span class="sig-name descname"><span class="pre">Topology</span></span><a class="headerlink" href="#pyexadis.Topology" title="Link to this definition">¶</a></dt>
+<dd><p>Topology handler.</p>
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">handle</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">system</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Handle topology of the system.</p>
+</dd></dl>
+
+</dd></dl>
+
+<p>—</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="pyexadis.make_topology">
+<span class="sig-prename descclassname"><span class="pre">pyexadis.</span></span><span class="sig-name descname"><span class="pre">make_topology</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">topology_mode</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">topolparams</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mobility</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyexadis.make_topology" title="Link to this definition">¶</a></dt>
+<dd><p>Instantiate a topology class.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyexadis.handle_topology">
+<span class="sig-prename descclassname"><span class="pre">pyexadis.</span></span><span class="sig-name descname"><span class="pre">handle_topology</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">net</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">topology</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyexadis.handle_topology" title="Link to this definition">¶</a></dt>
+<dd><p>Wrapper to handle topological operations.</p>
+</dd></dl>
+
+<p>—</p>
+</section>
+<section id="remesh">
+<h2>Remesh<a class="headerlink" href="#remesh" title="Link to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="pyexadis.Remesh">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyexadis.</span></span><span class="sig-name descname"><span class="pre">Remesh</span></span><a class="headerlink" href="#pyexadis.Remesh" title="Link to this definition">¶</a></dt>
+<dd><p>Remesh handler.</p>
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">remesh</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">system</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Remesh the system.</p>
+</dd></dl>
+
+</dd></dl>
+
+<p>—</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="pyexadis.make_remesh">
+<span class="sig-prename descclassname"><span class="pre">pyexadis.</span></span><span class="sig-name descname"><span class="pre">make_remesh</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">remesh_rule</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remeshparams</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyexadis.make_remesh" title="Link to this definition">¶</a></dt>
+<dd><p>Instantiate a remesh class.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyexadis.remesh">
+<span class="sig-prename descclassname"><span class="pre">pyexadis.</span></span><span class="sig-name descname"><span class="pre">remesh</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">net</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remesh</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyexadis.remesh" title="Link to this definition">¶</a></dt>
+<dd><p>Wrapper to remesh the network.</p>
+</dd></dl>
+
+<p>—</p>
+</section>
+<section id="cross-slip">
+<h2>Cross-slip<a class="headerlink" href="#cross-slip" title="Link to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="pyexadis.CrossSlip">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyexadis.</span></span><span class="sig-name descname"><span class="pre">CrossSlip</span></span><a class="headerlink" href="#pyexadis.CrossSlip" title="Link to this definition">¶</a></dt>
+<dd><p>Cross-slip handler.</p>
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">handle</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">system</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Handle cross-slip operations of the system.</p>
+</dd></dl>
+
+</dd></dl>
+
+<p>—</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="pyexadis.make_cross_slip">
+<span class="sig-prename descclassname"><span class="pre">pyexadis.</span></span><span class="sig-name descname"><span class="pre">make_cross_slip</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cross_slip_mode</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyexadis.make_cross_slip" title="Link to this definition">¶</a></dt>
+<dd><p>Instantiate a cross-slip class.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyexadis.handle_cross_slip">
+<span class="sig-prename descclassname"><span class="pre">pyexadis.</span></span><span class="sig-name descname"><span class="pre">handle_cross_slip</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">net</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cross_slip</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyexadis.handle_cross_slip" title="Link to this definition">¶</a></dt>
+<dd><p>Wrapper to handle cross-slip operations.</p>
+</dd></dl>
+
+<p>—</p>
+</section>
+<section id="simulation-driver">
+<h2>Simulation Driver<a class="headerlink" href="#simulation-driver" title="Link to this heading">¶</a></h2>
+<section id="drivers">
+<h3>Drivers<a class="headerlink" href="#drivers" title="Link to this heading">¶</a></h3>
+<dl class="py class">
+<dt class="sig sig-object py" id="pyexadis.ExaDiSApp">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyexadis.</span></span><span class="sig-name descname"><span class="pre">ExaDiSApp</span></span><a class="headerlink" href="#pyexadis.ExaDiSApp" title="Link to this definition">¶</a></dt>
+<dd><p>Base application class for pyexadis simulation driver.</p>
+</dd></dl>
+
+<p>—</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="pyexadis.Driver">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyexadis.</span></span><span class="sig-name descname"><span class="pre">Driver</span></span><a class="headerlink" href="#pyexadis.Driver" title="Link to this definition">¶</a></dt>
+<dd><p>Main simulation driver, manages simulation state, modules, and execution.</p>
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span></dt>
+<dd><p>Default constructor.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">system</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Construct driver with a system.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>system</strong> – SystemBind object</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">outputdir</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em></dt>
+<dd><p>Output directory path for the simulation.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">update_state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Update the state dictionary with simulation state.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">read_restart</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">restart_file</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Read restart file.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">set_system</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">system</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Set system for the simulation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>system</strong> – SystemBind object</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">set_modules</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">force</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mobility</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">integrator</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">collision</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">topology</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remesh</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cross_slip</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">CrossSlipBind()</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Set modules for the simulation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>force</strong> – ForceBind object</p></li>
+<li><p><strong>mobility</strong> – MobilityBind object</p></li>
+<li><p><strong>integrator</strong> – IntegratorBind object</p></li>
+<li><p><strong>collision</strong> – CollisionBind object</p></li>
+<li><p><strong>topology</strong> – TopologyBind object</p></li>
+<li><p><strong>remesh</strong> – RemeshBind object</p></li>
+<li><p><strong>cross_slip</strong> – CrossSlipBind object (optional)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">set_simulation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">restart</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Set things up before running the simulation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>restart</strong> – Restart file path (str, optional)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">initialize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ctrl</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">check_modules</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Initialize simulation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ctrl</strong> – Driver.Control object</p></li>
+<li><p><strong>check_modules</strong> – Check modules before initialization (bool, default True)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ctrl</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Execute a simulation step.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ctrl</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Run the simulation.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">oprec_replay</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ctrl</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">oprec_files</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Replay the simulation from OpRec files.</p>
+</dd></dl>
+
+</dd></dl>
+
+<p>—</p>
+</section>
+<section id="driver-control">
+<h3>Driver Control<a class="headerlink" href="#driver-control" title="Link to this heading">¶</a></h3>
+<dl class="py class">
+<dt class="sig sig-object py" id="pyexadis.Driver.Control">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyexadis.Driver.</span></span><span class="sig-name descname"><span class="pre">Control</span></span><a class="headerlink" href="#pyexadis.Driver.Control" title="Link to this definition">¶</a></dt>
+<dd><p>Control object for simulation parameters.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">nsteps</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span> <span class="pre">or</span> <span class="pre">Stepper</span></em></dt>
+<dd><p>Number of steps or stepper object.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">loading</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#pyexadis.Driver.Loadings" title="pyexadis.Driver.Loadings"><span class="pre">Loadings</span></a></em></dt>
+<dd><p>Loading type.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">erate</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em></dt>
+<dd><p>Loading rate.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">edir</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span> <span class="pre">or</span> <span class="pre">array</span></em></dt>
+<dd><p>Loading direction.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">appstress</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span> <span class="pre">or</span> <span class="pre">array</span></em></dt>
+<dd><p>Applied stress.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">rotation</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em></dt>
+<dd><p>Enable crystal rotation.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">printfreq</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em></dt>
+<dd><p>Print frequency.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">propfreq</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em></dt>
+<dd><p>Properties output frequency.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">outfreq</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em></dt>
+<dd><p>Configuration and restart output frequency.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">outfreqdt</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em></dt>
+<dd><p>Configuration and restart output time frequency.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">oprecwritefreq</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em></dt>
+<dd><p>OpRec write frequency.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">oprecfilefreq</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em></dt>
+<dd><p>OpRec new file frequency.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">oprecposfreq</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em></dt>
+<dd><p>OpRec nodal positions save frequency.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">set_props</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prop_fields</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Set property fields for the output.</p>
+</dd></dl>
+
+</dd></dl>
+
+<p>—</p>
+</section>
+<section id="driver-loadings-enum">
+<h3>Driver Loadings Enum<a class="headerlink" href="#driver-loadings-enum" title="Link to this heading">¶</a></h3>
+<dl class="py class">
+<dt class="sig sig-object py" id="pyexadis.Driver.Loadings">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyexadis.Driver.</span></span><span class="sig-name descname"><span class="pre">Loadings</span></span><a class="headerlink" href="#pyexadis.Driver.Loadings" title="Link to this definition">¶</a></dt>
+<dd><p>Enum for loading types.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">STRESS_CONTROL</span></span></dt>
+<dd><p>Stress control loading.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">STRAIN_RATE_CONTROL</span></span></dt>
+<dd><p>Strain rate control loading.</p>
+</dd></dl>
+
+</dd></dl>
+
+<p>—</p>
+</section>
+<section id="driver-stepper">
+<h3>Driver Stepper<a class="headerlink" href="#driver-stepper" title="Link to this heading">¶</a></h3>
+<dl class="py class">
+<dt class="sig sig-object py" id="pyexadis.Driver.Stepper">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyexadis.Driver.</span></span><span class="sig-name descname"><span class="pre">Stepper</span></span><a class="headerlink" href="#pyexadis.Driver.Stepper" title="Link to this definition">¶</a></dt>
+<dd><p>Stepper object for simulation steps.</p>
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stopval</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Construct stepper with stopping type and value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>type</strong> – Stopping type</p></li>
+<li><p><strong>stopval</strong> – Stopping value</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">NUM_STEPS</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nsteps</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Construct stepper that iterates to a number of steps.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">MAX_STEPS</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">maxsteps</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Construct stepper that iterates to a maximum number of steps.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">MAX_STRAIN</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">strain</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Construct stepper that iterates to a maximum strain.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">MAX_TIME</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">time</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Construct stepper that iterates to a maximum simulation time.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">MAX_WALLTIME</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">time</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Construct stepper that iterates to a maximum wall clock time.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">iterate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">driver</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Iterate a simulation step.</p>
+</dd></dl>
+
+</dd></dl>
+
+<p>—</p>
+</section>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="../tools.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">ExaDiS tools</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="python_modules.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Python modules: <code class="docutils literal notranslate"><span class="pre">pyexadis_base</span></code></div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2024-2025, OpenDiS
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            <div class="icons">
+              <a class="muted-link " href="https://opendis.github.io/OpenDiS/contributors.html" aria-label="Contributors">
+                <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path>
+                </svg>
+            </a>
+              
+            </div>
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Python binding: <code class="docutils literal notranslate"><span class="pre">pyexadis</span></code></a><ul>
+<li><a class="reference internal" href="#general-attributes">General Attributes</a></li>
+<li><a class="reference internal" href="#general-classes">General Classes</a><ul>
+<li><a class="reference internal" href="#pyexadis.Params"><code class="docutils literal notranslate"><span class="pre">pyexadis.Params</span></code></a></li>
+<li><a class="reference internal" href="#pyexadis.CrystalParams"><code class="docutils literal notranslate"><span class="pre">pyexadis.CrystalParams</span></code></a></li>
+<li><a class="reference internal" href="#pyexadis.Crystal"><code class="docutils literal notranslate"><span class="pre">pyexadis.Crystal</span></code></a></li>
+<li><a class="reference internal" href="#pyexadis.Cell"><code class="docutils literal notranslate"><span class="pre">pyexadis.Cell</span></code></a></li>
+<li><a class="reference internal" href="#pyexadis.NodeTag"><code class="docutils literal notranslate"><span class="pre">pyexadis.NodeTag</span></code></a></li>
+<li><a class="reference internal" href="#pyexadis.DisNode"><code class="docutils literal notranslate"><span class="pre">pyexadis.DisNode</span></code></a></li>
+<li><a class="reference internal" href="#pyexadis.DisSeg"><code class="docutils literal notranslate"><span class="pre">pyexadis.DisSeg</span></code></a></li>
+<li><a class="reference internal" href="#pyexadis.Conn"><code class="docutils literal notranslate"><span class="pre">pyexadis.Conn</span></code></a></li>
+<li><a class="reference internal" href="#pyexadis.SerialDisNet"><code class="docutils literal notranslate"><span class="pre">pyexadis.SerialDisNet</span></code></a></li>
+<li><a class="reference internal" href="#pyexadis.ExaDisNet"><code class="docutils literal notranslate"><span class="pre">pyexadis.ExaDisNet</span></code></a></li>
+<li><a class="reference internal" href="#pyexadis.System"><code class="docutils literal notranslate"><span class="pre">pyexadis.System</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#general-functions">General Functions</a><ul>
+<li><a class="reference internal" href="#pyexadis.initialize"><code class="docutils literal notranslate"><span class="pre">pyexadis.initialize()</span></code></a></li>
+<li><a class="reference internal" href="#pyexadis.finalize"><code class="docutils literal notranslate"><span class="pre">pyexadis.finalize()</span></code></a></li>
+<li><a class="reference internal" href="#pyexadis.read_paradis"><code class="docutils literal notranslate"><span class="pre">pyexadis.read_paradis()</span></code></a></li>
+<li><a class="reference internal" href="#pyexadis.generate_prismatic_config"><code class="docutils literal notranslate"><span class="pre">pyexadis.generate_prismatic_config()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#force">Force</a><ul>
+<li><a class="reference internal" href="#force-modules-and-factories">Force Modules and Factories</a><ul>
+<li><a class="reference internal" href="#pyexadis.Force.Force"><code class="docutils literal notranslate"><span class="pre">pyexadis.Force.Force</span></code></a></li>
+<li><a class="reference internal" href="#pyexadis.Force.CORE_SELF_PKEXT"><code class="docutils literal notranslate"><span class="pre">pyexadis.Force.CORE_SELF_PKEXT</span></code></a></li>
+<li><a class="reference internal" href="#pyexadis.Force.ForceFFT"><code class="docutils literal notranslate"><span class="pre">pyexadis.Force.ForceFFT</span></code></a></li>
+<li><a class="reference internal" href="#pyexadis.Force.LINE_TENSION_MODEL"><code class="docutils literal notranslate"><span class="pre">pyexadis.Force.LINE_TENSION_MODEL</span></code></a></li>
+<li><a class="reference internal" href="#pyexadis.Force.CUTOFF_MODEL"><code class="docutils literal notranslate"><span class="pre">pyexadis.Force.CUTOFF_MODEL</span></code></a></li>
+<li><a class="reference internal" href="#pyexadis.Force.DDD_FFT_MODEL"><code class="docutils literal notranslate"><span class="pre">pyexadis.Force.DDD_FFT_MODEL</span></code></a></li>
+<li><a class="reference internal" href="#pyexadis.Force.SUBCYCLING_MODEL"><code class="docutils literal notranslate"><span class="pre">pyexadis.Force.SUBCYCLING_MODEL</span></code></a></li>
+<li><a class="reference internal" href="#pyexadis.Force.ForcePython"><code class="docutils literal notranslate"><span class="pre">pyexadis.Force.ForcePython</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#force-binder">Force Binder</a><ul>
+<li><a class="reference internal" href="#pyexadis.ForceBind"><code class="docutils literal notranslate"><span class="pre">pyexadis.ForceBind</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#force-calculation-functions">Force Calculation Functions</a><ul>
+<li><a class="reference internal" href="#pyexadis.compute_force_n2"><code class="docutils literal notranslate"><span class="pre">pyexadis.compute_force_n2()</span></code></a></li>
+<li><a class="reference internal" href="#pyexadis.compute_force_cutoff"><code class="docutils literal notranslate"><span class="pre">pyexadis.compute_force_cutoff()</span></code></a></li>
+<li><a class="reference internal" href="#pyexadis.compute_force_segseglist"><code class="docutils literal notranslate"><span class="pre">pyexadis.compute_force_segseglist()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#mobility">Mobility</a><ul>
+<li><a class="reference internal" href="#mobility-binder">Mobility Binder</a><ul>
+<li><a class="reference internal" href="#pyexadis.Mobility"><code class="docutils literal notranslate"><span class="pre">pyexadis.Mobility</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#mobility-law-factories">Mobility Law Factories</a><ul>
+<li><a class="reference internal" href="#pyexadis.make_mobility_glide"><code class="docutils literal notranslate"><span class="pre">pyexadis.make_mobility_glide()</span></code></a></li>
+<li><a class="reference internal" href="#pyexadis.make_mobility_bcc_0b"><code class="docutils literal notranslate"><span class="pre">pyexadis.make_mobility_bcc_0b()</span></code></a></li>
+<li><a class="reference internal" href="#pyexadis.make_mobility_bcc_nl"><code class="docutils literal notranslate"><span class="pre">pyexadis.make_mobility_bcc_nl()</span></code></a></li>
+<li><a class="reference internal" href="#pyexadis.make_mobility_fcc_0"><code class="docutils literal notranslate"><span class="pre">pyexadis.make_mobility_fcc_0()</span></code></a></li>
+<li><a class="reference internal" href="#pyexadis.make_mobility_fcc_0_fric"><code class="docutils literal notranslate"><span class="pre">pyexadis.make_mobility_fcc_0_fric()</span></code></a></li>
+<li><a class="reference internal" href="#pyexadis.make_mobility_fcc_0b"><code class="docutils literal notranslate"><span class="pre">pyexadis.make_mobility_fcc_0b()</span></code></a></li>
+<li><a class="reference internal" href="#pyexadis.make_mobility_python"><code class="docutils literal notranslate"><span class="pre">pyexadis.make_mobility_python()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#mobility-calculation-functions">Mobility Calculation Functions</a><ul>
+<li><a class="reference internal" href="#pyexadis.compute_mobility"><code class="docutils literal notranslate"><span class="pre">pyexadis.compute_mobility()</span></code></a></li>
+<li><a class="reference internal" href="#pyexadis.compute_node_mobility"><code class="docutils literal notranslate"><span class="pre">pyexadis.compute_node_mobility()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#integrator">Integrator</a><ul>
+<li><a class="reference internal" href="#integrator-binder">Integrator Binder</a><ul>
+<li><a class="reference internal" href="#pyexadis.Integrator"><code class="docutils literal notranslate"><span class="pre">pyexadis.Integrator</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#integrator-factories">Integrator Factories</a><ul>
+<li><a class="reference internal" href="#pyexadis.make_integrator_trapezoid"><code class="docutils literal notranslate"><span class="pre">pyexadis.make_integrator_trapezoid()</span></code></a></li>
+<li><a class="reference internal" href="#pyexadis.make_integrator_trapezoid_multi"><code class="docutils literal notranslate"><span class="pre">pyexadis.make_integrator_trapezoid_multi()</span></code></a></li>
+<li><a class="reference internal" href="#pyexadis.make_integrator_rkf"><code class="docutils literal notranslate"><span class="pre">pyexadis.make_integrator_rkf()</span></code></a></li>
+<li><a class="reference internal" href="#pyexadis.make_integrator_rkf_multi"><code class="docutils literal notranslate"><span class="pre">pyexadis.make_integrator_rkf_multi()</span></code></a></li>
+<li><a class="reference internal" href="#pyexadis.make_integrator_subcycling"><code class="docutils literal notranslate"><span class="pre">pyexadis.make_integrator_subcycling()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#integration-functions">Integration Functions</a><ul>
+<li><a class="reference internal" href="#pyexadis.integrate"><code class="docutils literal notranslate"><span class="pre">pyexadis.integrate()</span></code></a></li>
+<li><a class="reference internal" href="#pyexadis.integrate_euler"><code class="docutils literal notranslate"><span class="pre">pyexadis.integrate_euler()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#collision">Collision</a><ul>
+<li><a class="reference internal" href="#pyexadis.Collision"><code class="docutils literal notranslate"><span class="pre">pyexadis.Collision</span></code></a></li>
+<li><a class="reference internal" href="#pyexadis.make_collision"><code class="docutils literal notranslate"><span class="pre">pyexadis.make_collision()</span></code></a></li>
+<li><a class="reference internal" href="#pyexadis.handle_collision"><code class="docutils literal notranslate"><span class="pre">pyexadis.handle_collision()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#topology">Topology</a><ul>
+<li><a class="reference internal" href="#pyexadis.Topology"><code class="docutils literal notranslate"><span class="pre">pyexadis.Topology</span></code></a></li>
+<li><a class="reference internal" href="#pyexadis.make_topology"><code class="docutils literal notranslate"><span class="pre">pyexadis.make_topology()</span></code></a></li>
+<li><a class="reference internal" href="#pyexadis.handle_topology"><code class="docutils literal notranslate"><span class="pre">pyexadis.handle_topology()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#remesh">Remesh</a><ul>
+<li><a class="reference internal" href="#pyexadis.Remesh"><code class="docutils literal notranslate"><span class="pre">pyexadis.Remesh</span></code></a></li>
+<li><a class="reference internal" href="#pyexadis.make_remesh"><code class="docutils literal notranslate"><span class="pre">pyexadis.make_remesh()</span></code></a></li>
+<li><a class="reference internal" href="#pyexadis.remesh"><code class="docutils literal notranslate"><span class="pre">pyexadis.remesh()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#cross-slip">Cross-slip</a><ul>
+<li><a class="reference internal" href="#pyexadis.CrossSlip"><code class="docutils literal notranslate"><span class="pre">pyexadis.CrossSlip</span></code></a></li>
+<li><a class="reference internal" href="#pyexadis.make_cross_slip"><code class="docutils literal notranslate"><span class="pre">pyexadis.make_cross_slip()</span></code></a></li>
+<li><a class="reference internal" href="#pyexadis.handle_cross_slip"><code class="docutils literal notranslate"><span class="pre">pyexadis.handle_cross_slip()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#simulation-driver">Simulation Driver</a><ul>
+<li><a class="reference internal" href="#drivers">Drivers</a><ul>
+<li><a class="reference internal" href="#pyexadis.ExaDiSApp"><code class="docutils literal notranslate"><span class="pre">pyexadis.ExaDiSApp</span></code></a></li>
+<li><a class="reference internal" href="#pyexadis.Driver"><code class="docutils literal notranslate"><span class="pre">pyexadis.Driver</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#driver-control">Driver Control</a><ul>
+<li><a class="reference internal" href="#pyexadis.Driver.Control"><code class="docutils literal notranslate"><span class="pre">pyexadis.Driver.Control</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#driver-loadings-enum">Driver Loadings Enum</a><ul>
+<li><a class="reference internal" href="#pyexadis.Driver.Loadings"><code class="docutils literal notranslate"><span class="pre">pyexadis.Driver.Loadings</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#driver-stepper">Driver Stepper</a><ul>
+<li><a class="reference internal" href="#pyexadis.Driver.Stepper"><code class="docutils literal notranslate"><span class="pre">pyexadis.Driver.Stepper</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../../../../_static/documentation_options.js?v=01f34227"></script>
+    <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../../_static/scripts/furo.js?v=46bd48cc"></script>
+    <script src="../../../../_static/tabs.js?v=3ee01567"></script>
+    <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../../../_static/custom.js?v=72377513"></script>
+    </body>
+</html>
