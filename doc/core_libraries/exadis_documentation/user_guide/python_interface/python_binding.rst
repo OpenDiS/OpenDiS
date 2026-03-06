@@ -37,7 +37,7 @@ General Classes
 
       Initialize parameters.
 
-      :param crystal: Crystal type (string)
+      :param crystal: Crystal type (string), e.g. "fcc" or "bcc"
       :param burgmag: Burgers vector magnitude
       :param mu: Shear modulus
       :param nu: Poisson's ratio
@@ -133,6 +133,12 @@ General Classes
 
       Set the crystal type.
 
+   .. py:attribute:: type
+      :type: int
+      :noindex:
+
+      Index of the crystal type.
+
    .. py:attribute:: R
       :type: array
       :noindex:
@@ -155,11 +161,13 @@ General Classes
       :type: int
       :noindex:
 
-      Number of BCC plane families (1, 2, or 3).
+      Number of BCC plane families (1, 2, or 3) when use_glide_planes = 1. 1: {110} planes. 2 (default): {110} and {112} planes. 3: {110}, {112} and {123} planes.
 
 ---
 
-.. py:class:: pyexadis.Crystal
+.. py:class:: pyexadis.Crystal(pyexadis.CrystalParams)
+
+   Bases: :class:`pyexadis.CrystalParams`
 
    Crystal type and orientation.
 
@@ -178,18 +186,6 @@ General Classes
 
       Initialize with crystal parameters.
 
-   .. py:attribute:: type
-      :type: int
-      :noindex:
-
-      Index of the crystal type.
-
-   .. py:attribute:: R
-      :type: array
-      :noindex:
-
-      Crystal orientation matrix.
-
    .. py:method:: set_orientation(R)
       :noindex:
 
@@ -198,7 +194,7 @@ General Classes
    .. py:method:: set_orientation(euler_angles)
       :noindex:
 
-      Set crystal orientation via Euler angles.
+      Set crystal orientation via Euler angles (Bunge convention).
 
 ---
 
@@ -209,17 +205,17 @@ General Classes
    .. py:method:: __init__(Lbox, centered=False)
       :noindex:
 
-      Initialize cubic cell.
+      Initialize cubic cell of side length Lbox. If centered=False, the box ranges from [0, Lbox]. If centered=True, the box ranges from [-Lbox/2, Lbox/2]. 
 
    .. py:method:: __init__(Lvecbox, centered=False)
       :noindex:
 
-      Initialize cell with vector box.
+      Initialize orthorombic cell with vector box Lvecbox = [Lx,Ly,Lz].
 
    .. py:method:: __init__(bmin, bmax)
       :noindex:
 
-      Initialize cell with bounds.
+      Initialize orthorombic cell given min and max bounds.
 
    .. py:method:: __init__(h, origin=Vec3(0.0), is_periodic=[PBC_BOUND, PBC_BOUND, PBC_BOUND])
       :noindex:
@@ -235,7 +231,7 @@ General Classes
       :type: array
       :noindex:
 
-      Cell matrix.
+      Cell matrix, with columns representing the supercell vectors.
 
    .. py:attribute:: origin
       :type: array
@@ -281,7 +277,7 @@ General Classes
    .. py:method:: get_bounds()
       :noindex:
 
-      Get the (orthorhombic) bounds of the cell.
+      Get the bounds of the cell (orthorhombic bounding box).
 
    .. py:method:: volume()
       :noindex:
@@ -416,7 +412,7 @@ General Classes
    .. py:method:: order(i)
       :noindex:
 
-      Get the order value of the i-th connection.
+      Get the segment order of the i-th connection. If order = 1, then the segment is stored as node -> neighbor, if order = -1 then the segment is stored as neighbor -> node.
 
       :param i: Connection index (int)
       :rtype: int
@@ -428,7 +424,7 @@ General Classes
 
       :param node: Node index (int)
       :param seg: Segment index (int)
-      :param order: Order value (int)
+      :param order: Segment order value (int)
       :rtype: bool
 
    .. py:method:: remove_connection(i)
@@ -535,7 +531,7 @@ General Classes
    .. py:method:: move_node(node_index, new_pos, dEp)
       :noindex:
 
-      Move a node to a new position.
+      Move a node to a new position while computing the resulting increment in plastic strain.
 
       :param node_index: Index of node (int)
       :param new_pos: New position (Vec3)
@@ -597,7 +593,7 @@ General Classes
    .. py:method:: purge_network()
       :noindex:
 
-      Purge the network (remove unused nodes/segs).
+      Purge the network (remove unconnected nodes and segments with zero Burgers vector).
 
    .. py:method:: update()
       :noindex:
@@ -748,6 +744,8 @@ General Classes
 ---
 
 .. py:class:: pyexadis.System(pyexadis.ExaDisNet)
+
+   Bases: :class:`pyexadis.ExaDisNet`
 
    ExaDiS simulation system, combining a network and simulation parameters.
 
