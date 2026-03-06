@@ -1142,33 +1142,13 @@ Mobility Binder
 Mobility Law Factories
 ^^^^^^^^^^^^^^^^^^^^^^
 
-.. py:function:: pyexadis.make_mobility_glide(params, mobparams)
+.. py:function:: pyexadis.make_mobility(name, params, mobparams)
 
-   Instantiate a GLIDE mobility law.
+   Instantiate a mobility law by name.
 
-.. py:function:: pyexadis.make_mobility_bcc_0b(params, mobparams)
-
-   Instantiate a BCC_0B mobility law.
-
-.. py:function:: pyexadis.make_mobility_bcc_nl(params, mobparams)
-
-   Instantiate a BCC_NL mobility law.
-
-.. py:function:: pyexadis.make_mobility_fcc_0(params, mobparams)
-
-   Instantiate a FCC_0 mobility law.
-
-.. py:function:: pyexadis.make_mobility_fcc_0_fric(params, mobparams)
-
-   Instantiate a FCC_0_FRIC mobility law.
-
-.. py:function:: pyexadis.make_mobility_fcc_0b(params, mobparams)
-
-   Instantiate a FCC_0B mobility law.
-
-.. py:function:: pyexadis.make_mobility_python(params, mobility)
-
-   Instantiate a python-based mobility model.
+   :param name: name of the mobility law (e.g. "BCC_0B", "FCC_0", etc.)
+   :param params: Global simulation parameters
+   :param mobparams: Dictionary of mobility parameters
 
 ---
 
