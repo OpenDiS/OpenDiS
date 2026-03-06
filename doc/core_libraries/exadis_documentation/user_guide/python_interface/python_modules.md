@@ -150,10 +150,12 @@ Available mobility types are:
     - `vmax` (optional): maximum dislocation velocity in m/s. A relativistic capping of the velocity is applied if specified. Default: none.
 
 
-* `mobility_law='BCC_0B'`: generic linear mobility law for BCC crystals. Requires `crystal` to be set to `'bcc'` in the global parameters dictionary. The mobility matrix on glissile segments is constructed by summing a contribution from a pencil glide behavior of the screw segment component with a contribution from a planar behavior of the edge segment component. By default, no explicit glide planes are defined (non-planar mobility). To use and enforce glide planes (planar mobility), option `state["use_glide_planes"] = 1` and `state["enforce_glide_planes"] = 1` must be specified. Specific mobility parameters:
+* `mobility_law='BCC_0B'`: generic linear mobility law for BCC crystals. Requires `crystal` to be set to `'bcc'` in the global parameters dictionary. The mobility matrix on glissile segments is constructed by summing a contribution from a pencil glide behavior of the screw segment component with a contribution from a planar behavior of the edge segment component. By default, no explicit glide planes are defined (non-planar mobility). To use and enforce glide planes (planar mobility), option `state["use_glide_planes"] = 1` and `state["enforce_glide_planes"] = 1` must be specified, respectively. Specific mobility parameters:
     - `Medge` (required): mobility coefficient used for edge dislocation component in 1/(Pa.s)
     - `Mscrew` (required): mobility coefficient used for screw dislocation component in 1/(Pa.s)
     - `Mclimb` (required): mobility coefficient used for the climb component in 1/(Pa.s)
+    - `Fedge` (optional): friction stress used for edge dislocation component in Pa. Default: 0.0.
+    - `Fscrew` (optional): friction stress used for screw dislocation component in Pa. Default: 0.0.
     - `vmax` (optional): maximum dislocation velocity in m/s. A relativistic capping of the velocity is applied if specified. Default: none.
 
 
