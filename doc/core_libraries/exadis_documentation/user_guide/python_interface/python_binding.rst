@@ -1132,6 +1132,11 @@ Mobility Binder
 
    Mobility law wrapper.
 
+   .. py:method:: name()
+      :noindex:
+
+      Get mobility name.
+
    .. py:method:: compute(system)
       :noindex:
 
@@ -1149,6 +1154,7 @@ Mobility Law Factories
    :param name: name of the mobility law (e.g. "BCC_0B", "FCC_0", etc.)
    :param params: Global simulation parameters
    :param mobparams: Dictionary of mobility parameters
+   :rtype: Mobility
 
 ---
 
