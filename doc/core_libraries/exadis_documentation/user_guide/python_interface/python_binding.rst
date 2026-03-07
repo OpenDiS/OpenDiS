@@ -537,13 +537,14 @@ General Classes
       :param new_pos: New position (Vec3)
       :param dEp: Reference to the plastic strain variable to be incremented (Mat33)
 
-   .. py:method:: split_seg(seg_index, new_pos)
+   .. py:method:: split_seg(seg_index, new_pos, update_conn=True)
       :noindex:
 
       Split a segment by inserting a new node at new_pos.
 
       :param seg_index: Segment index (int)
       :param new_pos: New node position (Vec3)
+      :param update_conn: Flag to update node connectivity (bool)
       :returns: Index of the new node (int)
 
    .. py:method:: split_node(node_index, arms)
@@ -599,6 +600,36 @@ General Classes
       :noindex:
 
       Update network memory after modifications.
+
+---
+
+.. py:class:: pyexadis.DisLinks
+
+   Dislocation links object used to return a dislocation network parsed into physical links.
+
+   .. py:attribute:: number_of_links
+      :type: int
+      :noindex:
+
+      Number of dislocation links.
+
+   .. py:attribute:: links_segs
+      :type: array of arrays
+      :noindex:
+
+      Ordered sequence of dislocation segments forming each dislocation link.
+
+   .. py:attribute:: links_nodes
+      :type: array of arrays
+      :noindex:
+
+      Ordered sequence of dislocation nodes forming each dislocation link.
+
+   .. py:attribute:: segs_link
+      :type: array
+      :noindex:
+
+      Index of the link each segment belongs to.
 
 ---
 
@@ -723,9 +754,9 @@ General Classes
    .. py:method:: physical_links()
       :noindex:
 
-      Returns the list of segments for each physical dislocation link.
+      Parse the dislocation network into physical dislocation links.
 
-      :returns: List of segment indices for each link
+      :rtype: DisLinks
 
    .. py:method:: _get_crystal()
       :noindex:
