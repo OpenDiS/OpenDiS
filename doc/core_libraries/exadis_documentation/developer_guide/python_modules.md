@@ -14,7 +14,7 @@ class MyModule:
         # values = ...
         return values
         
-    def Compute(self, N: DisNetManager, state: dict) -> dict:
+    def DoStuff(self, N: DisNetManager, state: dict) -> dict:
         
         # Get dislocation network in module-specific format
         G = N.get_disnet(MyLibraryDisNet)
@@ -33,18 +33,18 @@ class MyModule:
         
         return state
 ```
-and the results can then be passed to ExaDiS modules, e.g.:
+and the module can be interfaced with ExaDiS modules, e.g.:
 ```Python
 # Create initial network
 G = ExaDisNet(...)
 N = DisNetManager(G)
-# Compute forces
+# Compute forces using ExaDiS
 forces = CalForce(...)
 forces.Compute(N, state)
 # Perform some user-defined computations/modifications on the network
 mymodule = MyModule(...)
-mymodule.Compute(N, state)
-# Recompute forces on the modified network
+mymodule.DoStuff(N, state)
+# Recompute forces on the modified network using ExaDiS
 forces.Compute(N, state)
 ```
 
@@ -63,6 +63,8 @@ class MyCalForceModule:
         return state
     
     def NodeForce(self, N: DisNetManager, state: dict, pre_compute=True) -> dict:
+        if pre_compute:
+            self.PreCompute(N, state)
         # Get dislocation network in module-specific format
         G = N.get_disnet(MyLibraryDisNet)
         # Compute forces on network G
@@ -97,7 +99,7 @@ class MyCalForceModule:
                 state["nodeforcetags"] = np.array([tag])
         return fnode
 ```
-and call this module from within ExaDiS, even when compiled/running on GPU, e.g.
+and call this module from within ExaDiS, e.g.
 
 ```Python
 # Declare modules
@@ -111,3 +113,5 @@ exadis_timeint.Update(N, state)
 ```
 
 This usage is allowed by the `CalForcePython`/`ForcePython` wrappers implemented in ExaDiS enabling python objects to be called from the C++ code. The same mechanism allows for mixing ExaDiS and PyDiS modules in an OpenDiS simulation, e.g. as exemplified in the `examples/02_frank_read_src/test_frank_read_src_pydis_exadis.py` example file in the [OpenDiS](https://github.com/OpenDiS/OpenDiS) repository.
+
+Note that when running on GPU, using python-based modules with ExaDiS modules, e.g. inside the time-integrator, is very inefficient. This is because the python methods will be executed significantly slower than the rest of the algorithms and require back-and-forth CPU/GPU memory transfers. Therefore, it is meant to be used for development and debugging purposes, and not for production runs.
