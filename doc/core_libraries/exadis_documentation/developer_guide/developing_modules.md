@@ -262,6 +262,8 @@ public:
         return fi;
     }
 };
+
+EXADIS_FORCE(ForceConstant, FORCE_CONSTANT)
 ```
 
 The guideline in ExaDiS is for each module to possess its own `Param` struct that serves to define the dedicated parameters of the module, and provide it to the constructor. After that, we need to implemented the various methods associated with the `Force` base class.
@@ -270,6 +272,8 @@ For a `Force` module, the 3 required methods to implement are:
 - `pre_compute()`: method to perform any pre-computation that may be required to compute nodal forces. In the traditional cycle, the pre-compute function is called once at the beginning of each simulation time step. For instance, for the `ForceFFT` module, the pre-computation step is used to compute and tabulate the long-range stress field on a grid. In the `ForceSegSegList` module, the pre-computation step is used to build the list of segment pair interactions.
 - `compute()`: method to perform a global computation of nodal forces, i.e. to compute the forces on all nodes of the network.
 - `node_force()`: method to perform an individual force computation, i.e. to compute the force on a given node of the network. Optionally, this function can also be implemented when using a team of workers for parallel execution on device (GPU), where the individual node force computation can itself be parallelized across several concurrent threads using hierarchical parallelization.
+
+The `EXADIS_FORCE(Type, Alias)` macro is used to register the force module so that it is approriately compiled for the python binding.
 
 #### Serial implementation
 
@@ -335,7 +339,7 @@ and we can implement the same for the `node_force()` method using team workers. 
 
 ### Example 3: implementing a segment-based force module
 
-As a slightly more complex example, let's now imagine that we want to implement a force module `ForceSegConstant` for which the force on each segment is the constant `fval` multiplied by the length of the segment, and that the segment force is equally distributed between the two end-nodes.
+As a slightly more complex example, let's now imagine that we want to implement a force module `ForceSegConstant` for which the force on each segment is the constant `fval` integrated along the segment length, and that the resulting segment force is equally distributed between the two end-nodes.
 
 #### Serial implementation
 
@@ -421,6 +425,7 @@ struct SegConstant
         Vec3 r2 = cell.pbc_position(r1, nodes[n2].pos); // account for PBC
         double L = (r2-r1).norm();
         
+        // Distribute segment force at nodes
         Vec3 f1 = 0.5*L*fval;
         Vec3 f2 = 0.5*L*fval;
         return SegForce(f1, f2);
@@ -433,7 +438,10 @@ struct SegConstant
 and then declare our `ForceSegConstant` force module as the base class `ForceSeg` templated with our struct `SegConstant` implementing the kernel:
 
 ```cpp
-typedef ForceSeg<SegConstant> ForceSegConstant;
+namespace ForceType {
+    typedef ForceSeg<SegConstant> ForceSegConstant;
+}
+EXADIS_FORCE(ForceType::ForceSegConstant, FORCE_SEG_CONSTANT)
 ```
 
 In struct `SegConstant`, all we had to do is to pretty much copy the inside of our serial loop into the `segment_force()` method. We have also templated the network instance type `N` so that the same kernel can be compiled for serial or device execution spaces using indifferently `SerialDisNet` or `DeviceDisNet` instances of the network. When compiled for GPU, the segment forces will be computed in a highly parallel fashion on the device (GPU) space by default, and forces at nodes will be aggregated properly avoiding race conditions, following the machinery implemented in base class `ForceSeg` and here abstracted from the user. In addition, when using this approach the associated `node_force()` method becomes automatically created as well, without us having to explicitly define it. However, if we want to implement a dedicated `node_force()` method, we could also do that by setting flag `has_node_force = true` and implementing method `node_force()` in our `SegConstant` struct, in which case its base class implementation will be overridden. Similarly, we could provide a team implementation or pre-compute methods.
@@ -443,10 +451,10 @@ In the code, base class `ForceSeg` is for instance used to compute the core forc
 
 ### Example 4: implementing a mobility law
 
-Similar to the implementation of forces, ExaDiS provides base class `MobilityLocal` in `src/mobility.h` that implements the base machinery for mobility laws and abstracts away the parallelism aspect of it. To implement a mobility law, all that is required is to provide a kernel in the form of a `node_velocity()` method that returns the velocity for an individual node. To provide it, we simply need to define a struct that implements our desired `node_velocity()` kernel, e.g.:
+Similar to the implementation of forces, ExaDiS provides base class `MobilityLocal` in `src/mobility.h` that implements the base machinery for typical mobility laws and abstracts away the parallelism aspect of it. To implement a new mobility law, all that is required is to provide a kernel in the form of a `node_velocity()` method that returns the velocity for an individual node. To provide it, we simply need to define a struct that implements our desired `node_velocity()` kernel, e.g.:
 
 ```cpp
-struct MobilityMOBNAME
+struct MobilityMobName
 {
     // Mandatory flag to instruct whether it is a linear or non-linear mobility law
     bool non_linear = false;
@@ -456,11 +464,18 @@ struct MobilityMOBNAME
         double drag = 1.0;
         Params() {}
         Params(double _drag) : drag(_drag) {}
+        Params(Dict paramslist) {
+            for (auto const& [key, val] : paramslist) {
+                std::string name = dict::get_key(key);
+                if (name == "drag") drag = dict::get_val<double>(val);
+                else ExaDiS_fatal("Error: unknown MobilityMobName input parameter %s\n", name.c_str());
+            }
+        }
     };
     Params params;
     
     // Constructor
-    MobilityMOBNAME(System* system, Params _params) {
+    MobilityMobName(System* system, Params _params) {
         // Initialize
         params = _params;
     }
@@ -476,29 +491,26 @@ struct MobilityMOBNAME
         return vi;
     }
     
-    static constexpr const char* name = "MobilityMOBNAME";
+    static constexpr const char* name = "MobilityMobName";
 };
 ```
 
-and then declare our `MobilityMOBNAME` mobility module as a templated instance of base class `MobilityLocal` within the `MobilityType` namespace:
+and then declare our `MobilityMobName` mobility module as a templated instance of base class `MobilityLocal` within the `MobilityType` namespace:
 
-```
+```cpp
 namespace MobilityType {
-    typedef MobilityLocal<MobilityMOBNAME> MOBNAME;
+    typedef MobilityLocal<MobilityMobName> MOBNAME;
 }
+EXADIS_MOBILITY(MobilityMobName, MOBNAME) // must be placed outside of the ExaDiS namespace
 ```
 
-To make it available, the new mobility file (e.g. `src/mobility_types/mobility_mobname.h`) must be included at the end of the base `src/mobility.h` file:
-```
-// Available mobility types
-...
-#include "mobility_mobname.h"
+To make it available, the new mobility file must simply be placed in the mobility_types folder, e.g. `src/mobility_types/mobility_mobname.h`. At build time, the file should be detected and included in the build. The `EXADIS_MOBILITY(Name, Alias)` macro is used to automatically register the mobility and its parameters (defined via the `Params(Dict paramslist)` constructor) and make it accessible to the python interface, e.g.
+```python
+mobility = MobilityLaw(state=state, mobility_law='MOBNAME', drag=2.0)
 ```
 
-In the `MobilityMOBNAME` struct, method `node_velocity()` must implement the calculation that returns the velocity vector `vi` for node `i` subjected to input force `fi`.
+In the `MobilityMobName` struct, method `node_velocity()` must implement the calculation that returns the velocity vector `vi` for node `i` subjected to input force `fi`.
 
 Note that variable `non_linear` is a mandatory attribute of the struct to indicate whether the implemented force-velocity relation is linear or not. This is required as some other modules may need to use different algorithms depending on the form of the mobility law (e.g. the subcycling time-integration module).
 
 As examples, current implementations of mobility laws are placed in folder `src/mobility_types/`.
-
-In order for the mobility law to be available through the python interface, it must be binded to the `pyexadis` module, as explained in [Binding a mobility law](python_binding.md#example-3-binding-a-mobility-law).
