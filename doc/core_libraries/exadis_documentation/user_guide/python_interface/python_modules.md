@@ -79,6 +79,36 @@ Available force modes are:
     - `Ecore_junc_fact` (optional): ratio of the core energy of junction to native Burgers vectors. Default: 1.0.
 
 
+* `force_mode='GLOBAL_MODEL'`: global force model where a list of individual force contributions is provided by the user. Specific mode parameters are:
+    - `cell` (required): simulation cell object.
+    - `force_list` (required): dictionary of force contributions, where each key is the force name and each value the dictionary of force parameters. Force contributions can be the composite force models listed above, or any lower-level force module available in ExaDiS. For instance, the composite `DDD_FFT_MODEL` can be manually created as a global force model with:
+    ```python
+    calforce = CalForce(force_mode='GLOBAL_MODEL', state=state, cell=net.cell,
+        force_list = {
+            'FORCE_CORE_SELF_PKEXT': {}, # core + self + applied PK forces
+            'FORCE_LONG_FFT_SHORT_ISO': {'Ngrid': Ngrid}, # long-range FFT + short-range non-singular forces
+        }
+    )
+    ```
+    Below is the list of currently available force contributions with their parameters:
+    ```python
+    # Base force contributions
+    'FORCE_LINE_TENSION': {'Ec': Ec, 'Ecore_junc_fact': Ecore_junc_fact} # core + applied PK forces
+    'FORCE_CORE_SELF_PKEXT': {'Ec': Ec, 'Ecore_junc_fact': Ecore_junc_fact} # core + self + applied PK forces
+    'FORCE_COREMD_SELF_PKEXT': {'rc': rc, 'porder0': porder0, 'pcoeffs0': pcoeffs0, 'porder1': porder1, 'pcoeffs1': pcoeffs1} # spline core + self + applied PK forces
+    'FORCE_SEGSEG_ISO': {'cutoff': cutoff} # short-range forces
+    'FORCE_SEGSEG_ISO_FFT': {'cutoff': cutoff} # short-range forces with FFT correction
+    'FORCE_FFT': {'Ngrid': Ngrid} # long-range FFT force
+    'FORCE_LONG_FFT_SHORT_ISO': {'Ngrid': Ngrid} # short-range forces with FFT correction + long-range FFT force
+    'FORCE_N2_ISO': {} # brute-force N2 force
+    # Composite force models
+    'LINE_TENSION_MODEL': {'Ec': Ec, 'Ecore_junc_fact': Ecore_junc_fact} # core + applied PK forces, same as FORCE_LINE_TENSION
+    'CUTOFF_MODEL': {'cutoff': cutoff, 'Ec': Ec, 'Ecore_junc_fact': Ecore_junc_fact} # core + self + applied PK + short-range forces, same as FORCE_CORE_SELF_PKEXT + FORCE_SEGSEG_ISO
+    'DDD_FFT_MODEL': {'Ngrid': Ngrid, 'Ec': Ec, 'Ecore_junc_fact': Ecore_junc_fact} # core + self + applied PK + short-range FFT + longe-range FFT forces, same as FORCE_CORE_SELF_PKEXT + FORCE_LONG_FFT_SHORT_ISO
+    'SUBCYCLING_MODEL': {'Ngrid': Ngrid, 'Ec': Ec, 'Ecore_junc_fact': Ecore_junc_fact} # core + self + applied PK + short-range FFT + longe-range FFT forces
+    ```
+
+
 Nodal forces are computed using the `NodeForce()` method
 ```python
 state = calforce.NodeForce(N, state)
@@ -120,10 +150,13 @@ mobility = MobilityLaw(state=state, mobility_law='MobilityName', ...)
 ```
 Available mobility types are:
 
-* `mobility_law='SimpleGlide'`: simple linear mobility law where dislocation segments glide on the planes defined by their normal (nx,ny,nz). It does not require a crystal type and thus does not check whether the planes are crystallographically relevant. All Burgers vectors are treated equally. It is provided for testing purposes only. Specific mobility parameters:
-    - `mob` (optional): isotropic mobility coefficient used for all dislocation character angles in 1/(Pa.s). Default: 1.0
-    - `Medge` (optional): mobility coefficient used for the edge dislocation component in 1/(Pa.s). Must be used in pair with `Mscrew`. Mixed dislocation mobility coefficient will be linearly interpolated between edge and screw values. Default value: none.
-    - `Mscrew` (optional): mobility coefficient used for the screw dislocation component in 1/(Pa.s). Must be used in pair with `Medge`. Default value: none.
+* `mobility_law='BCC_0B'`: generic linear mobility law for BCC crystals. Requires `crystal` to be set to `'bcc'` in the global parameters dictionary. The mobility matrix on glissile segments is constructed by summing a contribution from a pencil glide behavior of the screw segment component with a contribution from a planar behavior of the edge segment component. By default, no explicit glide planes are defined (non-planar mobility). To use and enforce glide planes (planar mobility), option `state["use_glide_planes"] = 1` and `state["enforce_glide_planes"] = 1` must be specified, respectively. Specific mobility parameters:
+    - `Medge` (required): mobility coefficient used for edge dislocation component in 1/(Pa.s)
+    - `Mscrew` (required): mobility coefficient used for screw dislocation component in 1/(Pa.s)
+    - `Mclimb` (required): mobility coefficient used for the climb component in 1/(Pa.s)
+    - `Fedge` (optional): friction stress used for edge dislocation component in Pa. Default: 0.0.
+    - `Fscrew` (optional): friction stress used for screw dislocation component in Pa. Default: 0.0.
+    - `vmax` (optional): maximum dislocation velocity in m/s. A relativistic capping of the velocity is applied if specified. Default: none.
 
 
 * `mobility_law='FCC_0'`: generic planar, linear mobility law for FCC crystals. Requires `crystal` to be set to `'fcc'` in the global parameters dictionary. Motion is only strictly allowed on {111} planes. Junction nodes are restricted to move along their line direction (glide plane intersections). By default, glide constraints are enforced by systematically projecting node velocities onto their glide planes. Mobility coefficients are linearly interpolated between edge and screw values. Specific mobility parameters:
@@ -150,13 +183,10 @@ Available mobility types are:
     - `vmax` (optional): maximum dislocation velocity in m/s. A relativistic capping of the velocity is applied if specified. Default: none.
 
 
-* `mobility_law='BCC_0B'`: generic linear mobility law for BCC crystals. Requires `crystal` to be set to `'bcc'` in the global parameters dictionary. The mobility matrix on glissile segments is constructed by summing a contribution from a pencil glide behavior of the screw segment component with a contribution from a planar behavior of the edge segment component. By default, no explicit glide planes are defined (non-planar mobility). To use and enforce glide planes (planar mobility), option `state["use_glide_planes"] = 1` and `state["enforce_glide_planes"] = 1` must be specified, respectively. Specific mobility parameters:
-    - `Medge` (required): mobility coefficient used for edge dislocation component in 1/(Pa.s)
-    - `Mscrew` (required): mobility coefficient used for screw dislocation component in 1/(Pa.s)
-    - `Mclimb` (required): mobility coefficient used for the climb component in 1/(Pa.s)
-    - `Fedge` (optional): friction stress used for edge dislocation component in Pa. Default: 0.0.
-    - `Fscrew` (optional): friction stress used for screw dislocation component in Pa. Default: 0.0.
-    - `vmax` (optional): maximum dislocation velocity in m/s. A relativistic capping of the velocity is applied if specified. Default: none.
+* `mobility_law='SimpleGlide'`: simple linear mobility law where dislocation segments glide on the planes defined by their normal (nx,ny,nz). It does not require a crystal type and thus does not check whether the planes are crystallographically relevant. All Burgers vectors are treated equally. It is provided for testing purposes only. Specific mobility parameters:
+    - `mob` (optional): isotropic mobility coefficient used for all dislocation character angles in 1/(Pa.s). Default: 1.0
+    - `Medge` (optional): mobility coefficient used for the edge dislocation component in 1/(Pa.s). Must be used in pair with `Mscrew`. Mixed dislocation mobility coefficient will be linearly interpolated between edge and screw values. Default value: none.
+    - `Mscrew` (optional): mobility coefficient used for the screw dislocation component in 1/(Pa.s). Must be used in pair with `Medge`. Default value: none.
 
 
 Nodal velocities are computed using the `Mobility()` method
