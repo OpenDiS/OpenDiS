@@ -19,6 +19,7 @@ Here is a brief description of the directory structure of the ExaDiS code:
 - `kokkos/`: directory containing the **Kokkos** submodule
 - `python/`: files related to the python binding implementation
     - `pybind11/` directory containing the **pybind11** submodule
+    - `exadis_pybind.h`: definitions of the C++ classes / functions binding
     - `exadis_pybind.cpp`: implementation of the C++ classes / functions binding
     - `pyexadis_base.py`: interface enabling the use of **pyexadis** within OpenDiS
     - `pyexadis_utils.py`: **pyexadis** utility functions
@@ -33,6 +34,7 @@ Here is a brief description of the directory structure of the ExaDiS code:
     - `topology_types/`: implementation of topology modules
 - `tests/`: files for testing and debugging
     - `benchmark/`: benchmark tests to evaluate the performance of the code
+    - `unit_tests/`: unit tests to evaluate the behavior of the code
     - `debug.h`: debug utility functions
     - `test_exadis.cpp`: simple ExaDiS test simulations
     
