@@ -72,6 +72,7 @@ class My_SimulateNetwork(SimulateNetwork):
         data = N.export_data()
         pos = data["nodes"]["positions"]
         cons = data["nodes"]["constraints"]
+        cell = pyexadis.Cell(**data["cell"])
         
         def sphere_intersect(ro, rd, ce, ra):
             oc = ro - ce
@@ -85,12 +86,22 @@ class My_SimulateNetwork(SimulateNetwork):
             x[~ind], y[~ind] = -1, -1    
             return x, y
         
+        dpos = np.array(cell.closest_image(Rref=pos, R=xold)) - pos
+        dposn = np.linalg.norm(dpos, axis=1)
+
         for p in self.precips:
-            dpos = xold-pos
-            dposn = np.linalg.norm(dpos, axis=1)
-            ind = np.argwhere((np.sum((pos-p.pos)**2, axis=1) < p.radius**2) & (dposn > 1e-10)).ravel()
+            ppos = np.array(cell.closest_image(Rref=p.pos, R=pos))
+            ind = np.argwhere((np.sum((ppos-p.pos)**2, axis=1) < p.radius**2) & (dposn > 1e-10)).ravel()
             d = dpos[ind]/dposn[ind,None]
-            x, y = sphere_intersect(pos[ind], d, p.pos, p.radius)
+
+            # handle special case where nodes are born inside of the sphere
+            if ind.size > 0:
+                opos = np.array(cell.closest_image(Rref=p.pos, R=xold[ind]))
+                inds = np.argwhere((np.sum((opos - p.pos)**2, axis=1) < p.radius**2)).ravel()
+                ds = ppos[ind] - p.pos
+                d[inds] = ds[inds] / np.linalg.norm(ds, axis=1)[inds,None]
+
+            x, y = sphere_intersect(ppos[ind], d, p.pos, p.radius)
             ind = ind[x<0]
             pos[ind] += y[x<0,None]*d
             #cons[ind] = NodeConstraints.PINNED_NODE
