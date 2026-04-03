@@ -340,10 +340,10 @@ remesh = Remesh(state=state, remesh_rule='RemeshName', ...)
 ```
 Available remesh rules are:
 
-* `remesh_rule='LengthBased'`: Remeshing procedure based on minimum and maximum segment length parameters. Segments longer than `state["maxseg"]` will be bisected. End-nodes of segments shorter than `state["maxseg"]` will be merged when allowed. Specific remesh parameters:
+* `remesh_rule='LengthBased'`: Remeshing procedure based on minimum and maximum segment length parameters. Segments longer than `state["maxseg"]` will be bisected. End-nodes of segments shorter than `state["minseg"]` will be merged when allowed. Specific remesh parameters:
     - `state["maxseg"]`: maximum segment discretization size length in units of `burgmag`.
     - `state["minseg"]`: minimum segment discretization size length in units of `burgmag`.
-    - `coarsen_mode` (optional): coarsening procedure: 0 = segment-based coarsening, 1 = node-based coarsening. Default: 1.
+    - `coarsen_mode` (optional): coarsening procedure: 0 = segment-based coarsening, 1 = node-based coarsening. Default: 0.
     - `remove_small_loops` (optional): flag to attempt to remove small dislocation loops from the simulation that can negatively affect the time step size. Default: 0.
 
 
