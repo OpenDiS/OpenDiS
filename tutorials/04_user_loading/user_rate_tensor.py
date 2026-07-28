@@ -11,12 +11,12 @@ except ImportError:
     raise ImportError('Cannot import pyexadis')
 
 
-class SimulationDriver(SimulateNetwork):
+class My_SimulateNetwork(SimulateNetwork):
     """ User-defined simulation driver to impose a strain-rate tensor loading
     """
     
     def __init__(self, *args, **kwargs) -> None:
-        super(SimulationDriver, self).__init__(*args, **kwargs)
+        super(My_SimulateNetwork, self).__init__(*args, **kwargs)
         
         self.strain_rate_tensor = kwargs.get("strain_rate_tensor")
         state = kwargs.get("state")

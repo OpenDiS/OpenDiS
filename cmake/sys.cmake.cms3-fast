@@ -1,8 +1,10 @@
 set(Kokkos_ENABLE_SERIAL On)
 set(Kokkos_ENABLE_OPENMP On)
 set(Kokkos_ENABLE_CUDA On)
-set(Kokkos_ENABLE_CUDA_LAMBDA On)
-set(Kokkos_ARCH_TURING75 On)
+set(Kokkos_ARCH_AMPERE80 On)
 
 set(EXADIS_PYTHON_BINDING On)
-set(PYTHON_EXECUTABLE /sw/eb/sw/Anaconda3/2024.02-1/bin/python)
+set(PYTHON_EXECUTABLE /sw/eb/sw/Anaconda3/2025.12-2/bin/python)
+set(PYTHON_DEV_INC_DIR /ztank/sw/eb/sw/Anaconda3/2025.12-2/include/python3.13)
+
+set(EXADIS_BUILD_TESTS On)

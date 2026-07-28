@@ -16,13 +16,19 @@ list(TRANSFORM PYDIS_OPTIONS_TO_CTYPESGEN PREPEND "-D;")
 
 set(PYDIS_LIB_PY pydis_lib.py)
 set(CTYPESGEN_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ctypesgen)
-set(CC_PREPROCESS "gcc -E")
+
+# Use Clang preprocessor on macOS, fallback to GCC on other systems
+if(APPLE)
+  set(CC_PREPROCESS "clang -E")
+else()
+  set(CC_PREPROCESS "gcc -E")
+endif()
 
 message("PYDIS_HEADERS = ${PYDIS_HEADERS}")
 message("CC_PREPROCESS = ${CC_PREPROCESS}")
 
 add_custom_target(${PYDIS_LIB_PY} ALL
-  COMMAND "${CTYPESGEN_DIR}/run.py" "--cpp=${CC_PREPROCESS}" ${PYDIS_HEADERS} ${PYDIS_OPTIONS_TO_CTYPESGEN} -l ${LIB_PYDIS_SO} -o ${PYDIS_LIB_PY}
+  COMMAND "${CTYPESGEN_DIR}/run.py" "--allow-gnu-c" "--cpp=${CC_PREPROCESS}" ${PYDIS_HEADERS} ${PYDIS_OPTIONS_TO_CTYPESGEN} -l ${LIB_PYDIS_SO} -o ${PYDIS_LIB_PY} 2>&1 | grep -v -E "ERROR:|INFO:|WARNING:" || true
   VERBATIM
 )
 install(FILES ${PROJECT_BINARY_DIR}/python/${PYDIS_LIB_PY} DESTINATION "${CMAKE_SOURCE_DIR}/lib")

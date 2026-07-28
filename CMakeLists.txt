@@ -24,7 +24,7 @@ else()
   endif()
 endif()
 
-if(Kokkos_ENABLE_CUDA STREQUAL "On")
+if(Kokkos_ENABLE_CUDA AND NOT DEFINED CMAKE_CXX_COMPILER)
     set(CMAKE_CXX_COMPILER ${CMAKE_CURRENT_SOURCE_DIR}/core/exadis/kokkos/bin/nvcc_wrapper)
 endif()
 
@@ -44,7 +44,6 @@ set(CMAKE_INSTALL_PREFIX install)
 
 add_subdirectory(core/pydis)
 add_subdirectory(core/exadis)
-#add_subdirectory(core/exadis/kokkos)
 
 if(DEFINED cpython_lib_fix_cmd)
     add_custom_target(cpython_lib_fix DEPENDS pyexadis)
