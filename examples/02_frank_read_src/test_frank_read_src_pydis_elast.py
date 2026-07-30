@@ -50,11 +50,18 @@ def main(max_step=200):
     calforce  = CalForce(force_mode='Elasticity_SBA', state=state)
     mobility  = MobilityLaw(mobility_law='SimpleGlide', state=state)
     timeint   = TimeIntegration(integrator='EulerForward', dt=1.0e-8, state=state)
-    # Caveat: Topology(split_mode='MaxDiss') only calls OneNodeForce for nodes with
-    # 4 or more arms, and OneNodeForce is not implemented for the Elasticity_* force
-    # modes. No such node arises in this example, but if one ever does the run will
-    # stop with NotImplementedError. Topology is kept enabled anyway because the
-    # Proximity collision handler relies on the nodeflag_dict that it initializes.
+    # KNOWN LIMITATION: this example only runs to step 269. Topology(split_mode='MaxDiss')
+    # calls OneNodeForce for any node with 4 or more arms, and OneNodeForce is not
+    # implemented for the Elasticity_* force modes. The bowing source stays free of such
+    # nodes until the expanding loop collides with itself; the first 4-arm node appears at
+    # step 270, and the run then stops with
+    #     NotImplementedError: OneNodeForce_Elasticity_SBA not implemented yet
+    # Hence the default max_step=200 below. Topology cannot simply be disabled as a
+    # workaround: the Proximity collision handler reads the nodeflag_dict that only
+    # Topology.init_topology_exemptions creates, so topology=None fails earlier still with
+    # KeyError: 'nodeflag_dict'.
+    # To do: implement OneNodeForce_Elasticity_SBA (pydis/calforce/calforce_disnet.py) and
+    # raise max_step here. This test case should not be considered closed until then.
     topology  = Topology(split_mode='MaxDiss', state=state, force=calforce, mobility=mobility)
     collision = Collision(collision_mode='Proximity', state=state, nbrlist=nbrlist)
     remesh    = Remesh(remesh_rule='LengthBased', state=state)
@@ -73,6 +80,7 @@ def main(max_step=200):
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
+    # max_step > 269 currently fails, see the note on Topology in main()
     parser.add_argument('--max-step', dest='max_step', type=int, default=200)
     args = parser.parse_args()
 

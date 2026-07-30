@@ -60,10 +60,23 @@ def main(plot=True, force_mode='DDD_FFT_MODEL', max_step=200):
     # test_frank_read_src_exadis.py:
     #  - DDD_FFT_MODEL: short-range segment-segment pairs + long-range FFT (handles PBC)
     #  - CUTOFF_MODEL:  segment-segment pairs truncated at 'cutoff' (no long-range part)
+    #
+    # Ec=0.0 disables the core energy contribution of FORCE_CORE_SELF_PKEXT, which would
+    # otherwise default to mu/(4*pi)*log(a/0.1). This is done only so that this run can be
+    # compared directly against test_frank_read_src_pydis_elast.py: pydis' Elasticity_SBA
+    # sums the segment-segment forces (including the i==j self term regularized by 'a') but
+    # adds no core term, so it has no Ec equivalent. With Ec=0.0 the two codes give
+    # identical nodal forces; with the exadis default they agree only while the arms are
+    # collinear, and the extra core line tension holds the source near its equilibrium
+    # bow-out instead of letting it expand (the applied stress here sits right at the
+    # Frank-Read threshold mu*b/L = 4e8 Pa).
+    # To do: add the Ec core term to pydis' Elasticity_SBA, as in the legacy ParaDiS code,
+    # and then drop Ec=0.0 from this example.
+    Ec = 0.0
     if force_mode == 'DDD_FFT_MODEL':
-        calforce = CalForce(force_mode='DDD_FFT_MODEL', state=state, Ngrid=32, cell=net.cell)
+        calforce = CalForce(force_mode='DDD_FFT_MODEL', state=state, Ec=Ec, Ngrid=32, cell=net.cell)
     elif force_mode == 'CUTOFF_MODEL':
-        calforce = CalForce(force_mode='CUTOFF_MODEL', state=state, cutoff=0.5*Lbox)
+        calforce = CalForce(force_mode='CUTOFF_MODEL', state=state, Ec=Ec, cutoff=0.5*Lbox)
     else:
         raise ValueError('Unsupported force_mode %s for this example' % force_mode)
 
