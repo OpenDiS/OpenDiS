@@ -2,6 +2,32 @@
 CalForce_DisNet: class for calculating forces on dislocation network
 
 Provide force calculation functions given a DisNet object
+
+Cutoff convention for the Elasticity_* force modes
+--------------------------------------------------
+When CalForce is constructed with a 'cutoff', the segment-segment elastic interaction is
+truncated using the same two-stage criterion as the CUTOFF_MODEL of exadis, which in turn
+follows ParaDiS. A pair of segments (i, j) contributes only if BOTH hold:
+
+  1. the distance between the two segment MID-POINTS is <= cutoff + maxseg
+  2. the minimum distance between the two SEGMENTS is < cutoff
+
+Stage 1 exists because exadis bins segments by their mid-point to build the neighbor list
+(src/neighbor_types/neighbor_box.h: p = 0.5*(r1+r2), and cutoff += params.maxseg for
+NeiSeg), and stage 2 is the test actually applied when the segment-pair list is assembled
+(src/force_types/force_segseglist.h, via get_min_dist2_segseg).
+
+Stage 1 is exact only when no segment is longer than maxseg, which remesh normally
+guarantees. Where that does not hold -- pinned edges that remesh never refines, for
+instance -- stage 1 discards pairs whose true segment-segment distance is below the cutoff,
+and the truncation is then slightly stronger than the nominal cutoff implies. This is
+deliberate here: it is a design choice inherited from ParaDiS, and it is reproduced rather
+than corrected so that pydis and exadis agree pair for pair.
+
+Distances are evaluated under the minimum image convention. The largest separation
+attainable that way in a cubic cell of side L is the half diagonal sqrt(3)/2*L, so any
+cutoff at or above that value reproduces the untruncated result. cutoff=None (the default)
+skips both stages and keeps every pair.
 """
 
 import numpy as np
@@ -21,6 +47,28 @@ except ImportError:
     print("pydis_lib not found, using python version for force calculation")
 
 from .compute_stress_force_analytic_python  import python_segseg_force_vec
+
+try:
+    from ..collision.getmindist2_paradis import GetMinDist2_paradis as GetMinDist2
+except ImportError:
+    # use python version instead
+    from ..collision.getmindist2_python  import GetMinDist2_python as GetMinDist2
+
+_ZERO_VEL = np.zeros(3)
+
+def min_dist2_segseg(p1, p2, p3, p4, connected, eps0=1.0e-12):
+    """min_dist2_segseg: squared minimum distance between segments (p1,p2) and (p3,p4)
+
+    Mirrors get_min_dist2_segseg() of exadis (src/functions.h), called there with hinge=0:
+      - returns -1.0 if either segment is degenerate, so that a "dist2 >= 0" test rejects it
+      - returns 0.0 for segments sharing a node, so that they are always within any cutoff
+    The endpoints are expected to have been mapped to a common periodic image already.
+    """
+    if np.dot(p2-p1, p2-p1) < eps0 or np.dot(p4-p3, p4-p3) < eps0:
+        return -1.0
+    if connected:
+        return 0.0
+    return GetMinDist2(p1, _ZERO_VEL, p2, _ZERO_VEL, p3, _ZERO_VEL, p4, _ZERO_VEL)[0]
 
 def voigt_vector_to_tensor(voigt_vector):
     return np.array([[voigt_vector[0], voigt_vector[5], voigt_vector[4]],
@@ -69,13 +117,25 @@ def selfforcevec_LineTension(MU, NU, Ec, segs_data, eps_L=1e-6):
 class CalForce(CalForce_Base):
     """CalForce_DisNet: class for calculating forces on dislocation network
     """
-    def __init__(self, state: dict={}, Ec: float=None,
+    def __init__(self, state: dict={}, Ec: float=None, cutoff: float=None,
                  force_mode: str='Elasticity_SBA') -> None:
         self.mu = state.get("mu", 1.0)
         self.nu = state.get("nu", 0.3)
         self.a =  state.get("a", 0.01)
         self.Ec = self.mu/4.0/np.pi*np.log(self.a/0.1) if Ec is None else Ec
         self.force_mode = force_mode
+
+        # Two-stage segment-pair cutoff, matching the CUTOFF_MODEL of exadis; see the module
+        # docstring for the convention and why the mid-point stage is reproduced rather than
+        # corrected. Segment self forces (i == j) are never cut off, mirroring exadis where
+        # they come from CORE_SELF_PKEXT and not from the segment-pair list.
+        self.cutoff = cutoff
+        self.cutoff2 = None if cutoff is None or cutoff < 0.0 else cutoff*cutoff
+        self.maxseg = state.get("maxseg", None)
+        if self.cutoff2 is not None and self.maxseg is None:
+            raise KeyError("CalForce: state must define 'maxseg' when a cutoff is used, "
+                           "since the mid-point stage of the cutoff is applied at "
+                           "cutoff + maxseg (see the module docstring)")
 
         self.NodeForce_Functions = {
             'LineTension': self.NodeForce_LineTension,
@@ -85,6 +145,29 @@ class CalForce(CalForce_Base):
             'LineTension': self.OneNodeForce_LineTension,
             'Elasticity_SBA': self.OneNodeForce_Elasticity_SBA,
             'Elasticity_SBN1_SBA': self.OneNodeForce_Elasticity_SBN1_SBA }
+
+    def within_cutoff(self, cell, p1, p2, p3, p4, tags12, tags34) -> bool:
+        """within_cutoff: whether segments (p1,p2) and (p3,p4) interact under self.cutoff
+
+        Applies the two-stage criterion of exadis' CUTOFF_MODEL documented at the top of
+        this module: mid-point separation <= cutoff + maxseg, then minimum segment-segment
+        distance < cutoff. Endpoints must already be mapped to a common periodic image by
+        the caller.
+        """
+        # stage 1: mid-point test, reproducing the segment binning of the exadis neighbor
+        # list (NeighborBox with NeiSeg, which bins on 0.5*(r1+r2) and widens the cutoff by
+        # maxseg). Unlike a bound based on the true segment lengths this can discard pairs
+        # when a segment is longer than maxseg -- see the module docstring.
+        c12, c34 = 0.5*(p1+p2), 0.5*(p3+p4)
+        c34 = cell.closest_image(Rref=c12, R=c34)
+        dc = np.linalg.norm(c34 - c12)
+        if dc > self.cutoff + self.maxseg:
+            return False
+
+        # stage 2: exact minimum distance between the two segments
+        connected = bool(set(tags12) & set(tags34))
+        dist2 = min_dist2_segseg(p1, p2, p3, p4, connected)
+        return dist2 >= 0.0 and dist2 < self.cutoff2
 
     def NodeForce(self, DM: DisNetManager, state: dict, pre_compute: bool=True) -> dict:
         """NodeForce: return nodal forces in a dictionary
@@ -268,9 +351,13 @@ class CalForce(CalForce_Base):
                 p2 = G.cell.closest_image(Rref=p1, R=p2)
                 p3 = G.cell.closest_image(Rref=p1, R=p3)
                 p4 = G.cell.closest_image(Rref=p3, R=p4)
-                f1, f2, f3, f4 = compute_segseg_force(p1, p2, p3, p4, b12, b34, self.mu, self.nu, self.a)
                 tag1, tag2 = tuple(source_tags[i]), tuple(target_tags[i])
                 tag3, tag4 = tuple(source_tags[j]), tuple(target_tags[j])
+                # apply the spherical cutoff (self forces, i == j, are never cut off)
+                if self.cutoff2 is not None and i != j:
+                    if not self.within_cutoff(G.cell, p1, p2, p3, p4, (tag1, tag2), (tag3, tag4)):
+                        continue
+                f1, f2, f3, f4 = compute_segseg_force(p1, p2, p3, p4, b12, b34, self.mu, self.nu, self.a)
                 if i == j:
                     fseg[i, 0:3] += f1
                     fseg[i, 3:6] += f2
@@ -339,9 +426,13 @@ class CalForce(CalForce_Base):
                 p2 = G.cell.closest_image(Rref=p1, R=p2)
                 p3 = G.cell.closest_image(Rref=p1, R=p3)
                 p4 = G.cell.closest_image(Rref=p3, R=p4)
-                f1, f2, f3, f4 = compute_segseg_force_SBN1_SBA(p1, p2, p3, p4, b12, b34, self.mu, self.nu, self.a, quad_points, weights)
                 tag1, tag2 = tuple(source_tags[i]), tuple(target_tags[i])
                 tag3, tag4 = tuple(source_tags[j]), tuple(target_tags[j])
+                # apply the spherical cutoff (self forces, i == j, are never cut off)
+                if self.cutoff2 is not None and i != j:
+                    if not self.within_cutoff(G.cell, p1, p2, p3, p4, (tag1, tag2), (tag3, tag4)):
+                        continue
+                f1, f2, f3, f4 = compute_segseg_force_SBN1_SBA(p1, p2, p3, p4, b12, b34, self.mu, self.nu, self.a, quad_points, weights)
                 if i == j:
                     fseg[i, 0:3] += f1
                     fseg[i, 3:6] += f2

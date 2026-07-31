@@ -47,7 +47,21 @@ def main(max_step=200):
     # i==j self term, regularized by the core radius state["a"]), in contrast to the
     # LineTension mode used in test_frank_read_src_pydis.py.
     # Note: this is an O(Nseg^2) double loop in python, so it is much slower than LineTension.
-    calforce  = CalForce(force_mode='Elasticity_SBA', state=state)
+    #
+    # The cutoff is stated explicitly, and matched by test_frank_read_src_exadis_elast.py, so
+    # that the two runs truncate the segment-segment interaction identically and can be
+    # compared. sqrt(3)/2*Lbox is the half diagonal of the cubic cell, which is the largest
+    # separation attainable under the minimum image convention: at or above it no pair is
+    # dropped, so this is also the cutoff -> infinity limit and gives the same answer as
+    # cutoff=None. It is deliberately NOT 0.5*Lbox. That would be a legitimate truncation on
+    # the pydis side, but exadis' CUTOFF_MODEL silently discards a further ~75 pairs there --
+    # its neighbor list compares segment mid-points using a periodic shift quantized to the
+    # bin grid rather than the true minimum image, which under-counts whenever
+    # cutoff + maxseg > Lbox/3. See .plan/2026-07-27/plan_pydis_elast.md section 9.1.
+    # Revisit once exadis is fixed: comparing at a genuinely truncating cutoff is the more
+    # interesting test.
+    cutoff    = 0.5*np.sqrt(3.0)*Lbox
+    calforce  = CalForce(force_mode='Elasticity_SBA', state=state, cutoff=cutoff)
     mobility  = MobilityLaw(mobility_law='SimpleGlide', state=state)
     timeint   = TimeIntegration(integrator='EulerForward', dt=1.0e-8, state=state)
     # KNOWN LIMITATION: this example only runs to step 269. Topology(split_mode='MaxDiss')

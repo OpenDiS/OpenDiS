@@ -11,3 +11,4 @@ output*
 *.sav*
 *.new*
 *.old*
+*_results

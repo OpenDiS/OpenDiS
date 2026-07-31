@@ -61,6 +61,13 @@ def main(plot=True, force_mode='DDD_FFT_MODEL', max_step=200):
     #  - DDD_FFT_MODEL: short-range segment-segment pairs + long-range FFT (handles PBC)
     #  - CUTOFF_MODEL:  segment-segment pairs truncated at 'cutoff' (no long-range part)
     #
+    # CUTOFF_MODEL is the mode to use when comparing against test_frank_read_src_pydis_elast.py:
+    # pydis' Elasticity_SBA applies the minimum image convention (cell.closest_image) and sums
+    # no periodic images beyond that, which is what a truncated pair sum does. After 200 steps
+    # the two reach a max bow-out of 447.3 and 447.1 respectively, while DDD_FFT_MODEL reaches
+    # 474.0 because it adds the long-range image contribution pydis omits. That is a real
+    # physical difference between the two force models, not a discrepancy.
+    #
     # Ec=0.0 disables the core energy contribution of FORCE_CORE_SELF_PKEXT, which would
     # otherwise default to mu/(4*pi)*log(a/0.1). This is done only so that this run can be
     # compared directly against test_frank_read_src_pydis_elast.py: pydis' Elasticity_SBA
@@ -72,11 +79,24 @@ def main(plot=True, force_mode='DDD_FFT_MODEL', max_step=200):
     # Frank-Read threshold mu*b/L = 4e8 Pa).
     # To do: add the Ec core term to pydis' Elasticity_SBA, as in the legacy ParaDiS code,
     # and then drop Ec=0.0 from this example.
+    #
+    # The cutoff matches the one in test_frank_read_src_pydis_elast.py so that the two runs
+    # truncate identically. sqrt(3)/2*Lbox is the half diagonal of the cubic cell, i.e. the
+    # largest separation attainable under the minimum image convention, so no pair is dropped
+    # and this is the cutoff -> infinity limit. It is deliberately NOT 0.5*Lbox: exadis'
+    # neighbor list compares segment mid-points using a periodic shift quantized to the bin
+    # grid rather than the true minimum image, and silently discards pairs whose real
+    # separation is inside the cutoff whenever cutoff + maxseg > Lbox/3. At 0.5*Lbox that
+    # costs ~75 of 1678 pairs here and makes this run disagree with pydis (447.34 vs 447.13,
+    # 67 vs 63 nodes). See .plan/2026-07-27/plan_pydis_elast.md section 9.1.
+    # Revisit once exadis is fixed: comparing at a genuinely truncating cutoff is the more
+    # interesting test.
     Ec = 0.0
+    cutoff = 0.5*np.sqrt(3.0)*Lbox
     if force_mode == 'DDD_FFT_MODEL':
         calforce = CalForce(force_mode='DDD_FFT_MODEL', state=state, Ec=Ec, Ngrid=32, cell=net.cell)
     elif force_mode == 'CUTOFF_MODEL':
-        calforce = CalForce(force_mode='CUTOFF_MODEL', state=state, Ec=Ec, cutoff=0.5*Lbox)
+        calforce = CalForce(force_mode='CUTOFF_MODEL', state=state, Ec=Ec, cutoff=cutoff)
     else:
         raise ValueError('Unsupported force_mode %s for this example' % force_mode)
 
