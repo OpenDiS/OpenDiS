@@ -57,7 +57,8 @@ def main(max_step=200):
     # the pydis side, but exadis' CUTOFF_MODEL silently discards a further ~75 pairs there --
     # its neighbor list compares segment mid-points using a periodic shift quantized to the
     # bin grid rather than the true minimum image, which under-counts whenever
-    # cutoff + maxseg > Lbox/3. See .plan/2026-07-27/plan_pydis_elast.md section 9.1.
+    # cutoff + maxseg > Lbox/3 (get_neighbor_dist2 and the boxDim clamp in
+    # core/exadis/src/neighbor_types/neighbor_box.h).
     # Revisit once exadis is fixed: comparing at a genuinely truncating cutoff is the more
     # interesting test.
     cutoff    = 0.5*np.sqrt(3.0)*Lbox

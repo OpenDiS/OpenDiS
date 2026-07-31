@@ -88,7 +88,8 @@ def main(plot=True, force_mode='DDD_FFT_MODEL', max_step=200):
     # grid rather than the true minimum image, and silently discards pairs whose real
     # separation is inside the cutoff whenever cutoff + maxseg > Lbox/3. At 0.5*Lbox that
     # costs ~75 of 1678 pairs here and makes this run disagree with pydis (447.34 vs 447.13,
-    # 67 vs 63 nodes). See .plan/2026-07-27/plan_pydis_elast.md section 9.1.
+    # 67 vs 63 nodes). See get_neighbor_dist2 and the boxDim clamp in
+    # core/exadis/src/neighbor_types/neighbor_box.h.
     # Revisit once exadis is fixed: comparing at a genuinely truncating cutoff is the more
     # interesting test.
     Ec = 0.0
