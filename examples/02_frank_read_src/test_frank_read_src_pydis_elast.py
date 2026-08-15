@@ -6,11 +6,13 @@ pydis_paths = ['../../python', '../../lib', '../../core/pydis/python']
 np.set_printoptions(threshold=20, edgeitems=5)
 
 from framework.disnet_manager import DisNetManager
+from framework.simulation_setup import check_cutoff_maxseg, remesh_initial_config
 from pydis import DisNode, DisNet, Cell, CellList
 from pydis import CalForce, MobilityLaw, TimeIntegration, Topology
 from pydis import Collision, Remesh, VisualizeNetwork, SimulateNetwork
 
-def init_frank_read_src_loop(arm_length=1.0, box_length=8.0, burg_vec=np.array([1.0,0.0,0.0]), pbc=False):
+def init_frank_read_src_loop(arm_length=1.0, box_length=8.0, burg_vec=np.array([1.0,0.0,0.0]),
+                             pbc=False, maxseg=None):
     '''Generate an initial Frank-Read source configuration
     '''
     print("init_frank_read_src_loop: length = %f" % (arm_length))
@@ -30,38 +32,54 @@ def init_frank_read_src_loop(arm_length=1.0, box_length=8.0, burg_vec=np.array([
         pn = pn / np.linalg.norm(pn)
         links[i,:] = np.concatenate(([i, (i+1)%N], burg_vec, pn))
 
+    # Condition the configuration so that no segment exceeds maxseg. The back edges of the
+    # source run between pinned corners and LengthBased remesh never splits those, so
+    # without this they would stay at their initial length for the whole run and break the
+    # cutoff + maxseg bound the neighbor search relies on. Inserted nodes are PINNED here,
+    # leaving geometry and boundary condition unchanged.
+    if maxseg is not None:
+        rn, links = remesh_initial_config(rn, links, maxseg, cell.h, [pbc]*3)
+
     return DisNetManager(DisNet(cell=cell, rn=rn, links=links))
 
-def main(max_step=200):
+def main(plot=True, max_step=200):
     global net, sim, state
 
     Lbox = 1000.0
-    net = init_frank_read_src_loop(box_length=Lbox, arm_length=0.125*Lbox, pbc=True)
+    state = {"burgmag": 3e-10, "mu": 50e9, "nu": 0.3, "a": 1.0, "maxseg": 0.04*Lbox, "minseg": 0.01*Lbox, "rann": 3.0}
+    cutoff = 0.25*Lbox
+    check_cutoff_maxseg(Lbox*np.eye(3), cutoff, state["maxseg"])
+
+    net = init_frank_read_src_loop(box_length=Lbox, arm_length=0.125*Lbox, pbc=True,
+                                   maxseg=state["maxseg"])
     nbrlist = CellList(cell=net.cell, n_div=[8,8,8])
 
-    vis = VisualizeNetwork()
-
-    state = {"burgmag": 3e-10, "mu": 50e9, "nu": 0.3, "a": 1.0, "maxseg": 0.04*Lbox, "minseg": 0.01*Lbox, "rann": 3.0}
+    if plot:
+        try:
+            vis = VisualizeNetwork()
+        except:
+            print("")
+            print("Failed to create VisualizeNetwork object")
+            print("Try run with option  --no-plot")
+            print("")
+            raise
+    else:
+        vis = None
 
     # Elasticity_SBA includes the full segment-segment elastic interaction (plus the
     # i==j self term, regularized by the core radius state["a"]), in contrast to the
     # LineTension mode used in test_frank_read_src_pydis.py.
     # Note: this is an O(Nseg^2) double loop in python, so it is much slower than LineTension.
+    # The cutoff is stated explicitly and matched by the companion exadis run, so the two
+    # truncate the segment-segment interaction identically and can be compared.
     #
-    # The cutoff is stated explicitly, and matched by test_frank_read_src_exadis_elast.py, so
-    # that the two runs truncate the segment-segment interaction identically and can be
-    # compared. sqrt(3)/2*Lbox is the half diagonal of the cubic cell, which is the largest
-    # separation attainable under the minimum image convention: at or above it no pair is
-    # dropped, so this is also the cutoff -> infinity limit and gives the same answer as
-    # cutoff=None. It is deliberately NOT 0.5*Lbox. That would be a legitimate truncation on
-    # the pydis side, but exadis' CUTOFF_MODEL silently discards a further ~75 pairs there --
-    # its neighbor list compares segment mid-points using a periodic shift quantized to the
-    # bin grid rather than the true minimum image, which under-counts whenever
-    # cutoff + maxseg > Lbox/3 (get_neighbor_dist2 and the boxDim clamp in
-    # core/exadis/src/neighbor_types/neighbor_box.h).
-    # Revisit once exadis is fixed: comparing at a genuinely truncating cutoff is the more
-    # interesting test.
-    cutoff    = 0.5*np.sqrt(3.0)*Lbox
+    # It must satisfy  cutoff + maxseg <= d/3  (d = cell width), checked above. ExaDiS bins
+    # segments by mid-point and clamps the bin count up to a minimum of 3; past that limit the
+    # bins are smaller than the search radius and the +-1 bin scan compares mid-points with a
+    # periodic shift quantized to the bin grid instead of the true minimum image, silently
+    # dropping pairs. The companion requirement is that no segment exceeds maxseg, which the
+    # remesh in the init function above guarantees -- LengthBased remesh does not, since it
+    # never splits a segment pinned at both ends.
     calforce  = CalForce(force_mode='Elasticity_SBA', state=state, cutoff=cutoff)
     mobility  = MobilityLaw(mobility_law='SimpleGlide', state=state)
     timeint   = TimeIntegration(integrator='EulerForward', dt=1.0e-8, state=state)
@@ -95,11 +113,12 @@ def main(max_step=200):
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
+    parser.add_argument('--no-plot', dest='plot', action='store_false', default=True)
     # max_step > 269 currently fails, see the note on Topology in main()
     parser.add_argument('--max-step', dest='max_step', type=int, default=200)
     args = parser.parse_args()
 
-    main(max_step=args.max_step)
+    main(plot=args.plot, max_step=args.max_step)
 
     # explore the network after simulation
     G  = net.get_disnet()

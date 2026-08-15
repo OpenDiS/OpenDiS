@@ -9,12 +9,14 @@ np.set_printoptions(threshold=20, edgeitems=5)
 try:
     import pyexadis
     from framework.disnet_manager import DisNetManager
+    from framework.simulation_setup import check_cutoff_maxseg, remesh_initial_config
     from pyexadis_base import ExaDisNet, NodeConstraints, SimulateNetwork, VisualizeNetwork
     from pyexadis_base import CalForce, MobilityLaw, TimeIntegration, Collision, Remesh
 except ImportError:
     raise ImportError('Cannot import pyexadis')
 
-def init_frank_read_src_loop(arm_length=1.0, box_length=8.0, burg_vec=np.array([1.0,0.0,0.0]), pbc=False):
+def init_frank_read_src_loop(arm_length=1.0, box_length=8.0, burg_vec=np.array([1.0,0.0,0.0]),
+                             pbc=False, maxseg=None):
     '''Generate an initial Frank-Read source configuration
     '''
     print("init_frank_read_src_loop: length = %f" % (arm_length))
@@ -34,13 +36,24 @@ def init_frank_read_src_loop(arm_length=1.0, box_length=8.0, burg_vec=np.array([
         pn = pn / np.linalg.norm(pn)
         links[i,:] = np.concatenate(([i, (i+1)%N], burg_vec, pn))
 
+    # Condition the configuration so that no segment exceeds maxseg -- the back edges run
+    # between pinned corners and LengthBased remesh never splits those. Inserted nodes are
+    # PINNED, leaving geometry and boundary condition unchanged.
+    if maxseg is not None:
+        rn, links = remesh_initial_config(rn, links, maxseg, box_length*np.eye(3), [pbc]*3)
+
     return DisNetManager(ExaDisNet(cell, rn, links))
 
 def main(plot=True, force_mode='DDD_FFT_MODEL', max_step=200):
     global net, sim, state
 
     Lbox = 1000.0
-    net = init_frank_read_src_loop(box_length=Lbox, arm_length=0.125*Lbox, pbc=True)
+    state = {"burgmag": 3e-10, "mu": 50e9, "nu": 0.3, "a": 1.0, "maxseg": 0.04*Lbox, "minseg": 0.01*Lbox, "rann": 3.0}
+    cutoff = 0.25*Lbox
+    check_cutoff_maxseg(Lbox*np.eye(3), cutoff, state["maxseg"])
+
+    net = init_frank_read_src_loop(box_length=Lbox, arm_length=0.125*Lbox, pbc=True,
+                                   maxseg=state["maxseg"])
 
     if plot:
         try:
@@ -53,8 +66,6 @@ def main(plot=True, force_mode='DDD_FFT_MODEL', max_step=200):
             raise
     else:
         vis = None
-
-    state = {"burgmag": 3e-10, "mu": 50e9, "nu": 0.3, "a": 1.0, "maxseg": 0.04*Lbox, "minseg": 0.01*Lbox, "rann": 3.0}
 
     # Full elastic interactions, in contrast to the LineTension mode used in
     # test_frank_read_src_exadis.py:
@@ -80,20 +91,15 @@ def main(plot=True, force_mode='DDD_FFT_MODEL', max_step=200):
     # To do: add the Ec core term to pydis' Elasticity_SBA, as in the legacy ParaDiS code,
     # and then drop Ec=0.0 from this example.
     #
-    # The cutoff matches the one in test_frank_read_src_pydis_elast.py so that the two runs
-    # truncate identically. sqrt(3)/2*Lbox is the half diagonal of the cubic cell, i.e. the
-    # largest separation attainable under the minimum image convention, so no pair is dropped
-    # and this is the cutoff -> infinity limit. It is deliberately NOT 0.5*Lbox: exadis'
-    # neighbor list compares segment mid-points using a periodic shift quantized to the bin
-    # grid rather than the true minimum image, and silently discards pairs whose real
-    # separation is inside the cutoff whenever cutoff + maxseg > Lbox/3. At 0.5*Lbox that
-    # costs ~75 of 1678 pairs here and makes this run disagree with pydis (447.34 vs 447.13,
-    # 67 vs 63 nodes). See get_neighbor_dist2 and the boxDim clamp in
-    # core/exadis/src/neighbor_types/neighbor_box.h.
-    # Revisit once exadis is fixed: comparing at a genuinely truncating cutoff is the more
-    # interesting test.
+    # The cutoff matches test_frank_read_src_pydis_elast.py so the two runs truncate
+    # identically. It must satisfy  cutoff + maxseg <= d/3  (checked in main above): ExaDiS
+    # bins segments by mid-point and clamps the bin count up to a minimum of 3, and past that
+    # limit the +-1 bin scan compares mid-points using a periodic shift quantized to the bin
+    # grid rather than the true minimum image, silently dropping pairs whose real separation
+    # is inside the cutoff. The companion requirement -- no segment longer than maxseg -- is
+    # met by the remesh in the init function, since LengthBased remesh never splits a segment
+    # pinned at both ends.
     Ec = 0.0
-    cutoff = 0.5*np.sqrt(3.0)*Lbox
     if force_mode == 'DDD_FFT_MODEL':
         calforce = CalForce(force_mode='DDD_FFT_MODEL', state=state, Ec=Ec, Ngrid=32, cell=net.cell)
     elif force_mode == 'CUTOFF_MODEL':
