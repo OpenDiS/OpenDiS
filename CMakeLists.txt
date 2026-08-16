@@ -50,5 +50,5 @@ if(DEFINED cpython_lib_fix_cmd)
     add_custom_command(TARGET cpython_lib_fix POST_BUILD COMMAND ${cpython_lib_fix_cmd})
 endif()
 
-#enable_testing()
-#add_subdirectory(ctests)
+enable_testing()
+add_subdirectory(tests)

@@ -1,6 +1,12 @@
 import sys, os
-pydis_paths = ['../../python', '../../lib', '../../core/pydis/python']
-[sys.path.append(os.path.abspath(path)) for path in pydis_paths if not path in sys.path]
+from pathlib import Path
+# this script lives in tests/unit_tests/test1_node_force/, so the repository root is 3 levels up
+opendis_root = Path(__file__).resolve().parents[3]
+pydis_paths = [str(opendis_root / p) for p in ['python', 'lib', 'core/pydis/python']]
+[sys.path.append(path) for path in pydis_paths if not path in sys.path]
+# input and reference data belong to this test, so they are located relative to the script;
+# any output the test may write stays relative to the user's current working directory
+ref_dir   = Path(__file__).resolve().parent / 'ref_data'
 
 import numpy as np
 from pydis.calforce.compute_stress_force_analytic_paradis import compute_segseg_force_vec
@@ -8,7 +14,7 @@ from pydis.calforce.compute_stress_force_analytic_python import python_segseg_fo
 
 tolA, tolB, tolC = 1e-9, 1e-9, 1e-5
 
-segseg_data = np.loadtxt("segsep_min_2.5_max_32.5_iso_randombvecs_a0.010.dat")
+segseg_data = np.loadtxt(ref_dir / "segsep_min_2.5_max_32.5_iso_randombvecs_a0.010.dat")
 
 p1 = segseg_data[:, 0:3]
 p2 = segseg_data[:, 3:6]

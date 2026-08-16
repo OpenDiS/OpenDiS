@@ -1,6 +1,13 @@
 import sys, os
-pydis_paths = ['../../python', '../../lib', '../../core/pydis/python']
-[sys.path.append(os.path.abspath(path)) for path in pydis_paths if not path in sys.path]
+from pathlib import Path
+# this script lives in tests/unit_tests/test1_node_force/, so the repository root is 3 levels up
+opendis_root = Path(__file__).resolve().parents[3]
+pydis_paths = [str(opendis_root / p) for p in ['python', 'lib', 'core/pydis/python']]
+[sys.path.append(path) for path in pydis_paths if not path in sys.path]
+# input and reference data belong to this test, so they are located relative to the script;
+# any output the test may write stays relative to the user's current working directory
+input_dir = Path(__file__).resolve().parent / 'input_data'
+ref_dir   = Path(__file__).resolve().parent / 'ref_data'
 
 import numpy as np
 np.set_printoptions(threshold=20, edgeitems=5)
@@ -11,14 +18,14 @@ from pydis.calforce.calforce_disnet import CalForce
 def init_loop_from_file(rn_file, links_file):
     print("init_loop_from_file: rn_file = '%s', links_file = '%s'" % (rn_file, links_file))
     G = DisNet()
-    rn = np.loadtxt(rn_file)[:, 1:]
-    links = np.loadtxt(links_file)
+    rn = np.loadtxt(input_dir / rn_file)[:, 1:]
+    links = np.loadtxt(input_dir / links_file)
     G.add_nodes_segments_from_list(rn, links)
     return G
 
 def compare_force(ref_file, node_force, rtol = 0.0, atol = 1e-9):
     print("compare_force: ref_file = '%s'" % (ref_file))
-    ref_force = np.loadtxt(ref_file)
+    ref_force = np.loadtxt(ref_dir / ref_file)
     is_force_close = np.allclose(node_force, ref_force, rtol=rtol, atol=atol)
     print("max error: ", np.max(np.abs(node_force - ref_force)))
     return is_force_close
