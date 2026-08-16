@@ -67,7 +67,7 @@ def main(max_step=200, dt=1.0e-9):
     # nodeflag_dict that Topology.init_topology_exemptions creates; with topology=None the
     # run fails with KeyError: 'nodeflag_dict'. Beware that split_mode='MaxDiss' calls
     # OneNodeForce for any node with 4 or more arms, and OneNodeForce is not implemented for
-    # the Elasticity_* force modes -- see the same note in
+    # the Elasticity_* force modes. See the same note in
     # 02_frank_read_src/test_frank_read_src_pydis_elast.py. The applied stress below is
     # deliberately super-critical so that the loop expands: a sub-critical stress makes it
     # collapse onto itself, and the resulting collision hits that unimplemented path.
