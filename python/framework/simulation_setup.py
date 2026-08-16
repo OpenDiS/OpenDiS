@@ -9,7 +9,7 @@ Two things are provided, both addressing the same underlying requirement: the se
 cutoff used by PyDiS' Elasticity_* modes and by ExaDiS' CUTOFF_MODEL is only exact when the
 simulation parameters and the configuration are mutually consistent.
 
-1. check_cutoff_maxseg() -- verifies  cutoff + maxseg <= d/3  for every cell direction.
+1. check_cutoff_maxseg() verifies  cutoff + maxseg <= d/3  for every cell direction.
 
    ExaDiS bins segments by their mid-point to build the neighbor list, and the number of bins
    per direction is floor(d / (cutoff + maxseg)), clamped up to a minimum of 3
@@ -19,7 +19,7 @@ simulation parameters and the configuration are mutually consistent.
    separation is inside the cutoff are then silently dropped. Keeping cutoff + maxseg <= d/3
    keeps the bin count at 3 or more by construction, where the algorithm is exact.
 
-2. remesh_initial_config() -- subdivides every segment longer than maxseg.
+2. remesh_initial_config() subdivides every segment longer than maxseg.
 
    The neighbor-list bound cutoff + maxseg is only valid when no segment is longer than
    maxseg. LengthBased remesh does NOT guarantee this: it refines a segment only if at least
