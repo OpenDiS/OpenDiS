@@ -210,14 +210,17 @@ def main():
     ok &= insert_node(G)
 
     N = DisNetManager(G)
-    write_result(N)
+    out_file = write_result(N)
     data = N.export_data()
 
     ref_file = ref_dir / REF_NAME
     if not ref_file.is_file():
+        # the result goes to the working directory, which under ctest is
+        # the build tree rather than this folder, so name the full path
         print("reference not found: %s" % ref_file)
         print("install the result just written with")
-        print("    cp %s/%s %s" % (OUT_DIR, RESULT_NAME, ref_dir))
+        print("    mkdir -p %s" % ref_dir)
+        print("    cp %s %s/%s" % (out_file.resolve(), ref_dir, REF_NAME))
         return False
 
     ok &= compare_networks(data, load_ref(DisNet).export_data(),

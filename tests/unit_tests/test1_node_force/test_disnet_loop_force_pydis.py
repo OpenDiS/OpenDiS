@@ -74,9 +74,8 @@ def init_loop_from_file(rn_file=RN_FILE, links_file=LINKS_FILE):
     The cell is non-periodic, so closest_image is the identity and the
     forces do not depend on it. It is sized at BOX_BINS*(cutoff+maxseg)
     anyway, matching the exadis test, where that size is what keeps the
-    ExaDiS neighbor bins unclamped
-    (.plan/2026-07-27/plan_pydis_elast.md 9.1). Giving both tests the
-    same cell keeps two descriptions of one setup from drifting apart.
+    ExaDiS neighbor bins unclamped. Giving both tests the same cell
+    keeps two descriptions of one setup from drifting apart.
     """
     print("init_loop_from_file: rn_file = '%s', links_file = '%s'"
           % (rn_file, links_file))
@@ -96,8 +95,7 @@ def compute_forces(G):
     """compute_forces: (tags, line tension force, elastic force)
 
     One CalForce serves both: Ec is read only by the LineTension path,
-    and the Elasticity_SBA path carries no core term at all
-    (.plan/2026-07-27/plan_pydis_elast.md 8.1).
+    and the Elasticity_SBA path carries no core term at all.
     """
     calforce = CalForce(state=state, Ec=Ec_linetension, cutoff=CUTOFF)
     tags = list(G.all_nodes_tags())

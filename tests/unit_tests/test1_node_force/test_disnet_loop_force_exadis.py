@@ -1,71 +1,22 @@
 """Nodal forces on the 10-loop configuration, computed by ExaDiS.
 
-The ExaDiS counterpart of test_disnet_loop_force.py: same input
-configuration, same material constants, same cutoff, and the same two
-stored references, so that both codes are pinned to one set of numbers
-rather than only to each other.
+The counterpart of test_disnet_loop_force_pydis.py, on the same
+configuration and constants and against the reference that test writes,
+so the two codes are pinned to one set of numbers. The force modes map
+across as:
 
-Force-mode mapping to the PyDiS test
-------------------------------------
-PyDiS NodeForce_LineTension is the core force plus the Peach-Koehler
-force from the applied stress, and nothing else. ExaDiS'
-LINE_TENSION_MODEL is ForceSegLT<CoreDefault, selfforce=false>
-(src/force_types/force_lt.h), i.e. the same two terms; the non-singular
-self force is explicitly excluded there. The core force expressions
-agree term by term (CoreDefault::core_force in force_core.h against
-selfforcevec_LineTension in calforce_disnet.py), and both codes split
-the PK force half to each end of a segment.
+  LineTension   ForceSegLT<CoreDefault, selfforce=false>, i.e. core
+                force + PK force, the self force excluded
+  CUTOFF_MODEL  self force + PK force + the segment-pair sum, with
+                Ec = 0.0 to drop the core term Elasticity_SBA does not
+                have
 
-PyDiS NodeForce_Elasticity_SBA is the PK force plus compute_segseg_force
-summed over the surviving segment pairs, including the i == j self term,
-with no core term at all. Its ExaDiS counterpart is CUTOFF_MODEL with
-Ec = 0.0: ForceCollection2<CORE_SELF_PKEXT, FORCE_SEGSEG_ISO>
-(force_segseglist.h), which supplies the self force and the PK force
-from the first member and the pair sum from the second. Ec = 0.0 is what
-removes the core term PyDiS does not have; leaving the ExaDiS default in
-place would add mu/(4 pi) log(a/0.1) per segment
-(.plan/2026-07-27/plan_pydis_elast.md 4.1).
-
-Cutoff and cell
----------------
-Both codes apply the same two-stage cutoff, so the value has to be
-chosen once and used on both sides. It is set wide enough to keep every
-pair in this configuration (the largest mid-point separation is 135.3
-against CUTOFF = 200), which is what lets the test compare against
-references computed without any truncation. Testing the truncation
-itself belongs with a case built for it, not here.
-
-The cell is non-periodic, so there are no images and the forces do not
-depend on it. Its size is not arbitrary all the same: ExaDiS clamps its
-neighbor bins to 3 per direction once cutoff + maxseg > d/3 and then
-silently drops pairs beyond the +/-1 bin scan
-(.plan/2026-07-27/plan_pydis_elast.md 9.1). The box is therefore sized
-at 3*(cutoff + maxseg) and check_cutoff_maxseg is called to assert it.
-Without that, CUTOFF_MODEL sits about 5e-3 short of the true all-pairs
-answer on this configuration and the test would report it as a physics
-failure.
-
-Reference data and tolerance
-----------------------------
-ref_data/loop_node_force_ref.npz is written by the PyDiS test and is
-the reference for both, which is what makes this a cross-code check
-rather than two codes each agreeing with themselves. It is regenerated
-with
-
-    python3 test_disnet_loop_force_pydis.py --write-ref
-
-and installed by hand into ref_data/. The constants it was generated
-with are stored in the file and checked here before comparing, so the
-two tests cannot silently drift apart.
-
-atol = 1e-6. Measured against that reference on this configuration:
-  line tension  4.7e-10  against forces of order 2.6e+05
-  elasticity    2.2e-10  against forces of order 7.5e+00
-Both are the two codes' independent implementations of the same
-formulas landing on the same numbers, so the margin is wide.
-
-CUTOFF is shared with the PyDiS test. minseg is required by
-pyexadis.Params but is read by neither force mode used here.
+The cell is non-periodic, so the forces do not depend on it, but its
+size is not free: ExaDiS clamps its neighbor bins to 3 per direction
+once cutoff + maxseg > d/3 and then drops pairs silently, landing about
+5e-3 below the all-pairs answer here (plan 9.1). Hence a box of
+BOX_BINS*(CUTOFF + maxseg), asserted by check_cutoff_maxseg, and
+check_cell_independence as the guard if that ever stops holding.
 """
 
 import sys
@@ -120,8 +71,7 @@ def init_loop_from_file(rn_file=RN_FILE, links_file=LINKS_FILE,
     The input files carry no simulation cell and no glide planes, because
     neither enters the quantity being tested. The plane normals are left
     at zero: cross(b, t) is not usable on a loop, since it vanishes
-    wherever the line runs screw
-    (.plan/2026-07-27/plan_pydis_elast.md 4.5).
+    wherever the line runs screw.
 
     The box is BOX_BINS*(cutoff + maxseg) so the neighbor bins stay
     unclamped, and box_factor scales it so check_cell_independence can
@@ -205,20 +155,15 @@ def check_cell_independence(f_lt, f_elast):
     """check_cell_independence: the cell must not affect the forces
 
     Rebuilds the configuration in a BOX_FACTOR_CHECK times larger box.
-    There are no
-    periodic images and the cutoff already covers every pair, so nothing
-    is left for the cell to change; a real difference would mean the
-    answer depends on a box that was chosen for the neighbor bins rather
-    than for the physics. This is the check that fails if the cutoff or
-    the box ever stop satisfying check_cutoff_maxseg, since the dropped
-    pairs then differ between the two box sizes.
+    There are no periodic images and the cutoff already covers every
+    pair, so nothing is left for the cell to change; this is what fails
+    if the cutoff or the box ever stop satisfying check_cutoff_maxseg,
+    since the pairs dropped then differ between the two box sizes.
 
-    The line tension is per-segment and must match exactly. The pair sum
-    must not: 30 bins per direction instead of 3 changes the order the
+    The line tension is per-segment and must match exactly. The pair
+    sum must not: a different bin count changes the order the
     contributions are accumulated in, and the threaded reduction is not
-    order-independent. TOL_SUM is set well above what that costs
-    (measured 1.5e-14, the same size as re-running the identical box)
-    and well below anything physical.
+    order-independent, hence TOL_SUM.
     """
     _, G = init_loop_from_file(box_factor=BOX_FACTOR_CHECK)
     label = "%gx box" % BOX_FACTOR_CHECK
