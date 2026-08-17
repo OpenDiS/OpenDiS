@@ -17,6 +17,7 @@ import json
 import os
 import subprocess
 import sys
+from pathlib import Path
 
 import numpy as np
 
@@ -122,6 +123,63 @@ def load_ref_npz(filename):
     """
     with np.load(filename, allow_pickle=False) as f:
         return f['positions'], f['cell_h'], str(f['source'])
+
+
+def report_close(name, values, ref_values, atol, rtol=0.0):
+    """report_close: report whether two arrays agree, showing the error
+
+    The reporting counterpart of np.allclose: prints one PASSED/FAILED
+    line carrying the largest deviation and the tolerance it was judged
+    against, so a passing run still says how much margin it had.
+    """
+    values, ref_values = np.asarray(values), np.asarray(ref_values)
+    if values.shape != ref_values.shape:
+        return report("%s (shape %s vs reference %s)"
+                      % (name, values.shape, ref_values.shape), False)
+    max_err = float(np.max(np.abs(values - ref_values)))
+    passed = bool(np.allclose(values, ref_values, rtol=rtol, atol=atol))
+    return report("%s: max error %.4e, atol %.1e" % (name, max_err, atol),
+                  passed)
+
+
+def load_force_ref(npz_file, expected, regen_hint=''):
+    """load_force_ref: read a nodal-force reference, checking its settings
+
+    A force reference is only meaningful together with the constants it
+    was computed from, so those are stored in the .npz and checked here
+    against what the caller is about to compare. `expected` maps field
+    name to value; a missing or differing field is reported and None is
+    returned, so a stale reference is named as such rather than showing
+    up as a physics failure.
+
+    Returns the opened NpzFile, or None.
+    """
+    npz_file = Path(npz_file)
+    if not npz_file.is_file():
+        print("reference not found: %s" % npz_file)
+        if regen_hint:
+            print(regen_hint)
+        return None
+
+    ref = np.load(npz_file, allow_pickle=False)
+    for key, val in expected.items():
+        if key not in ref.files:
+            print("reference %s has no '%s' field; regenerate it"
+                  % (npz_file, key))
+            if regen_hint:
+                print(regen_hint)
+            return None
+        if float(ref[key]) != float(val):
+            print("reference %s was generated with %s = %g, this test "
+                  "uses %g; regenerate it"
+                  % (npz_file, key, float(ref[key]), float(val)))
+            if regen_hint:
+                print(regen_hint)
+            return None
+
+    source = str(ref['source']) if 'source' in ref.files else 'unknown'
+    print("load_force_ref: '%s', source '%s'" % (npz_file.name, source))
+    return ref
 
 
 def compare_to_ref(json_file, npz_file):
