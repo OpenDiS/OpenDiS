@@ -155,8 +155,15 @@ def load_force_ref(npz_file, expected, regen_hint=''):
     Returns the opened NpzFile, or None.
     """
     npz_file = Path(npz_file)
+    # shown relative to the working directory where that is possible, so
+    # the message reads the way the reader would type it
+    try:
+        shown = npz_file.relative_to(Path.cwd())
+    except ValueError:
+        shown = Path(npz_file.parent.name) / npz_file.name
+
     if not npz_file.is_file():
-        print("reference not found: %s" % npz_file)
+        print("reference not found: %s" % shown)
         if regen_hint:
             print(regen_hint)
         return None
@@ -165,14 +172,14 @@ def load_force_ref(npz_file, expected, regen_hint=''):
     for key, val in expected.items():
         if key not in ref.files:
             print("reference %s has no '%s' field; regenerate it"
-                  % (npz_file, key))
+                  % (shown, key))
             if regen_hint:
                 print(regen_hint)
             return None
         if float(ref[key]) != float(val):
             print("reference %s was generated with %s = %g, this test "
                   "uses %g; regenerate it"
-                  % (npz_file, key, float(ref[key]), float(val)))
+                  % (shown, key, float(ref[key]), float(val)))
             if regen_hint:
                 print(regen_hint)
             return None

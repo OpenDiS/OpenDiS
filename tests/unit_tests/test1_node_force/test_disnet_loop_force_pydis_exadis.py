@@ -212,11 +212,11 @@ def write_ref(tags, f_lt, f_elast, out_dir=OUT_DIR):
              mu=state["mu"], nu=state["nu"], a=state["a"],
              Ec=Ec_linetension, cutoff=CUTOFF, maxseg=MAXSEG,
              source=np.array('pydis'))
-    print("write_ref: wrote %s (%d nodes)"
-          % (out_file.resolve(), tags.shape[0]))
+    print("write_ref: wrote %s (%d nodes)" % (out_file, tags.shape[0]))
     print("")
-    print("to install it, copy it into ref_data/ next to this script:")
-    print("    cp %s %s/%s" % (out_file.resolve(), ref_dir, REF_NAME))
+    print("to install it, copy it into the ref_data/ next to this "
+          "script:")
+    print("    cp %s ref_data/%s" % (out_file, REF_NAME))
     print("")
     print("this reference encodes the current settings of the test")
     print("(mu = %g, nu = %g, a = %g, Ec = %g, cutoff = %g, maxseg = %g);"
@@ -233,9 +233,8 @@ def load_ref():
     file is absent or was generated under different constants.
     """
     hint = ("generate it with\n"
-            "    python3 %s --write-ref\n"
-            "then copy output/%s into %s"
-            % (Path(__file__).name, REF_NAME, ref_dir))
+            "    make loop_node_force_ref\n"
+            "then copy %s/%s into ref_data/" % (OUT_DIR, REF_NAME))
     expected = {"mu": state["mu"], "nu": state["nu"], "a": state["a"],
                 "Ec": Ec_linetension, "cutoff": CUTOFF,
                 "maxseg": MAXSEG}

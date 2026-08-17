@@ -7,6 +7,9 @@
 #   make                                run every test in every case folder
 #   make 02_frank_read_src             run one case folder
 #   make list                           show which tests would run
+#   make disl_loop_elast_ref            regenerate one stored reference; every
+#                                       *_ref target of every case folder can be
+#                                       invoked from here
 #
 # PYTHON is passed down, so a single override applies everywhere:
 #   make PYTHON=/opt/anaconda3/bin/python3
@@ -16,7 +19,15 @@
 PYTHON  ?= python3
 SUBDIRS := $(patsubst %/,%,$(dir $(wildcard */makefile)))
 
-.PHONY: all list clean $(SUBDIRS)
+# Reference-regeneration targets are defined in the case folders, one per stored
+# reference, and named *_ref. They are discovered here rather than listed, for the
+# same reason the test list is, and forwarded to the folder that defines them, so
+# that "make disl_loop_elast_ref" works from this level and not only inside the
+# case folder.
+REF_TARGETS := $(shell sed -n 's/^\([a-z0-9_]*_ref\):.*/\1/p' */makefile \
+                       2>/dev/null | sort -u)
+
+.PHONY: all list clean $(SUBDIRS) $(REF_TARGETS)
 
 # Every folder runs even if an earlier one fails, so one invocation reports the whole picture;
 # the collected status is what makes this usable as a gate.
@@ -32,6 +43,11 @@ all:
 
 $(SUBDIRS):
 	@$(MAKE) --no-print-directory -C $@ PYTHON=$(PYTHON)
+
+$(REF_TARGETS):
+	@d=$$(grep -l '^$@:' */makefile | head -1 | xargs dirname); \
+	echo "########## $$d"; \
+	$(MAKE) --no-print-directory -C $$d PYTHON=$(PYTHON) $@
 
 list:
 	@for d in $(SUBDIRS); do $(MAKE) --no-print-directory -C $$d list; done
