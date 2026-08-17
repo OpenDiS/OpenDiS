@@ -168,12 +168,16 @@ class DisNet(DisNet_Python):
             super().__init__(source, target)
             self.attr = edge_attr
 
-    def __init__(self, cell=None, rn=None, links=None) -> None:
+    def __init__(self, cell=None, rn=None, links=None,
+                 recycle_tags=True, recycle_LIFO=True) -> None:
         self._G = Graph()
         # provide a reference from tags back to nodes (with attr)
         self.tags_to_nodes = {}
         self.cell = Cell() if cell is None else cell
         self._recycled_tags = []
+        # how get_new_tag reuses the tags of removed nodes
+        self.recycle_tags = recycle_tags
+        self.recycle_LIFO = recycle_LIFO
         if rn is not None or links is not None:
             self.add_nodes_segments_from_list(rn, links)
 
@@ -554,13 +558,19 @@ class DisNet(DisNet_Python):
         if not self.is_sane():
             raise ValueError("add_nodes_segments_from_list: sanity check failed")
     
-    def get_new_tag(self, recycle = True) -> Tag:
+    def get_new_tag(self, recycle = None, LIFO = None) -> Tag:
         """get_new_tag: return a new tag for a new node
+           recycle and LIFO default to the network settings recycle_tags
+           and recycle_LIFO, and may be overridden per call
            if recycle == True, then take from list of recycled node tags
            recycle == False makes it easier to debug as node tags are never reused
+           LIFO == True takes the tag freed most recently, matching exadis
         """
+        if recycle is None: recycle = self.recycle_tags
+        if LIFO is None: LIFO = self.recycle_LIFO
         if recycle and len(self._recycled_tags) > 0:
-            return self._recycled_tags.pop(0)
+            return self._recycled_tags.pop() if LIFO \
+                   else self._recycled_tags.pop(0)
         else:
             max_tag = max(self.all_nodes_tags())
             return (max_tag[0], max_tag[1]+1)
