@@ -33,12 +33,12 @@ $(TESTS):
 list:
 	@for t in $(TESTS); do echo $$t; done
 
-# Regenerate the nodal-force reference both test_disnet_loop_force_pydis.py and
-# test_disnet_loop_force_exadis.py compare against. pydis writes it and exadis only
-# reads it, so there is one set of numbers rather than one per code. The script
+# Regenerate the nodal-force reference test_disnet_loop_force_pydis_exadis.py
+# compares against. It is written from the pydis side and both codes are checked
+# against it, so there is one set of numbers rather than one per code. The script
 # writes relative to the working directory, so the .npz lands in output/ here.
 loop_node_force_ref:
-	$(PYTHON) test_disnet_loop_force_pydis.py --write-ref
+	$(PYTHON) test_disnet_loop_force_pydis_exadis.py --write-ref
 
 clean:
 	@echo "nothing to clean"
