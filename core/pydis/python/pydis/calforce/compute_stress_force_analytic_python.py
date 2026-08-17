@@ -24,7 +24,16 @@ def RemoteNodeForce(x1, x2, x3, x4, bp, b, a, mu, nu):
     f2 = np.zeros_like(x2)
     f4 = np.zeros_like(x3)
     f3 = np.zeros_like(x4)
-    eps = 1e-06
+    # Threshold on 1-c^2 below which the two segments are treated as parallel and handed to
+    # SpecialRemoteNodeForce, which also receives it as ecrit. Must match the compiled
+    # ParaDiS kernel this function mirrors (core/pydis/c/calforce/SegSegForce.c: eps = 1e-4,
+    # ecrit = 1e-4) and exadis (core/exadis/src/force_types/force_common.h:1039 eps = 1e-4,
+    # :611 ecrit = 1e-4). It was 1e-06 here, a hundred times tighter, so pairs with
+    # 1e-6 < 1-c^2 < 1e-4 took the general branch in python while taking the parallel branch
+    # in C. That branch is ill-conditioned as segments approach parallel, and it was the sole
+    # source of the ~1e-6 disagreement between the two implementations; away from the
+    # threshold they agree to ~1e-12.
+    eps = 1e-04
 
     Diff = x4 - x3
     oneoverL = 1.0 / np.sqrt(np.sum(np.multiply(Diff, Diff), axis=1))
@@ -48,10 +57,30 @@ def RemoteNodeForce(x1, x2, x3, x4, bp, b, a, mu, nu):
 
     nonpar = np.logical_not(spindex)
     if np.sum(nonpar) > 0:
-        txtp = np.cross(t[nonpar, :], tp[nonpar, :])
-        onemc2inv = 1.0 / onemc2[nonpar]
+        # BUG FIX: this block used to index a handful of arrays with [nonpar] while every
+        # other array it combines them with stayed full length. That only works when no pair
+        # is parallel, i.e. when nonpar is all True; as soon as one parallel pair is present
+        # the shapes disagree and numpy raises
+        #     ValueError: operands could not be broadcast together
+        # It went unnoticed because the unit-test dataset
+        # (tests/unit_tests/test1_node_force/ref_data/segsep_..._randombvecs.dat) contains
+        # no parallel pairs, while real dislocation networks routinely do.
+        #
+        # The block is written to run at FULL length: f1..f4 are allocated np.zeros_like(x1)
+        # above, reassigned wholesale here, and the parallel rows are overwritten at the end
+        # of the function by SpecialRemoteNodeForce. So the fix is to drop the stray [nonpar]
+        # subsetting rather than to add more of it. Parallel rows are still evaluated here and
+        # their results discarded, which is why onemc2 is clamped just below: without it those
+        # rows divide by ~0 and spray inf/nan through the arithmetic before being replaced.
+        #
+        # Subsetting the whole block consistently and scattering back with f1[nonpar,:] = ...
+        # would avoid that wasted work, but it means rewriting ~150 references across 600+
+        # lines and is left as an optimisation.
+        onemc2 = np.where(spindex, 1.0, onemc2)
+        txtp = np.cross(t, tp)
+        onemc2inv = 1.0 / onemc2
         R = np.concatenate(
-            (x3[nonpar, :] - x1[nonpar, :], x4[nonpar, :] - x2[nonpar, :]), axis=1
+            (x3 - x1, x4 - x2), axis=1
         )
         d = np.multiply(np.sum(np.multiply(R[:, 0:3], txtp), 1), onemc2inv)
         temp1 = np.array(
@@ -292,17 +321,17 @@ def RemoteNodeForce(x1, x2, x3, x4, bp, b, a, mu, nu):
         a2m8p = a2 * m8p
 
         tpxt = -txtp
-        txbp = np.cross(t[nonpar, :], bp[nonpar, :])
-        tpxb = np.cross(tp[nonpar, :], b[nonpar, :])
-        bxt = np.cross(b[nonpar, :], t[nonpar, :])
-        bpxtp = np.cross(bp[nonpar, :], tp[nonpar, :])
+        txbp = np.cross(t, bp)
+        tpxb = np.cross(tp, b)
+        bxt = np.cross(b, t)
+        bpxtp = np.cross(bp, tp)
 
-        tdb = np.sum(np.multiply(t[nonpar, :], b[nonpar, :]), 1)
-        tdbp = np.sum(np.multiply(t[nonpar, :], bp[nonpar, :]), 1)
-        tpdb = np.sum(np.multiply(tp[nonpar, :], b[nonpar, :]), 1)
-        tpdbp = np.sum(np.multiply(tp[nonpar, :], bp[nonpar, :]), 1)
-        txtpdb = np.sum(np.multiply(txtp[nonpar, :], b[nonpar, :]), 1)
-        tpxtdbp = np.sum(np.multiply(tpxt[nonpar, :], bp[nonpar, :]), 1)
+        tdb = np.sum(np.multiply(t, b), 1)
+        tdbp = np.sum(np.multiply(t, bp), 1)
+        tpdb = np.sum(np.multiply(tp, b), 1)
+        tpdbp = np.sum(np.multiply(tp, bp), 1)
+        txtpdb = np.sum(np.multiply(txtp, b), 1)
+        tpxtdbp = np.sum(np.multiply(tpxt, bp), 1)
         txbpdtp = tpxtdbp
         tpxbdt = txtpdb
 
@@ -891,7 +920,12 @@ def SpecialRemoteNodeForce(
     corsize = len(corindex)
 
     if corsize > 0:
-        print("SpecialRemoteNodeForce: f3cor and f4cor")
+        # BUG FIX: these were python lists of 1-D arrays, and RemoteNodeForce starts with
+        # x1.ndim, so this branch raised AttributeError on entry. It was unreachable while
+        # the parallel threshold here was 1e-6: only near-parallel pairs take this
+        # correction, and those were being routed to the general formula instead.
+        x12, x1mod2, x2mod2, x22, x32, x42, bp2, b2 = (
+            np.array(v) for v in (x12, x1mod2, x2mod2, x22, x32, x42, bp2, b2))
         whocares1, whocares2, f3cor2, f4cor2 = RemoteNodeForce(
             x12, x1mod2, x32, x42, bp2, b2, a, mu, nu
         )
@@ -1055,7 +1089,9 @@ def SpecialRemoteNodeForce(
     corsize = len(corindex)
 
     if corsize > 0:
-        print("SpecialRemoteNodeForce: f1cor and f2cor")
+        # same fix as the f3cor/f4cor branch above
+        x32, x3mod2, x4mod2, x42, x12, x22, bp2, b2 = (
+            np.array(v) for v in (x32, x3mod2, x4mod2, x42, x12, x22, bp2, b2))
         whocares1, whocares2, f1cor2, f2cor2 = RemoteNodeForce(
             x32, x3mod2, x12, x22, b2, bp2, a, mu, nu
         )
