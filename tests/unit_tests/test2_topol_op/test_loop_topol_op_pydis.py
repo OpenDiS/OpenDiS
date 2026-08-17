@@ -38,7 +38,7 @@ import numpy as np
 
 from pydis.disnet import DisNet
 from framework.disnet_manager import DisNetManager
-from framework.testing import report
+from framework.testing import report, same_network
 
 # the configuration, as node positions and connectivity
 RN_FILE    = 'loop_rn.dat'
@@ -175,34 +175,6 @@ def load_ref():
     N = DisNetManager(DisNet())
     N.read_json(str(ref_dir / REF_NAME))
     return N.get_disnet(DisNet)
-
-
-def same_network(G, G_ref):
-    """same_network: whether two networks describe the same disnet
-
-    DisNet.is_equivalent does the comparison, and does it the way this
-    test needs. It matches segments by their end tags rather than by
-    position in an array, it reads the other network's Burgers vector
-    from its own source tag, so a segment stored in either direction
-    compares equal, and it already treats n and -n as one glide plane.
-
-    Two things it does not do. It iterates only the nodes and segments
-    of the network it is called on, so a reference holding more than
-    the result would pass unnoticed, hence the counts below. And a
-    segment the other network does not have makes it raise rather than
-    return False, hence the guard.
-    """
-    if (G.num_nodes() != G_ref.num_nodes()
-            or G.num_segments() != G_ref.num_segments()):
-        print("counts differ: %d nodes, %d segments; the reference has "
-              "%d and %d" % (G.num_nodes(), G.num_segments(),
-                             G_ref.num_nodes(), G_ref.num_segments()))
-        return False
-    try:
-        return bool(G.is_equivalent(G_ref))
-    except (KeyError, AttributeError, TypeError) as err:
-        print("the reference has no counterpart for %r" % (err,))
-        return False
 
 
 def main(write_ref_file=False):

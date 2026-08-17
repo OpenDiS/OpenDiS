@@ -142,6 +142,37 @@ def report_close(name, values, ref_values, atol, rtol=0.0):
                   passed)
 
 
+def same_network(G, G_ref, verbose=True):
+    """same_network: whether two networks describe the same disnet
+
+    DisNet.is_equivalent does the comparison, and does it the way a
+    test needs. It matches segments by their end tags rather than by
+    position in an array, it reads the other network's Burgers vector
+    from its own source tag, so a segment stored in either direction
+    compares equal, and it treats n and -n as one glide plane.
+
+    Two things it does not do. It iterates only the nodes and segments
+    of the network it is called on, so a reference holding more than
+    the result would pass unnoticed, hence the counts below. And a
+    segment the other network does not have makes it raise rather than
+    return False, hence the guard.
+    """
+    if (G.num_nodes() != G_ref.num_nodes()
+            or G.num_segments() != G_ref.num_segments()):
+        if verbose:
+            print("counts differ: %d nodes, %d segments; the reference "
+                  "has %d and %d" % (G.num_nodes(), G.num_segments(),
+                                     G_ref.num_nodes(),
+                                     G_ref.num_segments()))
+        return False
+    try:
+        return bool(G.is_equivalent(G_ref))
+    except (KeyError, AttributeError, TypeError) as err:
+        if verbose:
+            print("the reference has no counterpart for %r" % (err,))
+        return False
+
+
 def load_force_ref(npz_file, expected, regen_hint=''):
     """load_force_ref: read a nodal-force reference, checking its settings
 
