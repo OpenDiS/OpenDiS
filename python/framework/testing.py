@@ -13,6 +13,7 @@ Deliberately not named test_*.py: test discovery in the makefiles and in CMake g
 test_*.py, and this module is support code, not a test.
 """
 
+import hashlib
 import json
 import os
 import subprocess
@@ -24,6 +25,23 @@ import numpy as np
 GREEN = '\033[32m'
 RED = '\033[31m'
 RESET = '\033[0m'
+
+
+def array_digest(arr):
+    """array_digest: a short stable fingerprint of a float array
+
+    For pairing a reference against the fixture it was computed from, when
+    the two live in different files and are blessed at different times. A
+    reference carrying the digest of its inputs can say "these describe
+    different pairs" instead of silently comparing forces to the wrong
+    geometry.
+
+    Bytes of the float64 representation, so it is exact rather than
+    tolerant: any change of geometry at all, however small, is a different
+    fixture and a stale reference.
+    """
+    a = np.ascontiguousarray(np.asarray(arr, dtype=np.float64))
+    return hashlib.sha256(a.tobytes()).hexdigest()[:16]
 
 
 def report(name, passed):

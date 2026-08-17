@@ -33,11 +33,13 @@ skips both stages and keeps every pair.
 import numpy as np
 from typing import Tuple
 from ..disnet import DisNet, Tag
+from ..nbrlist.nbrlist import CellList
 from framework.disnet_manager import DisNetManager
 from framework.calforce_base import CalForce_Base
 
 try:
-    from .compute_stress_force_analytic_paradis import compute_segseg_force_vec, compute_segseg_force
+    from .compute_stress_force_analytic_paradis import compute_segseg_force_list, compute_segseg_force
+    from .compute_stress_force_analytic_paradis import compute_segseg_force_batch
     from .compute_stress_force_analytic_paradis import compute_segseg_force_SBN1_vec, compute_segseg_force_SBN1
     from .compute_stress_force_analytic_paradis import compute_segseg_force_SBN1_SBA
     from .compute_stress_analytic_paradis       import compute_seg_stress_coord_dep, compute_seg_stress_coord_indep
@@ -69,6 +71,79 @@ def min_dist2_segseg(p1, p2, p3, p4, connected, eps0=1.0e-12):
     if connected:
         return 0.0
     return GetMinDist2(p1, _ZERO_VEL, p2, _ZERO_VEL, p3, _ZERO_VEL, p4, _ZERO_VEL)[0]
+
+def min_dist2_segseg_vec(p1, p2, p3, p4, connected=None, degenerate=None,
+                         eps0=1.0e-12, epsM=1e-6):
+    """min_dist2_segseg_vec: vectorized squared minimum distance between segment pairs
+
+    Batched form of min_dist2_segseg, following the same branch structure as
+    GetMinDist2_python (pydis/collision/getmindist2_python.py) but computing only dist2,
+    which is all the cutoff test needs. Every branch is evaluated for the whole batch and
+    selected with where(), so there is no data-dependent control flow.
+
+    p1..p4 are (N,3); connected and degenerate are optional (N,) boolean masks applied last,
+    reproducing the conventions of min_dist2_segseg: 0.0 for segments sharing a node, -1.0
+    for a degenerate segment.
+    """
+    p1, p2, p3, p4 = (np.asarray(x, dtype=float) for x in (p1, p2, p3, p4))
+    r1mr3 = p1 - p3
+    r2mr1 = p2 - p1
+    r4mr3 = p4 - p3
+
+    dot = lambda u, v: np.einsum('ij,ij->i', u, v)
+    A  = dot(r2mr1, r2mr1)          # M[0,0]
+    Cm = -dot(r4mr3, r2mr1)         # M[1,0] == M[0,1]
+    E  = dot(r4mr3, r4mr3)          # M[1,1]
+    rhs0 = -dot(r2mr1, r1mr3)
+    rhs1 =  dot(r4mr3, r1mr3)
+
+    def d2(L1, L2):
+        v = p1 + r2mr1*L1[:, None] - p3 - r4mr3*L2[:, None]
+        return dot(v, v)
+
+    with np.errstate(divide='ignore', invalid='ignore'):
+        detM = 1.0 - Cm*Cm/(A*E)
+        detM2 = detM * A * E
+        s0 = ( E*rhs0 - Cm*rhs1) / detM2
+        s1 = (-Cm*rhs0 + A*rhs1) / detM2
+        A_safe = np.where(A > eps0, A, 1.0)
+        E_safe = np.where(E > eps0, E, 1.0)
+        # the four clipped trials of the general out-of-range case
+        t = [(np.zeros_like(A),                            np.clip(rhs1/E_safe, 0, 1)),
+             (np.ones_like(A),                             np.clip((rhs1 - Cm)/E_safe, 0, 1)),
+             (np.clip(rhs0/A_safe, 0, 1),                  np.zeros_like(A)),
+             (np.clip((rhs0 - Cm)/A_safe, 0, 1),           np.ones_like(A))]
+
+    pointA = A < eps0                                   # segment 1 is a point
+    pointE = (~pointA) & (E < eps0)                     # segment 2 is a point
+    par    = (~pointA) & (~pointE) & (detM < epsM)      # parallel
+    gen    = ~(pointA | pointE | par)
+    inrng  = gen & (s0 >= 0) & (s0 <= 1) & (s1 >= 0) & (s1 <= 1)
+
+    L1 = np.zeros_like(A)
+    L2 = np.zeros_like(A)
+    L2 = np.where(pointA, np.where(E > eps0, rhs1/E_safe, 0.0), L2)
+    L1 = np.where(pointE, rhs0/A_safe, L1)
+    L1 = np.where(inrng, s0, L1)
+    L2 = np.where(inrng, s1, L2)
+    dist2 = d2(np.clip(L1, 0, 1), np.clip(L2, 0, 1))
+
+    # parallel: the minimum is attained at a pair of endpoints
+    corners = np.minimum.reduce([d2(np.zeros_like(A), np.zeros_like(A)),
+                                 d2(np.zeros_like(A), np.ones_like(A)),
+                                 d2(np.ones_like(A),  np.zeros_like(A)),
+                                 d2(np.ones_like(A),  np.ones_like(A))])
+    dist2 = np.where(par, corners, dist2)
+
+    # general case with the solution outside the unit square: best of the four trials
+    trials = np.minimum.reduce([d2(a, b) for a, b in t])
+    dist2 = np.where(gen & ~inrng, trials, dist2)
+
+    if connected is not None:
+        dist2 = np.where(connected, 0.0, dist2)
+    if degenerate is not None:
+        dist2 = np.where(degenerate, -1.0, dist2)
+    return dist2
 
 def voigt_vector_to_tensor(voigt_vector):
     return np.array([[voigt_vector[0], voigt_vector[5], voigt_vector[4]],
@@ -118,7 +193,9 @@ class CalForce(CalForce_Base):
     """CalForce_DisNet: class for calculating forces on dislocation network
     """
     def __init__(self, state: dict={}, Ec: float=None, cutoff: float=None,
-                 force_mode: str='Elasticity_SBA') -> None:
+                 force_mode: str='Elasticity_SBA',
+                 use_cell_list: bool=True, batch_size: int=100000,
+                 force_kernel: str='batch') -> None:
         self.mu = state.get("mu", 1.0)
         self.nu = state.get("nu", 0.3)
         self.a =  state.get("a", 0.01)
@@ -137,6 +214,31 @@ class CalForce(CalForce_Base):
                            "since the mid-point stage of the cutoff is applied at "
                            "cutoff + maxseg (see the module docstring)")
 
+        # Cell list used to avoid testing every segment pair. Only a candidate filter:
+        # within_cutoff remains the authoritative test, evaluated on true positions under
+        # the minimum image convention, so the bin-derived-distance defect that affects
+        # exadis' neighbor list is not reproduced here. Built lazily in _nbrlist_for(),
+        # because the cell can change between calls.
+        self.use_cell_list = use_cell_list
+        self._nbrlist = None
+        self._nbrlist_key = None
+
+        # Pair forces are evaluated in batches rather than all at once. The pair count grows
+        # as Nseg^2 before the cell list prunes it, and the vectorized kernel materialises
+        # several hundred temporaries of the batch shape, so peak memory is a large multiple
+        # of the batch itself. Tune per machine: a GPU node wants a larger value than a laptop.
+        self.batch_size = batch_size
+        # 'batch'  compiled ParaDiS kernel via SegSegForceList: one ctypes call for the
+        #          whole batch, looping inside C. Same numbers as 'scalar', without paying
+        #          ~8 us of marshalling per pair. The default.
+        # 'scalar' the same kernel called once per pair; kept as the reference.
+        # 'vec'    numpy, batched (python_segseg_force_vec). NOT usable yet:
+        #          RemoteNodeForce subsets t/tp/c inconsistently inside its non-parallel
+        #          branch, so it raises a broadcast error whenever a batch contains a
+        #          parallel segment pair. Fixing that is a prerequisite for the GPU port,
+        #          since the GPU path builds on this kernel rather than on ctypes.
+        self.force_kernel = force_kernel
+
         self.NodeForce_Functions = {
             'LineTension': self.NodeForce_LineTension,
             'Elasticity_SBA': self.NodeForce_Elasticity_SBA,
@@ -145,6 +247,133 @@ class CalForce(CalForce_Base):
             'LineTension': self.OneNodeForce_LineTension,
             'Elasticity_SBA': self.OneNodeForce_Elasticity_SBA,
             'Elasticity_SBN1_SBA': self.OneNodeForce_Elasticity_SBN1_SBA }
+
+    def _nbrlist_for(self, cell, Nseg):
+        """_nbrlist_for: cell list sized for this cell and cutoff, or None for all pairs
+
+        The division count follows exadis: n_div = floor(width / (cutoff + maxseg)), so that
+        anything within the search radius lies in an adjacent cell. Returns None when a cell
+        list cannot be used or would not help, in which case the caller falls back to
+        iterating every pair:
+          - no cutoff, so every pair is wanted anyway
+          - the cell is not periodic in all three directions (sort_points_to_list only
+            builds the list under full PBC)
+          - fewer than 4 divisions. Below 3 the +-1 neighbour scan would reach the same
+            cell by more than one offset and double count; at exactly 3 it reaches every
+            cell, so nothing is filtered and the bookkeeping is pure overhead.
+        """
+        if self.cutoff2 is None or not self.use_cell_list:
+            return None
+        if not all(cell.is_periodic):
+            return None
+
+        h = np.asarray(cell.h, dtype=float)
+        eff = self.cutoff + self.maxseg
+        n_div = []
+        for i in range(3):
+            e1, e2 = h[:, (i+1) % 3], h[:, (i+2) % 3]
+            perp = np.cross(e1, e2)
+            width = abs(np.dot(h[:, i], perp/np.linalg.norm(perp)))
+            n_div.append(int(np.floor(width/eff)))
+        if min(n_div) < 4:
+            return None
+
+        key = (tuple(n_div), h.tobytes())
+        if self._nbrlist_key != key:
+            self._nbrlist = CellList(cell=cell, n_div=n_div)
+            self._nbrlist_key = key
+        return self._nbrlist
+
+    def candidate_pairs(self, G, R1, R2, Nseg):
+        """candidate_pairs: iterate (i, j), i < j, of segment pairs worth testing
+
+        Uses the cell list when it applies, otherwise every pair. Segments are binned by
+        mid-point, matching what exadis does and what the collision handler already does.
+        """
+        nbrlist = self._nbrlist_for(G.cell, Nseg)
+        if nbrlist is None:
+            for i in range(Nseg):
+                for j in range(i+1, Nseg):
+                    yield i, j
+        else:
+            nbrlist.sort_points_to_list(0.5*(R1 + R2))
+            for i, j in nbrlist.iterate_nbr_pairs(use_cell_list=True):
+                yield i, j
+
+    def _pair_forces(self, P1, P2, P3, P4, B12, B34):
+        """_pair_forces: forces on the four endpoints of each pair, in bounded batches
+
+        Yields (start, stop, f1, f2, f3, f4) so the caller can scatter each batch without
+        ever holding the whole pair set of results at once.
+        """
+        n = P1.shape[0]
+        step = max(1, int(self.batch_size))
+        for start in range(0, n, step):
+            stop = min(start + step, n)
+            sl = slice(start, stop)
+            if self.force_kernel == 'batch':
+                f1, f2, f3, f4 = compute_segseg_force_batch(
+                    P1[sl], P2[sl], P3[sl], P4[sl], B12[sl], B34[sl],
+                    self.mu, self.nu, self.a)
+            elif self.force_kernel == 'scalar':
+                f1 = np.empty((stop-start, 3)); f2 = np.empty_like(f1)
+                f3 = np.empty_like(f1); f4 = np.empty_like(f1)
+                for k in range(stop-start):
+                    f1[k], f2[k], f3[k], f4[k] = compute_segseg_force(
+                        P1[sl][k], P2[sl][k], P3[sl][k], P4[sl][k],
+                        B12[sl][k], B34[sl][k], self.mu, self.nu, self.a)
+            else:
+                f1, f2, f3, f4 = python_segseg_force_vec(
+                    P1[sl], P2[sl], P3[sl], P4[sl], B12[sl], B34[sl],
+                    self.mu, self.nu, self.a)
+            yield start, stop, f1, f2, f3, f4
+
+    def select_pairs(self, G, R1, R2, source_tags, target_tags, Nseg):
+        """select_pairs: (i, j) index arrays of the segment pairs that interact
+
+        Same two-stage criterion as within_cutoff, applied to the whole candidate set at
+        once instead of one pair at a time. Candidates come from the cell list when it
+        applies, so this is O(N) rather than O(N^2) for large networks. Returns (idx_i,
+        idx_j) with idx_i < idx_j, plus the PBC-mapped endpoints of each surviving pair so
+        the caller does not have to image them again.
+        """
+        pairs = np.fromiter((k for ij in self.candidate_pairs(G, R1, R2, Nseg) for k in ij),
+                            dtype=np.int64)
+        if pairs.size == 0:
+            e = np.zeros((0, 3))
+            return np.zeros(0, np.int64), np.zeros(0, np.int64), e, e, e, e
+        i, j = pairs[0::2], pairs[1::2]
+
+        # PBC: image segment j next to segment i, matching the scalar path exactly
+        p1 = R1[i]
+        p2 = G.cell.closest_image(Rref=p1, R=R2[i])
+        p3 = G.cell.closest_image(Rref=p1, R=R1[j])
+        p4 = G.cell.closest_image(Rref=p3, R=R2[j])
+
+        if self.cutoff2 is None:
+            return i, j, p1, p2, p3, p4
+
+        # stage 1: mid-point separation <= cutoff + maxseg
+        c12 = 0.5*(p1 + p2)
+        c34 = G.cell.closest_image(Rref=c12, R=0.5*(p3 + p4))
+        keep = np.einsum('ij,ij->i', c34-c12, c34-c12) <= (self.cutoff + self.maxseg)**2
+        i, j, p1, p2, p3, p4 = (x[keep] for x in (i, j, p1, p2, p3, p4))
+        if i.size == 0:
+            return i, j, p1, p2, p3, p4
+
+        # stage 2: minimum segment-segment distance < cutoff
+        eps0 = 1.0e-12
+        d12 = np.einsum('ij,ij->i', p2-p1, p2-p1)
+        d34 = np.einsum('ij,ij->i', p4-p3, p4-p3)
+        degenerate = (d12 < eps0) | (d34 < eps0)
+        connected = ((source_tags[i] == source_tags[j]).all(axis=1) |
+                     (source_tags[i] == target_tags[j]).all(axis=1) |
+                     (target_tags[i] == source_tags[j]).all(axis=1) |
+                     (target_tags[i] == target_tags[j]).all(axis=1))
+        dist2 = min_dist2_segseg_vec(p1, p2, p3, p4,
+                                     connected=connected, degenerate=degenerate)
+        keep = (dist2 >= 0.0) & (dist2 < self.cutoff2)
+        return (i[keep], j[keep], p1[keep], p2[keep], p3[keep], p4[keep])
 
     def within_cutoff(self, cell, p1, p2, p3, p4, tags12, tags34) -> bool:
         """within_cutoff: whether segments (p1,p2) and (p3,p4) interact under self.cutoff
@@ -333,48 +562,39 @@ class CalForce(CalForce_Base):
         nodeforce_dict, segforce_dict = {}, {}
         for tag in G.all_nodes_tags():
             nodeforce_dict.update({tag: np.array([0.0,0.0,0.0])})
+
+        # self forces (i == j). Never cut off, mirroring exadis where they come from
+        # CORE_SELF_PKEXT rather than from the segment-pair list, and never produced by the
+        # cell list, which yields only i < j.
+        for i in range(Nseg):
+            p1 = R1[i,:].copy()
+            p2 = G.cell.closest_image(Rref=p1, R=R2[i,:].copy())
+            b12 = burg_vecs[i,:].copy()
+            f1, f2, f3, f4 = compute_segseg_force(p1, p2, p1, p2, b12, b12,
+                                                  self.mu, self.nu, self.a)
+            fseg[i, 0:3] += f1
+            fseg[i, 3:6] += f2
+
+        # pair forces (i < j). Selection runs on the whole candidate set at once, then the
+        # kernel is evaluated in bounded batches and scattered back onto the segments.
+        idx_i, idx_j, P1, P2, P3, P4 = self.select_pairs(G, R1, R2,
+                                                         source_tags, target_tags, Nseg)
+        if idx_i.size:
+            B12, B34 = burg_vecs[idx_i], burg_vecs[idx_j]
+            f_a, f_b = fseg[:, 0:3], fseg[:, 3:6]
+            for start, stop, f1, f2, f3, f4 in self._pair_forces(P1, P2, P3, P4, B12, B34):
+                ii, jj = idx_i[start:stop], idx_j[start:stop]
+                np.add.at(f_a, ii, f1)
+                np.add.at(f_b, ii, f2)
+                np.add.at(f_a, jj, f3)
+                np.add.at(f_b, jj, f4)
+
+        # nodal forces are the accumulated segment forces; equivalent to updating the dict
+        # inside the loops above, but done once now that the loops are batched
         for i in range(Nseg):
             tag1, tag2 = tuple(source_tags[i]), tuple(target_tags[i])
             nodeforce_dict[tag1] += fseg[i, 0:3]
             nodeforce_dict[tag2] += fseg[i, 3:6]
-
-        for i in range(Nseg):
-            for j in range(i, Nseg):
-                p1 = R1[i,:].copy()
-                p2 = R2[i,:].copy()
-                p3 = R1[j,:].copy()
-                p4 = R2[j,:].copy()
-                b12 = burg_vecs[i,:].copy()
-                b34 = burg_vecs[j,:].copy()
-
-                # apply PBC
-                p2 = G.cell.closest_image(Rref=p1, R=p2)
-                p3 = G.cell.closest_image(Rref=p1, R=p3)
-                p4 = G.cell.closest_image(Rref=p3, R=p4)
-                tag1, tag2 = tuple(source_tags[i]), tuple(target_tags[i])
-                tag3, tag4 = tuple(source_tags[j]), tuple(target_tags[j])
-                # apply the spherical cutoff (self forces, i == j, are never cut off)
-                if self.cutoff2 is not None and i != j:
-                    if not self.within_cutoff(G.cell, p1, p2, p3, p4, (tag1, tag2), (tag3, tag4)):
-                        continue
-                f1, f2, f3, f4 = compute_segseg_force(p1, p2, p3, p4, b12, b34, self.mu, self.nu, self.a)
-                if i == j:
-                    fseg[i, 0:3] += f1
-                    fseg[i, 3:6] += f2
-                    nodeforce_dict[tag1] += f1
-                    nodeforce_dict[tag2] += f2
-                else:
-                    fseg[i, 0:3] += f1
-                    fseg[i, 3:6] += f2
-                    fseg[j, 0:3] += f3
-                    fseg[j, 3:6] += f4
-                    nodeforce_dict[tag1] += f1
-                    nodeforce_dict[tag2] += f2
-                    nodeforce_dict[tag3] += f3
-                    nodeforce_dict[tag4] += f4
-
-        for i in range(Nseg):
-            tag1, tag2 = tuple(source_tags[i]), tuple(target_tags[i])
             segforce_dict[(tag1, tag2)] = fseg[i, :]
 
         return nodeforce_dict, segforce_dict

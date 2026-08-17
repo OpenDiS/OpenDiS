@@ -12,3 +12,10 @@ output*
 *.new*
 *.old*
 *_results
+
+# input_data/ and ref_data/ hold test fixtures, not simulation output. Anything
+# under them is a committed input to the test suite rather than something a run
+# produces, whatever its extension. Without these the *.dat fixtures are
+# swallowed by the blanket *.dat above and a fresh clone cannot run the tests.
+!tests/*/*/input_data/*.dat
+!tests/*/*/ref_data/*.dat

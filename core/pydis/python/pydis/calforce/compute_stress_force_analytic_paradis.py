@@ -1,5 +1,5 @@
 import numpy as np
-from ctypes import c_double
+from ctypes import c_double, POINTER
 real8 = c_double
 
 try:
@@ -132,26 +132,38 @@ def compute_segseg_force(p1, p2, p3, p4, b1, b2, mu, nu, a, seg12local=1, seg34l
     return f1, f2, f3, f4
 
 
-# a vectorized version of the above function compute_segseg_force
-def compute_segseg_force_vec(
-    p1_list, p2_list, p3_list, p4_list, b1_list, b2_list, mu, nu, a
-):
-    f1_list = np.empty_like(p1_list)
-    f2_list = np.empty_like(p2_list)
-    f3_list = np.empty_like(p3_list)
-    f4_list = np.empty_like(p4_list)
+def compute_segseg_force_batch(p1, p2, p3, p4, b1, b2, mu, nu, a,
+                               seg12local=1, seg34local=1):
+    """Batched segment-segment force: one ctypes call for the whole array.
 
-    for ii, (p1, p2, p3, p4, b1, b2) in enumerate(
-        zip(p1_list, p2_list, p3_list, p4_list, b1_list, b2_list)
-    ):
-        f1_list[ii], f2_list[ii], f3_list[ii], f4_list[ii] = compute_segseg_force(
-            p1, p2, p3, p4, b1, b2, mu, nu, a
-        )
+    Same numbers as compute_segseg_force applied pair by pair, but the loop runs inside
+    the compiled library (SegSegForceList) rather than in python, so the ctypes marshalling
+    cost is paid once per batch instead of once per pair.
 
-    return f1_list, f2_list, f3_list, f4_list
+    p1..p4, b1, b2 are (N,3); returns f1..f4 each (N,3).
+    """
+    p1, p2, p3, p4, b1, b2 = (np.ascontiguousarray(x, dtype=np.float64)
+                              for x in (p1, p2, p3, p4, b1, b2))
+    n = p1.shape[0]
+    f1 = np.empty((n, 3), dtype=np.float64)
+    f2 = np.empty((n, 3), dtype=np.float64)
+    f3 = np.empty((n, 3), dtype=np.float64)
+    f4 = np.empty((n, 3), dtype=np.float64)
+    dp = lambda x: x.ctypes.data_as(POINTER(c_double))
+    pydis_lib.SegSegForceList(n, dp(p1), dp(p2), dp(p3), dp(p4), dp(b1), dp(b2),
+                              a, mu, nu, seg12local, seg34local,
+                              dp(f1), dp(f2), dp(f3), dp(f4))
+    return f1, f2, f3, f4
 
-
-def compute_segseg_force_vec(
+# Array-in, array-out wrapper around the scalar compute_segseg_force.
+#
+# NOT vectorized: it loops in python and calls the compiled scalar routine once
+# per pair, so it costs the same as calling compute_segseg_force directly in a
+# loop. It was previously named compute_segseg_force_vec, which promised a
+# speed-up it does not deliver. For a genuinely vectorized kernel use
+# python_segseg_force_vec in compute_stress_force_analytic_python.py, which
+# operates on whole batches with numpy.
+def compute_segseg_force_list(
     p1_list,
     p2_list,
     p3_list,
