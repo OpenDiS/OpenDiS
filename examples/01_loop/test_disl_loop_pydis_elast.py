@@ -1,11 +1,17 @@
 import numpy as np
 import sys, os
 
-pydis_paths = ['../../python', '../../lib', '../../core/pydis/python']
-[sys.path.append(os.path.abspath(path)) for path in pydis_paths if not path in sys.path]
+from pathlib import Path
+# this script lives in examples/01_loop/, so the repository root is 2 levels up
+opendis_root = Path(__file__).resolve().parents[2]
+pydis_paths = [str(opendis_root / p)
+               for p in ['python', 'lib', 'core/pydis/python']]
+[sys.path.append(path) for path in pydis_paths if not path in sys.path]
 np.set_printoptions(threshold=20, edgeitems=5)
 
 from framework.disnet_manager import DisNetManager
+from framework.simulation_setup import check_cutoff_maxseg
+from framework.testing import write_ref_npz
 from pydis import DisNode, DisNet, Cell, CellList
 from pydis import CalForce, MobilityLaw, TimeIntegration, Topology
 from pydis import Collision, Remesh, VisualizeNetwork, SimulateNetwork
@@ -30,15 +36,26 @@ def init_circular_loop(radius=100.0, N=20, box_length=1000.0, burg_vec=np.array(
 
     return DisNetManager(DisNet(cell=cell, rn=rn, links=links))
 
-def main(max_step=200, dt=1.0e-9):
+def main(plot=True, max_step=200, dt=1.0e-9, print_freq=10, write_freq=10):
     global net, sim, state
 
     Lbox = 1000.0
     net = init_circular_loop(radius=0.1*Lbox, box_length=Lbox)
     nbrlist = CellList(cell=net.cell, n_div=[8,8,8])
 
-    bounds = np.array([-0.5*np.diag(net.cell.h), 0.5*np.diag(net.cell.h)])
-    vis = VisualizeNetwork(bounds=bounds)
+    if plot:
+        try:
+            bounds = np.array([-0.5*np.diag(net.cell.h),
+                               0.5*np.diag(net.cell.h)])
+            vis = VisualizeNetwork(bounds=bounds)
+        except:
+            print("")
+            print("Failed to create VisualizeNetwork object")
+            print("Try run with option  --no-plot")
+            print("")
+            raise
+    else:
+        vis = None
 
     # Geometry and discretization follow 02_frank_read_src (box 1000, core radius a = 1,
     # maxseg/minseg of that order) rather than test_disl_loop_pydis.py, which uses a loop of
@@ -48,13 +65,22 @@ def main(max_step=200, dt=1.0e-9):
     # would be ~0.4*mu), so the loop collapses and annihilates within ~15 steps. At radius
     # 100 the critical stress is ~6.5e8 Pa, which is what the applied stress below is set
     # against. The material constants mu and nu are unchanged from test_disl_loop_pydis.py.
-    state = {"burgmag": 3e-10, "mu": 160e9, "nu": 0.31, "a": 1.0, "maxseg": 60.0, "minseg": 20.0, "rann": 3.0}
+    state = {"burgmag": 3e-10, "mu": 160e9, "nu": 0.31, "a": 1.0,
+             "maxseg": 60.0, "minseg": 20.0, "rann": 3.0}
+
+    # Matched by test_disl_loop_exadis_elast.py so the two truncate the
+    # segment-segment interaction identically. Must satisfy
+    # cutoff + maxseg <= d/3; see the note in
+    # 02_frank_read_src/test_frank_read_src_pydis_elast.py.
+    cutoff = 0.25*Lbox
+    check_cutoff_maxseg(Lbox*np.eye(3), cutoff, state["maxseg"])
 
     # Elasticity_SBA includes the full segment-segment elastic interaction (plus the i==j
     # self term, regularized by the core radius state["a"]), in contrast to the LineTension
     # mode used in test_disl_loop_pydis.py.
     # Note: this is an O(Nseg^2) double loop in python, so it is much slower than LineTension.
-    calforce  = CalForce(force_mode='Elasticity_SBA', state=state)
+    calforce  = CalForce(force_mode='Elasticity_SBA', state=state,
+                         cutoff=cutoff)
     # SimpleGlide is used here to match 02_frank_read_src, not the 'Relax' law of
     # test_disl_loop_pydis.py. Relax sets v = f with no length normalization and no glide
     # projection, and has no counterpart in exadis, so it cannot be compared across codes.
@@ -79,8 +105,10 @@ def main(max_step=200, dt=1.0e-9):
                           topology=topology, collision=collision, remesh=remesh, vis=vis,
                           state=state, max_step=max_step, loading_mode="stress",
                           applied_stress=np.array([0.0, 0.0, 0.0, 0.0, -1.0e9, 0.0]),
-                          print_freq=10, plot_freq=10, plot_pause_seconds=0.01,
-                          write_freq=10, write_dir='output', save_state=False)
+                          print_freq=print_freq, plot_freq=10,
+                          plot_pause_seconds=0.01,
+                          write_freq=write_freq, write_dir='output',
+                          save_state=False)
     sim.run(net, state)
 
     return net.is_sane()
@@ -89,14 +117,32 @@ def main(max_step=200, dt=1.0e-9):
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
+    parser.add_argument('--no-plot', dest='plot', action='store_false',
+                        default=True)
     parser.add_argument('--max-step', dest='max_step', type=int, default=200)
     parser.add_argument('--dt', dest='dt', type=float, default=1.0e-9)
+    parser.add_argument('--print-freq', dest='print_freq', type=int,
+                        default=10,
+                        help='steps between progress lines')
+    parser.add_argument('--write-freq', dest='write_freq', type=int,
+                        default=10,
+                        help='steps between intermediate configuration '
+                             'dumps under output/')
+    parser.add_argument('--write-ref', dest='write_ref', action='store_true',
+                        default=False,
+                        help='also save the final configuration as a '
+                             'reference .npz under output/')
     args = parser.parse_args()
 
-    main(max_step=args.max_step, dt=args.dt)
+    main(plot=args.plot, max_step=args.max_step, dt=args.dt,
+         print_freq=args.print_freq, write_freq=args.write_freq)
 
     # explore the network after simulation
     G  = net.get_disnet()
 
     os.makedirs('output', exist_ok=True)
     net.write_json('output/disl_loop_pydis_elast_final.json')
+
+    if args.write_ref:
+        write_ref_npz(net, 'output/disl_loop_elast_ref.npz',
+                      source='pydis')
