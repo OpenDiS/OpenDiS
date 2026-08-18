@@ -104,6 +104,31 @@ from framework.testing import quiet_native_output, kokkos_summary
 
 MU, NU, A = 50.0, 0.3, 0.01
 
+# fraction of selected pairs closer to parallel than the 1e-4 branch
+# threshold in a real run: 6954 of 87522 over 200 steps of the
+# 02_frank_read_src elasticity example
+REALISTIC_NEAR_PARALLEL = 0.08
+
+DEFAULT_SIZES = (1000, 10000, 100000)
+
+DYNAMIC_NOTE = """\
+  torch+comp is --compile dynamic: one kernel generated once and reused for
+  any pair count, which is what a simulation needs since its count changes
+  every call. Over four runs with an empty Inductor cache, each compiled on
+  the shape it timed, dynamic came out ahead of --compile static in every
+  one, 109 ms against 120 on average at 100k pairs on a CPU, and it
+  compiles once where static pays about 13 s per distinct size.
+
+  Two things to control for before trusting a number here. A dynamic kernel
+  inherits its tuning from whichever shape compiled it, so this benchmark
+  compiles on its largest size first; warmed at 1000 pairs instead, it ran
+  100k in 209 ms rather than 114. And Inductor caches kernels on disk under
+  TORCHINDUCTOR_CACHE_DIR, outliving the process, so a kernel built at some
+  other shape is reused silently. Clear that directory for a fresh reading.
+
+  Run-to-run spread was 8 to 16% on the machine those were measured on, so
+  read a few percent as noise."""
+
 
 def make_pairs(n, geometry='realistic', seed=99):
     """make_pairs: n segment pairs with a chosen near-parallel fraction"""
