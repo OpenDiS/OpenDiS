@@ -13,7 +13,10 @@ segment-segment interaction:
                 over pairs in C. Serial.
     numpy       python_segseg_force_vec, vectorized over pairs.
     torch       torch_segseg_force_vec, the same on a torch device.
-    ExaDiS      compute_force_segseglist, C++ with Kokkos threading.
+    ExaDiS      compute_force_segseglist, C++ with Kokkos threading. On a
+                CUDA build this runs on the GPU, but the call is wrapped
+                in enough python-boundary work to hide it; see WHAT THE
+                EXADIS COLUMNS MEAN below.
 
 Anything not importable is reported and skipped, so this runs on a node
 with no ExaDiS build or no torch without special-casing.
@@ -76,6 +79,48 @@ would approach.
 between those two columns is purely the transfer, and on a large problem
 that difference is what decides whether moving more of the step onto the
 device is worth doing.
+
+WHAT THE EXADIS COLUMNS MEAN
+
+"ExaDiS" is one whole pyexadis.compute_force_segseglist call, which is
+what a caller pays today. Very little of that is the GPU kernel. Reading
+core/exadis/python/exadis_pybind.cpp, every call also unpacks a python
+list[list[int]] of N pairs into std::vector<std::vector<int> >, allocates
+a fresh force object and resizes its views, fills the pair list in a
+serial host loop, copies it over, mirrors and copies back the *entire*
+node array rather than just the forces (DisNode is ~88 bytes, so 35 MB at
+100k pairs), and finally converts every node force through the Vec3
+caster in exadis_pybind.h, which is py::make_tuple. That last step alone
+builds 4N python tuples and 12N python floats per call. Timing that
+against "torch dev", which is handed device tensors and returns device
+tensors, compares a python round trip with a kernel.
+
+So a second column subtracts what can be subtracted. "ExaDiS dev" is the
+same call timed twice on the same network, once with the real pair list
+and once with an empty one, and the difference reported:
+
+    ExaDiS dev = ExaDiS(N pairs) - ExaDiS(0 pairs)
+
+The empty call still allocates the force object, still zeroes the forces,
+and still copies back and tuple-converts all 4N node forces, because
+those scale with the network rather than with the pair list. Subtracting
+it removes every one of those terms.
+
+Read "ExaDiS dev" as an UPPER BOUND on the kernel, not as the kernel.
+What survives the subtraction is the kernel plus the two costs that scale
+with pairs rather than nodes: the pybind unpack of the N-element pair
+list, which heap-allocates a std::vector<int> per pair, and the serial
+host loop that fills the Kokkos view. Neither can be isolated from
+python; SegSegList::use_flag would let the kernel be skipped with the
+marshalling left in place, but it is not exposed, and the system force
+timer that would give the kernel exactly is only reachable through
+pyexadis.System, whose constructor bypasses the pyexadis flag that stops
+System::add_timer growing, so it aborts on MAX_DEV_TIMERS after 20 calls.
+
+The subtraction is between two independently timed means, so at small
+pair counts it can come out slightly negative. That is reported as it
+falls rather than clamped: a negative reading means the pair-dependent
+work is below the run-to-run noise, which is itself the answer.
 """
 
 import argparse
@@ -110,6 +155,24 @@ MU, NU, A = 50.0, 0.3, 0.01
 REALISTIC_NEAR_PARALLEL = 0.08
 
 DEFAULT_SIZES = (1000, 10000, 100000)
+
+# timed, but subtracted rather than shown: the zero-pair baseline whose
+# difference from the full call is the 'ExaDiS dev' column
+EXADIS_BASE = 'ExaDiS base'
+EXADIS_DEV = 'ExaDiS dev'
+
+EXADIS_NOTE = """\
+  ExaDiS dev is ExaDiS minus the same call on the same network with an
+  empty pair list, which removes the per-call allocation and everything
+  that scales with nodes rather than pairs: zeroing, the copy back of the
+  whole 4N node array, and the py::make_tuple conversion of every node
+  force. What is left is the kernel plus the pybind unpack of the pair
+  list and the serial host loop that fills it, neither of which can be
+  separated out from python, so read the column as an upper bound on the
+  kernel. The gap between the two columns is what a caller pays for
+  crossing the python boundary, and it is the number that decides whether
+  compute_force_segseglist is worth calling per timestep in its present
+  shape."""
 
 DYNAMIC_NOTE = """\
   torch+comp is --compile dynamic: one kernel generated once and reused for
@@ -184,6 +247,37 @@ def timed(fn, reps, sync=None):
             sync()
         out.append(time.perf_counter() - t0)
     return 1e3 * sum(out) / len(out)
+
+
+def display_names(timed):
+    """display_names: table columns, derived ones in place of hidden ones"""
+    shown = []
+    for n in timed:
+        if n == EXADIS_BASE:
+            continue
+        shown.append(n)
+        if n == 'ExaDiS' and EXADIS_BASE in timed:
+            shown.append(EXADIS_DEV)
+    return shown
+
+
+def display_row(timed, row):
+    """display_row: one row of timings ordered to match display_names
+
+    The derived column is a difference of two independently timed means,
+    so it is reported as it falls, negative included: at a pair count
+    where the pair-dependent work is under the noise, saying so is more
+    use than a clamped zero.
+    """
+    ms = dict(zip(timed, row))
+    out = []
+    for n in timed:
+        if n == EXADIS_BASE:
+            continue
+        out.append(ms[n])
+        if n == 'ExaDiS' and EXADIS_BASE in timed:
+            out.append(ms['ExaDiS'] - ms[EXADIS_BASE])
+    return out
 
 
 def collect_kernels(device, dtype, want, compile_mode=None):
@@ -275,14 +369,40 @@ def collect_kernels(device, dtype, want, compile_mode=None):
             import pyexadis
             from segseg_tables import exadis_network
 
+            nets = {}
+
+            def exadis_net(pr):
+                # one network per size, shared by the two columns below.
+                # Building it marshals 4N node rows and 2N segment rows
+                # through pybind and is slower than anything timed here,
+                # and the two columns must run on the same network for
+                # their difference to mean anything.
+                key = id(pr)
+                if key not in nets:
+                    nets[key] = exadis_network(pr)
+                return nets[key]
+
             def exadis_factory(pr):
                 # the network is built outside the timed call: the other
                 # kernels are handed arrays and are not charged for
                 # construction either
-                G, seg_pairs = exadis_network(pr)
+                G, seg_pairs = exadis_net(pr)
                 return lambda: pyexadis.compute_force_segseglist(
                     G.net, MU, NU, A, seg_pairs)
             kernels.append(('ExaDiS', exadis_factory))
+
+            def exadis_base_factory(pr):
+                # the same call on the same network with no pairs to
+                # evaluate: allocation, force zeroing, the copy back of
+                # every node, and the tuple conversion of every node
+                # force all still happen, since they scale with the
+                # network and not with the pair list. Timed so it can be
+                # subtracted; see WHAT THE EXADIS COLUMNS MEAN.
+                G, _ = exadis_net(pr)
+                no_pairs = []
+                return lambda: pyexadis.compute_force_segseglist(
+                    G.net, MU, NU, A, no_pairs)
+            kernels.append((EXADIS_BASE, exadis_base_factory))
         except Exception as exc:
             skipped.append("ExaDiS: %s" % exc)
 
@@ -330,7 +450,8 @@ def run(sizes, geometry, reps, device, dtype, want, compile_mode=None,
         print("nothing to time")
         return False
 
-    names = [n for n, _ in kernels]
+    timed_names = [n for n, _ in kernels]
+    names = display_names(timed_names)
     for mix in geometry:
         print("")
         pairs0 = make_pairs(min(sizes), mix)
@@ -371,7 +492,8 @@ def run(sizes, geometry, reps, device, dtype, want, compile_mode=None,
 
         rows = []
         for n, fns in runnables:
-            row = [timed(fn, reps, sync) for fn in fns]
+            row = display_row(timed_names,
+                              [timed(fn, reps, sync) for fn in fns])
             rows.append((n, row))
             print("  %9d" % n + ''.join("%12.1f" % v for v in row))
 
@@ -380,6 +502,9 @@ def run(sizes, geometry, reps, device, dtype, want, compile_mode=None,
         for n, row in rows:
             print("  %9d" % n + ''.join("%12.2f" % (1e3*v/n) for v in row))
 
+        if EXADIS_DEV in names:
+            print("")
+            print(EXADIS_NOTE)
         if compile_mode == 'dynamic' and 'torch+comp' in names:
             print("")
             print(DYNAMIC_NOTE)
