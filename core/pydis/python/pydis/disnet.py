@@ -175,6 +175,9 @@ class DisNet(DisNet_Python):
         self.tags_to_nodes = {}
         self.cell = Cell() if cell is None else cell
         self._recycled_tags = []
+        # highest tag ever handed out, so an index is not reissued just
+        # because the node holding it was removed
+        self._max_tag = (0, -1)
         # how get_new_tag reuses the tags of removed nodes
         self.recycle_tags = recycle_tags
         self.recycle_LIFO = recycle_LIFO
@@ -188,6 +191,7 @@ class DisNet(DisNet_Python):
         self._G.clear()
         self.tags_to_nodes.clear()
         self._recycled_tags.clear()
+        self._max_tag = (0, -1)
 
     def neighbors_tags(self, tag: Tag):
         """neighbors: return neighbor tags (as iterator) of a node
@@ -476,6 +480,7 @@ class DisNet(DisNet_Python):
         node = self.Node_with_attr(tag, node_attr)
         self.tags_to_nodes[tag] = node
         self._G.add_node(node)
+        self._max_tag = max(self._max_tag, tag)
     
     def _add_edge(self, tag1: Tag, tag2: Tag, edge_attr: DisEdge) -> None:
         """add_edge: add an edge to the network
@@ -572,8 +577,11 @@ class DisNet(DisNet_Python):
             return self._recycled_tags.pop() if LIFO \
                    else self._recycled_tags.pop(0)
         else:
-            max_tag = max(self.all_nodes_tags())
-            return (max_tag[0], max_tag[1]+1)
+            # RULE CHANGE (LengthBased): counts up from the highest tag ever
+            # issued, not from the highest still in use, so removing the
+            # top node does not put its index back in circulation. Matches
+            # exadis SerialDisNet::get_new_tag, which counts from maxindex.
+            return (self._max_tag[0], self._max_tag[1]+1)
 
     def insert_node(self, tag1: Tag, tag2: Tag, new_tag: Tag, R: np.ndarray) -> None:
         insert_node_between(tag1, tag2, new_tag, R)

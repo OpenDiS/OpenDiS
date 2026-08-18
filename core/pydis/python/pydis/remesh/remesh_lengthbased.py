@@ -22,6 +22,12 @@ def _removable(G: DisNet, tag) -> bool:
 
 def Remesh_LengthBased(G: DisNet, params) -> None:
     """Remesh_LengthBased: coarsen below minseg, refine above maxseg"""
+    _coarsen(G, params)
+    _refine(G, params)
+
+
+def _coarsen(G: DisNet, params) -> None:
+    """_coarsen: merge the endpoints of segments shorter than minseg"""
     # mesh coarsen
     nodes_to_remove = []
     segs_data_with_positions = G.get_segs_data_with_positions()
@@ -58,7 +64,9 @@ def Remesh_LengthBased(G: DisNet, params) -> None:
     if not G.is_sane():
         raise ValueError("Remesh_LengthBased: sanity check failed 1")
 
-    # mesh refine
+
+def _refine(G: DisNet, params) -> None:
+    """_refine: bisect segments longer than maxseg"""
     all_segments_list = list(G.all_segments_tags())
     for tag1, tag2 in all_segments_list:
         node1, node2 = G.nodes(tag1), G.nodes(tag2)
@@ -67,8 +75,12 @@ def Remesh_LengthBased(G: DisNet, params) -> None:
         r2 = G.cell.closest_image(Rref=r1, R=r2)
         L = np.linalg.norm(r2-r1)
         if (L > params.maxseg) and ((node1.constraint != DisNode.Constraints.PINNED_NODE) or (node2.constraint != DisNode.Constraints.PINNED_NODE)):
-            # insert new node on segment
-            new_tag = G.get_new_tag()
+            # RULE CHANGE (LengthBased): recycle=False, so a node inserted
+            # here cannot take a tag freed by the coarsening above. exadis
+            # frees tags only in SerialDisNet::purge_network, once the whole
+            # pass is over, so a tag freed during a pass is not available
+            # within it.
+            new_tag = G.get_new_tag(recycle=False)
             r = (r1 + r2)/2.0
             G.insert_node_between(tag1, tag2, new_tag, r)
             if not G.is_sane():
