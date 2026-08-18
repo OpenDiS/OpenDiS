@@ -67,6 +67,7 @@ has to be asked for by name.
 """
 
 import os
+import sys
 
 import numpy as np
 
@@ -100,6 +101,103 @@ _CORRECTION_EPS = {torch.float64: 1e-16, torch.float32: 1e-7}
 # terminates immediately, but a guard turns a pathological input into a
 # clear error rather than a stack overflow.
 _MAX_DEPTH = 4
+
+# torch.compile support. Off unless asked for, by PYDIS_TORCH_COMPILE in the
+# environment or enable_compile() in code.
+#
+#   'dynamic'  compile once, for symbolic shapes. The default.
+#   'static'   compile separately for each input shape.
+#
+# Measured at 100k pairs, 4 threads, on a realistic geometry mix. Four
+# independent runs, each with an empty Inductor cache and each compiled on the
+# shape it then times:
+#
+#   round      eager   dynamic    static
+#     1        239.8     101.6     116.0
+#     2        271.0     106.0     124.5
+#     3        251.6     109.6     115.1
+#     4        270.9     118.4     123.2
+#
+# Compilation is worth having: roughly 258 ms to 109. And 'dynamic' came out
+# ahead of 'static' in every round, by 4 to 17%, which is why it is the
+# default. It also compiles once and serves any pair count afterwards, where
+# 'static' pays around 13 s for each new one, and a simulation hands the
+# kernel a different count almost every step. There is no case here for
+# arranging fixed shapes: padding batches up to power-of-two buckets was
+# measured at 795 ms against 611 for plain dynamic, since the padding wastes
+# 1.36x the work, and splitting into fixed chunks came out level. Fusion
+# shifts the answer by ~1.5e-12 relative, orders below the kernel's own noise
+# floor.
+#
+# Two things that make this easy to measure wrongly, both of which produced
+# badly misleading numbers before being controlled for:
+#
+#   - a dynamic-shape kernel is generated once and reused, and it inherits its
+#     tuning from whichever shape compiled it. Warmed at 1000 pairs it then
+#     runs 100k in 209 ms; warmed at 100k, 114 ms. Warm on a representative
+#     pair count.
+#   - Inductor caches generated kernels on disk, under TORCHINDUCTOR_CACHE_DIR,
+#     and that cache outlives the process. A kernel built at some other shape
+#     will be reused silently.
+#
+# The spread across rounds is 8 to 16%, so read differences of a few percent
+# as noise.
+_COMPILE_MODES = ('dynamic', 'static')
+_compile_mode = os.environ.get('PYDIS_TORCH_COMPILE', '').strip().lower()
+if _compile_mode in ('1', 'true', 'yes', 'on'):
+    _compile_mode = 'dynamic'
+elif _compile_mode not in _COMPILE_MODES:
+    _compile_mode = None
+_compiled_general = None
+
+
+def enable_compile(mode='dynamic'):
+    """enable_compile: route the general branch through torch.compile
+
+    mode is 'dynamic', 'static', or None/False to go back to eager. Takes
+    effect on the next call; the compilation itself happens then, not here.
+
+    Only the general branch is compiled. The classification above it and
+    the near-parallel formula both branch on data, `int(spindex.sum())`
+    and `nonzero()`, which Dynamo cannot trace without breaking the graph
+    and which on a GPU would force a synchronisation. The general branch
+    is pure elementwise arithmetic of fixed shape and is where nearly all
+    the time goes on a realistic mix, so it is the part worth fusing.
+    """
+    global _compile_mode, _compiled_general
+    if mode in (None, False):
+        _compile_mode = None
+    elif mode in _COMPILE_MODES:
+        _compile_mode = mode
+    else:
+        raise ValueError("enable_compile: mode must be one of %s, or None"
+                         % (_COMPILE_MODES,))
+    _compiled_general = None
+
+
+def _general_dispatch(*args):
+    """_general_dispatch: the general branch, compiled if that was asked for
+
+    A torch too old for the running python raises from torch.compile
+    itself, before tracing anything. That must not take a simulation down
+    over what is an optimisation, so it falls back to eager, says so once,
+    and carries on.
+    """
+    global _compiled_general, _compile_mode
+    if _compile_mode is None:
+        return _general_branch(*args)
+    if _compiled_general is None:
+        try:
+            _compiled_general = torch.compile(
+                _general_branch, dynamic=(_compile_mode == 'dynamic'))
+        except Exception as exc:
+            sys.stderr.write(
+                "compute_stress_force_analytic_torch: torch.compile is not "
+                "available (%s); continuing without it. torch >= 2.4 is "
+                "needed on python 3.12 and >= 2.6 on 3.13.\n" % exc)
+            _compile_mode = None
+            return _general_branch(*args)
+    return _compiled_general(*args)
 
 
 def resolve_device(device=None):
@@ -167,8 +265,8 @@ def _remote_node_force(x1, x2, x3, x4, bp, b, a, mu, nu, depth=0):
     recursive general-branch calls each near-parallel pair triggers for its
     corrections, which is the ParaDiS decomposition rather than anything
     about torch. On a realistic mix the corrections cost 1% and the whole
-    near-parallel path 6%, so what separates this kernel from ExaDiS there
-    is the materialised temporaries, not the branching.
+    near-parallel path 6%, so what this kernel spends its time on there is
+    the materialised temporaries, not the branching.
 
     The classification needs t, tp and c, which the general formula needs
     too, so they are computed once here and passed down rather than
@@ -194,17 +292,17 @@ def _remote_node_force(x1, x2, x3, x4, bp, b, a, mu, nu, depth=0):
     # the common cases first: a batch that is entirely one branch pays no
     # gather and no scatter at all
     if nsp == 0:
-        return _general_branch(x1, x2, x3, x4, bp, b, a, mu, nu,
-                               t, tp, c, oneoverL, oneoverLp)
+        return _general_dispatch(x1, x2, x3, x4, bp, b, a, mu, nu,
+                                 t, tp, c, oneoverL, oneoverLp)
     if nsp == n:
         return _special_remote_node_force(x1, x2, x3, x4, bp, b, a, mu, nu,
                                           EPS_PARALLEL, depth + 1)
 
     gi = (~spindex).nonzero(as_tuple=True)[0]
     si = spindex.nonzero(as_tuple=True)[0]
-    fg = _general_branch(x1[gi], x2[gi], x3[gi], x4[gi], bp[gi], b[gi],
-                         a, mu, nu, t[gi], tp[gi], c[gi],
-                         oneoverL[gi], oneoverLp[gi])
+    fg = _general_dispatch(x1[gi], x2[gi], x3[gi], x4[gi], bp[gi], b[gi],
+                           a, mu, nu, t[gi], tp[gi], c[gi],
+                           oneoverL[gi], oneoverLp[gi])
     fs = _special_remote_node_force(x1[si], x2[si], x3[si], x4[si],
                                     bp[si], b[si], a, mu, nu,
                                     EPS_PARALLEL, depth + 1)

@@ -3,6 +3,8 @@
     python3 bench_segseg_force.py                     # everything it can find
     python3 bench_segseg_force.py --device cuda       # on a GPU node
     python3 bench_segseg_force.py --geometry all --sizes 1e4,1e5,1e6
+    python3 bench_segseg_force.py --compile static   # fixed-shape ceiling
+    python3 bench_segseg_force.py --compile off         # eager only
 
 Four implementations, all computing the same isotropic non-singular
 segment-segment interaction:
@@ -45,6 +47,22 @@ torch has its own default, and on a 4-core mac those came out 8 and 4, a
 serial regardless, so its column is a per-core number standing next to
 multi-core ones however the others are pinned.
 
+TORCH.COMPILE
+
+A 'torch+comp' column is reported by default, --compile dynamic. It fuses
+the general branch, which otherwise materialises around a hundred
+full-length temporaries and is where most of the time goes. Measured at
+100k pairs, 4 threads: 238 ms to 90 on general geometry, 266 to 111 on a
+realistic mix. Fusion moves the answer by ~1.5e-12 relative, orders below
+the kernel's own noise floor.
+
+Read the column knowing what it excludes: timing is taken after a warm-up
+call, so compilation is not charged to it. Compiling costs about 23 s the
+first time in either mode; 'static' then pays roughly 13 s again for every
+new pair count, while 'dynamic' serves any count from the one kernel. See
+DYNAMIC_NOTE below for how the two compare once warm, and for the two
+measurement traps worth controlling for.
+
 WHAT THE GPU COLUMNS MEAN
 
 With --device cuda two torch timings are reported. "torch" takes numpy
@@ -58,10 +76,21 @@ the step onto the device is worth doing.
 """
 
 import argparse
+import contextlib
 import os
 import sys
+import tempfile
 import time
 from pathlib import Path
+
+# Quieten the OpenMP runtime before anything loads it. Intel's libiomp5,
+# which a conda numpy or torch may pull in, prints
+#   OMP: Info #277: omp_get_nested routine deprecated ...
+# from inside ExaDiS on every call, which lands between the rows of the
+# timing table. These have to be set before the runtime initialises, so
+# before numpy and torch are imported, not in main().
+os.environ.setdefault('KMP_WARNINGS', '0')
+os.environ.setdefault('KMP_AFFINITY', 'noverbose')
 
 opendis_root = Path(__file__).resolve().parents[3]
 opendis_paths = [str(opendis_root / p) for p in
@@ -73,12 +102,81 @@ import numpy as np
 
 MU, NU, A = 50.0, 0.3, 0.01
 
+
+@contextlib.contextmanager
+def captured_low_level_output(enabled=True):
+    """captured_low_level_output: collect what C++ writes to stdout/stderr
+
+    Kokkos prints a long banner from pyexadis.initialize(), and ExaDiS
+    warns about Burgers vector conservation whenever a network of open
+    segment pairs is built, which is expected for a table of test data.
+    Both come from C++ and so are invisible to contextlib.redirect_stdout,
+    which only rebinds sys.stdout. Redirecting the file descriptors is what
+    catches them.
+
+    Yields a file object holding whatever was captured, so the caller can
+    pick out the few useful lines and drop the rest.
+    """
+    if not enabled:
+        yield None
+        return
+    with tempfile.TemporaryFile(mode='w+') as tmp:
+        sys.stdout.flush()
+        sys.stderr.flush()
+        saved_out, saved_err = os.dup(1), os.dup(2)
+        os.dup2(tmp.fileno(), 1)
+        os.dup2(tmp.fileno(), 2)
+        try:
+            yield tmp
+        finally:
+            sys.stdout.flush()
+            sys.stderr.flush()
+            os.dup2(saved_out, 1)
+            os.dup2(saved_err, 2)
+            os.close(saved_out)
+            os.close(saved_err)
+            tmp.seek(0)
+
+
+def summarise_kokkos(text):
+    """summarise_kokkos: the two lines of its banner worth keeping
+
+    Which device it chose and how many threads it took, because those are
+    exactly what decides whether a comparison here is fair.
+    """
+    if not text:
+        return []
+    out = []
+    for line in text.splitlines():
+        if 'thread_pool_topology' in line:
+            out.append("  ExaDiS: %s" % line.strip())
+        elif ': Selected' in line:
+            out.append("  ExaDiS: %s" % line.strip())
+    return out
+
 # fraction of selected pairs closer to parallel than the 1e-4 branch
 # threshold in a real run: 6954 of 87522 over 200 steps of the
 # 02_frank_read_src elasticity example
 REALISTIC_NEAR_PARALLEL = 0.08
 
 DEFAULT_SIZES = (1000, 10000, 100000)
+
+DYNAMIC_NOTE = """\
+  torch+comp is --compile dynamic: one kernel generated once and reused for
+  any pair count, which is what a simulation needs since its count changes
+  every call. Over four runs with an empty Inductor cache, each compiled on
+  the shape it timed, dynamic came out ahead of --compile static in every
+  one, 109 ms against 120 on average at 100k pairs, and it compiles once
+  where static pays about 13 s per distinct size.
+
+  Two things to control for before trusting a number here. A dynamic kernel
+  inherits its tuning from whichever shape compiled it, so this benchmark
+  compiles on its largest size first; warmed at 1000 pairs instead, it runs
+  100k in 209 ms rather than 114. And Inductor caches kernels on disk under
+  TORCHINDUCTOR_CACHE_DIR, outliving the process, so a kernel built at some
+  other shape is reused silently. Clear that directory for a fresh reading.
+
+  Run-to-run spread is 8 to 16% here, so a few percent is noise."""
 
 
 def make_pairs(n, geometry='realistic', seed=99):
@@ -137,7 +235,7 @@ def timed(fn, reps, sync=None):
     return 1e3 * sum(out) / len(out)
 
 
-def collect_kernels(device, dtype, want):
+def collect_kernels(device, dtype, want, compile_mode=None):
     """collect_kernels: the implementations available here, in report order
 
     Returns a list of (name, factory) where factory(pairs) gives a
@@ -175,10 +273,32 @@ def collect_kernels(device, dtype, want):
             dev = resolve_device(device)
             dt = {'float32': torch.float32,
                   'float64': torch.float64}.get(dtype, torch.float64)
-            kernels.append(('torch', lambda pr: (
-                lambda: torch_segseg_force_vec(
-                    *pr, MU, NU, A, device=dev, dtype=dt,
-                    allow_float32=(dt is torch.float32)))))
+            import pydis.calforce.compute_stress_force_analytic_torch as K
+
+            def torch_runner(pr, mode, dev=dev, dt=dt):
+                # the module decides eagerly or compiled from a global, so
+                # each runner sets it before calling. It is not reset through
+                # enable_compile(), which would discard the compiled kernel
+                # and pay for compilation again on every timed call.
+                def run():
+                    K._compile_mode = mode
+                    return torch_segseg_force_vec(
+                        *pr, MU, NU, A, device=dev, dtype=dt,
+                        allow_float32=(dt is torch.float32))
+                return run
+
+            kernels.append(('torch', lambda pr: torch_runner(pr, None)))
+            if compile_mode:
+                # probe before offering the column: torch.compile raises at
+                # wrap time on an unsupported python, and this runs by
+                # default now, so an old torch must degrade to a note rather
+                # than take the whole benchmark down
+                try:
+                    torch.compile(lambda x: x)
+                    kernels.append(('torch+comp',
+                                    lambda pr: torch_runner(pr, compile_mode)))
+                except Exception as exc:
+                    skipped.append("torch.compile: %s" % exc)
             if dev.type != 'cpu':
                 # same kernel, but handed tensors already resident, so the
                 # host/device copies are excluded; see the module docstring
@@ -220,8 +340,17 @@ def describe_environment(device):
             device_report)
         print("%s, %d threads" % (device_report(device),
                                   torch.get_num_threads()))
-    except Exception:
-        print("torch not available")
+    except ImportError:
+        print("torch not available, so its columns are skipped. Install it "
+              "into the environment that\n  can already import pyexadis, "
+              "matching the CUDA the node reports:\n"
+              "      pip install torch --index-url "
+              "https://download.pytorch.org/whl/cu124\n"
+              "  Prefer these wheels over conda-forge pytorch, whose MKL "
+              "builds pull a second\n  OpenMP runtime alongside the one "
+              "ExaDiS links.")
+    except Exception as exc:
+        print("torch present but unusable: %s" % exc)
     omp = os.environ.get('OMP_NUM_THREADS', 'unset')
     print("OMP_NUM_THREADS = %s; ExaDiS sizes its Kokkos pool from it, and "
           "prints the pool below" % omp)
@@ -233,9 +362,10 @@ def describe_environment(device):
           "its column as a per-core number")
 
 
-def run(sizes, geometry, reps, device, dtype, want):
+def run(sizes, geometry, reps, device, dtype, want, compile_mode=None,
+        verbose_init=False):
     """run: one table per geometry mix"""
-    kernels, skipped = collect_kernels(device, dtype, want)
+    kernels, skipped = collect_kernels(device, dtype, want, compile_mode)
     for msg in skipped:
         print("  skipped, %s" % msg)
     if not kernels:
@@ -260,10 +390,30 @@ def run(sizes, geometry, reps, device, dtype, want):
         except Exception:
             pass
 
+        # ExaDiS prints a "Burgers vector is not conserved" warning when it
+        # builds a network of open segment pairs, which is expected for a
+        # table of test data. Building every runnable first keeps those
+        # warnings above the table instead of between its rows.
+        runnables = [(n, make_pairs(n, mix)) for n in sizes]
+        with captured_low_level_output(not verbose_init):
+            runnables = [(n, [factory(pr) for _, factory in kernels])
+                         for n, pr in runnables]
+
+        # Compile on the largest size before timing anything. A
+        # dynamic-shape kernel is generated once and reused for every
+        # later shape, and it inherits its tuning from whichever shape
+        # compiled it: warmed at 1000 pairs it then runs 100k in 209 ms,
+        # warmed at 100k it runs the same work in 114 ms. Timing sizes in
+        # ascending order therefore measures a kernel tuned for the
+        # smallest one, which is an artifact of the benchmark rather than
+        # anything about torch.
+        if compile_mode == 'dynamic':
+            for fn in runnables[-1][1]:
+                fn()
+
         rows = []
-        for n in sizes:
-            pairs = make_pairs(n, mix)
-            row = [timed(factory(pairs), reps, sync) for _, factory in kernels]
+        for n, fns in runnables:
+            row = [timed(fn, reps, sync) for fn in fns]
             rows.append((n, row))
             print("  %9d" % n + ''.join("%12.1f" % v for v in row))
 
@@ -271,6 +421,10 @@ def run(sizes, geometry, reps, device, dtype, want):
         print("  %9s" % 'us/pair' + ''.join("%12s" % n for n in names))
         for n, row in rows:
             print("  %9d" % n + ''.join("%12.2f" % (1e3*v/n) for v in row))
+
+        if compile_mode == 'dynamic' and 'torch+comp' in names:
+            print("")
+            print(DYNAMIC_NOTE)
     return True
 
 
@@ -291,6 +445,20 @@ def main(argv=None):
     ap.add_argument('--geometry', default='realistic',
                     help="general, realistic, sweep, or all. Default "
                          "realistic, which is the mix a real run produces.")
+    ap.add_argument('--compile', default='dynamic',
+                    choices=['off', 'dynamic', 'static'],
+                    help="time the torch kernel through torch.compile too, "
+                         "as an extra 'torch+comp' column. Default dynamic, "
+                         "which compiles once for symbolic shapes and is what "
+                         "a real run would get, its pair count changing every "
+                         "call. 'static' compiles per pair count: faster once "
+                         "warm, but it recompiles for every new size. 'off' "
+                         "to skip. Needs torch >= 2.4 on python 3.12, >= 2.6 "
+                         "on 3.13; skipped with a note otherwise.")
+    ap.add_argument('--verbose-init', action='store_true', default=False,
+                    help="show the Kokkos startup banner and the Burgers "
+                         "vector warnings from building test networks, "
+                         "instead of the two lines summarising them")
     ap.add_argument('--threads', type=int, default=None,
                     help="pin every threaded backend to this many threads, "
                          "so the comparison is like for like. Sets "
@@ -330,12 +498,17 @@ def main(argv=None):
     try:
         import pyexadis
         if 'exadis' in want:
-            pyexadis.initialize()
-            started = True
+            with captured_low_level_output(not args.verbose_init) as buf:
+                pyexadis.initialize()
+                started = True
+            for line in summarise_kokkos(buf.read() if buf else None):
+                print(line)
     except Exception:
         pass
     try:
-        ok = run(sizes, mixes, args.reps, args.device, args.dtype, want)
+        ok = run(sizes, mixes, args.reps, args.device, args.dtype, want,
+                 None if args.compile == 'off' else args.compile,
+                 args.verbose_init)
     finally:
         if started:
             pyexadis.finalize()
