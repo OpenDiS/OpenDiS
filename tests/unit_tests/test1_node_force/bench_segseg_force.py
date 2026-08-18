@@ -121,6 +121,47 @@ The subtraction is between two independently timed means, so at small
 pair counts it can come out slightly negative. That is reported as it
 falls rather than clamped: a negative reading means the pair-dependent
 work is below the run-to-run noise, which is itself the answer.
+
+NSYS GIVES THE KERNEL ITSELF, AND IT IS MUCH SMALLER THAN EITHER COLUMN
+
+Nothing timed from python reaches the kernel. nsys does, since it reads
+the driver and does not care what the call is wrapped in:
+
+    nsys profile -t cuda --stats=true -f true -o exadis_100k \\
+      python3 bench_segseg_force.py --sizes 1e5 --skip c,numpy,torch
+    nsys stats --report cuda_gpu_kern_sum exadis_100k.nsys-rep
+
+Look for AddSegSegForce in cuda_gpu_kern_sum; the mangled Kokkos name
+keeps that string. Measured on an A100 at 100k pairs, min over launches:
+
+    AddSegSegForce      0.19 ms     the kernel
+    ExaDiS dev         16.4  ms     mostly the pair-list unpack
+    ExaDiS             81.6  ms     plus nodes, tuples and paging
+
+So "ExaDiS dev" overstates the kernel by about 85x, and the table's
+ordering against torch reverses on the hardware. Per call at 100k pairs,
+measured by profile_torch_segseg.py, which isolates one compile mode per
+run because this table cannot:
+
+    ExaDiS            1 launch    0.19 ms GPU busy
+    torch compiled  510 launches  2.26 ms   (10 of them triton, 0.69 ms)
+    torch eager    1113 launches  4.91 ms
+
+Fusion closes the gap from 26x to 12x and does not close it further. Even
+the fused general branch alone costs 3.6x the whole ExaDiS kernel, and
+the 500 eager kernels around it are the classification, the gather and
+scatter, and the near-parallel path that ExaDiS does inside its one
+kernel without materialising anything.
+
+Two things the same profile shows, which is why zero_force dominates the
+GPU time at 5.7 ms a call while doing no arithmetic. This build sets
+EXADIS_FULL_UNIFIED_MEMORY, so DisNode lives in Kokkos::SharedSpace, and
+get_forces reads every node force on the host. The node array therefore
+migrates both ways every call, which cuda_gpu_mem_time_sum reports as
+hundreds of MB of fault-driven Unified Memory memcpy and no explicit
+DtoH copy at all. Profile the whole benchmark and read only the kernel
+durations: nsys inflates host wall time, so the ms columns printed under
+it are not comparable with an unprofiled run.
 """
 
 import argparse
