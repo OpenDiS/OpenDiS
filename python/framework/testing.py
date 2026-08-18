@@ -13,11 +13,13 @@ Deliberately not named test_*.py: test discovery in the makefiles and in CMake g
 test_*.py, and this module is support code, not a test.
 """
 
+import contextlib
 import hashlib
 import json
 import os
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 import numpy as np
@@ -25,6 +27,70 @@ import numpy as np
 GREEN = '\033[32m'
 RED = '\033[31m'
 RESET = '\033[0m'
+
+
+class _Captured:
+    """_Captured: carries text out of quiet_native_output's closed file"""
+
+    def __init__(self):
+        self.text = ''
+
+
+@contextlib.contextmanager
+def quiet_native_output(enabled=True):
+    """quiet_native_output: swallow what C++ libraries write to the terminal
+
+    Kokkos prints a long banner from pyexadis.initialize(), ExaDiS warns
+    about Burgers vector conservation for any network of open segment
+    pairs, and Intel's OpenMP runtime prints "OMP: Info #277" from inside
+    ExaDiS on every call. All three land in the middle of test output and
+    none of them indicates a problem.
+
+    They come from C++, so contextlib.redirect_stdout does not catch them:
+    that rebinds sys.stdout while the C++ writes to file descriptor 1.
+    Redirecting the descriptors is what works.
+
+    Yields a small object whose `.text` holds whatever was captured, set
+    once the block finishes. It cannot be a file: the temporary is closed
+    on the way out, so a caller reading it afterwards would find it shut.
+    """
+    captured = _Captured()
+    if not enabled:
+        yield captured
+        return
+    with tempfile.TemporaryFile(mode='w+') as tmp:
+        sys.stdout.flush()
+        sys.stderr.flush()
+        saved_out, saved_err = os.dup(1), os.dup(2)
+        os.dup2(tmp.fileno(), 1)
+        os.dup2(tmp.fileno(), 2)
+        try:
+            yield captured
+        finally:
+            sys.stdout.flush()
+            sys.stderr.flush()
+            os.dup2(saved_out, 1)
+            os.dup2(saved_err, 2)
+            os.close(saved_out)
+            os.close(saved_err)
+            tmp.seek(0)
+            captured.text = tmp.read()
+
+
+def kokkos_summary(text):
+    """kokkos_summary: the lines of the Kokkos banner worth keeping
+
+    Which device it selected and how large a thread pool it took. Those
+    two decide whether a comparison is being made on the hardware you
+    think it is, so they survive; the rest of the banner does not.
+    """
+    if not text:
+        return []
+    keep = []
+    for line in text.splitlines():
+        if 'thread_pool_topology' in line or ': Selected' in line:
+            keep.append(line.strip())
+    return keep
 
 
 def array_digest(arr):

@@ -65,21 +65,22 @@ measurement traps worth controlling for.
 
 WHAT THE GPU COLUMNS MEAN
 
-With --device cuda two torch timings are reported. "torch" takes numpy
+With --device cuda there are two extra torch timings. "torch" takes numpy
 arrays and gives numpy back, so it pays a host-to-device copy in and a
 device-to-host copy out, which is what CalForce(force_kernel='torch')
-does today. "torch dev" is handed tensors already on the device and
-returns tensors, which is the ceiling that keeping a whole timestep
-resident would approach. The gap between them is the transfer cost, and
-on a large problem it is the number that decides whether moving more of
-the step onto the device is worth doing.
+does today. "torch dev" is handed tensors already resident and returns
+tensors, which is the ceiling that keeping a whole timestep on the device
+would approach.
+
+"torch dev" is compiled or not to match "torch+comp", so the difference
+between those two columns is purely the transfer, and on a large problem
+that difference is what decides whether moving more of the step onto the
+device is worth doing.
 """
 
 import argparse
-import contextlib
 import os
 import sys
-import tempfile
 import time
 from pathlib import Path
 
@@ -99,84 +100,9 @@ opendis_paths = [str(opendis_root / p) for p in
 [sys.path.append(p) for p in opendis_paths if not p in sys.path]
 
 import numpy as np
+from framework.testing import quiet_native_output, kokkos_summary
 
 MU, NU, A = 50.0, 0.3, 0.01
-
-
-@contextlib.contextmanager
-def captured_low_level_output(enabled=True):
-    """captured_low_level_output: collect what C++ writes to stdout/stderr
-
-    Kokkos prints a long banner from pyexadis.initialize(), and ExaDiS
-    warns about Burgers vector conservation whenever a network of open
-    segment pairs is built, which is expected for a table of test data.
-    Both come from C++ and so are invisible to contextlib.redirect_stdout,
-    which only rebinds sys.stdout. Redirecting the file descriptors is what
-    catches them.
-
-    Yields a file object holding whatever was captured, so the caller can
-    pick out the few useful lines and drop the rest.
-    """
-    if not enabled:
-        yield None
-        return
-    with tempfile.TemporaryFile(mode='w+') as tmp:
-        sys.stdout.flush()
-        sys.stderr.flush()
-        saved_out, saved_err = os.dup(1), os.dup(2)
-        os.dup2(tmp.fileno(), 1)
-        os.dup2(tmp.fileno(), 2)
-        try:
-            yield tmp
-        finally:
-            sys.stdout.flush()
-            sys.stderr.flush()
-            os.dup2(saved_out, 1)
-            os.dup2(saved_err, 2)
-            os.close(saved_out)
-            os.close(saved_err)
-            tmp.seek(0)
-
-
-def summarise_kokkos(text):
-    """summarise_kokkos: the two lines of its banner worth keeping
-
-    Which device it chose and how many threads it took, because those are
-    exactly what decides whether a comparison here is fair.
-    """
-    if not text:
-        return []
-    out = []
-    for line in text.splitlines():
-        if 'thread_pool_topology' in line:
-            out.append("  ExaDiS: %s" % line.strip())
-        elif ': Selected' in line:
-            out.append("  ExaDiS: %s" % line.strip())
-    return out
-
-# fraction of selected pairs closer to parallel than the 1e-4 branch
-# threshold in a real run: 6954 of 87522 over 200 steps of the
-# 02_frank_read_src elasticity example
-REALISTIC_NEAR_PARALLEL = 0.08
-
-DEFAULT_SIZES = (1000, 10000, 100000)
-
-DYNAMIC_NOTE = """\
-  torch+comp is --compile dynamic: one kernel generated once and reused for
-  any pair count, which is what a simulation needs since its count changes
-  every call. Over four runs with an empty Inductor cache, each compiled on
-  the shape it timed, dynamic came out ahead of --compile static in every
-  one, 109 ms against 120 on average at 100k pairs, and it compiles once
-  where static pays about 13 s per distinct size.
-
-  Two things to control for before trusting a number here. A dynamic kernel
-  inherits its tuning from whichever shape compiled it, so this benchmark
-  compiles on its largest size first; warmed at 1000 pairs instead, it runs
-  100k in 209 ms rather than 114. And Inductor caches kernels on disk under
-  TORCHINDUCTOR_CACHE_DIR, outliving the process, so a kernel built at some
-  other shape is reused silently. Clear that directory for a fresh reading.
-
-  Run-to-run spread is 8 to 16% here, so a few percent is noise."""
 
 
 def make_pairs(n, geometry='realistic', seed=99):
@@ -302,12 +228,19 @@ def collect_kernels(device, dtype, want, compile_mode=None):
             if dev.type != 'cpu':
                 # same kernel, but handed tensors already resident, so the
                 # host/device copies are excluded; see the module docstring
-                def dev_factory(pr, dev=dev, dt=dt,
+                def dev_factory(pr, dev=dev, dt=dt, mode=compile_mode,
                                 k=torch_segseg_force_vec):
                     ts = [torch.as_tensor(np.ascontiguousarray(x), dtype=dt,
                                           device=dev) for x in pr]
-                    return lambda: k(*ts, MU, NU, A,
-                                     allow_float32=(dt is torch.float32))
+
+                    def run():
+                        # set the mode explicitly. Without this the column
+                        # inherits whatever the previously timed one left
+                        # behind, so its meaning depends on execution order
+                        K._compile_mode = mode
+                        return k(*ts, MU, NU, A,
+                                 allow_float32=(dt is torch.float32))
+                    return run
                 kernels.append(('torch dev', dev_factory))
         except Exception as exc:
             skipped.append("torch: %s" % exc)
@@ -395,7 +328,7 @@ def run(sizes, geometry, reps, device, dtype, want, compile_mode=None,
         # table of test data. Building every runnable first keeps those
         # warnings above the table instead of between its rows.
         runnables = [(n, make_pairs(n, mix)) for n in sizes]
-        with captured_low_level_output(not verbose_init):
+        with quiet_native_output(not verbose_init):
             runnables = [(n, [factory(pr) for _, factory in kernels])
                          for n, pr in runnables]
 
@@ -498,11 +431,11 @@ def main(argv=None):
     try:
         import pyexadis
         if 'exadis' in want:
-            with captured_low_level_output(not args.verbose_init) as buf:
+            with quiet_native_output(not args.verbose_init) as buf:
                 pyexadis.initialize()
                 started = True
-            for line in summarise_kokkos(buf.read() if buf else None):
-                print(line)
+            for line in kokkos_summary(buf.text):
+                print("  ExaDiS: %s" % line)
     except Exception:
         pass
     try:

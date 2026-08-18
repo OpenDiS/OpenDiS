@@ -45,7 +45,8 @@ from pydis.calforce.compute_stress_force_analytic_paradis import (
     compute_segseg_force_list)
 from pydis.calforce.compute_stress_force_analytic_python import (
     python_segseg_force_vec)
-from framework.testing import report_close
+from framework.testing import (report_close, quiet_native_output,
+                               kokkos_summary)
 from segseg_tables import (TABLES, load, exadis_network,
                            MU as mu, NU as nu, A as a)
 
@@ -110,31 +111,26 @@ NEARPAR_NOTE = ("float64 conditioning limit near parallel, not an "
 
 force_nint = 3
 
-# tol_paradis applies to the compiled library on every table; the tolerance
-# for the python/numpy kernel is per table and carried by the table, in
-# segseg_tables.py. tolC is for the SBN1 quadrature variant, which is
-# commented out below.
-tol_paradis = 1e-9
+# One tolerance per table, carried by the table in segseg_tables.py and
+# applied to every implementation alike. tolC is for the SBN1 quadrature
+# variant, which is commented out below.
 tolC = 1e-5
-tol_exadis = 1e-9
 
 
-def test_pydis(pairs, ref_forces, tol_python):
+def test_pydis(pairs, ref_forces, tol):
     """test_pydis: both pydis kernels against the reference"""
     p1, p2, p3, p4, b12, b34 = pairs
 
     # use ParaDiS library (SBA)
     fA = compute_segseg_force_list(p1, p2, p3, p4, b12, b34, mu, nu, a)
     ok = report_close("pydis : ParaDiS library (SBA)      ",
-                      np.concatenate(fA, axis=1), ref_forces, tol_paradis)
+                      np.concatenate(fA, axis=1), ref_forces, tol)
 
     # use Python code (translated from Matlab)
     fB = python_segseg_force_vec(p1, p2, p3, p4, b12, b34, mu, nu, a)
     ok &= report_close("pydis : python/numpy implementation",
-                       np.concatenate(fB, axis=1), ref_forces, tol_python)
-    if tol_python > tol_paradis:
-        print("        python/numpy is held to %.0e here rather than %.0e:\n"
-              "        %s" % (tol_python, tol_paradis, NEARPAR_NOTE))
+                       np.concatenate(fB, axis=1), ref_forces, tol)
+
 
     # use ParaDiS library (SBN1)
     #quad_points, weights = np.polynomial.legendre.leggauss(force_nint)
@@ -146,16 +142,20 @@ def test_pydis(pairs, ref_forces, tol_python):
     return bool(ok)
 
 
-def test_exadis(pairs, ref_forces):
-    """test_exadis: the exadis kernel against the same reference"""
-    import pyexadis
+def exadis_forces(pairs):
+    """exadis_forces: the pairs through exadis' SegSegIso, as (N,12)
 
+    Separated from the reporting so the caller can silence the C++ chatter
+    around this part alone: building the network warns about Burgers
+    vector conservation, and Intel's OpenMP runtime prints an "OMP: Info"
+    line from inside the force call. Neither indicates a problem and both
+    would otherwise land between the result lines.
+    """
+    import pyexadis
     n = pairs[0].shape[0]
     G, seg_pairs = exadis_network(pairs)
     f = pyexadis.compute_force_segseglist(G.net, mu, nu, a, seg_pairs)
-    return report_close("exadis: SegSegIso                  ",
-                        np.array(f).reshape(n, 12), ref_forces,
-                        tol_exadis)
+    return np.array(f).reshape(n, 12)
 
 
 def main():
@@ -172,10 +172,10 @@ def main():
             ok = False
             print("")
             continue
-        tables.append((table.description, pairs, ref_forces))
+        tables.append((table.description, pairs, ref_forces, table.tol))
         # note ok &= rather than ok = : one failing table must fail the test,
         # and must not be cleared by a later table passing
-        ok &= test_pydis(pairs, ref_forces, table.tol_python)
+        ok &= test_pydis(pairs, ref_forces, table.tol)
         print("")
 
     try:
@@ -186,12 +186,20 @@ def main():
         return False
 
     # initialize once, outside the loop: it is global setup, not per table
-    pyexadis.initialize()
-    for n, (description, pairs, ref_forces) in enumerate(tables, start=1):
+    with quiet_native_output() as buf:
+        pyexadis.initialize()
+    for line in kokkos_summary(buf.text):
+        print("exadis: %s" % line)
+    for n, (description, pairs, ref_forces, tol) in enumerate(tables,
+                                                              start=1):
         print("--- table %d of %d: %s" % (n, len(tables), description))
-        ok &= test_exadis(pairs, ref_forces)
+        with quiet_native_output():
+            f = exadis_forces(pairs)
+        ok &= report_close("exadis: SegSegIso                  ",
+                           f, ref_forces, tol)
         print("")
-    pyexadis.finalize()
+    with quiet_native_output():
+        pyexadis.finalize()
     return bool(ok)
 
 

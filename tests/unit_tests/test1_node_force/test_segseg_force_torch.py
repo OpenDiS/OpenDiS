@@ -166,9 +166,9 @@ SWEEP_EXPLANATION = """\
 # them would mean two places reporting the same number.
 LABEL_TORCH = "pydis : torch implementation       "
 
-# what the compiled kernel would be held to, kept only so the block below
-# can say when the table's tolerance is looser and why
-TOL_PARADIS = 1e-9
+# the tolerance a well-conditioned table gets, kept only so the block below
+# can say when a table's own tolerance is looser and why
+TOL_NOMINAL = 1e-8
 
 NEARPAR_NOTE = ("float64 conditioning limit near parallel, not an "
                 "implementation defect; see segseg_tables.py")
@@ -234,12 +234,11 @@ def check_against_tables(torch_kernel, device, dtype):
 
         f = np.concatenate(torch_kernel(*pairs, mu, nu, a,
                                         device=device, dtype=dtype), axis=1)
-        ok &= report_close(LABEL_TORCH, f, ref_forces, table.tol_python)
+        ok &= report_close(LABEL_TORCH, f, ref_forces, table.tol)
 
-        if table.tol_python > TOL_PARADIS:
-            print("        the numpy lineage is held to %.0e here rather "
-                  "than %.0e:\n        %s"
-                  % (table.tol_python, TOL_PARADIS, NEARPAR_NOTE))
+        if table.tol > TOL_NOMINAL:
+            print("        held to %.0e here rather than %.0e:\n        %s"
+                  % (table.tol, TOL_NOMINAL, NEARPAR_NOTE))
         print("")
     return ok
 

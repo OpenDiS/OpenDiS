@@ -149,6 +149,7 @@ if _compile_mode in ('1', 'true', 'yes', 'on'):
 elif _compile_mode not in _COMPILE_MODES:
     _compile_mode = None
 _compiled_general = None
+_compile_checked = False
 
 
 def enable_compile(mode='dynamic'):
@@ -164,7 +165,8 @@ def enable_compile(mode='dynamic'):
     is pure elementwise arithmetic of fixed shape and is where nearly all
     the time goes on a realistic mix, so it is the part worth fusing.
     """
-    global _compile_mode, _compiled_general
+    global _compile_mode, _compiled_general, _compile_checked
+    _compile_checked = False
     if mode in (None, False):
         _compile_mode = None
     elif mode in _COMPILE_MODES:
@@ -178,26 +180,60 @@ def enable_compile(mode='dynamic'):
 def _general_dispatch(*args):
     """_general_dispatch: the general branch, compiled if that was asked for
 
-    A torch too old for the running python raises from torch.compile
-    itself, before tracing anything. That must not take a simulation down
-    over what is an optimisation, so it falls back to eager, says so once,
-    and carries on.
+    Compilation can fail in two places and neither should take a
+    simulation down over what is only an optimisation.
+
+    torch.compile itself raises when torch is too old for the running
+    python, before tracing anything. And the first call raises when the
+    backend cannot build: on a GPU, Inductor goes through Triton, which
+    compiles a small CUDA helper using whatever $CC names. On a cluster
+    that is often a vendor compiler such as nvc, which rejects the flags
+    Triton passes, and the failure appears at the first force evaluation
+    rather than at start-up. Setting CC to a plain gcc fixes it.
+
+    Both paths fall back to eager, say so once, and carry on.
     """
-    global _compiled_general, _compile_mode
+    global _compiled_general, _compile_mode, _compile_checked
     if _compile_mode is None:
         return _general_branch(*args)
+
     if _compiled_general is None:
         try:
             _compiled_general = torch.compile(
                 _general_branch, dynamic=(_compile_mode == 'dynamic'))
         except Exception as exc:
-            sys.stderr.write(
-                "compute_stress_force_analytic_torch: torch.compile is not "
-                "available (%s); continuing without it. torch >= 2.4 is "
-                "needed on python 3.12 and >= 2.6 on 3.13.\n" % exc)
-            _compile_mode = None
+            _disable_compile("torch.compile is not available (%s). torch "
+                             ">= 2.4 is needed on python 3.12 and >= 2.6 "
+                             "on 3.13." % exc)
             return _general_branch(*args)
+
+    if not _compile_checked:
+        # guard the first call only: a later failure is a real error and
+        # must not be swallowed by a blanket except on every evaluation
+        try:
+            out = _compiled_general(*args)
+            _compile_checked = True
+            return out
+        except Exception as exc:
+            _disable_compile(
+                "the compiled kernel failed to build (%s).\n  If this "
+                "mentions Triton and a compiler such as nvc, the usual "
+                "cause is $CC naming a vendor compiler that rejects the "
+                "flags Triton passes. Try CC=gcc."
+                % str(exc).splitlines()[0][:160])
+            return _general_branch(*args)
+
     return _compiled_general(*args)
+
+
+def _disable_compile(reason):
+    """_disable_compile: fall back to eager, once, with an explanation"""
+    global _compile_mode, _compiled_general, _compile_checked
+    sys.stderr.write("compute_stress_force_analytic_torch: %s\n"
+                     "  Continuing without torch.compile.\n" % reason)
+    _compile_mode = None
+    _compiled_general = None
+    _compile_checked = False
 
 
 def resolve_device(device=None):
