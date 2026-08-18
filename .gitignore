@@ -13,6 +13,15 @@ output*
 *.old*
 *_results
 
+# nsys profiling artifacts: the report and the sqlite export nsys stats
+# generates from it. Tens of MB a run, and reproducible from the commands
+# in tests/unit_tests/test1_node_force/bench_segseg_force.py
+*.nsys-rep
+*.sqlite
+
+# editor settings, personal to whoever is working here
+.vscode/
+
 !CMakeLists.txt
 
 # input_data/ and ref_data/ hold test fixtures, not simulation output. Anything
