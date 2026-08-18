@@ -1,2 +1,9 @@
 set(Kokkos_ENABLE_CUDA Off)
 set(Kokkos_ENABLE_CUDA_LAMBDA Off)
+
+# Match the OpenMP runtime to whichever interpreter this build targets,
+# which is not necessarily the system one: CMake follows CONDA_PREFIX, so
+# configuring from an activated conda environment builds for that
+# environment. See cmake/omp_follow_python.cmake for what goes wrong
+# otherwise.
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/omp_follow_python.cmake)
