@@ -1,0 +1,85 @@
+# macOS, built against a conda environment rather than the system python.
+#
+# Everything sys.cmake.mac sets, plus what is needed to build pyexadis for a
+# conda interpreter and to share that environment's OpenMP runtime. Named for
+# the reason it exists: torch lives in a conda environment, so running the GPU
+# force kernel and ExaDiS in one process means building ExaDiS for that same
+# environment.
+#
+#     conda activate disl_dyn
+#     ./configure.sh -DSYS=mac_torch
+#     cmake --build build -j 8 ; cmake --build build --target install
+#
+# or without activating anything:
+#
+#     ./configure.sh -DSYS=mac_torch -DCONDA_ENV=/opt/anaconda3/envs/disl_dyn
+#
+# The resulting pyexadis is named for its ABI, pyexadis.cpython-313-darwin.so
+# for python 3.13, so modules built for different interpreters sit side by side
+# in core/exadis/python/ and each interpreter imports only its own. Building
+# for a conda environment therefore does not take ExaDiS away from the system
+# python, which keeps using the module it already has.
+
+set(Kokkos_ENABLE_CUDA Off)
+set(Kokkos_ENABLE_CUDA_LAMBDA Off)
+
+if(NOT DEFINED CONDA_ENV)
+  if(DEFINED ENV{CONDA_PREFIX})
+    set(CONDA_ENV "$ENV{CONDA_PREFIX}")
+  else()
+    message(FATAL_ERROR
+      "SYS=mac_torch needs a conda environment. Either activate one before "
+      "configuring, 'conda activate disl_dyn', or name it explicitly, "
+      "-DCONDA_ENV=/opt/anaconda3/envs/disl_dyn")
+  endif()
+endif()
+
+set(_conda_python "${CONDA_ENV}/bin/python")
+if(NOT EXISTS "${_conda_python}")
+  message(FATAL_ERROR "SYS=mac_torch: no interpreter at ${_conda_python}")
+endif()
+message(" CONDA_ENV = ${CONDA_ENV}")
+
+# Three spellings, three consumers, and all three are needed:
+#
+#   Python3_EXECUTABLE   the test registration in tests/*/CMakeLists.txt
+#   Python_EXECUTABLE    pybind11 in FindPython mode, which is what actually
+#                        decides the ABI pyexadis is built for
+#   PYTHON_EXECUTABLE    pybind11's legacy FindPythonInterp path
+#
+# Setting only Python3_EXECUTABLE is the trap. ctest is then wired to the conda
+# interpreter while pybind11 goes off and finds a different python on its own,
+# so the tests run under one interpreter and the module is built for another.
+# Nothing complains at build time; it surfaces later as ModuleNotFoundError on
+# import, which reads like a missing build rather than a mismatched one.
+# PYBIND11_FINDPYTHON=On keeps pybind11 on the modern FindPython path, which is
+# the one Python_EXECUTABLE steers.
+set(PYBIND11_FINDPYTHON On CACHE BOOL "" FORCE)
+set(Python_EXECUTABLE  "${_conda_python}" CACHE FILEPATH "" FORCE)
+set(Python3_EXECUTABLE "${_conda_python}" CACHE FILEPATH "" FORCE)
+set(PYTHON_EXECUTABLE  "${_conda_python}" CACHE FILEPATH "" FORCE)
+
+# Share the conda environment's OpenMP runtime.
+#
+# Without this, ExaDiS links the Homebrew libomp at /usr/local/opt/libomp while
+# a conda numpy loads the environment's own libomp, and two copies of the LLVM
+# OpenMP runtime in one process segfault Kokkos::initialize(). The crash is
+# order dependent and so looks like anything but a library conflict: importing
+# numpy before pyexadis.initialize() dies, the reverse order survives.
+#
+# Only the library is overridden. Overriding OpenMP_CXX_INCLUDE_DIR as well
+# drops /usr/local/include from the include path, and the build then fails on a
+# missing fftw3.h, which is nothing to do with OpenMP. The omp.h that comes
+# with the Homebrew libomp is ABI compatible with the conda runtime, both being
+# LLVM OpenMP, so leaving the include path alone is correct as well as
+# convenient.
+if(EXISTS "${CONDA_ENV}/lib/libomp.dylib")
+  set(OpenMP_libomp_LIBRARY "${CONDA_ENV}/lib/libomp.dylib"
+      CACHE FILEPATH "" FORCE)
+  message(" OpenMP_libomp_LIBRARY = ${OpenMP_libomp_LIBRARY}")
+else()
+  message(WARNING
+    "SYS=mac_torch: no libomp.dylib in ${CONDA_ENV}/lib. The build will use "
+    "the system OpenMP runtime. If that environment's numpy loads its own "
+    "libomp, expect a segfault inside Kokkos::initialize().")
+endif()

@@ -39,46 +39,25 @@ opendis_paths = [str(opendis_root / p) for p in
                  ['python', 'lib', 'core/pydis/python',
                   'core/exadis/python']]
 [sys.path.append(p) for p in opendis_paths if not p in sys.path]
-input_dir = Path(__file__).resolve().parent / 'input_data'
-ref_dir = Path(__file__).resolve().parent / 'ref_data'
 
 import numpy as np
 from pydis.calforce.compute_stress_force_analytic_paradis import (
     compute_segseg_force_list)
 from pydis.calforce.compute_stress_force_analytic_python import (
     python_segseg_force_vec)
-from framework.testing import report_close, array_digest
+from framework.testing import report_close
+from segseg_tables import (TABLES, load, exadis_network,
+                           MU as mu, NU as nu, A as a)
 
-# The tables, by stem: each is input_data/<stem>.dat holding the segment
-# pairs, 18 columns of p1, p2, p3, p4, b12, b34, and ref_data/<stem>.npz
-# holding the reference forces f1..f4 alongside the constants they were
-# computed with and a digest of the geometry they belong to.
-#
-# The two were one 30-column .dat until 2026-08-16. Splitting them puts this
-# test on the same footing as the rest of the suite, where input_data/ is what
-# a test reads in and ref_data/ is what it checks against, and it makes the
-# blessing step explicit: a regenerated fixture lands in input_data/ directly,
-# while its reference waits in output/ until copied.
-#
-# Two tables are run. The first is the original random-geometry set; its
-# smallest 1-c^2 is 3.4e-03, so it never approaches the eps = 1e-4 threshold
-# at which the kernels switch to the parallel formula. The second was added
-# because three bugs lived in that region of the python kernel undetected:
-# inconsistent [nonpar] subsetting, a parallel threshold of 1e-6 instead of
-# 1e-4, and two correction branches passing lists where arrays are required.
-# Regenerate it with make_parallel_ref_data.py.
-#
-# The third entry is the tolerance for the python/numpy kernel. It is looser
-# on the second table for a reason that is about the kernel rather than about
-# any of the three implementations; see NEARPAR_NOTE below.
-REF_FILES = [
-    ('segsep_min_2.5_max_32.5_iso_randombvecs_a0.010',
-     'random geometry, 1-c^2 from 3.4e-03 to 0.95', 1e-9),
-    ('parallel_and_nearparallel_iso_a0.010',
-     'parallel and near-parallel, 1-c^2 from 0 to 1e-02', 1e-6),
-]
+# The tables themselves, which pairs they cover and how tightly a kernel
+# of the numpy lineage may be held over each, live in segseg_tables.py so
+# that this test and test_segseg_force_torch.py cannot drift apart over
+# which data they run. mu, nu and a come from there too: they are the
+# constants the stored references were generated with, not a choice this
+# test gets to make.
 
-# Why the second table gets 1e-6 for the python/numpy kernel.
+# Why the near-parallel table gets 1e-6 for the python/numpy kernel,
+# the tolerance carried by that table in segseg_tables.py.
 #
 # Not because the python kernel is wrong. Near parallel this kernel is
 # ill-conditioned, and no two implementations of it can be expected to agree
@@ -127,78 +106,17 @@ REF_FILES = [
 # look like a force bug. That discontinuity is a property of the ParaDiS
 # method, present identically in the C kernel and in exadis.
 NEARPAR_NOTE = ("float64 conditioning limit near parallel, not an "
-                "implementation defect; see the comment on REF_FILES")
+                "implementation defect; see the comment above")
 
-# the constants the reference was generated with
-mu = 50.0
-nu = 0.3
-a = 0.01
 force_nint = 3
 
-# cell edge for the exadis network, as a multiple of the extent of the
-# table. Nothing depends on it: the cell is non-periodic, so there are
-# no images, and compute_force_segseglist builds no neighbor list
-BOX_FACTOR = 10.0
-
 # tol_paradis applies to the compiled library on every table; the tolerance
-# for the python/numpy kernel is per table, carried in REF_FILES. tolC is for
-# the SBN1 quadrature variant, which is commented out below.
+# for the python/numpy kernel is per table and carried by the table, in
+# segseg_tables.py. tolC is for the SBN1 quadrature variant, which is
+# commented out below.
 tol_paradis = 1e-9
 tolC = 1e-5
 tol_exadis = 1e-9
-
-
-def load_ref(stem):
-    """load_ref: the segment pairs, and the reference forces f1..f4
-
-    The geometry comes from input_data/<stem>.dat, 18 columns of
-    p1, p2, p3, p4, b12, b34, and the forces from ref_data/<stem>.npz.
-    Returns (pairs, ref_forces), or (None, None) with an explanation if
-    either is missing or if the two describe different pairs.
-    """
-    dat, npz = input_dir / (stem + '.dat'), ref_dir / (stem + '.npz')
-    for path, what in ((dat, 'fixture'), (npz, 'reference')):
-        if path.exists():
-            continue
-        print("load_ref: no %s at %s/%s" % (what, path.parent.name, path.name))
-        # a freshly generated reference sits in output/ until it is blessed,
-        # so say so rather than sending anyone to regenerate what already
-        # exists
-        waiting = Path('output') / path.name
-        if waiting.exists():
-            print("          it is waiting to be blessed:")
-            print("              cp %s %s/" % (waiting, path.parent.name))
-        else:
-            print("          regenerate with 'make segseg_force_ref'")
-        return None, None
-
-    geometry = np.loadtxt(dat)
-    ref = np.load(npz, allow_pickle=False)
-    forces = ref['forces']
-
-    # A reference and a fixture blessed at different times can end up
-    # describing different segment pairs: regenerating the fixture writes
-    # input_data/ in place while the new reference waits in output/ to be
-    # copied. Comparing forces to the wrong geometry would look like a
-    # kernel bug, so refuse rather than report a failure that is not one.
-    digest = array_digest(geometry)
-    if str(ref['geometry_digest']) != digest:
-        print("load_ref: '%s' and '%s' describe different segment pairs"
-              % (dat.name, npz.name))
-        print("          fixture   %s, %d pairs"
-              % (digest, geometry.shape[0]))
-        print("          reference %s, %d pairs"
-              % (str(ref['geometry_digest']), int(ref['n_pairs'])))
-        print("          the fixture has been regenerated and the new "
-              "reference not yet blessed:")
-        print("              cp output/%s ref_data/" % npz.name)
-        return None, None
-
-    print("load_ref: '%s', %d segment pairs, mu = %g, nu = %g, a = %g"
-          % (stem, geometry.shape[0], mu, nu, a))
-    pairs = (geometry[:, 0:3], geometry[:, 3:6], geometry[:, 6:9],
-             geometry[:, 9:12], geometry[:, 12:15], geometry[:, 15:18])
-    return pairs, forces
 
 
 def test_pydis(pairs, ref_forces, tol_python):
@@ -207,7 +125,7 @@ def test_pydis(pairs, ref_forces, tol_python):
 
     # use ParaDiS library (SBA)
     fA = compute_segseg_force_list(p1, p2, p3, p4, b12, b34, mu, nu, a)
-    ok = report_close("pydis : ParaDiS library (SBA)     ",
+    ok = report_close("pydis : ParaDiS library (SBA)      ",
                       np.concatenate(fA, axis=1), ref_forces, tol_paradis)
 
     # use Python code (translated from Matlab)
@@ -228,42 +146,14 @@ def test_pydis(pairs, ref_forces, tol_python):
     return bool(ok)
 
 
-def build_network(pairs):
-    """build_network: one ExaDisNet holding every pair in the table
-
-    Two segments per row, four nodes per row, nothing shared between
-    rows. Returns the network and the pair list to evaluate.
-    """
-    from pyexadis_base import ExaDisNet
-    import pyexadis
-
-    p1, p2, p3, p4, b12, b34 = pairs
-    n = p1.shape[0]
-    rn = np.stack([p1, p2, p3, p4], axis=1).reshape(4*n, 3)
-    segs = np.zeros((2*n, 8))
-    segs[0::2, 0] = np.arange(n)*4 + 0
-    segs[0::2, 1] = np.arange(n)*4 + 1
-    segs[0::2, 2:5] = b12
-    segs[1::2, 0] = np.arange(n)*4 + 2
-    segs[1::2, 1] = np.arange(n)*4 + 3
-    segs[1::2, 2:5] = b34
-
-    L = BOX_FACTOR * float(np.max(rn.max(axis=0) - rn.min(axis=0)))
-    origin = 0.5*(rn.min(axis=0) + rn.max(axis=0)) - 0.5*L
-    cell = pyexadis.Cell(h=L*np.eye(3), origin=origin,
-                         is_periodic=[False, False, False])
-
-    return ExaDisNet(cell, rn, segs), [[2*i, 2*i+1] for i in range(n)]
-
-
 def test_exadis(pairs, ref_forces):
     """test_exadis: the exadis kernel against the same reference"""
     import pyexadis
 
     n = pairs[0].shape[0]
-    G, seg_pairs = build_network(pairs)
+    G, seg_pairs = exadis_network(pairs)
     f = pyexadis.compute_force_segseglist(G.net, mu, nu, a, seg_pairs)
-    return report_close("exadis: SegSegIso                 ",
+    return report_close("exadis: SegSegIso                  ",
                         np.array(f).reshape(n, 12), ref_forces,
                         tol_exadis)
 
@@ -271,21 +161,21 @@ def test_exadis(pairs, ref_forces):
 def main():
     print("segment-segment forces from pydis and exadis, against the "
           "stored references")
-    print("%d tables to check\n" % len(REF_FILES))
+    print("%d tables to check\n" % len(TABLES))
 
     tables = []
     ok = True
-    for n, (stem, description, tol_python) in enumerate(REF_FILES, start=1):
-        print("--- table %d of %d: %s" % (n, len(REF_FILES), description))
-        pairs, ref_forces = load_ref(stem)
+    for n, table in enumerate(TABLES, start=1):
+        print("--- table %d of %d: %s" % (n, len(TABLES), table.description))
+        pairs, ref_forces = load(table)
         if pairs is None:
             ok = False
             print("")
             continue
-        tables.append((description, pairs, ref_forces))
+        tables.append((table.description, pairs, ref_forces))
         # note ok &= rather than ok = : one failing table must fail the test,
         # and must not be cleared by a later table passing
-        ok &= test_pydis(pairs, ref_forces, tol_python)
+        ok &= test_pydis(pairs, ref_forces, table.tol_python)
         print("")
 
     try:

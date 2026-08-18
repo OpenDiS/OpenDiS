@@ -195,7 +195,8 @@ class CalForce(CalForce_Base):
     def __init__(self, state: dict={}, Ec: float=None, cutoff: float=None,
                  force_mode: str='Elasticity_SBA',
                  use_cell_list: bool=True, batch_size: int=100000,
-                 force_kernel: str='batch') -> None:
+                 force_kernel: str='batch',
+                 torch_device=None, torch_dtype=None) -> None:
         self.mu = state.get("mu", 1.0)
         self.nu = state.get("nu", 0.3)
         self.a =  state.get("a", 0.01)
@@ -232,12 +233,20 @@ class CalForce(CalForce_Base):
         #          whole batch, looping inside C. Same numbers as 'scalar', without paying
         #          ~8 us of marshalling per pair. The default.
         # 'scalar' the same kernel called once per pair; kept as the reference.
-        # 'vec'    numpy, batched (python_segseg_force_vec). NOT usable yet:
-        #          RemoteNodeForce subsets t/tp/c inconsistently inside its non-parallel
-        #          branch, so it raises a broadcast error whenever a batch contains a
-        #          parallel segment pair. Fixing that is a prerequisite for the GPU port,
-        #          since the GPU path builds on this kernel rather than on ctypes.
+        # 'vec'    numpy, batched (python_segseg_force_vec).
+        # 'torch'  the same kernel on a GPU (torch_segseg_force_vec). Needs torch;
+        #          steer the device with torch_device or PYDIS_TORCH_DEVICE.
+        #
+        # 'vec' and 'torch' share a lineage and give the same answers as each other. Both
+        # differ from 'batch'/'scalar' by more than rounding once a pair comes within
+        # 1-c^2 < 1e-6 of parallel, up to 2e-4 relative at 1e-12; that is a property of the
+        # numpy kernel rather than of torch, and it is why 'batch' remains the default.
+        if force_kernel not in ('batch', 'scalar', 'vec', 'torch'):
+            raise ValueError("CalForce: force_kernel must be one of 'batch', "
+                             "'scalar', 'vec', 'torch'; got %r" % (force_kernel,))
         self.force_kernel = force_kernel
+        self.torch_device = torch_device
+        self.torch_dtype = torch_dtype
 
         self.NodeForce_Functions = {
             'LineTension': self.NodeForce_LineTension,
@@ -315,6 +324,13 @@ class CalForce(CalForce_Base):
                 f1, f2, f3, f4 = compute_segseg_force_batch(
                     P1[sl], P2[sl], P3[sl], P4[sl], B12[sl], B34[sl],
                     self.mu, self.nu, self.a)
+            elif self.force_kernel == 'torch':
+                from .compute_stress_force_analytic_torch import (
+                    torch_segseg_force_vec)
+                f1, f2, f3, f4 = torch_segseg_force_vec(
+                    P1[sl], P2[sl], P3[sl], P4[sl], B12[sl], B34[sl],
+                    self.mu, self.nu, self.a,
+                    device=self.torch_device, dtype=self.torch_dtype)
             elif self.force_kernel == 'scalar':
                 f1 = np.empty((stop-start, 3)); f2 = np.empty_like(f1)
                 f3 = np.empty_like(f1); f4 = np.empty_like(f1)
