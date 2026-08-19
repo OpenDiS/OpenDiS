@@ -288,14 +288,34 @@ class RetroactiveCollision:
     def merge(self, tag1, tag2, newpos):
         """merge: collapse the two nodes at newpos
 
-        The constrained node survives, so the pinned end of a segment is
-        never the one deleted. DisNet.merge_node deletes its first
-        argument, which is the opposite convention from exadis
-        merge_nodes_position, hence the order here.
+        The first node survives unless the second is constrained, in which
+        case the two exchange roles so that the constrained one is kept.
+        This is the reference's rule as written, which holds here because
+        the pairs are now ordered the same way (see segment_pairs). Note
+        DisNet.merge_node deletes its *first* argument, the opposite
+        convention, hence the call order below.
+
+        The merge goes ahead even when both nodes are constrained. ParaDiS
+        instead unpins one of them first, so that its merge, which refuses
+        to delete a pinned node, can proceed:
+
+            if (mergenode1->constraint == PINNED_NODE &&
+                mergenode2->constraint == PINNED_NODE)
+                mergenode1->constraint &= ~PINNED_NODE;
+
+        That silently changes a boundary condition the caller set, so the
+        behaviour taken here is the other one: keep both constraints as
+        they are and merge anyway. Refusing outright, which is what PyDiS
+        did before, is the one option neither reference code takes: it
+        drops a collision that should have formed a junction, and says
+        nothing.
         """
         if self.G.nodes(tag2).constraint != DisNode.Constraints.UNCONSTRAINED:
-            tag1, tag2 = tag2, tag1
-        return self.G.merge_node(tag1, tag2, position=newpos)
+            survivor, dead = tag2, tag1
+        else:
+            survivor, dead = tag1, tag2
+        return self.G.merge_node(dead, survivor, position=newpos,
+                                 ignore_constraints=True)
 
     def latch(self, *tags):
         """latch: bar every segment on these nodes from colliding again"""
@@ -390,14 +410,19 @@ class RetroactiveCollision:
                             for d in deltas.reshape(-1, 3)]).reshape(shape)
         near = np.einsum('ijk,ijk->ij', reduced, reduced) < cutoff * cutoff
 
-        for i, seg1 in enumerate(segments):
-            for j in range(i + 1, len(segments)):
-                if not near[i, j]:
+        # The higher-indexed segment is yielded first, matching exadis,
+        # whose pair loop keeps only k < i and so treats the higher index
+        # as the pair's first segment. The criterion itself is symmetric
+        # under the exchange, but the order decides which segment is split
+        # first and which node survives the merge, so it has to agree.
+        for i, seg_i in enumerate(segments):
+            for k in range(i):
+                if not near[i, k]:
                     continue
-                seg2 = segments[j]
-                if set(seg1) & set(seg2):
+                seg_k = segments[k]
+                if set(seg_i) & set(seg_k):
                     continue                  # shares a node: a hinge
-                yield seg1, seg2
+                yield seg_i, seg_k
 
     def detect_all(self):
         """detect_all: every colliding pair, on the untouched network

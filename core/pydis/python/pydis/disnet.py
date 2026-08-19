@@ -687,7 +687,8 @@ class DisNet(DisNet_Python):
                          getattr(edge, "plane_normal", None)))
         return arms
 
-    def merge_node(self, tag1: Tag, tag2: Tag, position: np.ndarray=None):
+    def merge_node(self, tag1: Tag, tag2: Tag, position: np.ndarray=None,
+                   ignore_constraints: bool=False):
         """merge_node: merge two nodes into one
            guarantees sanity after operation
            return mergedTag (tag1 or tag2) if merge is successful, None otherwise
@@ -701,11 +702,17 @@ class DisNet(DisNet_Python):
         the default behaviour. Corresponds to exadis SerialDisNet::merge_nodes
         (no position) and merge_nodes_position (with one), in
         core/exadis/src/network.cpp.
+
+        ignore_constraints merges tag1 into tag2 even when both are pinned,
+        which otherwise returns MERGE_NOT_PERMITTED. The caller then owns
+        the decision, having already chosen which of the two survives.
         """
         node1Deletable = self.nodes(tag1).constraint != DisNode.Constraints.PINNED_NODE
         node2Deletable = self.nodes(tag2).constraint != DisNode.Constraints.PINNED_NODE
 
-        if node1Deletable:
+        if ignore_constraints:
+            targetNode, deadNode = tag2, tag1
+        elif node1Deletable:
             targetNode, deadNode = tag2, tag1
         elif node2Deletable:
             targetNode, deadNode = tag1, tag2
