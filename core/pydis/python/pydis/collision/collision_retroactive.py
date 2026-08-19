@@ -27,7 +27,10 @@ from collections import Counter
 
 import numpy as np
 
+from framework.simulation_setup import cell_widths
+
 from ..disnet import DisNet, DisNode
+from ..nbrlist.nbrlist import CellList
 from ..util.glide_planes import PlaneSet, constrained_plane_point
 from ..util.state_access import velocities_by_tag, old_positions_by_tag
 from .swept_distance import swept_seg_seg_collision, hinge_cos_angle
@@ -46,6 +49,9 @@ HINGE_TOL_TRI = 0.9
 THROW_FACTOR = 4.0
 
 ZERO_LENGTH2 = 1.0e-20
+
+# upper bound on collision bins per direction, as exadis MAX_BOX
+MAX_BINS_PER_DIRECTION = 50
 
 
 class CollisionRecord:
@@ -88,6 +94,7 @@ class RetroactiveCollision:
         self.mindist2 = self.rann ** 2
         self.dt = state.get("dt")
         self.use_glide_planes = bool(state.get("use_glide_planes", False))
+        self.maxseg = state.get("maxseg")
         # exadis defers node and segment removal to the end of the pass, so
         # its later passes see annihilated arms as live connectivity. False
         # restores the ParaDiS behaviour of deleting them at the merge.
@@ -423,13 +430,130 @@ class RetroactiveCollision:
             l2max = max(l2max, float(np.dot(vec, vec)))
         return np.sqrt(4.0 * dr2max + 0.5 * l2max) + self.rann
 
+    def segment_geometry(self, segments):
+        """segment_geometry: mid-point and half-length of every segment"""
+        vecs = np.array([self.G.seg_vector(t1, t2) for t1, t2 in segments])
+        mid = np.array([self.G.nodes(t1).R for t1, t2 in segments]) + 0.5 * vecs
+        return mid, 0.5 * np.linalg.norm(vecs, axis=1)
+
+    def candidate_bins(self, cutoff):
+        """candidate_bins: how many bins to divide the cell into
+
+        These bins are NOT the ones used for elastic interaction. Those
+        are set by the force cutoff radius; these are set by how far a
+        segment can move in one step, which is a different and usually
+        smaller length. Both reference codes keep the two separate.
+
+        ParaDiS builds a second, finer structure for collisions, cell2,
+        subdividing each force cell rather than reusing it, and bounds the
+        separation statically (SortNodesForCollision.c):
+
+            maxsep = (1.1 * param->maxSeg) + param->rann;
+            cell2XperCell = (int) floor(cellXsize/maxsep);
+            cell2XperCell = MIN(cell2XperCell, MAXCELL2PERCELL);
+            cell2XperCell = MAX(cell2XperCell, 1);
+
+        ExaDiS instead measures the step's actual motion, passing
+        sqrt(4*dr2max + 0.5*l2max) + rann as the cutoff, and widens it by
+        maxseg because segments are binned by their mid-point and so reach
+        half a segment either side (NeighborBox::build):
+
+            if (type == NeiSeg) cutoff += system->params.maxseg;
+            boxDim[i] = (int)floor(fabs(dot(cbox[i], perpVecs[i])) / cutoff);
+            boxDim[i] = MIN(boxDim[i], MAX_BOX);
+            boxDim[i] = MAX(boxDim[i], 3);
+
+        **This follows ExaDiS**, which is what the rule is compared
+        against: span = cutoff + maxseg, floor(width/span), clamped to
+        [3, MAX_BINS_PER_DIRECTION]. The bin count therefore changes from
+        step to step, where ParaDiS's would not.
+
+        maxseg is state["maxseg"], the same value pyexadis passes to
+        Params and so the same one exadis bins with. It is required rather
+        than defaulted: substituting the longest segment present would
+        change the bin count, and with it the order candidates are offered
+        in, without anything in the result saying so.
+
+        CalForce._nbrlist_for computes a similar division count for the
+        elastic cell list, from the force cutoff, and returns None below
+        four divisions because at three its cell list filters nothing.
+        Here three is kept and used, because this pass needs the reference's
+        traversal order and not only its candidate set.
+
+        The floor of three is what makes the small-cell case safe without
+        a special path: at three bins the 27 neighbours are the whole cell
+        and each segment appears exactly once, so nothing is missed and
+        nothing is offered twice. ParaDiS can floor at one instead because
+        its cell2s sit inside a cell structure that bounds the search
+        separately.
+
+        Returns None only when the cell is not fully periodic, which is
+        the one case CellList cannot bin.
+        """
+        if not all(self.G.cell.is_periodic):
+            return None
+        span = cutoff + self.maxseg
+        n_div = np.floor(cell_widths(self.G.cell.h) / span).astype(int)
+        return [int(n) for n in np.clip(n_div, 3, MAX_BINS_PER_DIRECTION)]
+
+    def bin_offsets(self):
+        """bin_offsets: the 27 neighbouring bins, in exadis' order
+
+        z varies slowest and x fastest, which is what
+        NeighborBox::neighbor_box_coord produces from its single index:
+
+            int bz = ib / 9;
+            int by = (ib - 9*bz) / 3;
+            int bx = ib - 9*bz - 3*by;
+        """
+        for ib in range(27):
+            bz, rem = divmod(ib, 9)
+            by, bx = divmod(rem, 3)
+            yield bx - 1, by - 1, bz - 1
+
+    def candidate_neighbours(self, mid, cutoff):
+        """candidate_neighbours: nearby segments of each segment, binned
+
+        Returns one list per segment, in exadis' traversal order, or None
+        if the caller should fall back to comparing every pair.
+
+        The order is reproduced rather than left to the cell list, because
+        it decides which of two candidates sharing a segment gets to fire.
+        Within a bin exadis walks a linked list that FindBox builds by
+        prepending, `boxes(ibox)` taking the newest entry and `nextInBox`
+        pointing at the previous one, so it sees each bin newest-first,
+        which is descending segment index. CellList appends instead, so
+        its own iterator would give the opposite.
+        """
+        n_div = self.candidate_bins(cutoff)
+        if n_div is None:
+            return None
+        nbrlist = CellList(cell=self.G.cell, n_div=n_div)
+        nbrlist.sort_points_to_list(mid)
+        offsets = list(self.bin_offsets())
+        neighbours = []
+        for i in range(len(mid)):
+            ind = nbrlist._cell_indices[i]
+            near = []
+            for off in offsets:
+                nbr = np.mod(np.add(ind, off), n_div)
+                near.extend(reversed(nbrlist.get_objs_in_cell(nbr)))
+            neighbours.append(near)
+        return neighbours
+
     def segment_pairs(self):
         """segment_pairs: candidate pairs, as tag pairs and never indices
 
         Pairs sharing a node are hinges and belong to the other pass. The
         rest are filtered on mid-point separation before the expensive
-        swept-distance criterion sees them; the filter is vectorized
-        because it is the only part of this rule that is O(N^2).
+        swept-distance criterion sees them.
+
+        Candidates come from a cell list rather than from every pair, which
+        is what exadis does: its kernel runs over segments and then over
+        each segment's neighbour list. That makes the inner order spatial
+        rather than by index, and the order is load-bearing, because two
+        candidates sharing a segment cannot both fire: the first one latches
+        it. It also removes the only O(N^2) step in this rule.
         """
         # Stored orientation is kept, never sorted. Both codes test
         # "close to the first node" before the second, so when a segment
@@ -440,22 +564,15 @@ class RetroactiveCollision:
             return
 
         cutoff = self.candidate_cutoff(segments)
-        vecs = np.array([self.G.seg_vector(t1, t2) for t1, t2 in segments])
-        mid = np.array([self.G.nodes(t1).R for t1, t2 in segments]) + 0.5 * vecs
-        half = 0.5 * np.linalg.norm(vecs, axis=1)
-        # minimum image on the mid-point separations, so the filter is not
-        # fooled by a pair either side of a periodic face
-        deltas = mid[:, None, :] - mid[None, :, :]
-        shape = deltas.shape
-        reduced = np.array([self.G.cell.map(d)
-                            for d in deltas.reshape(-1, 3)]).reshape(shape)
+        mid, half = self.segment_geometry(segments)
         # The cutoff bounds how far apart two segments can be, not how far
         # apart their mid-points are. A segment reaches half its length
         # beyond its own mid-point, so both half-lengths have to be added
         # before the comparison; without them a long pair that genuinely
         # collides near its ends is dropped before the criterion sees it.
-        reach = cutoff + half[:, None] + half[None, :]
-        near = np.einsum('ijk,ijk->ij', reduced, reduced) < reach * reach
+        # The bins are sized so a pair that passes the test is never more
+        # than one cell away; see candidate_bins.
+        neighbours = self.candidate_neighbours(mid, cutoff)
 
         # The higher-indexed segment is yielded first, matching exadis,
         # whose pair loop keeps only k < i and so treats the higher index
@@ -463,12 +580,16 @@ class RetroactiveCollision:
         # under the exchange, but the order decides which segment is split
         # first and which node survives the merge, so it has to agree.
         for i, seg_i in enumerate(segments):
-            for k in range(i):
-                if not near[i, k]:
+            for k in (range(i) if neighbours is None else neighbours[i]):
+                if k >= i:
                     continue
                 seg_k = segments[k]
                 if set(seg_i) & set(seg_k):
                     continue                  # shares a node: a hinge
+                delta = self.G.cell.map(mid[i] - mid[k])
+                limit = cutoff + half[i] + half[k]
+                if float(np.dot(delta, delta)) >= limit * limit:
+                    continue
                 yield seg_i, seg_k
 
     def detect_all(self):
@@ -624,6 +745,13 @@ def handle_collision_retroactive(G: DisNet, state: dict, record=None,
             "handle_collision_retroactive: state has no non-zero 'dt'. "
             "The predictive half of the criterion sweeps one timestep "
             "ahead, and a zero step would switch it off silently.")
+    if not state.get("maxseg"):
+        raise KeyError(
+            "handle_collision_retroactive: state has no 'maxseg'. Candidate "
+            "pairs are binned on cutoff + maxseg, the same span exadis bins "
+            "on, and it is the value pyexadis passes to Params. Deriving it "
+            "from the longest segment present would change the bin count, "
+            "and so the order candidates are offered in, invisibly.")
 
     rule = RetroactiveCollision(G, state, record=record,
                                 purge_at_end=purge_at_end)
