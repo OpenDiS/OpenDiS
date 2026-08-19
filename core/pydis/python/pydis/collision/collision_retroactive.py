@@ -14,6 +14,11 @@ segments come within rann during an interval, and has no hit time.
 Two passes in a fixed order: segment pairs, then hinges. Nodes are
 addressed by tag throughout; no array index outlives the candidate
 generator that produced it.
+
+Where ExaDiS and ParaDiS differ, this follows ExaDiS, because ExaDiS is
+what it is compared against step by step. Each such place says so in a
+comment naming both behaviours. The hinge pass and the collision latch
+are one; merging two constrained nodes is another.
 """
 
 from collections import Counter
@@ -501,9 +506,12 @@ class RetroactiveCollision:
             if not (self.G.has_segment(tag, n3)
                     and self.G.has_segment(tag, n4)):
                 continue
-            if (frozenset((tag, n3)) in self.done
-                    or frozenset((tag, n4)) in self.done):
-                continue
+            # No latch check here: changed to match exadis, whose hinge
+            # loop carries the equivalent skipseg tests commented out and
+            # so zips arms that a collision just latched.
+            # DIFFERENT FROM ParaDiS, which sets NO_COLLISIONS on the node
+            # a merge produced and skips it in the hinge loop, so it would
+            # decline the zip that follows a merge.
 
             l13 = self.G.seg_length(tag, n3)
             l14 = self.G.seg_length(tag, n4)
