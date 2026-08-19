@@ -263,13 +263,29 @@ class RetroactiveCollision:
         The base point, moved onto the intersection of the glide planes of
         both nodes' arms. A node with a single arm cannot be relocated, so
         its position is used unchanged.
+
+        Every return is folded into the primary cell, including the
+        single-arm ones, where r2 is the image of tag2 nearest tag1 and so
+        can sit a full period outside it.
+
+        The folding is NOT essential. Every separation used by collision
+        detection is a minimum-image one, and minimum image is invariant
+        to which image a node is stored as: replacing r by r+L shifts the
+        quotient by exactly one and rint absorbs it. It is done only to
+        match exadis, which folds after AdjustCollisionPoint returns:
+
+            newpos = AdjustCollisionPoint(...);
+            newpos = network->cell.pbc_fold(newpos);
+
+        so that stored coordinates compare equal, not because the geometry
+        would otherwise be wrong.
         """
         r1 = self.G.nodes(tag1).R
         r2 = self.G.cell.closest_image(Rref=r1, R=self.G.nodes(tag2).R)
         if self.G.out_degree(tag1) == 1:
-            return r1
+            return self.G.cell.fold(r1)
         if self.G.out_degree(tag2) == 1:
-            return r2
+            return self.G.cell.fold(r2)
 
         # Change new position to be one of the node position so that
         # constrained node does not need to move
@@ -415,8 +431,11 @@ class RetroactiveCollision:
         swept-distance criterion sees them; the filter is vectorized
         because it is the only part of this rule that is O(N^2).
         """
-        segments = [tuple(sorted(pair))
-                    for pair in self.G.all_segments_tags()]
+        # Stored orientation is kept, never sorted. Both codes test
+        # "close to the first node" before the second, so when a segment
+        # is short enough that both ends lie within rann the endpoint
+        # order alone decides which node survives the merge.
+        segments = [tuple(pair) for pair in self.G.all_segments_tags()]
         if len(segments) < 2:
             return
 
