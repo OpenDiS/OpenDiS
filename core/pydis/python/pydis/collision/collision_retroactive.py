@@ -300,20 +300,20 @@ class RetroactiveCollision:
         DisNet.merge_node deletes its *first* argument, the opposite
         convention, hence the call order below.
 
-        The merge goes ahead even when both nodes are constrained. ParaDiS
-        instead unpins one of them first, so that its merge, which refuses
-        to delete a pinned node, can proceed:
+        The merge goes ahead even when both nodes are constrained, to match
+        exadis, whose merge never inspects constraints. DIFFERENT FROM
+        ParaDiS, which unpins one of them first so that its own merge,
+        which refuses to delete a pinned node, can proceed:
 
             if (mergenode1->constraint == PINNED_NODE &&
                 mergenode2->constraint == PINNED_NODE)
                 mergenode1->constraint &= ~PINNED_NODE;
 
-        That silently changes a boundary condition the caller set, so the
-        behaviour taken here is the other one: keep both constraints as
-        they are and merge anyway. Refusing outright, which is what PyDiS
-        did before, is the one option neither reference code takes: it
-        drops a collision that should have formed a junction, and says
-        nothing.
+        Unpinning silently changes a boundary condition the caller set, so
+        the exadis behaviour is taken instead: keep both constraints and
+        merge anyway. Refusing outright, which is what PyDiS did before, is
+        the one option neither code takes: it drops a collision that should
+        have formed a junction, and says nothing.
         """
         if self.G.nodes(tag2).constraint != DisNode.Constraints.UNCONSTRAINED:
             survivor, dead = tag2, tag1
