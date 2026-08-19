@@ -132,6 +132,14 @@ class Cell:
         ds -= self.is_periodic * np.round(ds)
         return np.dot(self.h, ds.T).T + Rref
 
+    def fold(self, R: np.ndarray) -> np.ndarray:
+        """fold: map a position into the primary cell (if PBC is applied)
+
+        The image of R nearest the cell centre. Corresponds to FoldBox in
+        external/ParaDiS.git/src/Util.c.
+        """
+        return self.closest_image(Rref=self.center(), R=R)
+
     def center(self) -> np.ndarray:
         """center: return the center of the cell
         """

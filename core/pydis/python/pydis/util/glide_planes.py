@@ -18,52 +18,88 @@ import numpy as np
 PLANE_COND = 0.875
 
 
+class PlaneSet:
+    """PlaneSet: a well-conditioned set of glide-plane constraints
+
+    Accepts candidate planes one at a time and keeps only those
+    sufficiently independent of the ones already held, up to max_planes.
+    Greedy and order-dependent by construction, matching the C: an earlier
+    plane can exclude a later one.
+
+    It is an accumulator rather than a filter over a list because the
+    constraints come from two nodes in turn and each candidate must be
+    tested against everything accepted so far, from either node. Testing
+    the two nodes independently lets in contradictory parallel planes,
+    which makes the constrained solve singular and silently leaves the
+    point where it started.
+    """
+
+    def __init__(self, max_planes=3, tol=PLANE_COND):
+        self.max_planes = max_planes
+        self.npc2 = tol * tol
+        self.onemnpc4 = (1.0 - tol) ** 4
+        self._normals = np.zeros((3, 3))
+        self._offsets = np.zeros(3)
+        self.n = 0
+
+    @property
+    def normals(self):
+        return self._normals[:self.n]
+
+    @property
+    def offsets(self):
+        return self._offsets[:self.n]
+
+    def accepts(self, normal, allow_first=True):
+        """accepts: would this plane add an independent constraint
+
+        allow_first=False rejects a candidate that would be the first
+        accepted. That reproduces a quirk of the C, whose plane-selection
+        switch omits the zero-planes case when scanning the second node of
+        a collision, so a plane offered there is rejected outright if the
+        first node offered none. Preserved rather than corrected because
+        agreement with the code being compared against is the point; see
+        the plan.
+        """
+        if self.n >= self.max_planes:
+            return False
+        if self.n == 0:
+            return allow_first
+        if self.n == 1:
+            cosine = float(np.dot(self._normals[0], normal))
+            return cosine * cosine < self.npc2
+        trial = self._normals.copy()
+        trial[2] = normal
+        det = float(np.linalg.det(trial))
+        return det * det > self.onemnpc4
+
+    def add(self, normal, offset, allow_first=True):
+        """add: keep this plane if it is independent enough; True if kept"""
+        if not self.accepts(normal, allow_first=allow_first):
+            return False
+        self._normals[self.n] = normal
+        self._offsets[self.n] = offset
+        self.n += 1
+        return True
+
+    def extend(self, candidates, allow_first=True):
+        """extend: offer a sequence of (normal, offset) pairs in order"""
+        for normal, offset in candidates:
+            self.add(normal, offset, allow_first=allow_first)
+        return self
+
+
 def select_independent_planes(candidates, max_planes=3, tol=PLANE_COND,
                               allow_first=True):
-    """select_independent_planes: keep a well-conditioned subset
+    """select_independent_planes: PlaneSet over one sequence, as arrays
 
-    candidates is an iterable of (normal, offset) with normal a unit
-    vector and offset the value of normal.x on the plane. Returns
-    (normals, offsets) as a (k, 3) and a (k,) array, k <= max_planes.
-
-    Greedy and order-dependent by construction, matching the C: each
-    candidate is accepted only if it is sufficiently independent of those
-    already held, so an earlier plane can exclude a later one.
-
-    allow_first=False rejects a candidate that would be the first
-    accepted. That reproduces a quirk of the C, which omits the
-    zero-planes case when scanning the second node of a collision, so a
-    plane offered there is rejected when the first node offered none. It
-    is preserved rather than corrected because the point of this
-    transcription is agreement with the code being compared against; see
-    the plan for the reasoning.
+    Convenience for the single-group case. Where constraints come from
+    more than one source, use PlaneSet directly so that every candidate is
+    tested against every plane already accepted.
     """
-    npc2 = tol * tol
-    onemnpc4 = (1.0 - tol) ** 4
-
-    normals = np.zeros((3, 3))
-    offsets = np.zeros(3)
-    n = 0
-
-    for normal, offset in candidates:
-        if n >= max_planes:
-            break
-        if n == 0:
-            accept = allow_first
-        elif n == 1:
-            cosine = float(np.dot(normals[0], normal))
-            accept = cosine * cosine < npc2
-        else:
-            trial = normals.copy()
-            trial[2] = normal
-            det = float(np.linalg.det(trial))
-            accept = det * det > onemnpc4
-        if accept:
-            normals[n] = normal
-            offsets[n] = offset
-            n += 1
-
-    return normals[:n], offsets[:n]
+    planes = PlaneSet(max_planes=max_planes, tol=tol)
+    planes.extend(candidates, allow_first=allow_first)
+    return planes.normals, planes.offsets
 
 
 def constrained_plane_point(point, normals, offsets):

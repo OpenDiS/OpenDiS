@@ -21,8 +21,7 @@ from collections import Counter
 import numpy as np
 
 from ..disnet import DisNet, DisNode
-from ..util.glide_planes import (select_independent_planes,
-                                 constrained_plane_point)
+from ..util.glide_planes import PlaneSet, constrained_plane_point
 from ..util.state_access import velocities_by_tag, old_positions_by_tag
 from .swept_distance import swept_seg_seg_collision, hinge_cos_angle
 
@@ -190,7 +189,12 @@ class RetroactiveCollision:
             return tag2, self.velocity(tag2)
 
         new_tag = self.G.get_new_tag()
-        self.G.insert_node_between(tag1, tag2, new_tag, r1 + ratio * vec)
+        # folded into the primary cell, as ParaDiS folds every split and
+        # merge position with FoldBox. Without it a node placed across a
+        # periodic face keeps an out-of-cell coordinate: the same point,
+        # written differently, which compares unequal.
+        pnew = self.G.cell.fold(r1 + ratio * vec)
+        self.G.insert_node_between(tag1, tag2, new_tag, pnew)
         v = ((1.0 - ratio) * self.velocity(tag1)
              + ratio * self.velocity(tag2))
         return new_tag, v
@@ -236,15 +240,15 @@ class RetroactiveCollision:
             return r2
 
         midpoint = 0.5 * (r1 + r2)
-        normals, offsets = select_independent_planes(
-            self.arm_planes(tag1, v1))
-        more_normals, more_offsets = select_independent_planes(
-            self.arm_planes(tag2, v2), max_planes=3 - len(offsets),
-            allow_first=len(offsets) > 0)
-        if len(more_offsets):
-            normals = np.vstack([normals, more_normals])
-            offsets = np.concatenate([offsets, more_offsets])
-        return constrained_plane_point(midpoint, normals, offsets)
+        # one accumulator across both nodes, so that a plane offered by
+        # the second is tested against those already taken from the first.
+        # Two contradictory parallel planes would otherwise both be kept
+        # and the solve would go singular, leaving the point unmoved.
+        planes = PlaneSet()
+        planes.extend(self.arm_planes(tag1, v1))
+        planes.extend(self.arm_planes(tag2, v2), allow_first=False)
+        return self.G.cell.fold(
+            constrained_plane_point(midpoint, planes.normals, planes.offsets))
 
     def thrown_too_far(self, tag1, tag2, newpos):
         """thrown_too_far: would this collision fling both nodes
@@ -296,14 +300,16 @@ class RetroactiveCollision:
 
         newpos = self.collision_point(node1, v1, node2, v2)
         if self.thrown_too_far(node1, node2, newpos):
-            self.report(kind, interval, 'rejected_throw', seg1, seg2)
+            self.report(kind, interval, 'rejected_throw', seg1, seg2,
+                        L1=l1, L2=l2, node1=node1, node2=node2)
             return
 
         self.latch(node1, node2)
         merged, status = self.merge(node1, node2, newpos)
         outcome = 'merged' if merged is not None else 'merge_failed'
         self.report(kind, interval, outcome, seg1, seg2,
-                    merged=merged, status=status, position=newpos)
+                    merged=merged, status=status, position=newpos,
+                    L1=l1, L2=l2, node1=node1, node2=node2)
 
     def report(self, kind, interval, outcome, seg1, seg2, **details):
         if self.record is not None:
