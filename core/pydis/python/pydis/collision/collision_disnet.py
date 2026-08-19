@@ -8,6 +8,8 @@ import numpy as np
 from ..disnet import DisNet, DisNode
 from framework.collision_base import Collision_Base
 from framework.disnet_manager import DisNetManager
+from .collision_retroactive import (handle_collision_retroactive,
+                                    CollisionRecord)
 
 try:
     from .getmindist2_paradis import GetMinDist2_paradis as GetMinDist2
@@ -28,7 +30,11 @@ class Collision:
             raise ValueError("Collision: nbrlist must come compatible modules")
 
         self.HandleCol_Functions = {
-            'Proximity': self.HandleCol_Proximity }
+            'Proximity': self.HandleCol_Proximity,
+            'Retroactive': self.HandleCol_Retroactive }
+        # collected when collision_record is on, for tests and diagnostics
+        self.collision_record = kwargs.get('collision_record', False)
+        self.records = []
         
     def HandleCol(self, DM: DisNetManager, state: dict) -> dict:
         """HandleCol: handle collision according to collision_mode
@@ -137,12 +143,25 @@ class Collision:
 
         return state
 
-    def HandleCol_Proximity_ParaDiS(self, G: DisNet, xold=None, dt=None) -> None:
-        """HandleCol_Proximity: using ProximityCollision of ParaDiS
-        """
-        raise NotImplementedError("HandleCol_Proximity_ParaDiS: not implemented yet")
+    def HandleCol_Retroactive(self, G: DisNet, state: dict, xold=None, dt=None) -> dict:
+        """HandleCol_Retroactive: retroactive collision, following ParaDiS
 
-    def HandleCol_Retroactive_ParaDiS(self, G: DisNet, xold=None, dt=None) -> None:
-        """HandleCol_Retroactive: using RetroactiveCollision of ParaDiS
+        Implemented in collision_retroactive.py, which follows ParaDiS
+        RetroactiveCollisions2 (collisionMethod 4), the same rule exadis
+        CollisionRetroactive implements. Not the Sills and Cai (2014)
+        algorithm, which is collisionMethod 3; see that module.
+
+        xold and dt are read from state rather than from these arguments,
+        which exist for signature compatibility with the other handlers.
         """
-        raise NotImplementedError("HandleCol_Retroactive_ParaDiS: not implemented yet")
+        record = CollisionRecord() if self.collision_record else None
+        rule = handle_collision_retroactive(G, state, record=record)
+        if record is not None:
+            self.records.append(record)
+        if rule.missing_old_position:
+            print("HandleCol_Retroactive: %d node(s) had no old position"
+                  % rule.missing_old_position)
+        if rule.missing_velocity:
+            print("HandleCol_Retroactive: %d velocity lookup(s) missed"
+                  % rule.missing_velocity)
+        return state

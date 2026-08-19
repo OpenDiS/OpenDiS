@@ -648,7 +648,38 @@ class DisNet(DisNet_Python):
             if self.out_degree(nbr_tag) == 0:
                 self._remove_node(nbr_tag)
 
-    def merge_node(self, tag1: Tag, tag2: Tag):
+    def seg_vector(self, tag1: Tag, tag2: Tag) -> np.ndarray:
+        """seg_vector: vector from tag1 to tag2, under the minimum image
+        """
+        R1 = self.nodes(tag1).R
+        return self.cell.closest_image(Rref=R1, R=self.nodes(tag2).R) - R1
+
+    def seg_length(self, tag1: Tag, tag2: Tag) -> float:
+        """seg_length: distance between two connected nodes, under the minimum image
+        """
+        return float(np.linalg.norm(self.seg_vector(tag1, tag2)))
+
+    def arm_vectors(self, tag: Tag) -> list:
+        """arm_vectors: one entry per arm of a node
+
+        Each entry is (nbr_tag, vec, burg_vec, plane_normal), with vec the
+        minimum-image vector from this node to that neighbour and burg_vec
+        oriented as leaving this node. plane_normal is None when the edge
+        carries none.
+
+        Collects in one place what several callers otherwise open-code:
+        the neighbour walk, the periodic reduction, and getting the
+        Burgers vector the right way round.
+        """
+        arms = []
+        for nbr_tag, edge in self.neighbor_segments_dict(tag).items():
+            arms.append((nbr_tag,
+                         self.seg_vector(tag, nbr_tag),
+                         edge.burg_vec_from(tag).copy(),
+                         getattr(edge, "plane_normal", None)))
+        return arms
+
+    def merge_node(self, tag1: Tag, tag2: Tag, position: np.ndarray=None):
         """merge_node: merge two nodes into one
            guarantees sanity after operation
            return mergedTag (tag1 or tag2) if merge is successful, None otherwise
@@ -656,6 +687,12 @@ class DisNet(DisNet_Python):
 
         Remove any links between node1 and node2
         If merged node has double-links to any neighbor, combine them into one (or zero) link
+
+        position, when given, is where the surviving node is placed. Without
+        it the survivor stays where it was, which is the previous and still
+        the default behaviour. Corresponds to exadis SerialDisNet::merge_nodes
+        (no position) and merge_nodes_position (with one), in
+        core/exadis/src/network.cpp.
         """
         node1Deletable = self.nodes(tag1).constraint != DisNode.Constraints.PINNED_NODE
         node2Deletable = self.nodes(tag2).constraint != DisNode.Constraints.PINNED_NODE
@@ -691,6 +728,8 @@ class DisNet(DisNet_Python):
         if self.has_node(targetNode) and self.out_degree(targetNode) > 0:
             mergedTag = targetNode
             status = 'MERGE_NODE_SUCCESS'
+            if position is not None:
+                self.nodes(mergedTag).R = np.array(position, dtype=float)
         else:
             mergedTag = None
             status = 'MERGE_NODE_ORPHANED'
