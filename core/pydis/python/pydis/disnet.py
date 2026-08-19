@@ -520,6 +520,12 @@ class DisNet(DisNet_Python):
         edge = self._G.edge_between(node1, node2)
         self._G.remove_edge(edge)
 
+    def _zero_edge(self, tag1: Tag, tag2: Tag) -> None:
+        """zero_edge: set an edge's Burgers vector to zero, keeping the edge
+           user is not supposed to call this low level function, does not guarantee sanity
+        """
+        self.segments((tag1, tag2)).burg_vec[:] = 0.0
+
     def _combine_edge(self, tag1: Tag, tag2: Tag, edge_attr: DisEdge) -> None:
         """combine_edge: combine an edge with an existing edge
            user is not supposed to call this low level function, does not guarantee sanity
@@ -688,7 +694,7 @@ class DisNet(DisNet_Python):
         return arms
 
     def merge_node(self, tag1: Tag, tag2: Tag, position: np.ndarray=None,
-                   ignore_constraints: bool=False):
+                   ignore_constraints: bool=False, defer_purge: bool=False):
         """merge_node: merge two nodes into one
            guarantees sanity after operation
            return mergedTag (tag1 or tag2) if merge is successful, None otherwise
@@ -706,6 +712,14 @@ class DisNet(DisNet_Python):
         ignore_constraints merges tag1 into tag2 even when both are pinned,
         which otherwise returns MERGE_NOT_PERMITTED. The caller then owns
         the decision, having already chosen which of the two survives.
+
+        defer_purge keeps the dead node and any annihilated arm in the
+        network instead of deleting them, leaving both for a later
+        purge_network. This is exadis behaviour; ParaDiS deletes eagerly
+        here, in MergeNode and RemoveDoubleLinks. The two give different
+        results, because a pass that runs before the purge sees the
+        annihilated arms as ordinary connectivity. Collision selects it
+        with its purge_at_end argument.
         """
         node1Deletable = self.nodes(tag1).constraint != DisNode.Constraints.PINNED_NODE
         node2Deletable = self.nodes(tag2).constraint != DisNode.Constraints.PINNED_NODE
@@ -723,18 +737,15 @@ class DisNet(DisNet_Python):
 
         # To do: update plastic strain due to merged node operation
 
-        # Remove any links between targetNode and deadNode
-        if self.has_segment(targetNode, deadNode):
-            self._remove_edge(targetNode, deadNode)
+        self._merge_arms(deadNode, targetNode, defer_purge)
 
-        # Move all connections from the dead node to the target node
-        # and add a new connection from the target node to each of the
-        # dead node's neighbors.
-        for nbr_tag, link_attr in self.neighbor_segments_dict(deadNode).items():
-            new_link_attr = DisEdge(nbr_tag, targetNode, link_attr.burg_vec_from(nbr_tag).copy(), link_attr.plane_normal.copy())
-            self._combine_edge(targetNode, nbr_tag, new_link_attr)
-
-            # To do: reset seg forces
+        if defer_purge:
+            # the dead node and the annihilated arms stay until purge_network
+            mergedTag = targetNode
+            status = 'MERGE_NODE_SUCCESS'
+            if position is not None:
+                self.nodes(mergedTag).R = np.array(position, dtype=float)
+            return mergedTag, status
 
         self._remove_node(deadNode)
 
@@ -751,6 +762,54 @@ class DisNet(DisNet_Python):
 
         return mergedTag, status
     
+    def _merge_arms(self, deadNode: Tag, targetNode: Tag, defer_purge: bool=False) -> None:
+        """merge_arms: move the dead node's arms onto the target node
+           user is not supposed to call this low level function, does not guarantee sanity
+
+        With defer_purge the dead node keeps every arm it cannot hand over,
+        zeroed rather than deleted, which is what exadis
+        SerialDisNet::merge_nodes_position does. See merge_node.
+        """
+        if self.has_segment(targetNode, deadNode):
+            if defer_purge:
+                self._zero_edge(targetNode, deadNode)
+            else:
+                self._remove_edge(targetNode, deadNode)
+
+        for nbr_tag, link_attr in list(self.neighbor_segments_dict(deadNode).items()):
+            if nbr_tag == targetNode or nbr_tag == deadNode:
+                continue
+            shared = self.has_segment(targetNode, nbr_tag)
+            new_link_attr = DisEdge(nbr_tag, targetNode, link_attr.burg_vec_from(nbr_tag).copy(), link_attr.plane_normal.copy())
+            self._combine_edge(targetNode, nbr_tag, new_link_attr)
+
+            # To do: reset seg forces
+
+            if not defer_purge:
+                continue
+            if shared:
+                # the two arms have been summed onto the target's own arm,
+                # so this one is annihilated but stays until purge_network
+                self._zero_edge(deadNode, nbr_tag)
+            else:
+                self._remove_edge(deadNode, nbr_tag)
+
+    def purge_network(self, tol: float=1e-8) -> None:
+        """purge_network: drop annihilated segments and the nodes they orphan
+           guarantees sanity after operation
+
+        Corresponds to exadis SerialDisNet::purge_network in
+        core/exadis/src/network.cpp. Only needed after merges made with
+        defer_purge; eager merges leave nothing to collect.
+        """
+        for (tag1, tag2), attr in list(self.all_segments_mapping()):
+            if np.max(np.abs(attr.burg_vec)) < tol:
+                self._remove_edge(tag1, tag2)
+
+        for tag in list(self.all_nodes_tags()):
+            if self.out_degree(tag) == 0:
+                self._remove_node(tag)
+
     def find_precise_glide_plane(self, bv: np.ndarray, dirv: np.ndarray, dot_cutoff=0.9995) -> np.ndarray:
         """find_precise_glide_plane: find glide plane normal given burgers vector and line direction
         """

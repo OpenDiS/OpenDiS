@@ -35,6 +35,10 @@ class Collision:
         # collected when collision_record is on, for tests and diagnostics
         self.collision_record = kwargs.get('collision_record', False)
         self.records = []
+        # Retroactive only: defer removing merged nodes and annihilated
+        # segments to one purge at the end of the pass, as exadis does.
+        # False deletes them at the merge, as ParaDiS does.
+        self.purge_at_end = kwargs.get('purge_at_end', True)
         
     def HandleCol(self, DM: DisNetManager, state: dict) -> dict:
         """HandleCol: handle collision according to collision_mode
@@ -155,7 +159,8 @@ class Collision:
         which exist for signature compatibility with the other handlers.
         """
         record = CollisionRecord() if self.collision_record else None
-        rule = handle_collision_retroactive(G, state, record=record)
+        rule = handle_collision_retroactive(G, state, record=record,
+                                            purge_at_end=self.purge_at_end)
         if record is not None:
             self.records.append(record)
         if rule.missing_old_position:

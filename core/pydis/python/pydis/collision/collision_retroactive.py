@@ -18,7 +18,9 @@ generator that produced it.
 Where ExaDiS and ParaDiS differ, this follows ExaDiS, because ExaDiS is
 what it is compared against step by step. Each such place says so in a
 comment naming both behaviours. The hinge pass and the collision latch
-are one; merging two constrained nodes is another.
+are one; merging two constrained nodes is another; when merged nodes and
+annihilated segments are removed is a third, and the only one carrying a
+switch, the purge_at_end argument of RetroactiveCollision.
 """
 
 from collections import Counter
@@ -72,14 +74,24 @@ class RetroactiveCollision:
     Holds only what the pass needs: the parameters, and the per-pass
     latch. Constructed per call rather than kept on the Collision object,
     so nothing leaks between steps.
+
+    purge_at_end defers removing merged nodes and annihilated segments to
+    a single purge_network at the end of the pass, which is what exadis
+    does, so the hinge pass sees the connectivity a merge leaves behind.
+    False deletes them at the merge, which is what ParaDiS does. The two
+    give different results; see DisNet.merge_node.
     """
 
-    def __init__(self, G, state, record=None):
+    def __init__(self, G, state, record=None, purge_at_end=True):
         self.G = G
         self.rann = state["rann"]
         self.mindist2 = self.rann ** 2
         self.dt = state.get("dt")
         self.use_glide_planes = bool(state.get("use_glide_planes", False))
+        # exadis defers node and segment removal to the end of the pass, so
+        # its later passes see annihilated arms as live connectivity. False
+        # restores the ParaDiS behaviour of deleting them at the merge.
+        self.purge_at_end = bool(purge_at_end)
         self.record = record
 
         self.velocities = velocities_by_tag(state)
@@ -92,6 +104,9 @@ class RetroactiveCollision:
         # of their two tags. Per-pass state, so it is local and not a flag
         # on the network.
         self.done = set()
+
+        # nodes eligible for the hinge pass, filled in by run()
+        self.pre_pass_nodes = frozenset()
 
     # ------------------------------------------------------------ lookups
 
@@ -320,7 +335,8 @@ class RetroactiveCollision:
         else:
             survivor, dead = tag1, tag2
         return self.G.merge_node(dead, survivor, position=newpos,
-                                 ignore_constraints=True)
+                                 ignore_constraints=True,
+                                 defer_purge=self.purge_at_end)
 
     def latch(self, *tags):
         """latch: bar every segment on these nodes from colliding again"""
@@ -465,11 +481,26 @@ class RetroactiveCollision:
             self.collide(seg1, seg2, interval, l1, l2)
 
     def hinge_pairs(self):
-        """hinge_pairs: pairs of arms of the same node, as tags"""
-        for tag in list(self.G.all_nodes_tags()):
+        """hinge_pairs: pairs of arms of the same node, as tags
+
+        Only nodes that existed before the segment pass ran are eligible,
+        as hinge node or as either far node. Matches exadis, whose hinge
+        loop is bounded by the pre-pass node count and drops an arm whose
+        far node is beyond it:
+
+            for (int i = 0; i < nnodes; i++) {
+                ...
+                if (n3 >= nnodes) continue;
+                    ...
+                    if (n4 >= nnodes) continue;
+
+        so a node a split created this pass cannot take part in a zip.
+        """
+        for tag in self.pre_pass_nodes:
             if not self.G.has_node(tag):
                 continue
-            nbrs = list(self.G.neighbors_tags(tag))
+            nbrs = [n for n in self.G.neighbors_tags(tag)
+                    if n in self.pre_pass_nodes]
             for i, n3 in enumerate(nbrs):
                 for n4 in nbrs[i + 1:]:
                     yield tag, n3, n4
@@ -541,11 +572,17 @@ class RetroactiveCollision:
                         position=newpos)
 
     def run(self):
+        # snapshot before the segment pass, because the hinge pass may not
+        # act on nodes that pass creates. See hinge_pairs.
+        self.pre_pass_nodes = frozenset(self.G.all_nodes_tags())
         self.run_segment_pass()
         self.run_hinge_pass()
+        if self.purge_at_end:
+            self.G.purge_network()
 
 
-def handle_collision_retroactive(G: DisNet, state: dict, record=None):
+def handle_collision_retroactive(G: DisNet, state: dict, record=None,
+                                 purge_at_end=True):
     """handle_collision_retroactive: one retroactive collision pass
 
     Raises when the inputs a retroactive rule is defined by are absent.
@@ -569,7 +606,8 @@ def handle_collision_retroactive(G: DisNet, state: dict, record=None):
             "The predictive half of the criterion sweeps one timestep "
             "ahead, and a zero step would switch it off silently.")
 
-    rule = RetroactiveCollision(G, state, record=record)
+    rule = RetroactiveCollision(G, state, record=record,
+                                purge_at_end=purge_at_end)
     rule.run()
 
     if not G.is_sane():
