@@ -81,6 +81,7 @@ class RetroactiveCollision:
         self.old_positions = old_positions_by_tag(state)
         self.missing_velocity = 0
         self.missing_old_position = 0
+        self.last_planes = 0
 
         # segments already involved in a collision this pass, as frozensets
         # of their two tags. Per-pass state, so it is local and not a flag
@@ -225,10 +226,21 @@ class RetroactiveCollision:
                     yield unit, float(np.dot(unit, r))
                     break
 
+    def constrained_node(self, tag):
+        """constrained_node: is this node ineligible to be relocated
+
+        True for a node that does not have exactly two arms, or that
+        carries any constraint. A junction or a pinned end is held in
+        place; an ordinary interior node is free to move.
+        """
+        return (self.G.out_degree(tag) != 2
+                or self.G.nodes(tag).constraint
+                != DisNode.Constraints.UNCONSTRAINED)
+
     def collision_point(self, tag1, v1, tag2, v2):
         """collision_point: where the two merging nodes should meet
 
-        The midpoint, moved onto the intersection of the glide planes of
+        The base point, moved onto the intersection of the glide planes of
         both nodes' arms. A node with a single arm cannot be relocated, so
         its position is used unchanged.
         """
@@ -239,7 +251,15 @@ class RetroactiveCollision:
         if self.G.out_degree(tag2) == 1:
             return r2
 
-        midpoint = 0.5 * (r1 + r2)
+        # Change new position to be one of the node position so that
+        # constrained node does not need to move
+        c1, c2 = self.constrained_node(tag1), self.constrained_node(tag2)
+        if c1 and not c2:
+            final_pos = r1
+        elif c2 and not c1:
+            final_pos = r2
+        else:
+            final_pos = 0.5 * (r1 + r2)
         # one accumulator across both nodes, so that a plane offered by
         # the second is tested against those already taken from the first.
         # Two contradictory parallel planes would otherwise both be kept
@@ -247,8 +267,9 @@ class RetroactiveCollision:
         planes = PlaneSet()
         planes.extend(self.arm_planes(tag1, v1))
         planes.extend(self.arm_planes(tag2, v2), allow_first=False)
+        self.last_planes = planes.n
         return self.G.cell.fold(
-            constrained_plane_point(midpoint, planes.normals, planes.offsets))
+            constrained_plane_point(final_pos, planes.normals, planes.offsets))
 
     def thrown_too_far(self, tag1, tag2, newpos):
         """thrown_too_far: would this collision fling both nodes
@@ -298,10 +319,13 @@ class RetroactiveCollision:
         if node2 is None or node2 == node1:
             return
 
+        arms1 = self.G.out_degree(node1)
+        arms2 = self.G.out_degree(node2)
         newpos = self.collision_point(node1, v1, node2, v2)
         if self.thrown_too_far(node1, node2, newpos):
             self.report(kind, interval, 'rejected_throw', seg1, seg2,
-                        L1=l1, L2=l2, node1=node1, node2=node2)
+                        L1=l1, L2=l2, node1=node1, node2=node2,
+                        arms1=arms1, arms2=arms2, planes=self.last_planes)
             return
 
         self.latch(node1, node2)
@@ -309,7 +333,8 @@ class RetroactiveCollision:
         outcome = 'merged' if merged is not None else 'merge_failed'
         self.report(kind, interval, outcome, seg1, seg2,
                     merged=merged, status=status, position=newpos,
-                    L1=l1, L2=l2, node1=node1, node2=node2)
+                    L1=l1, L2=l2, node1=node1, node2=node2,
+                    arms1=arms1, arms2=arms2, planes=self.last_planes)
 
     def report(self, kind, interval, outcome, seg1, seg2, **details):
         if self.record is not None:
@@ -374,17 +399,32 @@ class RetroactiveCollision:
                     continue                  # shares a node: a hinge
                 yield seg1, seg2
 
+    def detect_all(self):
+        """detect_all: every colliding pair, on the untouched network
+
+        Detection is completed before any collision is carried out, which
+        is how the reference implementation is organized: it finds all
+        pairs in parallel and then executes them in sequence. The
+        difference is observable. Detecting as we go would let an earlier
+        collision move the nodes a later detection reads, and would offer
+        the criterion segments split moments before, whose new nodes carry
+        no velocity because the mobility law never saw them.
+        """
+        return [(seg1, seg2) + hit
+                for seg1, seg2 in self.segment_pairs()
+                for hit in [self.detect(seg1, seg2)] if hit is not None]
+
     def run_segment_pass(self):
-        """run_segment_pass: collide segments that do not share a node"""
-        for seg1, seg2 in self.segment_pairs():
+        """run_segment_pass: collide segments that do not share a node
+
+        Detect first, then execute, skipping any pair whose segments an
+        earlier collision has already consumed.
+        """
+        for seg1, seg2, interval, l1, l2 in self.detect_all():
             if frozenset(seg1) in self.done or frozenset(seg2) in self.done:
                 continue
             if not (self.G.has_segment(*seg1) and self.G.has_segment(*seg2)):
                 continue
-            hit = self.detect(seg1, seg2)
-            if hit is None:
-                continue
-            interval, l1, l2 = hit
             self.collide(seg1, seg2, interval, l1, l2)
 
     def hinge_pairs(self):
