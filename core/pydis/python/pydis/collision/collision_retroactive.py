@@ -400,15 +400,22 @@ class RetroactiveCollision:
             return
 
         cutoff = self.candidate_cutoff(segments)
-        mid = np.array([self.G.nodes(t1).R + 0.5 * self.G.seg_vector(t1, t2)
-                        for t1, t2 in segments])
+        vecs = np.array([self.G.seg_vector(t1, t2) for t1, t2 in segments])
+        mid = np.array([self.G.nodes(t1).R for t1, t2 in segments]) + 0.5 * vecs
+        half = 0.5 * np.linalg.norm(vecs, axis=1)
         # minimum image on the mid-point separations, so the filter is not
         # fooled by a pair either side of a periodic face
         deltas = mid[:, None, :] - mid[None, :, :]
         shape = deltas.shape
         reduced = np.array([self.G.cell.map(d)
                             for d in deltas.reshape(-1, 3)]).reshape(shape)
-        near = np.einsum('ijk,ijk->ij', reduced, reduced) < cutoff * cutoff
+        # The cutoff bounds how far apart two segments can be, not how far
+        # apart their mid-points are. A segment reaches half its length
+        # beyond its own mid-point, so both half-lengths have to be added
+        # before the comparison; without them a long pair that genuinely
+        # collides near its ends is dropped before the criterion sees it.
+        reach = cutoff + half[:, None] + half[None, :]
+        near = np.einsum('ijk,ijk->ij', reduced, reduced) < reach * reach
 
         # The higher-indexed segment is yielded first, matching exadis,
         # whose pair loop keeps only k < i and so treats the higher index
