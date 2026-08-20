@@ -666,11 +666,11 @@ class RetroactiveCollision:
 
         Nodes are visited in network order, which is the order exadis'
         node array holds them and the order import_data rebuilt them in.
-        The order is load-bearing: a hinge can merge away a node that a
-        later hinge then acts on, because deferred removal leaves it in
-        place, so visiting the two in the wrong order loses the second
-        zip. Iterating the set rather than the list silently randomizes
-        this.
+        The pass is order-sensitive: under purge_at_end a hinge can merge
+        away a node that a later hinge then acts on, so the two have to be
+        visited in the reference's order. Measured to change nothing on
+        this trajectory, where set order happens to agree; kept because
+        set order is unrelated to the reference's and agreeing is luck.
         """
         for tag in self.pre_pass_order:
             if not self.G.has_node(tag):
