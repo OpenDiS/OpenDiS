@@ -20,7 +20,12 @@ what it is compared against step by step. Each such place says so in a
 comment naming both behaviours. The hinge pass and the collision latch
 are one; merging two constrained nodes is another; when merged nodes and
 annihilated segments are removed is a third, and the only one carrying a
-switch, the purge_at_end argument of RetroactiveCollision.
+switch, the purge_at_end argument of RetroactiveCollision; the guard on
+the predictive hinge is a fourth.
+
+The hinge thresholds come from exadis too: 0.98, relaxed to 0.9 when the
+two far nodes are themselves connected. ParaDiS uses 0.999 and has no
+relaxed case.
 """
 
 from collections import Counter
@@ -49,6 +54,9 @@ HINGE_TOL_TRI = 0.9
 THROW_FACTOR = 4.0
 
 ZERO_LENGTH2 = 1.0e-20
+
+# an arm below this is annihilated, awaiting purge_network
+ZERO_BURGERS = 1.0e-8
 
 # upper bound on collision bins per direction, as exadis MAX_BOX
 MAX_BINS_PER_DIRECTION = 50
@@ -112,7 +120,9 @@ class RetroactiveCollision:
         # on the network.
         self.done = set()
 
-        # nodes eligible for the hinge pass, filled in by run()
+        # nodes eligible for the hinge pass, filled in by run(): the order
+        # they are visited in, and the same set for membership tests
+        self.pre_pass_order = []
         self.pre_pass_nodes = frozenset()
 
     # ------------------------------------------------------------ lookups
@@ -253,14 +263,32 @@ class RetroactiveCollision:
                     yield unit, float(np.dot(unit, r))
                     break
 
+    def live_arms(self, tag):
+        """live_arms: arms of a node that still carry a Burgers vector
+
+        Under purge_at_end a merge leaves annihilated arms in place until
+        the end of the pass, so out_degree counts arms that no longer
+        exist physically. Anything asking "is this a junction" has to
+        ignore those.
+        """
+        return sum(1 for attr in self.G.neighbor_segments_dict(tag).values()
+                   if float(np.max(np.abs(attr.burg_vec))) > ZERO_BURGERS)
+
     def constrained_node(self, tag):
         """constrained_node: is this node ineligible to be relocated
 
-        True for a node that does not have exactly two arms, or that
+        True for a node that does not have exactly two live arms, or that
         carries any constraint. A junction or a pinned end is held in
         place; an ordinary interior node is free to move.
+
+        Counted on live arms. This rule has no counterpart in exadis,
+        whose AdjustCollisionPoint has only the two single-arm early
+        exits; it is a design choice of ours (plan 8.7), so it is ours to
+        keep correct. Counting out_degree instead would make an ordinary
+        two-arm node read as a junction for the rest of the pass, purely
+        because a merge left an annihilated arm hanging off it.
         """
-        return (self.G.out_degree(tag) != 2
+        return (self.live_arms(tag) != 2
                 or self.G.nodes(tag).constraint
                 != DisNode.Constraints.UNCONSTRAINED)
 
@@ -635,8 +663,16 @@ class RetroactiveCollision:
                     if (n4 >= nnodes) continue;
 
         so a node a split created this pass cannot take part in a zip.
+
+        Nodes are visited in network order, which is the order exadis'
+        node array holds them and the order import_data rebuilt them in.
+        The order is load-bearing: a hinge can merge away a node that a
+        later hinge then acts on, because deferred removal leaves it in
+        place, so visiting the two in the wrong order loses the second
+        zip. Iterating the set rather than the list silently randomizes
+        this.
         """
-        for tag in self.pre_pass_nodes:
+        for tag in self.pre_pass_order:
             if not self.G.has_node(tag):
                 continue
             nbrs = [n for n in self.G.neighbors_tags(tag)
@@ -656,9 +692,24 @@ class RetroactiveCollision:
         p4 = self.G.cell.closest_image(Rref=p1, R=self.G.nodes(n4).R)
         tol = HINGE_TOL_TRI if self.G.has_segment(n3, n4) else HINGE_TOL
 
-        if hinge_cos_angle(p1, p3, p4) > tol:
+        cosine = hinge_cos_angle(p1, p3, p4)
+        if cosine > tol:
             return 'retroactive'
-        if not self.dt:
+        # The predictive interval is only looked at when the arms already
+        # lean the same way. Follows exadis, whose guard is on the cosine
+        # its criterion hands back in L1:
+        #
+        #     if (!collisionConditionIsMet && L1 > 0.0) {
+        #
+        # DIFFERENT FROM ParaDiS, which goes straight to the predictive
+        # interval on `if (!collisionConditionIsMet)` with no such test.
+        # It could not have one: its HingeCollisionCriterion assigns
+        # *L1ratio only when the criterion is met, and as a ratio of
+        # lengths rather than a cosine. exadis rewrote the function to
+        # return the cosine always, and added the guard on the back of
+        # that. Without it a hinge whose arms point apart is still zipped
+        # on a one-step extrapolation.
+        if cosine <= 0.0 or not self.dt:
             return None
         q1 = self.predicted(tag, p1)
         q3, q4 = self.predicted(n3, p3), self.predicted(n4, p4)
@@ -713,8 +764,10 @@ class RetroactiveCollision:
 
     def run(self):
         # snapshot before the segment pass, because the hinge pass may not
-        # act on nodes that pass creates. See hinge_pairs.
-        self.pre_pass_nodes = frozenset(self.G.all_nodes_tags())
+        # act on nodes that pass creates. Order is kept, not just membership:
+        # see hinge_pairs.
+        self.pre_pass_order = list(self.G.all_nodes_tags())
+        self.pre_pass_nodes = frozenset(self.pre_pass_order)
         self.run_segment_pass()
         self.run_hinge_pass()
         if self.purge_at_end:
