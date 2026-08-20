@@ -7,3 +7,7 @@
 [submodule "core/pydis/python/pydis/graph"]
 	path = core/pydis/python/pydis/graph
 	url = https://github.com/maxcai314/portable-graph-utilities.git
+[submodule "external/paradis"]
+	path = external/paradis
+	url = https://gitlab.com/micronano/ParaDiS.git
+	update = none
