@@ -2,7 +2,7 @@
 
 Follows ParaDiS RetroactiveCollisions2 in
 external/ParaDiS.git/src/RetroactiveCollision2.c, which is ParaDiS
-collisionMethod 4 and the algorithm ExaDiS CollisionRetroactive ports in
+collisionMethod 4.  The corresponding implementation in ExaDiS is
 core/exadis/src/collision_types/collision_retroactive.cpp.
 
 Note: this is NOT the algorithm of Sills and Cai (2014). That paper
@@ -21,7 +21,8 @@ comment naming both behaviours. The hinge pass and the collision latch
 are one; merging two constrained nodes is another; when merged nodes and
 annihilated segments are removed is a third, and the only one carrying a
 switch, the purge_at_end argument of RetroactiveCollision; the guard on
-the predictive hinge is a fourth.
+the predictive hinge is a fourth. Refusing to move a constrained node is
+a fifth, and departs from both: see collision_point.
 
 The hinge thresholds come from exadis too: 0.98, relaxed to 0.9 when the
 two far nodes are themselves connected. ParaDiS uses 0.999 and has no
@@ -54,9 +55,6 @@ HINGE_TOL_TRI = 0.9
 THROW_FACTOR = 4.0
 
 ZERO_LENGTH2 = 1.0e-20
-
-# an arm below this is annihilated, awaiting purge_network
-ZERO_BURGERS = 1.0e-8
 
 # upper bound on collision bins per direction, as exadis MAX_BOX
 MAX_BINS_PER_DIRECTION = 50
@@ -263,35 +261,6 @@ class RetroactiveCollision:
                     yield unit, float(np.dot(unit, r))
                     break
 
-    def live_arms(self, tag):
-        """live_arms: arms of a node that still carry a Burgers vector
-
-        Under purge_at_end a merge leaves annihilated arms in place until
-        the end of the pass, so out_degree counts arms that no longer
-        exist physically. Anything asking "is this a junction" has to
-        ignore those.
-        """
-        return sum(1 for attr in self.G.neighbor_segments_dict(tag).values()
-                   if float(np.max(np.abs(attr.burg_vec))) > ZERO_BURGERS)
-
-    def constrained_node(self, tag):
-        """constrained_node: is this node ineligible to be relocated
-
-        True for a node that does not have exactly two live arms, or that
-        carries any constraint. A junction or a pinned end is held in
-        place; an ordinary interior node is free to move.
-
-        Counted on live arms. This rule has no counterpart in exadis,
-        whose AdjustCollisionPoint has only the two single-arm early
-        exits; it is a design choice of ours (plan 8.7), so it is ours to
-        keep correct. Counting out_degree instead would make an ordinary
-        two-arm node read as a junction for the rest of the pass, purely
-        because a merge left an annihilated arm hanging off it.
-        """
-        return (self.live_arms(tag) != 2
-                or self.G.nodes(tag).constraint
-                != DisNode.Constraints.UNCONSTRAINED)
-
     def collision_point(self, tag1, v1, tag2, v2):
         """collision_point: where the two merging nodes should meet
 
@@ -322,15 +291,52 @@ class RetroactiveCollision:
         if self.G.out_degree(tag2) == 1:
             return self.G.cell.fold(r2)
 
-        # Change new position to be one of the node position so that
-        # constrained node does not need to move
-        c1, c2 = self.constrained_node(tag1), self.constrained_node(tag2)
-        if c1 and not c2:
-            final_pos = r1
-        elif c2 and not c1:
-            final_pos = r2
-        else:
-            final_pos = 0.5 * (r1 + r2)
+        # A constrained node is never moved. Returned here rather than
+        # used as the base point for the plane solve below, because that
+        # solve projects its argument onto the planes of both nodes' arms
+        # and would happily push a pinned node off its boundary again.
+        # Any constraint counts, not only PINNED_NODE: a surface node is
+        # no freer to leave its surface. The order matches merge(), which
+        # keeps whichever node carries a constraint, so the point returned
+        # is the survivor's own position; with both constrained it keeps
+        # the one that survives.
+        #
+        # ExaDiS's collision path does not guard the position of a pinned
+        # node. It tests the constraint only to decide which node
+        # survives, then moves it anyway: merge_nodes_position assigns the
+        # new position unconditionally.
+        #
+        # Its stated intent is the same as ours, though: the single-arm
+        # exits above carry the comment "If a node is a 'fixed' node it
+        # can't be relocated", with an arm count standing in for fixed.
+        # The test here is that intent applied to the constraint itself.
+        # ExaDiS does guard properly in SerialDisNet::merge_nodes, which
+        # remesh uses, through a constrained_node that is an arm count OR
+        # a constraint; this keeps the constraint half of that and leaves
+        # the arm count out, the arm count being what went wrong above.
+        if self.G.nodes(tag2).constraint != DisNode.Constraints.UNCONSTRAINED:
+            return self.G.cell.fold(r2)
+        if self.G.nodes(tag1).constraint != DisNode.Constraints.UNCONSTRAINED:
+            return self.G.cell.fold(r1)
+
+        # The midpoint. How far a node may move from it is settled
+        # below, by the glide planes its arms define: one independent
+        # plane leaves it free to slide within that plane, three pin it
+        # where it stands. An arm count answers a different question and
+        # gets this wrong, because a four-arm junction whose arms are all
+        # coplanar is still mobile in that plane, yet was being held
+        # still by a rule that counted arms.
+        #
+        # Alternative worth considering: keep a constrained-node rule but
+        # base it on the plane count rather than the arm count, so that a
+        # genuinely pinned junction, three independent planes, holds its
+        # ground while a coplanar one moves. That keeps the intent of
+        # holding junctions still without the arm count standing in for
+        # it. The helpers such a rule needs, a constrained_node test and a
+        # live-arm count ignoring arms awaiting purge_network, were
+        # removed with the old rule rather than left uncalled; git history
+        # has them.
+        final_pos = 0.5 * (r1 + r2)
         # one accumulator across both nodes, so that a plane offered by
         # the second is tested against those already taken from the first.
         # Two contradictory parallel planes would otherwise both be kept
