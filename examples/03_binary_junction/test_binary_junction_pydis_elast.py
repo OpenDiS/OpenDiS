@@ -129,30 +129,20 @@ def main(plot=True, max_step=200, dt=1.0e-9, print_freq=10, write_freq=10):
                             vmax=1.0e15)
     timeint   = TimeIntegration(integrator='EulerForward', dt=dt, state=state)
 
-    # KNOWN LIMITATION, and it bites this example harder than the others.
+    # 'Serial' rather than 'MaxDiss', to match the 'TopologySerial' model the
+    # companion exadis run uses. The two lines start with a node each at the box
+    # centre, so the first collision merges them into a node with 4 arms, and
+    # splitting that node into two 3-arm nodes joined by a junction segment IS
+    # the physics this case exists to show. 'MaxDiss' measures the power
+    # released with the two trial nodes still on top of each other, which cannot
+    # see the energy released by pulling the two lines apart, and so leaves the
+    # 4-arm node alone. 'Serial' moves them apart first, as ParaDiS does, and
+    # reads rann, minseg and a from state.
     #
-    # The two lines start with a node each at the box centre, so the first
-    # collision merges them into a node with 4 arms. Topology(split_mode=
-    # 'MaxDiss') calls OneNodeForce on every node with 4 or more arms, and
-    # OneNodeForce is not implemented for the Elasticity_* force modes, so
-    # this run stops with
-    #     NotImplementedError: OneNodeForce_Elasticity_SBA not implemented yet
-    # as soon as that junction node forms, which is within the first few
-    # steps rather than at step 270 as in 02_frank_read_src.
-    #
-    # Topology cannot simply be disabled to avoid it: the Proximity collision
-    # handler reads the nodeflag_dict that only
-    # Topology.init_topology_exemptions creates, so topology=None fails
-    # earlier still with KeyError: 'nodeflag_dict'.
-    #
-    # There is no useful workaround at the example level, because splitting
-    # that 4-arm node into two 3-arm nodes joined by a junction segment IS the
-    # physics this case exists to show. Implementing
-    # OneNodeForce_Elasticity_SBA in pydis/calforce/calforce_disnet.py is a
-    # prerequisite for this example, not a nicety. Until then the companion
-    # exadis run is the one that produces a junction, and this file documents
-    # what pydis needs in order to match it.
-    topology  = Topology(split_mode='MaxDiss', state=state,
+    # Topology cannot simply be disabled: the Proximity collision handler reads
+    # the nodeflag_dict that only Topology.init_topology_exemptions creates, so
+    # topology=None fails with KeyError: 'nodeflag_dict'.
+    topology  = Topology(split_mode='Serial', state=state,
                          force=calforce, mobility=mobility)
     collision = Collision(collision_mode='Proximity', state=state,
                           nbrlist=nbrlist)
@@ -184,8 +174,8 @@ if __name__ == "__main__":
     parser.add_argument('--no-plot', dest='plot', action='store_false',
                         default=True)
     parser.add_argument('--max-step', dest='max_step', type=int, default=200,
-                        help='see the note on Topology in main(): this run '
-                             'currently stops when the junction node forms')
+                        help='steps to run; the junction forms at step 2 and '
+                             'grows for the rest of the run')
     parser.add_argument('--dt', dest='dt', type=float, default=1.0e-9)
     parser.add_argument('--print-freq', dest='print_freq', type=int,
                         default=10,
