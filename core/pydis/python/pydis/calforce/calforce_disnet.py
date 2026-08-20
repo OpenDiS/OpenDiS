@@ -6,8 +6,8 @@ Provide force calculation functions given a DisNet object
 Cutoff convention for the Elasticity_* force modes
 --------------------------------------------------
 When CalForce is constructed with a 'cutoff', the segment-segment elastic interaction is
-truncated using the same two-stage criterion as the CUTOFF_MODEL of exadis, which in turn
-follows ParaDiS. A pair of segments (i, j) contributes only if BOTH hold:
+truncated using the same two-stage criterion as the CUTOFF_MODEL of exadis. A pair of
+segments (i, j) contributes only if BOTH hold:
 
   1. the distance between the two segment MID-POINTS is <= cutoff + maxseg
   2. the minimum distance between the two SEGMENTS is < cutoff
@@ -20,9 +20,20 @@ NeiSeg), and stage 2 is the test actually applied when the segment-pair list is 
 Stage 1 is exact only when no segment is longer than maxseg, which remesh normally
 guarantees. Where that does not hold -- pinned edges that remesh never refines, for
 instance -- stage 1 discards pairs whose true segment-segment distance is below the cutoff,
-and the truncation is then slightly stronger than the nominal cutoff implies. This is
-deliberate here: it is a design choice inherited from ParaDiS, and it is reproduced rather
-than corrected so that pydis and exadis agree pair for pair.
+and the truncation is then slightly stronger than the nominal cutoff implies. That is
+reproduced rather than corrected, so that both codes select the same pairs.
+
+This criterion has no ParaDiS counterpart, and it is worth saying so before anyone goes
+looking for one. ParaDiS does not truncate the pair sum at a radius at all: it splits near
+from far by CELLS, building pair lists between a cell and its neighbours with CellPriority
+deciding ownership (external/paradis/src/LocalSegForces.c), and handles everything beyond
+through the fast multipole method (RemoteForceOneSeg, ibid.). Its rc is the core radius,
+"a = param->rc", not a cutoff. The mid-point test and the widening by maxseg are a way of
+bounding a neighbor search, and they are here for one reason: to make a pair-for-pair
+comparison possible.
+
+Everything below that reproduces this convention refers back to these paragraphs rather
+than restating the provenance, so the comparison is documented in one place.
 
 Distances are evaluated under the minimum image convention. The largest separation
 attainable that way in a cubic cell of side L is the half diagonal sqrt(3)/2*L, so any
@@ -61,7 +72,10 @@ _ZERO_VEL = np.zeros(3)
 def min_dist2_segseg(p1, p2, p3, p4, connected, eps0=1.0e-12):
     """min_dist2_segseg: squared minimum distance between segments (p1,p2) and (p3,p4)
 
-    Mirrors get_min_dist2_segseg() of exadis (src/functions.h), called there with hinge=0:
+    The same quantity ParaDiS computes in MinSegSegDist
+    (external/paradis/src/RetroactiveCollision2.c:219), written to match
+    get_min_dist2_segseg() in exadis (src/functions.h) with hinge=0, so that stage 2
+    of the cutoff agrees pair for pair. Return convention:
       - returns -1.0 if either segment is degenerate, so that a "dist2 >= 0" test rejects it
       - returns 0.0 for segments sharing a node, so that they are always within any cutoff
     The endpoints are expected to have been mapped to a common periodic image already.
@@ -203,10 +217,11 @@ class CalForce(CalForce_Base):
         self.Ec = self.mu/4.0/np.pi*np.log(self.a/0.1) if Ec is None else Ec
         self.force_mode = force_mode
 
-        # Two-stage segment-pair cutoff, matching the CUTOFF_MODEL of exadis; see the module
+        # Two-stage segment-pair cutoff; see the module
         # docstring for the convention and why the mid-point stage is reproduced rather than
-        # corrected. Segment self forces (i == j) are never cut off, mirroring exadis where
-        # they come from CORE_SELF_PKEXT and not from the segment-pair list.
+        # corrected. Segment self forces (i == j) are never cut off: ParaDiS applies
+        # SelfForce (external/paradis/src/NodeForce.c:2688) to every segment
+        # unconditionally.
         self.cutoff = cutoff
         self.cutoff2 = None if cutoff is None or cutoff < 0.0 else cutoff*cutoff
         self.maxseg = state.get("maxseg", None)
@@ -218,7 +233,8 @@ class CalForce(CalForce_Base):
         # Cell list used to avoid testing every segment pair. Only a candidate filter:
         # within_cutoff remains the authoritative test, evaluated on true positions under
         # the minimum image convention, so the bin-derived-distance defect that affects
-        # exadis' neighbor list is not reproduced here. Built lazily in _nbrlist_for(),
+        # the neighbor-list defect noted in the module docstring is not reproduced here.
+        # Built lazily in _nbrlist_for(),
         # because the cell can change between calls.
         self.use_cell_list = use_cell_list
         self._nbrlist = None
@@ -260,7 +276,7 @@ class CalForce(CalForce_Base):
     def _nbrlist_for(self, cell, Nseg):
         """_nbrlist_for: cell list sized for this cell and cutoff, or None for all pairs
 
-        The division count follows exadis: n_div = floor(width / (cutoff + maxseg)), so that
+        The division count is n_div = floor(width / (cutoff + maxseg)), so that
         anything within the search radius lies in an adjacent cell. Returns None when a cell
         list cannot be used or would not help, in which case the caller falls back to
         iterating every pair:
@@ -297,7 +313,7 @@ class CalForce(CalForce_Base):
         """candidate_pairs: iterate (i, j), i < j, of segment pairs worth testing
 
         Uses the cell list when it applies, otherwise every pair. Segments are binned by
-        mid-point, matching what exadis does and what the collision handler already does.
+        mid-point, as the cutoff convention and the collision handler both require.
         """
         nbrlist = self._nbrlist_for(G.cell, Nseg)
         if nbrlist is None:
@@ -394,15 +410,13 @@ class CalForce(CalForce_Base):
     def within_cutoff(self, cell, p1, p2, p3, p4, tags12, tags34) -> bool:
         """within_cutoff: whether segments (p1,p2) and (p3,p4) interact under self.cutoff
 
-        Applies the two-stage criterion of exadis' CUTOFF_MODEL documented at the top of
-        this module: mid-point separation <= cutoff + maxseg, then minimum segment-segment
+        Applies the two-stage criterion documented at the top of this module: mid-point separation <= cutoff + maxseg, then minimum segment-segment
         distance < cutoff. Endpoints must already be mapped to a common periodic image by
         the caller.
         """
-        # stage 1: mid-point test, reproducing the segment binning of the exadis neighbor
-        # list (NeighborBox with NeiSeg, which bins on 0.5*(r1+r2) and widens the cutoff by
-        # maxseg). Unlike a bound based on the true segment lengths this can discard pairs
-        # when a segment is longer than maxseg -- see the module docstring.
+        # stage 1: mid-point test, reproducing the segment binning described in the module
+        # docstring. Unlike a bound based on the true segment lengths this can discard pairs
+        # when a segment is longer than maxseg.
         c12, c34 = 0.5*(p1+p2), 0.5*(p3+p4)
         c34 = cell.closest_image(Rref=c12, R=c34)
         dc = np.linalg.norm(c34 - c12)
@@ -518,14 +532,198 @@ class CalForce(CalForce_Base):
         return f
 
     def OneNodeForce_Elasticity_SBA(self, G: DisNet, applied_stress: np.ndarray, tag) -> float:
-        """OneNodeForce_Elasticity_SBA: return force on one node from line tension
+        """OneNodeForce_Elasticity_SBA: force on one node, elastic interactions
+
+        Translated from SetOneNodeForce in ParaDiS
+        (external/paradis/src/NodeForce.c, the FULL_N2_FORCES branch, which is
+        the one that matches this force mode: a full pair sum with no remote or
+        FMM contribution). For each arm of the node ParaDiS computes the
+        segment self force, the Peach-Koehler force from the external stress,
+        and then the interaction of that arm with every other segment, adding
+        only to that arm; the nodal force is the sum over the node's arms.
+        The osmotic and FEM terms in the C are not reproduced, having no
+        counterpart here.
+
+        The result must equal the NodeForce_Elasticity_SBA entry for this node
+        to rounding, since both are the same sum of the same terms. That is
+        what makes it usable by Topology, and
+        tests/unit_tests/test1_node_force/test_onenodeforce_pydis.py pins it.
+        Getting there requires selecting the same pairs and imaging them the
+        same way, so the pair set comes from self.select_pairs rather than from
+        a second implementation of the cutoff test: two ways of choosing pairs
+        would be two things to keep in agreement.
+
+        Cost. ParaDiS loops over every segment for each arm, and so does this:
+        the saving over NodeForce is that forces are accumulated for the node's
+        arms only, not for all segments, not that fewer pairs are examined.
+        With the cell list the candidate scan is O(Nseg) rather than O(Nseg^2),
+        which is what makes it usable inside the trial splits Topology performs
+        per multi-arm node per step.
         """
-        raise NotImplementedError("OneNodeForce_Elasticity_SBA not implemented yet")
+        segs_data_with_positions = G.get_segs_data_with_positions()
+        Nseg = segs_data_with_positions["nodeids"].shape[0]
+        source_tags = segs_data_with_positions["tag1"]
+        target_tags = segs_data_with_positions["tag2"]
+        R1 = segs_data_with_positions["R1"]
+        R2 = segs_data_with_positions["R2"]
+        burg_vecs = segs_data_with_positions["burgers"]
+
+        # the arms of this node, i.e. the segments ParaDiS loops over as
+        # armIndex. A segment can appear with the node at either end, and a
+        # self-loop appears at both.
+        tag_arr = np.array(tag)
+        at_source = (source_tags == tag_arr).all(axis=1)
+        at_target = (target_tags == tag_arr).all(axis=1)
+        arms = np.where(at_source | at_target)[0]
+        if arms.size == 0:
+            return np.zeros(3)
+
+        # ExtPKForce: the applied stress contributes to each arm, split evenly
+        # between its two endpoints. Computed for every segment because
+        # pkforcevec is vectorized over the whole list; only the arm rows are
+        # ever read.
+        sigext = voigt_vector_to_tensor(applied_stress)
+        fpk = pkforcevec(sigext, segs_data_with_positions)
+        fseg = np.hstack((fpk*0.5, fpk*0.5))
+
+        # SelfForce: the i == j term, regularized by the core radius. Never
+        # cut off, matching NodeForce_Elasticity_SBA.
+        for i in arms:
+            p1 = R1[i,:].copy()
+            p2 = G.cell.closest_image(Rref=p1, R=R2[i,:].copy())
+            b12 = burg_vecs[i,:].copy()
+            f1, f2, f3, f4 = compute_segseg_force(p1, p2, p1, p2, b12, b12,
+                                                  self.mu, self.nu, self.a)
+            fseg[i, 0:3] += f1
+            fseg[i, 3:6] += f2
+
+        # ComputeForces against every other segment. select_pairs returns
+        # i < j, so an arm can appear on either side of a pair and takes (f1,
+        # f2) or (f3, f4) accordingly. Pairs touching no arm are dropped before
+        # the kernel runs, which is the whole saving over NodeForce.
+        idx_i, idx_j, P1, P2, P3, P4 = self.select_pairs(G, R1, R2,
+                                                         source_tags,
+                                                         target_tags, Nseg)
+        if idx_i.size:
+            is_arm = np.zeros(Nseg, dtype=bool)
+            is_arm[arms] = True
+            touches = is_arm[idx_i] | is_arm[idx_j]
+            idx_i, idx_j = idx_i[touches], idx_j[touches]
+            P1, P2, P3, P4 = P1[touches], P2[touches], P3[touches], P4[touches]
+
+        if idx_i.size:
+            B12, B34 = burg_vecs[idx_i], burg_vecs[idx_j]
+            f_a, f_b = fseg[:, 0:3], fseg[:, 3:6]
+            for start, stop, f1, f2, f3, f4 in self._pair_forces(P1, P2, P3, P4,
+                                                                 B12, B34):
+                ii, jj = idx_i[start:stop], idx_j[start:stop]
+                np.add.at(f_a, ii, f1)
+                np.add.at(f_b, ii, f2)
+                np.add.at(f_a, jj, f3)
+                np.add.at(f_b, jj, f4)
+
+        # the nodal force is the sum of this node's arm forces. Both ends are
+        # added when a segment starts and finishes at this node, matching the
+        # unconditional accumulation in NodeForce_Elasticity_SBA.
+        f = np.zeros(3)
+        for i in arms:
+            if at_source[i]:
+                f += fseg[i, 0:3]
+            if at_target[i]:
+                f += fseg[i, 3:6]
+        return f
 
     def OneNodeForce_Elasticity_SBN1_SBA(self, G: DisNet, applied_stress: np.ndarray, tag) -> float:
-        """OneNodeForce_Elasticity_SBN1_SBA: return force on one node from line tension
+        """OneNodeForce_Elasticity_SBN1_SBA: force on one node, SBN1 quadrature
+
+        The SBN1 counterpart of OneNodeForce_Elasticity_SBA, and translated
+        from the same ParaDiS function, SetOneNodeForce in
+        external/paradis/src/NodeForce.c: per arm, the segment self force, the
+        Peach-Koehler force from the external stress, and the interaction of
+        that arm with every other segment, accumulated onto that arm alone.
+
+        It must reproduce the NodeForce_Elasticity_SBN1_SBA entry for this node
+        to rounding, so it follows that function's scalar path rather than the
+        batched one used by the SBA mode: same imaging, same within_cutoff
+        test, same kernel. Two details are load-bearing for that:
+
+          - the self term is the j == i case, and is never cut off
+          - a pair is evaluated in the order NodeForce evaluated it. Its loop
+            runs j from i upward, so a partner with j < i was computed as the
+            pair (j, i) with the imaging anchored on segment j, and this arm
+            took (f3, f4) from it. Recomputing it here as (i, j) would image it
+            differently and give a different answer in the last digits.
         """
-        raise NotImplementedError("OneNodeForce_Elasticity_SBN1_SBA not implemented yet")
+        segs_data_with_positions = G.get_segs_data_with_positions()
+        Nseg = segs_data_with_positions["nodeids"].shape[0]
+        source_tags = segs_data_with_positions["tag1"]
+        target_tags = segs_data_with_positions["tag2"]
+        R1 = segs_data_with_positions["R1"]
+        R2 = segs_data_with_positions["R2"]
+        burg_vecs = segs_data_with_positions["burgers"]
+
+        tag_arr = np.array(tag)
+        at_source = (source_tags == tag_arr).all(axis=1)
+        at_target = (target_tags == tag_arr).all(axis=1)
+        arms = np.where(at_source | at_target)[0]
+        if arms.size == 0:
+            return np.zeros(3)
+
+        sigext = voigt_vector_to_tensor(applied_stress)
+        fpk = pkforcevec(sigext, segs_data_with_positions)
+        fseg = np.hstack((fpk*0.5, fpk*0.5))
+
+        # must match NodeForce_Elasticity_SBN1_SBA, which hardcodes
+        # force_nint = 3
+        quad_points = np.array([-0.774596669241483, 0.0, 0.774596669241483])
+        weights = np.array([0.555555555555556, 0.888888888888889,
+                            0.555555555555556])
+
+        for i in arms:
+            for j in range(Nseg):
+                # evaluate the pair in the order NodeForce used, so the
+                # imaging matches; see the docstring
+                a_idx, b_idx = (i, j) if j >= i else (j, i)
+                p1 = R1[a_idx,:].copy()
+                p2 = R2[a_idx,:].copy()
+                p3 = R1[b_idx,:].copy()
+                p4 = R2[b_idx,:].copy()
+                b12 = burg_vecs[a_idx,:].copy()
+                b34 = burg_vecs[b_idx,:].copy()
+
+                # apply PBC
+                p2 = G.cell.closest_image(Rref=p1, R=p2)
+                p3 = G.cell.closest_image(Rref=p1, R=p3)
+                p4 = G.cell.closest_image(Rref=p3, R=p4)
+
+                tag1, tag2 = tuple(source_tags[a_idx]), tuple(target_tags[a_idx])
+                tag3, tag4 = tuple(source_tags[b_idx]), tuple(target_tags[b_idx])
+                if self.cutoff2 is not None and a_idx != b_idx:
+                    if not self.within_cutoff(G.cell, p1, p2, p3, p4,
+                                              (tag1, tag2), (tag3, tag4)):
+                        continue
+
+                f1, f2, f3, f4 = compute_segseg_force_SBN1_SBA(
+                    p1, p2, p3, p4, b12, b34, self.mu, self.nu, self.a,
+                    quad_points, weights)
+
+                if a_idx == b_idx:
+                    fseg[i, 0:3] += f1
+                    fseg[i, 3:6] += f2
+                elif a_idx == i:
+                    fseg[i, 0:3] += f1
+                    fseg[i, 3:6] += f2
+                else:
+                    fseg[i, 0:3] += f3
+                    fseg[i, 3:6] += f4
+
+        f = np.zeros(3)
+        for i in arms:
+            if at_source[i]:
+                f += fseg[i, 0:3]
+            if at_target[i]:
+                f += fseg[i, 3:6]
+        return f
 
     def NodeForce_LineTension(self, G: DisNet, applied_stress: np.ndarray) -> Tuple[dict, dict]:
         """NodeForce: return nodal forces from line tension in a dictionary
@@ -579,9 +777,9 @@ class CalForce(CalForce_Base):
         for tag in G.all_nodes_tags():
             nodeforce_dict.update({tag: np.array([0.0,0.0,0.0])})
 
-        # self forces (i == j). Never cut off, mirroring exadis where they come from
-        # CORE_SELF_PKEXT rather than from the segment-pair list, and never produced by the
-        # cell list, which yields only i < j.
+        # self forces (i == j). Never cut off: ParaDiS applies SelfForce to every segment
+        # unconditionally (external/paradis/src/NodeForce.c:2688). The cell list never
+        # produces them either, since it yields only i < j.
         for i in range(Nseg):
             p1 = R1[i,:].copy()
             p2 = G.cell.closest_image(Rref=p1, R=R2[i,:].copy())
@@ -646,8 +844,6 @@ class CalForce(CalForce_Base):
         """
         quad_points = np.array([-0.774596669241483, 0.0, 0.774596669241483])
         weights = np.array([0.555555555555556, 0.888888888888889, 0.555555555555556])
-        print('quad_points = ', quad_points)
-        print('weights = ', weights)
 
         for i in range(Nseg):
             for j in range(i, Nseg):
