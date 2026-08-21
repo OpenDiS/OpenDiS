@@ -21,9 +21,22 @@ def _removable(G: DisNet, tag) -> bool:
 
 
 def Remesh_LengthBased(G: DisNet, params) -> None:
-    """Remesh_LengthBased: coarsen below minseg, refine above maxseg"""
+    """Remesh_LengthBased: coarsen below minseg, refine above maxseg
+
+    Segments are snapshotted before coarsening, and that snapshot -- not a
+    fresh scan -- is what refine works from. Matches exadis
+    (core/exadis/src/remesh.h:63-64, refine_coarsen), which fixes
+    nsegs = network->number_of_segs() before its single loop over both
+    operations, so a segment a coarsen step lengthens by merging away a
+    neighbor is never revisited for refinement within the same pass; that
+    catches up on the next remesh call instead. Without this, pydis refines
+    such a segment immediately, one step ahead of exadis. Confirmed as the
+    cause of a real cross-code divergence in tests/full_runs/03_binary_junction
+    (a node coarsened away left its neighbor's segment longer than maxseg).
+    """
+    all_segments_list = list(G.all_segments_tags())
     _coarsen(G, params)
-    _refine(G, params)
+    _refine(G, params, all_segments_list)
 
 
 def _coarsen(G: DisNet, params) -> None:
@@ -65,10 +78,20 @@ def _coarsen(G: DisNet, params) -> None:
         raise ValueError("Remesh_LengthBased: sanity check failed 1")
 
 
-def _refine(G: DisNet, params) -> None:
-    """_refine: bisect segments longer than maxseg"""
-    all_segments_list = list(G.all_segments_tags())
+def _refine(G: DisNet, params, all_segments_list) -> None:
+    """_refine: bisect segments longer than maxseg
+
+    all_segments_list is the pre-coarsen snapshot from Remesh_LengthBased,
+    not a fresh scan; see that function's docstring for why. A segment from
+    that snapshot may no longer exist (one of its endpoints could have been
+    the node coarsening just removed) and is skipped rather than treated as
+    an error: exadis's equivalent loop simply never revisits a segment
+    coarsening has already consumed either.
+    """
     for tag1, tag2 in all_segments_list:
+        if not (G.has_node(tag1) and G.has_node(tag2)
+               and G.has_segment(tag1, tag2)):
+            continue
         node1, node2 = G.nodes(tag1), G.nodes(tag2)
         r1, r2 = node1.R.copy(), node2.R.copy()
         # apply PBC
