@@ -25,9 +25,9 @@ try:
 except ImportError:
     raise ImportError('Cannot import pyexadis')
 
-# how far node 0 is displaced to break the initial geometry's exact
-# point-inversion symmetry; see the comment in init_two_disl_lines
-EPS_PERTURB = 1e-7
+# how far line 1's two pinned endpoints are shifted along the line's own
+# direction, as a fraction of z0; see the comment in init_two_disl_lines
+EPS_ARM_ASYMMETRY = 1.0e-7
 
 
 def init_two_disl_lines(z0=1.0, box_length=8.0,
@@ -51,10 +51,15 @@ def init_two_disl_lines(z0=1.0, box_length=8.0,
     rn[:, 0:3] += center
 
     # Break the exact point-inversion symmetry of the two lines about the box
-    # centre; see the matching comment in test_binary_junction_pydis_elast.py
-    # for why this is needed. Applied identically here so the two examples
-    # still start from the same geometry.
-    rn[0, 2] += EPS_PERTURB*z0
+    # centre by shifting line 1's two pinned endpoints along the line's own
+    # direction; see the matching comment in test_binary_junction_pydis_elast.py
+    # for why an arm-length asymmetry was chosen over a transverse
+    # perturbation. Applied identically here so the two examples still start
+    # from the same geometry.
+    line1_dir = rn[2, :3] - rn[1, :3]
+    line1_dir = line1_dir / np.linalg.norm(line1_dir)
+    rn[0, :3] += EPS_ARM_ASYMMETRY*z0*line1_dir
+    rn[2, :3] += EPS_ARM_ASYMMETRY*z0*line1_dir
 
     xi1, xi2 = rn[2, :3] - rn[1, :3], rn[5, :3] - rn[4, :3]
     n1, n2 = np.cross(b1, xi1), np.cross(b2, xi2)

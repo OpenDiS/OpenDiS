@@ -18,9 +18,9 @@ from pydis import DisNode, DisNet, Cell, CellList
 from pydis import CalForce, MobilityLaw, TimeIntegration, Topology
 from pydis import Collision, Remesh, VisualizeNetwork, SimulateNetwork
 
-# how far node 0 is displaced to break the initial geometry's exact
-# point-inversion symmetry; see the comment in init_two_disl_lines
-EPS_PERTURB = 1e-7
+# how far line 1's two pinned endpoints are shifted along the line's own
+# direction, as a fraction of z0; see the comment in init_two_disl_lines
+EPS_ARM_ASYMMETRY = 1.0e-7
 
 
 def init_two_disl_lines(z0=1.0, box_length=8.0,
@@ -43,13 +43,29 @@ def init_two_disl_lines(z0=1.0, box_length=8.0,
     rn[:, 0:3] += cell.center()
 
     # Break the exact point-inversion symmetry of the two lines about the box
-    # centre (node 0 is otherwise -node 2, and node 3 is otherwise -node 5).
-    # Ec=2.8e10 alone (see the note on CalForce below) only resolves the
-    # resulting mirror-symmetric split tie by a fragile coincidence between
-    # the two codes' independent roundoff; this perturbation is a second,
-    # independent attempt to make step-1 agreement robust rather than
-    # accidental. Applied identically in the exadis version of this example.
-    rn[0, 2] += EPS_PERTURB*z0
+    # centre (node 0 is otherwise -node 2, and node 3 is otherwise -node 5)
+    # by shifting line 1's two pinned endpoints (nodes 0 and 2) along the
+    # line's own direction, by the same amount and in the same sense, so
+    # node 1 (the free centre node, which is what actually collides and
+    # splits) does not move at all. This shortens one of line 1's two arms
+    # and lengthens the other where they meet at node 1 -- a length
+    # asymmetry local to the arms directly involved in the split, rather
+    # than a transverse perturbation of a distant point. That distinction
+    # was measured to matter (.plan/2026-08-21/debug_topology_stage2.md):
+    # a transverse perturbation of a far node only reaches the split
+    # decision through the long-range elastic term, which Ec=2.8e10 (see
+    # the note on CalForce below) now dwarfs, so it could be swept over five
+    # orders of magnitude with no effect at all on which side the split
+    # decision fell on. An arm-length asymmetry instead changes the self
+    # force ParaDiS's SelfForceIsotropic computes per segment
+    # (external/paradis/src/NodeForce.c:2628, the 'S' term, an explicit
+    # function of segment length), which is local to whichever arm carries
+    # it and is not swamped by Ec the same way. Applied identically in the
+    # exadis version of this example.
+    line1_dir = rn[2, :3] - rn[1, :3]
+    line1_dir = line1_dir / np.linalg.norm(line1_dir)
+    rn[0, :3] += EPS_ARM_ASYMMETRY*z0*line1_dir
+    rn[2, :3] += EPS_ARM_ASYMMETRY*z0*line1_dir
 
     xi1, xi2 = rn[2, :3] - rn[1, :3], rn[5, :3] - rn[4, :3]
     n1, n2 = np.cross(b1, xi1), np.cross(b2, xi2)

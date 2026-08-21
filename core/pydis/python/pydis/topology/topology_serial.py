@@ -231,6 +231,7 @@ def evaluate_trial_split(G, state, tag: Tag, nbrs_to_split: list,
     position, read a separation direction off the velocities that follow, then
     split again with the nodes moved apart and judge the result there.
     """
+    use_glide_planes = state.get("use_glide_planes", False)
     pos0 = G.nodes(tag).R.copy()
 
     G_trial = G.copy()
@@ -244,9 +245,13 @@ def evaluate_trial_split(G, state, tag: Tag, nbrs_to_split: list,
         return None
 
     # the direction fixes the glide plane of the connecting segment, and the
-    # velocities are re-read with that constraint in force
-    set_connecting_plane(G_trial, node1, node2, chosen[0])
-    state_trial = mobility.Mobility(DisNetManager(G_trial), state_trial)
+    # velocities are re-read with that constraint in force. Matches ExaDiS
+    # (topology_serial.h:245, gated the same way on use_glide_planes): with
+    # glide planes off, the connecting segment gets no plane and the
+    # mobility law reads unconstrained velocities instead.
+    if use_glide_planes:
+        set_connecting_plane(G_trial, node1, node2, chosen[0])
+        state_trial = mobility.Mobility(DisNetManager(G_trial), state_trial)
 
     chosen = split_direction(state_trial["vel_dict"][node1],
                              state_trial["vel_dict"][node2], params.epsvel)
