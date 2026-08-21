@@ -35,39 +35,50 @@ def Remesh_LengthBased(G: DisNet, params) -> None:
     (a node coarsened away left its neighbor's segment longer than maxseg).
     """
     all_segments_list = list(G.all_segments_tags())
-    _coarsen(G, params)
+    _coarsen(G, params, all_segments_list)
     _refine(G, params, all_segments_list)
 
 
-def _coarsen(G: DisNet, params) -> None:
-    """_coarsen: merge the endpoints of segments shorter than minseg"""
-    # mesh coarsen
-    nodes_to_remove = []
-    segs_data_with_positions = G.get_segs_data_with_positions()
-    Nseg = segs_data_with_positions["nodeids"].shape[0]
-    source_tags = segs_data_with_positions["tag1"]
-    target_tags = segs_data_with_positions["tag2"]
-    R1 = segs_data_with_positions["R1"]
-    R2 = segs_data_with_positions["R2"]
-    for i in range(Nseg):
-        tag1, tag2 = tuple(source_tags[i]), tuple(target_tags[i])
-        r1, r2 = R1[i,:].copy(), R2[i,:].copy()
+def _coarsen(G: DisNet, params, all_segments_list) -> None:
+    """_coarsen: merge the endpoints of segments shorter than minseg
+
+    all_segments_list fixes *which* segments are candidates (the pre-pass
+    snapshot Remesh_LengthBased captured), but each one's length and merge
+    point are read live, at the moment that segment is visited, not from a
+    frozen snapshot. Matches exadis SerialDisNet::refine_coarsen
+    (core/exadis/src/remesh.h:64-137): its single loop re-reads
+    network->nodes[n].pos fresh on every iteration, so when two coarsening
+    segments share an endpoint, the one visited second sees the first
+    merge's result. Collecting every candidate from a frozen snapshot and
+    applying them afterward -- the previous approach here -- computes both
+    merge points from pre-coarsen positions instead, which disagrees with
+    exadis whenever that sharing happens. Confirmed as a real cross-code
+    divergence in tests/full_runs/03_binary_junction: two segments on
+    either side of the same node were both under minseg at once.
+    """
+    for tag1, tag2 in all_segments_list:
+        if not (G.has_node(tag1) and G.has_node(tag2)
+               and G.has_segment(tag1, tag2)):
+            continue
+        r1, r2 = G.nodes(tag1).R.copy(), G.nodes(tag2).R.copy()
         # apply PBC
         r2 = G.cell.closest_image(Rref=r1, R=r2)
         L = np.linalg.norm(r2-r1)
-        if (L < params.minseg):
-            # RULE CHANGE (LengthBased): the second endpoint of the segment is
-            # removed and the first is moved to the mid-point, where before the
-            # first was removed and the second left in place. Matches exadis
-            # SerialDisNet::merge_nodes in core/exadis/src/network.cpp, which
-            # merges n2 into n1 at the mid-point of the two.
-            if _removable(G, tag2):
-                nodes_to_remove.append((tag2, tag1, 0.5*(r1+r2)
-                                        if _removable(G, tag1) else r1))
-            elif _removable(G, tag1):
-                nodes_to_remove.append((tag1, tag2, r2))
-    for tag, survivor, R in nodes_to_remove:
-        if not G.has_node(tag) or G.out_degree(tag) != 2:
+        if not (L < params.minseg):
+            continue
+        # RULE CHANGE (LengthBased): the second endpoint of the segment is
+        # removed and the first is moved to the mid-point, where before the
+        # first was removed and the second left in place. Matches exadis
+        # SerialDisNet::merge_nodes in core/exadis/src/network.cpp, which
+        # merges n2 into n1 at the mid-point of the two.
+        if _removable(G, tag2):
+            tag, survivor, R = tag2, tag1, (0.5*(r1+r2)
+                                            if _removable(G, tag1) else r1)
+        elif _removable(G, tag1):
+            tag, survivor, R = tag1, tag2, r2
+        else:
+            continue
+        if G.out_degree(tag) != 2:
             continue
         G.remove_two_arm_node(tag)
         # the removal can orphan the survivor and take it with it
