@@ -214,6 +214,10 @@ class CalForce(CalForce_Base):
         self.mu = state.get("mu", 1.0)
         self.nu = state.get("nu", 0.3)
         self.a =  state.get("a", 0.01)
+        # Default core energy from the core radius a, which is ParaDiS rc, and not
+        # from the segment-pair cutoff set below. Same expression as ParaDiS
+        # Initialize.c:625 and exadis force_core.h CoreDefault. It goes negative
+        # for a < 0.1, which is a property of the expression rather than an error.
         self.Ec = self.mu/4.0/np.pi*np.log(self.a/0.1) if Ec is None else Ec
         self.force_mode = force_mode
 

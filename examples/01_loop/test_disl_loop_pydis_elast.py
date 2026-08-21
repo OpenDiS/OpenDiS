@@ -79,8 +79,13 @@ def main(plot=True, max_step=200, dt=1.0e-9, print_freq=10, write_freq=10):
     # self term, regularized by the core radius state["a"]), in contrast to the LineTension
     # mode used in test_disl_loop_pydis.py.
     # Note: this is an O(Nseg^2) double loop in python, so it is much slower than LineTension.
+    # Ec=0.0 switches off the core term Elasticity_SBA now adds
+    # (selfforcevec_LineTension, matching ParaDiS SelfForceIsotropic(coreOnly=0)).
+    # It is off so this run stays comparable with the exadis one, which is given
+    # Ec=0.0 for the same reason. Without it pydis would use the ParaDiS default,
+    # mu/(4*pi)*log(a/0.1), and the two codes would no longer agree.
     calforce  = CalForce(force_mode='Elasticity_SBA', state=state,
-                         cutoff=cutoff)
+                         Ec=0.0, cutoff=cutoff)
     # SimpleGlide is used here to match 02_frank_read_src, not the 'Relax' law of
     # test_disl_loop_pydis.py. Relax sets v = f with no length normalization and no glide
     # projection, and has no counterpart in exadis, so it cannot be compared across codes.

@@ -156,12 +156,20 @@ def max_nearest_distance(ra, rb, h):
     the box size. Matching is done both ways, so a node present in one configuration but not
     the other cannot hide.
 
-    Returns np.inf if either configuration is empty.
+    Returns np.inf if either configuration is empty, including when both
+    are. Two empty configurations do describe the same thing, but a run that
+    lost every node is not a result worth passing silently, and the node
+    counts are compared separately and would agree at zero.
+
+    The emptiness test comes before the column slice: a configuration with no
+    nodes reads back from write_json one-dimensional, so slicing it first
+    raises IndexError rather than reporting anything.
     """
-    ra = np.asarray(ra, dtype=float)[:, :3]
-    rb = np.asarray(rb, dtype=float)[:, :3]
+    ra = np.asarray(ra, dtype=float)
+    rb = np.asarray(rb, dtype=float)
     if ra.size == 0 or rb.size == 0:
         return np.inf
+    ra, rb = ra[:, :3], rb[:, :3]
     hinv = np.linalg.inv(np.asarray(h, dtype=float))
     d = ra[:, None, :] - rb[None, :, :]
     s = d @ hinv.T

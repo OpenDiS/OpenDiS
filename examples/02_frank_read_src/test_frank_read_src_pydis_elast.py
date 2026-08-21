@@ -95,8 +95,13 @@ def main(plot=True, max_step=200, print_freq=10, write_freq=10):
     # pairs. The companion requirement is that no segment exceeds maxseg, which
     # the remesh in the init function above guarantees. LengthBased remesh
     # does not, since it never splits a segment pinned at both ends.
+    # Ec=0.0 switches off the core term Elasticity_SBA now adds
+    # (selfforcevec_LineTension, matching ParaDiS SelfForceIsotropic(coreOnly=0)).
+    # It is off so this run stays comparable with the exadis one, which is given
+    # Ec=0.0 for the same reason. Without it pydis would use the ParaDiS default,
+    # mu/(4*pi)*log(a/0.1), and the two codes would no longer agree.
     calforce  = CalForce(force_mode='Elasticity_SBA', state=state,
-                         cutoff=cutoff)
+                         Ec=0.0, cutoff=cutoff)
     mobility  = MobilityLaw(mobility_law='SimpleGlide', state=state)
     timeint   = TimeIntegration(integrator='EulerForward', dt=1.0e-8,
                                 state=state)

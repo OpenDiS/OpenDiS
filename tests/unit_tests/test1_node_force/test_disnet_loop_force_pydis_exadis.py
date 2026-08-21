@@ -8,10 +8,17 @@ than only to each other. The force modes map across as:
   line tension  pydis  NodeForce_LineTension, core force + PK force
                 exadis LINE_TENSION_MODEL, ForceSegLT with
                        selfforce=false, i.e. the same two terms
-  elasticity    pydis  NodeForce_Elasticity_SBA, self force + PK force
-                       + the segment-pair sum, no core term
-                exadis CUTOFF_MODEL with Ec = 0.0, which is what drops
-                       the core term pydis does not have
+  elasticity    pydis  NodeForce_Elasticity_SBA with Ec = 0.0, self
+                       force + PK force + the segment-pair sum
+                exadis CUTOFF_MODEL with Ec = 0.0, the same three terms
+
+Both elasticity calls set Ec = 0.0. Elasticity_SBA gained a core term,
+so the term now has to be switched off on both sides to compare these
+three, where before it was absent from pydis and only switched off in
+exadis. Testing the core term itself wants a case built for it: with
+these constants it is 3.4e4 times the elastic force, so folding it in
+here would leave the elasticity comparison measuring the core term and
+almost nothing else.
 
 The reference is written by this test, from the pydis side:
 
@@ -78,6 +85,7 @@ TOL_SUM = 1.0e-10
 state = {"burgmag": 3e-10, "mu": 50.0, "nu": 0.3, "a": 0.01,
          "maxseg": MAXSEG, "minseg": 0.5, "rann": 3.0}
 Ec_linetension = 1.0e6
+Ec_elasticity = 0.0
 
 atol = 1.0e-6
 
@@ -106,8 +114,10 @@ def cell_geometry(rn, box_factor=1.0):
 def forces_pydis(box_factor=1.0):
     """forces_pydis: (tags, line tension force, elastic force)
 
-    One CalForce serves both modes: Ec is read only by the LineTension
-    path, and the Elasticity_SBA path carries no core term at all.
+    One CalForce per mode, because Ec belongs to the object and the two
+    modes want different values: Elasticity_SBA reads Ec now, so a
+    single object carrying Ec_linetension would put a core term into the
+    elastic result that the exadis call is not asked for.
     """
     rn, links = load_config()
     h, origin = cell_geometry(rn, box_factor)
@@ -117,13 +127,14 @@ def forces_pydis(box_factor=1.0):
     print("pydis:  nodes = %d, segments = %d"
           % (G.num_nodes(), G.num_segments()))
 
-    calforce = PyCalForce(state=state, Ec=Ec_linetension, cutoff=CUTOFF)
     tags = list(G.all_nodes_tags())
 
+    calforce = PyCalForce(state=state, Ec=Ec_linetension, cutoff=CUTOFF)
     nodeforce_dict, _ = calforce.NodeForce_LineTension(
         G, applied_stress=np.zeros(6))
     f_lt = np.array([nodeforce_dict[tag] for tag in tags])
 
+    calforce = PyCalForce(state=state, Ec=Ec_elasticity, cutoff=CUTOFF)
     nodeforce_dict, _ = calforce.NodeForce_Elasticity_SBA(
         G, applied_stress=np.zeros(6))
     f_elast = np.array([nodeforce_dict[tag] for tag in tags])
@@ -168,7 +179,7 @@ def forces_exadis(box_factor=1.0):
         return tags[order], f[order]
 
     tags, f_lt = node_force('LineTension', Ec=Ec_linetension)
-    _, f_elast = node_force('CUTOFF_MODEL', Ec=0.0, cutoff=CUTOFF)
+    _, f_elast = node_force('CUTOFF_MODEL', Ec=Ec_elasticity, cutoff=CUTOFF)
     return tags, f_lt, f_elast
 
 
