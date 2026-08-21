@@ -597,6 +597,14 @@ class CalForce(CalForce_Base):
             fseg[i, 0:3] += f1
             fseg[i, 3:6] += f2
 
+        # Core force: the same Ecore contribution OneNodeForce_LineTension
+        # applies, added on top of the elastic self force above rather than
+        # replacing it; see NodeForce_Elasticity_SBA for the ParaDiS reference.
+        fs0, fs1 = selfforcevec_LineTension(self.mu, self.nu, self.Ec,
+                                            segs_data_with_positions)
+        fseg[arms, 0:3] += fs0[arms]
+        fseg[arms, 3:6] += fs1[arms]
+
         # ComputeForces against every other segment. select_pairs returns
         # i < j, so an arm can appear on either side of a pair and takes (f1,
         # f2) or (f3, f4) accordingly. Pairs touching no arm are dropped before
@@ -788,6 +796,15 @@ class CalForce(CalForce_Base):
                                                   self.mu, self.nu, self.a)
             fseg[i, 0:3] += f1
             fseg[i, 3:6] += f2
+
+        # Core force: the same Ecore contribution NodeForce_LineTension applies,
+        # added on top of the elastic self force above rather than replacing
+        # it, matching SelfForceIsotropic(coreOnly=0) in ParaDiS
+        # (external/paradis/src/NodeForce.c:2628), which sums the two.
+        fs0, fs1 = selfforcevec_LineTension(self.mu, self.nu, self.Ec,
+                                            segs_data_with_positions)
+        fseg[:, 0:3] += fs0
+        fseg[:, 3:6] += fs1
 
         # pair forces (i < j). Selection runs on the whole candidate set at once, then the
         # kernel is evaluated in bounded batches and scattered back onto the segments.

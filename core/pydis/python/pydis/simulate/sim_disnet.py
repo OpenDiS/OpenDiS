@@ -30,6 +30,7 @@ class SimulateNetwork:
     def __init__(self, state: dict, calforce=None,
                  mobility=None, timeint=None, topology=None,
                  collision=None, remesh=None, cross_slip=None, vis=None,
+                 collide_before_split: bool=True,
                  dt0: float=1.0e-8,
                  max_step: int=10,
                  loading_mode: str=None,
@@ -49,6 +50,7 @@ class SimulateNetwork:
         self.remesh = remesh
         self.cross_slip = cross_slip
         self.vis = vis
+        self.collide_before_split = collide_before_split
         self.dt0 = dt0
         self.max_step = max_step
         self.loading_mode = loading_mode
@@ -87,12 +89,21 @@ class SimulateNetwork:
         if self.cross_slip is not None:
             self.cross_slip.Handle(DM, state)
 
-        # The order of topology vs collision is opposite to ExaDiS
-        if self.topology is not None:
-            self.topology.Handle(DM, state)
+        # collide_before_split=True matches ExaDiS, which collides before splitting so that a
+        # multi-node formed by collision can be split within the same step; collide_before_split=
+        # False matches ParaDiS's split-then-collide order instead.
+        if self.collide_before_split:
+            if self.collision is not None:
+                self.collision.HandleCol(DM, state)
 
-        if self.collision is not None:
-            self.collision.HandleCol(DM, state)
+            if self.topology is not None:
+                self.topology.Handle(DM, state)
+        else:
+            if self.topology is not None:
+                self.topology.Handle(DM, state)
+
+            if self.collision is not None:
+                self.collision.HandleCol(DM, state)
 
         if self.remesh is not None:
             self.remesh.Remesh(DM, state)

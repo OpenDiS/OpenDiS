@@ -63,6 +63,10 @@ class Collision:
 
         self.nbrlist.sort_points_to_list(midpoints)
 
+        # absent here means a node topology has not seen yet (e.g. collision
+        # runs before topology this step), which carries no exemption
+        nodeflag_dict = state.get('nodeflag_dict', {})
+
         collided = np.zeros(Nseg, dtype=bool)
         source_tags = segs_data_with_positions["tag1"]
         target_tags = segs_data_with_positions["tag2"]
@@ -72,9 +76,9 @@ class Collision:
                 tag1, tag2 = tuple(source_tags[i]), tuple(target_tags[i])
                 if not G.has_segment(tag1, tag2):
                     continue
-                if state['nodeflag_dict'][tag1] & DisNode.Flags.NO_COLLISIONS:
+                if nodeflag_dict.get(tag1, DisNode.Flags.CLEAR) & DisNode.Flags.NO_COLLISIONS:
                     continue
-                if state['nodeflag_dict'][tag2] & DisNode.Flags.NO_COLLISIONS:
+                if nodeflag_dict.get(tag2, DisNode.Flags.CLEAR) & DisNode.Flags.NO_COLLISIONS:
                     continue
 
                 if collided[i] or collided[j]:
@@ -84,9 +88,9 @@ class Collision:
                 tag3, tag4 = tuple(source_tags[j]), tuple(target_tags[j])
                 if not G.has_segment(tag3, tag4):
                     continue
-                if state['nodeflag_dict'][tag3] & DisNode.Flags.NO_COLLISIONS:
+                if nodeflag_dict.get(tag3, DisNode.Flags.CLEAR) & DisNode.Flags.NO_COLLISIONS:
                     continue
-                if state['nodeflag_dict'][tag4] & DisNode.Flags.NO_COLLISIONS:
+                if nodeflag_dict.get(tag4, DisNode.Flags.CLEAR) & DisNode.Flags.NO_COLLISIONS:
                     continue
                 p1, p2 = R1[i,:].copy(), R2[i,:].copy()
                 p3, p4 = R1[j,:].copy(), R2[j,:].copy()

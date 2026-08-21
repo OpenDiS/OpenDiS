@@ -119,20 +119,18 @@ def main(plot=True, force_mode='CUTOFF_MODEL', max_step=200, dt=1.0e-9,
     # deliberate choice for comparability, not a claim about the far field;
     # both codes drop the same pairs.
     #
-    # Ec=0.0 disables the core energy term of FORCE_CORE_SELF_PKEXT, which
-    # would otherwise default to mu/(4*pi)*log(a/0.1). It is set only so this
-    # run can be compared against the pydis one: pydis' Elasticity_SBA sums the
-    # segment-segment forces including the i==j self term regularized by 'a',
-    # but adds no core term, so it has no Ec equivalent. To do: add the Ec core
-    # term to pydis' Elasticity_SBA as in the legacy ParaDiS code, then drop
-    # Ec=0.0 here.
-    Ec = 0.0
+    # Ec left at its default (mu/(4*pi)*log(a/0.1), FORCE_CORE_SELF_PKEXT's
+    # CoreDefault): pydis' Elasticity_SBA now adds the same core term via
+    # selfforcevec_LineTension, the formula ParaDiS's own
+    # SelfForceIsotropic(coreOnly=0) applies (external/paradis/src/NodeForce.c:2628),
+    # so the two are comparable with a non-zero core term instead of both
+    # having it disabled.
     if force_mode == 'CUTOFF_MODEL':
         calforce = CalForce(force_mode='CUTOFF_MODEL', state=state,
-                            Ec=Ec, cutoff=cutoff)
+                            cutoff=cutoff)
     elif force_mode == 'DDD_FFT_MODEL':
         calforce = CalForce(force_mode='DDD_FFT_MODEL', state=state,
-                            Ec=Ec, Ngrid=32, cell=net.cell)
+                            Ngrid=32, cell=net.cell)
     else:
         raise ValueError('Unsupported force_mode %s for this example'
                          % force_mode)
