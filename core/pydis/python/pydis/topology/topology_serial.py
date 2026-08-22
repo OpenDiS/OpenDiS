@@ -56,6 +56,15 @@ class TopologyParams:
         self._epsvel = state.get("epsvel", None)
         self._vnoise = state.get("vnoise", None)
 
+        # True (default): recompute the trial-split force fresh (ExaDiS's
+        # behavior). False: reuse the per-arm forces already computed this
+        # step, before collision may have altered the node's arms (ParaDiS's
+        # behavior, valid there because ParaDiS's own step ordering never
+        # lets a same-step collision-merged node reach this stale; see
+        # split_node_reusing_forces for the full story).
+        self.recompute_segforce_for_split = state.get(
+            "recompute_segforce_for_split", True)
+
         missing = [name for name in ("rann", "minseg", "rtol")
                    if getattr(self, name) is None]
         if missing:
@@ -132,21 +141,79 @@ def node_force_from_arms(G, segforce_dict: dict, node: Tag, orig_tag: Tag) -> np
     return f
 
 
-def split_node_reusing_forces(G, state, tag, nbrs_to_split, mobility):
-    """split_node_reusing_forces: split a node in place without calling the force kernel
+def split_node_reusing_forces(G, state, tag, nbrs_to_split, force, mobility,
+                              params: 'TopologyParams'):
+    """split_node_reusing_forces: split a node in place, trial force either
+    reused from a backup or recomputed fresh, per
+    params.recompute_segforce_for_split
 
-    Both nodes stay where the original was, so every segment force is unchanged
-    and each node's force is just the sum over its own arms. ParaDiS reads these
-    from its backup copy for the same reason. Asking the kernel instead would
-    mean evaluating the force on the zero-length segment between the two nodes,
-    which is not defined and comes back as nan.
+    recompute_segforce_for_split=False (ParaDiS): each new node's force is
+    the sum of segforce_dict's already-stored per-arm values, without
+    calling the force kernel at all -- matching ParaDiS
+    (SplitMultiNodes.c's GetForcesFromBkup), which reads those same
+    per-arm forces from a backup made earlier in the step. That is only
+    valid when the backup is actually current. ParaDiS's own ordering
+    guarantees this: SplitMultiNodes runs *before* HandleCollisions each
+    step, and a node a collision has just merged is flagged
+    NODE_RESET_FORCES, forcing a real recompute at the start of the next
+    step, before SplitMultiNodes ever looks at it again -- so by the time
+    ParaDiS reads the backup, it reflects the node's current arms, never a
+    pre-collision state.
+
+    recompute_segforce_for_split=True (ExaDiS, default): PyDiS runs
+    collision before topology within the same step (collide_before_split=
+    True, matching ExaDiS -- see sim_disnet.py), so a node a collision just
+    merged *is* examined by this same function before any recompute
+    happens: with the False behavior, segforce_dict here would be what
+    NodeForce computed at the *start* of the step, for whatever arms the
+    node had *before* the collision. Confirmed as a real, reproducible
+    divergence from ExaDiS this way: a same-step collision-merged 4-arm
+    node's split direction, decided from the stale pre-collision
+    segforce_dict, matched a fully independent re-derivation using that
+    same stale data, but not ExaDiS's own decision for the identical node
+    -- and ExaDiS never has a backup-forces concept at all
+    (core/exadis/src/topology_types/topology_serial.h): every trial-split
+    force there is a fresh force->node_force() call against the network's
+    current geometry. So here the two nodes are nudged apart by
+    params.rann first, each toward the average direction of its own
+    retained arms, and OneNodeForce is called fresh for each -- matching
+    ExaDiS, and avoiding the same zero-length-segment nan
+    (compute_segseg_force is singular there) that motivated the original,
+    False behavior, the way ExaDiS avoids it (topology_serial.h:203-243):
+    note the nudge distance matters here -- params.split_dist (2*rann)
+    was tried first and gave the wrong split direction for this same
+    node, so this is not a fully robust fix, just an improvement; see
+    .plan for the open question this leaves.
+    by giving the trial segment a finite length before asking the kernel,
+    not by reusing old data. The nudge is undone before returning, since
+    it exists only to make this force well-defined, not to anticipate the
+    eventual separation distance and direction (chosen afterward, from
+    this force's own velocity).
     """
     pos0 = G.nodes(tag).R.copy()
     node1, node2 = G.split_node(tag, pos0.copy(), pos0.copy(), nbrs_to_split)
-    segforce_dict = state["segforce_dict"]
-    for node in (node1, node2):
-        store_node_force(state, node,
-                         node_force_from_arms(G, segforce_dict, node, tag))
+
+    if params.recompute_segforce_for_split:
+        for node in (node1, node2):
+            arm_dirs = [G.nodes(nbr).R - pos0 for nbr in G.neighbors_tags(node)]
+            direction = sum(arm_dirs)
+            norm = np.linalg.norm(direction)
+            if norm > 0.0:
+                G.nodes(node).R = pos0 + params.rann*direction/norm
+
+        DM = DisNetManager(G)
+        for node in (node1, node2):
+            store_node_force(state, node,
+                             force.OneNodeForce(DM, state, node, update_state=False))
+
+        G.nodes(node1).R = pos0.copy()
+        G.nodes(node2).R = pos0.copy()
+    else:
+        segforce_dict = state["segforce_dict"]
+        for node in (node1, node2):
+            store_node_force(state, node,
+                             node_force_from_arms(G, segforce_dict, node, tag))
+
     state = mobility.Mobility(DisNetManager(G), state)
     return state, node1, node2
 
@@ -237,7 +304,7 @@ def evaluate_trial_split(G, state, tag: Tag, nbrs_to_split: list,
     G_trial = G.copy()
     state_trial = deepcopy(state)
     state_trial, node1, node2 = split_node_reusing_forces(
-        G_trial, state_trial, tag, nbrs_to_split, mobility)
+        G_trial, state_trial, tag, nbrs_to_split, force, mobility, params)
 
     chosen = split_direction(state_trial["vel_dict"][node1],
                              state_trial["vel_dict"][node2], params.epsvel)

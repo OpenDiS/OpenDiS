@@ -29,6 +29,12 @@ except ImportError:
 # direction, as a fraction of z0; see the comment in init_two_disl_lines
 EPS_ARM_ASYMMETRY = 1.0e-7
 
+# UNZIP_STRESS: see the matching comment in test_binary_junction_pydis_elast.py.
+# Kept numerically identical here so the two codes are comparable after the
+# stress turns on (at max_step // 2, the second half of the run), not just
+# before.
+UNZIP_STRESS = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 4.5e9])
+
 
 def init_two_disl_lines(z0=1.0, box_length=8.0,
                         b1=np.array([-1.0, 1.0, 1.0]),
@@ -199,19 +205,53 @@ def main(plot=True, force_mode='CUTOFF_MODEL', max_step=200, dt=1.0e-9,
     collision = Collision(collision_mode='Proximity', state=state)
     remesh    = Remesh(remesh_rule='LengthBased', state=state)
 
-    # No applied stress. The junction forms from the mutual elastic attraction
-    # of the two lines and from their line tension alone, so there is no
-    # external driving force to mask an error in the elastic interaction.
-    sim = SimulateNetwork(calforce=calforce, mobility=mobility,
-                          timeint=timeint, topology=topology,
-                          collision=collision, remesh=remesh, vis=vis,
-                          state=state, max_step=max_step,
-                          loading_mode="stress",
-                          applied_stress=np.array(
-                              [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
-                          print_freq=print_freq, plot_freq=10,
-                          plot_pause_seconds=0.01,
-                          write_freq=write_freq, write_dir='output')
+    # First half: no applied stress. The junction forms from the mutual
+    # elastic attraction of the two lines and from their line tension alone,
+    # which is what makes this a clean test of the elastic interaction up to
+    # that point. Second half: UNZIP_STRESS turns on and pulls it back apart;
+    # see its definition above for why this particular stress and not
+    # another.
+    #
+    # One continuous sim.run() call for the whole duration, with the stress
+    # switched on from inside step_update_response, rather than two separate
+    # calls with max_step split between them. SimulateNetwork.run() resets
+    # istep to 0 and (with a vis) opens a fresh figure and redraws the
+    # network from scratch every time it is called, so calling it twice made
+    # this look like -- and for --plot, actually behave like -- two
+    # unrelated simulations run back to back instead of one continuous run.
+    # ExaDiS's own SimulateNetwork.run() (pyexadis_base.py, iterate())
+    # increments its tstep counter *before* assigning it to state['istep']
+    # on every call, so state['istep']==K here means exactly K total steps
+    # have run. PyDiS's run() is 0-indexed instead (state['istep']==K means
+    # K+1 steps have run), so the matching trigger in
+    # test_binary_junction_pydis_elast.py corrects for the one-step offset
+    # there instead of here; see that script's comment for how this was
+    # confirmed (a step150 checkpoint written from the wrong side of that
+    # offset did not match a fresh, independent run stopped at the same
+    # real step).
+    stress_step = max_step // 2
+
+    class UnzipSimulateNetwork(SimulateNetwork):
+        def step_update_response(self, N, state):
+            state = super().step_update_response(N, state)
+            if state['istep'] == stress_step:
+                os.makedirs('output', exist_ok=True)
+                N.write_json('output/binary_junction_exadis_elast_step%d.json'
+                             % stress_step)
+                print("step %d: applying UNZIP_STRESS" % stress_step)
+                state["applied_stress"] = UNZIP_STRESS
+            return state
+
+    sim = UnzipSimulateNetwork(calforce=calforce, mobility=mobility,
+                               timeint=timeint, topology=topology,
+                               collision=collision, remesh=remesh, vis=vis,
+                               state=state, max_step=max_step,
+                               loading_mode="stress",
+                               applied_stress=np.array(
+                                   [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+                               print_freq=print_freq, plot_freq=10,
+                               plot_pause_seconds=0.01,
+                               write_freq=write_freq, write_dir='output')
     sim.run(net, state)
 
 

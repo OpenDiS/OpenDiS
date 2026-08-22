@@ -117,16 +117,21 @@ def report(name, passed):
     return passed
 
 
-def run_script(script, args=(), cwd=None, env_extra=None):
+def run_script(script, args=(), cwd=None, env_extra=None, headless=True):
     """run_script: run a python script as a subprocess, returning True on exit status 0
 
     Uses sys.executable so the child runs under the same interpreter as the test, which
     matters because the interpreter that can import pyexadis is not always `python3`.
     cwd defaults to the caller's working directory; the example scripts write their output
     relative to it.
+
+    headless=True forces MPLBACKEND=Agg so a script that tries to plot does not pop up a
+    window during an automated test run. Set headless=False for a caller that wants the
+    child's own plotting (e.g. a --plot passthrough) to actually show a window.
     """
     env = dict(os.environ)
-    env.setdefault('MPLBACKEND', 'Agg')          # keep the examples headless
+    if headless:
+        env.setdefault('MPLBACKEND', 'Agg')      # keep the examples headless
     if env_extra:
         env.update(env_extra)
     cmd = [sys.executable, str(script)] + [str(a) for a in args]

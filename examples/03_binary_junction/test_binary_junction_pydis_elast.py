@@ -22,6 +22,25 @@ from pydis import Collision, Remesh, VisualizeNetwork, SimulateNetwork
 # direction, as a fraction of z0; see the comment in init_two_disl_lines
 EPS_ARM_ASYMMETRY = 1.0e-7
 
+# A pure shear sigma_xy, Voigt order [xx,yy,zz,yz,xz,xy]. Chosen over other
+# simple stresses because of what it resolves onto each line's own Burgers
+# vector: sigma.b1 = (S,-S,0) for b1=(-1,1,1), sigma.b2 = (-S,S,0) for
+# b2=(1,-1,1) -- exactly opposite. Crossed with each line's own direction,
+# the resulting Peach-Koehler force on line 1's free arms comes out
+# proportional to (-1,-1,1) and on line 2's to (1,1,-1): the same axis,
+# opposite sense, on the two lines. That pulls the two lines' free arms
+# apart from each other rather than in some unrelated pair of directions,
+# which is what actually unzips the junction rather than just deforming each
+# line independently. Magnitude found empirically, applied for the second
+# half of a 300-step run: 1e9-2e9 only partially shrinks the junction by the
+# end (108.55 and 51.94 of an initial ~115-117 length); 4.5e9 fully destroys
+# it. Above ~1e10 the run crashes (a pre-existing gap in
+# topology_serial.py's trial-split evaluation -- a fresh multi-node created
+# by collision in the same step as a stress-driven approach is not yet in
+# nodeforce_dict/vel_dict when Topology_Serial looks it up, raising
+# KeyError).
+UNZIP_STRESS = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 4.5e9])
+
 
 def init_two_disl_lines(z0=1.0, box_length=8.0,
                         b1=np.array([-1.0, 1.0, 1.0]),
@@ -187,21 +206,59 @@ def main(plot=True, max_step=200, dt=1.0e-9, print_freq=10, write_freq=10):
                           nbrlist=nbrlist)
     remesh    = Remesh(remesh_rule='LengthBased', state=state)
 
-    # No applied stress. The junction forms from the mutual elastic attraction
-    # of the two lines and from their line tension alone, which is what makes
-    # this a clean test of the elastic interaction: there is no external
-    # driving force to mask an error in it.
-    sim = SimulateNetwork(calforce=calforce, mobility=mobility,
-                          timeint=timeint, topology=topology,
-                          collision=collision, remesh=remesh, vis=vis,
-                          state=state, max_step=max_step,
-                          loading_mode="stress",
-                          applied_stress=np.array(
-                              [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
-                          print_freq=print_freq, plot_freq=10,
-                          plot_pause_seconds=0.1,
-                          write_freq=write_freq, write_dir='output',
-                          save_state=False)
+    # First half: no applied stress. The junction forms from the mutual
+    # elastic attraction of the two lines and from their line tension alone,
+    # which is what makes this a clean test of the elastic interaction up to
+    # that point. Second half: UNZIP_STRESS turns on and pulls it back apart;
+    # see its definition above for why this particular stress and not
+    # another.
+    #
+    # One continuous sim.run() call for the whole duration, with the stress
+    # switched on from inside step_update_response, rather than two separate
+    # calls with max_step split between them. SimulateNetwork.run() resets
+    # istep to 0 and (with a vis) opens a fresh figure and redraws the
+    # network from scratch every time it is called, so calling it twice made
+    # this look like -- and for --plot, actually behave like -- two
+    # unrelated simulations run back to back instead of one continuous run.
+    stress_step = max_step // 2
+
+    # PyDiS's own SimulateNetwork.run() is 0-indexed: 'for istep in
+    # range(max_step)' means state['istep'] takes max_step values from 0 to
+    # max_step-1, so state['istep']==K means K+1 total steps have run.
+    # ExaDiS's run() (pyexadis_base.py, iterate()) increments its own tstep
+    # counter *before* assigning it to state['istep'] on every call, so its
+    # state['istep'] is effectively 1-indexed: the value K means exactly K
+    # total steps have run, not K+1. Triggering on the same 'istep ==
+    # stress_step' condition in both scripts therefore fires one real step
+    # apart -- confirmed empirically: with UNZIP_STRESS zeroed (a no-op)
+    # ExaDiS's own step150 checkpoint matched a fresh, independent 150-step
+    # run exactly, while PyDiS's matched a fresh 151-step run. trigger_step
+    # corrects for that so both checkpoints -- and the stress turning on --
+    # land on the same real step.
+    trigger_step = stress_step - 1
+
+    class UnzipSimulateNetwork(SimulateNetwork):
+        def step_update_response(self, DM, state):
+            state = super().step_update_response(DM, state)
+            if state['istep'] == trigger_step:
+                os.makedirs('output', exist_ok=True)
+                DM.write_json('output/binary_junction_pydis_elast_step%d.json'
+                              % stress_step)
+                print("step %d: applying UNZIP_STRESS" % stress_step)
+                state["applied_stress"] = UNZIP_STRESS
+            return state
+
+    sim = UnzipSimulateNetwork(calforce=calforce, mobility=mobility,
+                               timeint=timeint, topology=topology,
+                               collision=collision, remesh=remesh, vis=vis,
+                               state=state, max_step=max_step,
+                               loading_mode="stress",
+                               applied_stress=np.array(
+                                   [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+                               print_freq=print_freq, plot_freq=10,
+                               plot_pause_seconds=0.1,
+                               write_freq=write_freq, write_dir='output',
+                               save_state=False)
     sim.run(net, state)
 
     return net.is_sane()
@@ -213,8 +270,9 @@ if __name__ == "__main__":
     parser.add_argument('--no-plot', dest='plot', action='store_false',
                         default=True)
     parser.add_argument('--max-step', dest='max_step', type=int, default=200,
-                        help='steps to run; the junction forms at step 2 and '
-                             'grows for the rest of the run')
+                        help='steps to run; the junction forms during the '
+                             'first half, then UNZIP_STRESS turns on for the '
+                             'second half and pulls it apart')
     parser.add_argument('--dt', dest='dt', type=float, default=1.0e-9)
     parser.add_argument('--print-freq', dest='print_freq', type=int,
                         default=10,
