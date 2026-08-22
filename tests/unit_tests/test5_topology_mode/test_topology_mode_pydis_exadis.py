@@ -128,13 +128,25 @@ TAG_STATE = REF_DIR / 'exadis_tag_state.npz'
 def base_state():
     """base_state: the material and discretization parameters
 
-    Matches examples/03_binary_junction's current state dict exactly. No
-    'crystal' key, which is what leaves use_glide_planes at 0 in ExaDiS,
-    same as test4_collision_mode's base and asserted the same way (via
-    t4.glide_plane_settings) rather than assumed.
+    Matches examples/03_binary_junction's current state dict exactly,
+    including 'crystal': 'bcc' and 'use_glide_planes': True. Without a
+    crystal type, ExaDiS never assigns a glide plane to a segment created by
+    a topological split (Crystal::initialize, core/exadis/src/crystal.h:126,
+    forces use_glide_planes=0 whenever no crystal type is set at all) --
+    resolved to be the actual root cause of the tests/full_runs/03_binary_junction
+    divergence (.plan/2026-08-21/debug_topology_stage2.md, section 11), not
+    a tie. Checked via t4.glide_plane_settings, same as test4_collision_mode,
+    rather than assumed.
+
+    With the crystal type declared, ExaDiS's junction-segment plane happens
+    to come out equal to PyDiS's own crystal-agnostic one (see the companion
+    exadis example script's comment on this state dict for why: it is a
+    property of this test's geometry, not a general equivalence between the
+    two models).
     """
     return {"burgmag": 3e-10, "mu": 160e9, "nu": 0.31, "a": 1.0,
-            "maxseg": 0.04 * LBOX, "minseg": 0.01 * LBOX, "rann": 3.0}
+            "maxseg": 0.04 * LBOX, "minseg": 0.01 * LBOX, "rann": 3.0,
+            "crystal": "bcc", "use_glide_planes": True}
 
 
 def init_two_disl_lines(state, pbc=False):

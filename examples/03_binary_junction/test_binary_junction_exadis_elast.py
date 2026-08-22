@@ -94,8 +94,33 @@ def main(plot=True, force_mode='CUTOFF_MODEL', max_step=200, dt=1.0e-9,
     # the core.
     Lbox = 1000.0
     z0 = 0.125*Lbox
+    # crystal="bcc" + use_glide_planes=True: without a crystal type, ExaDiS
+    # never assigns a glide plane to a segment created by a topological split
+    # (Crystal::initialize, crystal.h:126, forces use_glide_planes=0 whenever
+    # no crystal type is set at all -- not specific to BCC). This test's
+    # Burgers vectors ([-1,1,1]/[1,-1,1], the classic BCC 1/2<111> slip
+    # vectors) are already implicitly BCC, and BCC's own table has an exact
+    # <100> entry for the junction Burgers vector [0,0,2] this test forms.
+    # Enabling it makes ExaDiS compute a real plane for the junction segment
+    # instead of leaving it zero.
+    #
+    # That plane comes out equal (to sign, not physically meaningful for a
+    # plane normal) to PyDiS's own, crystal-agnostic find_precise_glide_plane
+    # result: [0.7071,-0.7071,0] here vs PyDiS's [-0.7071,0.7071,0]. That is
+    # a property of THIS test's geometry, not a general equivalence between
+    # the two models. PyDiS always uses the raw cross(burgers, line
+    # direction); ExaDiS's BCC model snaps that raw direction to the nearest
+    # of a discrete, tabulated set of real BCC lattice planes for the given
+    # Burgers vector, which can differ from the raw cross product for an
+    # arbitrary geometry. They agree here only because this test's junction
+    # forms along the exact intersection of the two original lines' glide
+    # planes -- (1,1,1)/sqrt(3) -- and that direction, crossed with the
+    # junction Burgers vector [0,0,2], already lands exactly on a genuine
+    # {110}-type BCC lattice plane with no snapping needed. A less
+    # symmetric junction geometry would not be expected to match this way.
     state = {"burgmag": 3e-10, "mu": 160e9, "nu": 0.31, "a": 1.0,
-             "maxseg": 0.04*Lbox, "minseg": 0.01*Lbox, "rann": 3.0}
+             "maxseg": 0.04*Lbox, "minseg": 0.01*Lbox, "rann": 3.0,
+             "crystal": "bcc", "use_glide_planes": True}
 
     cutoff = 0.25*Lbox
     check_cutoff_maxseg(Lbox*np.eye(3), cutoff, state["maxseg"])
