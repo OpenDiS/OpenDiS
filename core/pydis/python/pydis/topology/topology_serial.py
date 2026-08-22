@@ -174,40 +174,44 @@ def split_node_reusing_forces(G, state, tag, nbrs_to_split, force, mobility,
     -- and ExaDiS never has a backup-forces concept at all
     (core/exadis/src/topology_types/topology_serial.h): every trial-split
     force there is a fresh force->node_force() call against the network's
-    current geometry. So here the two nodes are nudged apart by
-    params.rann first, each toward the average direction of its own
-    retained arms, and OneNodeForce is called fresh for each -- matching
-    ExaDiS, and avoiding the same zero-length-segment nan
-    (compute_segseg_force is singular there) that motivated the original,
-    False behavior, the way ExaDiS avoids it (topology_serial.h:203-243):
-    note the nudge distance matters here -- params.split_dist (2*rann)
-    was tried first and gave the wrong split direction for this same
-    node, so this is not a fully robust fix, just an improvement; see
-    .plan for the open question this leaves.
-    by giving the trial segment a finite length before asking the kernel,
-    not by reusing old data. The nudge is undone before returning, since
-    it exists only to make this force well-defined, not to anticipate the
-    eventual separation distance and direction (chosen afterward, from
-    this force's own velocity).
+    current geometry.
+
+    OneNodeForce is therefore called fresh for each trial node here too,
+    at the unperturbed, coincident position. That is exact whenever
+    nbrs_to_split's Burgers vectors already balance on their own (the
+    common case: reforming two lines that pass straight through the old
+    multi-node, as when the last junction segment of
+    tests/full_runs/03_binary_junction unzips), since then G.split_node
+    adds no connecting segment between the two trial nodes and there is no
+    zero-length geometry to trip over. Only when an imbalance does require
+    a connecting segment -- an actual new junction forming -- does that
+    segment's zero length make compute_segseg_force singular for it
+    (confirmed directly: nan on the arm connecting the two trial nodes,
+    zero on every other arm, unaffected). That case is not handled here:
+    per instruction, no nudging or otherwise moving a node to work around
+    a nan is done without it being an explicit, separate decision. A nan
+    reaching this point means the algorithm has hit a case it was not
+    written for, and is raised as a ValueError rather than silently
+    patched over, so it gets looked at rather than quietly biasing the
+    split decision.
     """
     pos0 = G.nodes(tag).R.copy()
     node1, node2 = G.split_node(tag, pos0.copy(), pos0.copy(), nbrs_to_split)
 
     if params.recompute_segforce_for_split:
-        for node in (node1, node2):
-            arm_dirs = [G.nodes(nbr).R - pos0 for nbr in G.neighbors_tags(node)]
-            direction = sum(arm_dirs)
-            norm = np.linalg.norm(direction)
-            if norm > 0.0:
-                G.nodes(node).R = pos0 + params.rann*direction/norm
-
         DM = DisNetManager(G)
-        for node in (node1, node2):
-            store_node_force(state, node,
-                             force.OneNodeForce(DM, state, node, update_state=False))
+        f = {node: force.OneNodeForce(DM, state, node, update_state=False)
+            for node in (node1, node2)}
 
-        G.nodes(node1).R = pos0.copy()
-        G.nodes(node2).R = pos0.copy()
+        if not all(np.all(np.isfinite(fi)) for fi in f.values()):
+            raise ValueError(
+                "split_node_reusing_forces: non-finite force splitting %s "
+                "into %s/%s -- likely a zero-length segment connecting the "
+                "two trial nodes (an imbalanced, junction-forming grouping); "
+                "see this function's docstring" % (tag, node1, node2))
+
+        for node in (node1, node2):
+            store_node_force(state, node, f[node])
     else:
         segforce_dict = state["segforce_dict"]
         for node in (node1, node2):

@@ -103,7 +103,24 @@ def compute_segseg_force(p1, p2, p3, p4, b1, b2, mu, nu, a, seg12local=1, seg34l
     """
     dislocation segment from p1 to p2 with Burgers vector b1
     dislocation segment from p3 to p4 with Burgers vector b2
+
+    RULE CHANGE: a segment shorter than sqrt(MIN_SEG_LEN2) contributes no
+    force at all -- matching ExaDiS's SegSegIso::segseg_force
+    (core/exadis/src/force_types/force_iso.h:50,57,60:
+    `if (l1 >= 1.e-20 && l2 >= 1.e-20) { ... }`, same threshold). The
+    underlying SegSegForce routine (a direct port of ParaDiS's own) is
+    singular for a genuinely zero-length segment -- confirmed directly:
+    nan on that segment's own two endpoints, zero (unaffected) on the
+    other segment's. This matters for a topology trial split: the new
+    segment connecting two still-coincident trial nodes, before either is
+    moved anywhere, has exactly zero length. ExaDiS never calls this
+    routine on such a segment in the first place, via this same guard.
     """
+    MIN_SEG_LEN2 = 1.0e-20
+    l1, l2 = p2 - p1, p4 - p3
+    if np.dot(l1, l1) < MIN_SEG_LEN2 or np.dot(l2, l2) < MIN_SEG_LEN2:
+        z = np.zeros(3)
+        return z, z.copy(), z.copy(), z.copy()
 
     f1x, f1y, f1z = real8(), real8(), real8()
     f2x, f2y, f2z = real8(), real8(), real8()
