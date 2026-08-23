@@ -27,11 +27,16 @@ So this test does what can be done now:
      intermediate checkpoint the examples write there): segments carrying
      b1 + b2, bounded by two three-arm nodes. That is a physics assertion,
      not an "it ran" one
-  3. the two must agree at that midpoint
+  3. the two must agree with each other at that midpoint (no stored
+     reference exists for this intermediate state)
   4. UNZIP_STRESS, which turns on for the second half of the run (see the
      examples' own comments on it), must destroy the junction it formed --
      checked from the final state
-  5. the two must agree at the end too
+  5. at the end, each of the two must independently agree with a stored
+     reference configuration (ref_data/binary_junction_elast_ref.npz,
+     regenerated with 'make binary_junction_elast_ref'), not merely with
+     each other -- agreeing with each other is a weaker statement, since a
+     change that shifted both codes equally would pass unnoticed
 
 Nothing here is optional. An earlier version of this file treated PyDiS as
 allowed to fail, because at the time OneNodeForce was unimplemented for the
@@ -56,7 +61,7 @@ opendis_root = Path(__file__).resolve().parents[3]
 sys.path.append(str(opendis_root / 'python'))
 
 import numpy as np
-from framework.testing import report, run_script, compare_configs
+from framework.testing import report, run_script, compare_configs, compare_to_ref
 
 examples_dir = opendis_root / 'examples' / '03_binary_junction'
 
@@ -91,6 +96,15 @@ B_JUNCTION = B1 + B2
 N_JUNCTION_ENDS = 2
 
 TOL = 1.0e-6
+
+# The final configuration is checked against a stored reference rather than
+# only against pydis and exadis agreeing with each other. Agreeing with each
+# other is a weaker statement: a change that shifted both equally would pass
+# unnoticed. Regenerate with 'make binary_junction_elast_ref'. Anchored to the
+# script, not the working directory: the reference is input data belonging to
+# this test, whereas output/ belongs to whoever ran it.
+REF_NPZ = (Path(__file__).resolve().parent / 'ref_data'
+          / 'binary_junction_elast_ref.npz')
 
 
 def junction_summary(json_file):
@@ -185,32 +199,30 @@ def main(plot=False):
     n_pydis, n_exadis, d_mid = compare_configs(PYDIS_MID_JSON, EXADIS_MID_JSON)
     print("at step %d: nodes: pydis = %d, exadis = %d"
           % (STRESS_STEP, n_pydis, n_exadis))
-    print("at step %d: max nearest-node distance, pydis vs exadis = %.4e"
-          % (STRESS_STEP, d_mid))
+    print("at step %d: max nearest-node distance, pydis vs exadis = %.4e, "
+          "tolerance = %.1e" % (STRESS_STEP, d_mid, TOL))
     ok &= report("node counts agree at step %d" % STRESS_STEP,
                  n_pydis == n_exadis)
     ok &= report("configurations agree within %.1e at step %d"
                  % (TOL, STRESS_STEP), d_mid < TOL)
 
-    n_pydis, n_exadis, d_pair = compare_configs(PYDIS_JSON, EXADIS_JSON)
-    print("at step %d: nodes: pydis = %d, exadis = %d"
-          % (MAX_STEP, n_pydis, n_exadis))
-    print("at step %d: max nearest-node distance, pydis vs exadis = %.4e"
-          % (MAX_STEP, d_pair))
-    ok &= report("node counts agree at step %d" % MAX_STEP,
-                 n_pydis == n_exadis)
-    ok &= report("configurations agree within %.1e at step %d"
-                 % (TOL, MAX_STEP), d_pair < TOL)
+    if not REF_NPZ.is_file():
+        print("reference not found: %s" % REF_NPZ)
+        print("generate it with 'make binary_junction_elast_ref' and copy "
+              "it into ref_data/")
+        return False
 
-    # No stored reference yet. Blessing one now would freeze the exadis-only
-    # behaviour of a case whose point is the comparison, and it would have to
-    # be regenerated the moment pydis can run. Add it, and the ref_data
-    # machinery of 02_frank_read_src, once both codes complete the run.
-    print("")
-    print("note: no stored reference for this case yet, so both codes are "
-          "checked against")
-    print("      each other and against the junction assertions, not against "
-          "a blessed run")
+    n_pydis, n_ref, d_pydis = compare_to_ref(PYDIS_JSON, REF_NPZ)
+    ok &= report("at step %d: nodes: pydis = %d, ref = %d; max nearest-node "
+                 "distance, pydis  vs ref = %.4e, tolerance = %.1e"
+                 % (MAX_STEP, n_pydis, n_ref, d_pydis, TOL),
+                 n_pydis == n_ref and d_pydis < TOL)
+
+    n_exadis, n_ref, d_exadis = compare_to_ref(EXADIS_JSON, REF_NPZ)
+    ok &= report("at step %d: nodes: exadis = %d, ref = %d; max nearest-node "
+                 "distance, exadis vs ref = %.4e, tolerance = %.1e"
+                 % (MAX_STEP, n_exadis, n_ref, d_exadis, TOL),
+                 n_exadis == n_ref and d_exadis < TOL)
     return bool(ok)
 
 

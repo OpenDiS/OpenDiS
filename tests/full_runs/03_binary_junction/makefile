@@ -5,7 +5,7 @@
 # the same set of tests, and deriving both from one rule keeps them together.
 #
 #   make                      run every test, report a non-zero status if any failed
-#   make test_frank_read_src_pydis_exadis_elast.py   run one test
+#   make test_binary_junction_pydis_exadis_elast.py   run one test
 #   make list                 show which tests would run
 #   make binary_junction_elast_ref   regenerate the reference configuration
 #
@@ -20,8 +20,9 @@ PYTHON ?= python3
 TESTS  := $(wildcard test_*.py)
 
 EXAMPLES = ../../../examples/03_binary_junction
+REF_NPZ  = output/binary_junction_elast_ref.npz
 
-.PHONY: all list clean $(TESTS)
+.PHONY: all list clean binary_junction_elast_ref $(TESTS)
 
 # Each test is run even if an earlier one fails, so one invocation reports the
 # whole picture, and the names of any that failed are repeated at the end.
@@ -57,6 +58,26 @@ $(TESTS):
 
 list:
 	@for t in $(TESTS); do echo $$t; done
+
+# Regenerate the reference configuration the final-state check compares
+# against. pydis is used to produce it, and the code that wrote it is
+# recorded inside the .npz as 'source'. The example writes its output
+# relative to the working directory, so the .npz lands in output/ here.
+binary_junction_elast_ref:
+	$(PYTHON) $(EXAMPLES)/test_binary_junction_pydis_elast.py \
+	    --no-plot --max-step 300 --write-ref
+	@echo ""
+	@echo "reference written to $(REF_NPZ)"
+	@echo ""
+	@echo "to install it, copy it into ref_data/ alongside this makefile:"
+	@echo "    mkdir -p ref_data"
+	@echo "    cp $(REF_NPZ) ref_data/"
+	@echo ""
+	@echo "this reference encodes the current settings of the run"
+	@echo "(cutoff = 0.25*Lbox, max_step = 300, UNZIP_STRESS as currently"
+	@echo "defined in the example, match_exadis_hinge_merge_artifact default"
+	@echo "in pydis's Collision handler); regenerate it whenever those"
+	@echo "change, or the tests will report a legitimate change as a failure"
 
 clean:
 	@echo "nothing to clean"
