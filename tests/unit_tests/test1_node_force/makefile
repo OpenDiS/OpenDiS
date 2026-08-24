@@ -17,7 +17,7 @@
 PYTHON ?= python3
 TESTS  := $(wildcard test_*.py)
 
-.PHONY: all list clean loop_node_force_ref $(TESTS)
+.PHONY: all list clean loop_node_force_ref segseg_force_ref pydis_ref $(TESTS)
 
 # Each test is run even if an earlier one fails, so one invocation reports the
 # whole picture, and the names of any that failed are repeated at the end.
@@ -89,8 +89,26 @@ loop_node_force_ref:
 
 # Regenerate the parallel / near-parallel segment-pair table. The script prints
 # both paths and the copy command itself, so nothing is echoed after it here.
+#
+# Note what this one does that pydis_ref below does not: it rebuilds the
+# *fixture* as well, and it takes the forces from the compiled ParaDiS kernel
+# only after checking they agree with exadis, refusing to bless any row where
+# the two disagree. Use it when the set of segment pairs changes. pydis_ref
+# regenerates references for fixtures that already exist.
 segseg_force_ref:
 	$(PYTHON) make_parallel_ref_data.py
+
+# Regenerate every reference in this folder from pydis, for fixtures that are
+# already in place. Each test writes its own, through the same code path it
+# checks, so the pydis line of each comparison reads zero against a freshly
+# blessed reference and the other lines read their difference from it.
+# Everything lands in output/ to be inspected and copied by hand.
+pydis_ref:
+	$(PYTHON) test_seg_stress_pydis.py --write-ref
+	@echo ""
+	$(PYTHON) test_segseg_force_pydis_exadis.py --write-ref
+	@echo ""
+	$(PYTHON) test_disnet_loop_force_pydis_exadis.py --write-ref
 
 clean:
 	@echo "nothing to clean"

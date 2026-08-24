@@ -40,13 +40,15 @@ opendis_paths = [str(opendis_root / p) for p in
                   'core/exadis/python']]
 [sys.path.append(p) for p in opendis_paths if not p in sys.path]
 
+import argparse
+
 import numpy as np
 from pydis.calforce.compute_stress_force_analytic_paradis import (
     compute_segseg_force_list)
 from pydis.calforce.compute_stress_force_analytic_python import (
     python_segseg_force_vec)
-from framework.testing import (report_close, quiet_native_output,
-                               kokkos_summary)
+from framework.testing import (array_digest, report_close,
+                               quiet_native_output, kokkos_summary)
 from segseg_tables import (TABLES, load, exadis_network,
                            MU as mu, NU as nu, A as a)
 
@@ -142,6 +144,45 @@ def test_pydis(pairs, ref_forces, tol):
     return bool(ok)
 
 
+OUT_DIR = Path('output')          # relative to the working directory
+
+
+def write_ref():
+    """write_ref: regenerate every table's reference from pydis
+
+    Written by the ParaDiS library kernel reached through pydis, the same
+    implementation the first comparison in test_pydis checks, so that
+    comparison reads 0 against a freshly blessed reference and the other
+    two read their difference from it.
+
+    The geometry is read straight from the fixture rather than through
+    load(), which needs a reference that agrees with the fixture and so
+    cannot be used to make one. Each file carries the digest of the
+    geometry it came from, which is what lets load() tell a stale
+    reference from a kernel fault.
+
+    Files land in output/ for inspection, not in ref_data/.
+    """
+    OUT_DIR.mkdir(exist_ok=True)
+    for table in TABLES:
+        geometry = np.loadtxt(table.dat)
+        pairs = tuple(geometry[:, i:i+3] for i in range(0, 18, 3))
+        p1, p2, p3, p4, b12, b34 = pairs
+        forces = np.concatenate(
+            compute_segseg_force_list(p1, p2, p3, p4, b12, b34, mu, nu, a),
+            axis=1)
+        out_file = OUT_DIR / (table.stem + '.npz')
+        np.savez(out_file, forces=forces, mu=mu, nu=nu, a=a,
+                 geometry_digest=np.array(array_digest(geometry)),
+                 n_pairs=geometry.shape[0])
+        print("write_ref: wrote %s, %d pairs x %d force columns"
+              % (out_file, forces.shape[0], forces.shape[1]))
+    print("")
+    print("  inspect them, then bless them:")
+    for table in TABLES:
+        print("      cp %s/%s.npz ref_data/" % (OUT_DIR, table.stem))
+
+
 def exadis_forces(pairs):
     """exadis_forces: the pairs through exadis' SegSegIso, as (N,12)
 
@@ -204,6 +245,17 @@ def main():
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--write-ref', dest='write_ref', action='store_true',
+                        default=False,
+                        help='regenerate the references from pydis into '
+                             'output/ instead of running the comparison')
+    args = parser.parse_args()
+
+    if args.write_ref:
+        write_ref()
+        sys.exit(0)
+
     passed = main()
     tag = '\033[32m' + 'PASSED' if passed else '\033[31m' + 'FAILED'
     print("test " + tag + '\033[0m')

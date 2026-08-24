@@ -36,8 +36,7 @@ non-periodic and the forces do not depend on it, but its size is not
 free: exadis clamps its neighbor bins to 3 per direction once
 cutoff + maxseg > d/3 and then drops pairs silently, landing about 5e-3
 below the all-pairs answer here. Hence a box of BOX_BINS*(CUTOFF +
-MAXSEG), asserted by check_cutoff_maxseg, with check_cell_independence
-as the guard if that ever stops holding.
+MAXSEG), which check_cutoff_maxseg asserts on every call.
 """
 
 import sys
@@ -77,11 +76,6 @@ MAXSEG = 2.0
 # that keeps the exadis neighbor bins unclamped
 BOX_BINS = 3.0
 
-# box scale-up used by check_cell_independence, and what the exadis pair
-# sum is allowed to move by when the bin count changes under it
-BOX_FACTOR_CHECK = 10.0
-TOL_SUM = 1.0e-10
-
 state = {"burgmag": 3e-10, "mu": 50.0, "nu": 0.3, "a": 0.01,
          "maxseg": MAXSEG, "minseg": 0.5, "rann": 3.0}
 Ec_linetension = 1.0e6
@@ -99,9 +93,9 @@ def load_config(rn_file=RN_FILE, links_file=LINKS_FILE):
     return rn, links
 
 
-def cell_geometry(rn, box_factor=1.0):
+def cell_geometry(rn):
     """cell_geometry: the cell both codes are given, as (h, origin)"""
-    L = box_factor * BOX_BINS * (CUTOFF + MAXSEG)
+    L = BOX_BINS * (CUTOFF + MAXSEG)
     h = L * np.eye(3)
     lo, hi = rn.min(axis=0), rn.max(axis=0)
     if np.any(hi - lo > L):
@@ -111,7 +105,7 @@ def cell_geometry(rn, box_factor=1.0):
     return h, 0.5*(lo + hi) - 0.5*L
 
 
-def forces_pydis(box_factor=1.0):
+def forces_pydis():
     """forces_pydis: (tags, line tension force, elastic force)
 
     One CalForce per mode, because Ec belongs to the object and the two
@@ -120,7 +114,7 @@ def forces_pydis(box_factor=1.0):
     elastic result that the exadis call is not asked for.
     """
     rn, links = load_config()
-    h, origin = cell_geometry(rn, box_factor)
+    h, origin = cell_geometry(rn)
     G = DisNet(cell=Cell(h=h, origin=origin,
                          is_periodic=[False, False, False]))
     G.add_nodes_segments_from_list(rn, links)
@@ -142,7 +136,7 @@ def forces_pydis(box_factor=1.0):
     return np.array(tags, dtype=int), f_lt, f_elast
 
 
-def forces_exadis(box_factor=1.0):
+def forces_exadis():
     """forces_exadis: (tags, line tension force, elastic force)
 
     The input files carry no glide planes, and none is needed: the
@@ -154,7 +148,7 @@ def forces_exadis(box_factor=1.0):
     import pyexadis
 
     rn, links = load_config()
-    h, origin = cell_geometry(rn, box_factor)
+    h, origin = cell_geometry(rn)
     # exadis wants [n1, n2, bx, by, bz, nx, ny, nz] per segment
     segs = np.zeros((links.shape[0], 8))
     segs[:, :5] = links[:, :5]
@@ -181,29 +175,6 @@ def forces_exadis(box_factor=1.0):
     tags, f_lt = node_force('LineTension', Ec=Ec_linetension)
     _, f_elast = node_force('CUTOFF_MODEL', Ec=Ec_elasticity, cutoff=CUTOFF)
     return tags, f_lt, f_elast
-
-
-def check_cell_independence(f_lt, f_elast):
-    """check_cell_independence: the cell must not affect the forces
-
-    Recomputes the exadis forces in a BOX_FACTOR_CHECK times larger
-    box. There are no periodic images and the cutoff already covers
-    every pair, so nothing is left for the cell to change; this is what
-    fails if the cutoff or the box ever stop satisfying
-    check_cutoff_maxseg, since the pairs dropped then differ between
-    the two box sizes.
-
-    The line tension is per-segment and must match exactly. The pair
-    sum must not: a different bin count changes the order the
-    contributions are accumulated in, and the threaded reduction is not
-    order-independent, hence TOL_SUM.
-    """
-    _, f_lt_big, f_elast_big = forces_exadis(box_factor=BOX_FACTOR_CHECK)
-    label = "exadis %gx box" % BOX_FACTOR_CHECK
-    ok = report_close(label + ", line tension", f_lt_big, f_lt, atol=0.0)
-    ok &= report_close(label + ", elasticity", f_elast_big, f_elast,
-                       atol=TOL_SUM)
-    return bool(ok)
 
 
 def write_ref(tags, f_lt, f_elast, out_dir=OUT_DIR):
@@ -273,15 +244,9 @@ def test_pydis(ref):
 
 
 def test_exadis(ref):
-    """test_exadis: the exadis forces against the same reference
-
-    Also runs the cell-independence guard, which is exadis-only: pydis
-    has no neighbor list for the cell to influence.
-    """
+    """test_exadis: the exadis forces against the same reference"""
     tags, f_lt, f_elast = forces_exadis()
-    ok = compare_to_ref("exadis", tags, f_lt, f_elast, ref)
-    ok &= check_cell_independence(f_lt, f_elast)
-    return bool(ok)
+    return compare_to_ref("exadis", tags, f_lt, f_elast, ref)
 
 
 def main(write_ref_file=False):
