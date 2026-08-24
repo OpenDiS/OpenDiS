@@ -117,8 +117,37 @@ def glide_plane(b, t):
 
 # ---------------------------------------------------------------- pydis
 
-def result_pydis():
-    """result_pydis: the network after both operations, in pydis"""
+def seed_tag_state(G, maxindex, recycled):
+    """seed_tag_state: give a pydis network exadis' tag pool
+
+    Same logic as test3/test4/test5's methods of the same name.
+    maxindex/recycled (top of stack first) are exadis' own live values,
+    reversed here because DisNet.get_new_tag() pops from the end of the
+    list.
+    """
+    if maxindex is None:
+        return
+    live = {t[1] for t in G.all_nodes_tags()}
+    free = [i for i in recycled if i not in live]
+    G._max_tag = (0, max(maxindex, max(live)))
+    G._recycled_tags = [(0, i) for i in reversed(free)]
+
+
+def result_pydis(tag_seed=None):
+    """result_pydis: the network after both operations, in pydis
+
+    tag_seed, if given, is exadis' own live (maxindex, recycled) pool after
+    removing REMOVE_TAGS (see exadis_tag_state_after_removal()), fed to
+    get_new_tag() below via seed_tag_state() the same way test3/test4/test5
+    seed their replayed networks. Optional, and None by default (used by
+    --write-ref, which has no exadis dependency to draw one from): pydis'
+    own get_new_tag() already happens to agree with exadis here regardless,
+    since both recycle freed tags LIFO and both free the same two tags in
+    the same order (see this file's module docstring) -- this is added
+    defensively (matching test3/test4/test5's pattern of grounding pydis'
+    tag allocation in exadis' actual state rather than relying on that
+    coincidence) rather than because a disagreement was observed.
+    """
     rn, segs = load_config()
     G = DisNet()
     G.add_nodes_segments_from_list(rn, segs)
@@ -140,6 +169,9 @@ def result_pydis():
               "joined; nodes %d -> %d, segments %d -> %d"
               % (str(tag), str(neighbors), n_nodes, G.num_nodes(),
                  n_segs, G.num_segments()))
+
+    if tag_seed is not None:
+        seed_tag_state(G, *tag_seed)
 
     tag1, tag2 = SPLIT_SEG
     n_nodes, n_segs = G.num_nodes(), G.num_segments()
@@ -175,13 +207,8 @@ def segment_index(serial, i, j):
                      % (i, j))
 
 
-def result_exadis():
-    """result_exadis: the network after both operations, in exadis
-
-    Returned as a DisNet, so that the same comparison serves both
-    codes. Only the comparison goes through pydis; the network is the
-    one exadis produced.
-    """
+def build_exadis_network():
+    """build_exadis_network: the starting network, as exadis loads it"""
     import pyexadis
     from pyexadis_base import ExaDisNet
 
@@ -191,14 +218,25 @@ def result_exadis():
     G = ExaDisNet(cell, rn, segs)
     print("exadis: nodes = %d, segments = %d"
           % (G.num_nodes(), G.num_segments()))
+    return G
 
+
+def exadis_remove_tags(G):
+    """exadis_remove_tags: REMOVE_TAGS's merge_nodes_position/purge loop
+
+    Mutates G in place. Split out of result_exadis() so
+    exadis_tag_state_after_removal() can run exactly this much, on its own
+    throwaway network, purely to read the tag pool it leaves behind --
+    without also running the SPLIT_SEG insertion that follows it in
+    result_exadis() itself.
+    """
     dEp = np.zeros((3, 3))
     for tag in REMOVE_TAGS:
         serial = G.net._get_serial_network()
         i_drop = index_of(G, tag)
         conn = serial.conn(i_drop)
         if conn.num != 2:
-            raise ValueError("result_exadis: node %s has %d arms"
+            raise ValueError("exadis_remove_tags: node %s has %d arms"
                              % (str(tag), conn.num))
         tags = np.array(G.get_tags())
         keep_tag = tuple(tags[conn.node(0)])
@@ -209,8 +247,8 @@ def result_exadis():
         n_nodes, n_segs = G.num_nodes(), G.num_segments()
         # the return value is an error flag, not success
         if serial.merge_nodes_position(i_keep, i_drop, pos, dEp):
-            raise RuntimeError("merge_nodes_position failed on %s"
-                               % str(tag))
+            raise RuntimeError("exadis_remove_tags: merge_nodes_position "
+                               "failed on %s" % str(tag))
         serial.purge_network()
 
         # indices have been renumbered by the purge
@@ -225,6 +263,34 @@ def result_exadis():
               "%d, segments %d -> %d"
               % (str(tag), str(keep_tag), n_nodes, G.num_nodes(),
                  n_segs, G.num_segments()))
+
+
+def exadis_tag_state_after_removal():
+    """exadis_tag_state_after_removal: exadis' live tag pool after REMOVE_TAGS
+
+    Builds its own throwaway exadis network, removes REMOVE_TAGS on it (the
+    same operation result_exadis() below performs on its own, separate
+    network), and reads the tag pool via the binding added in exadis commit
+    20ea2e8 ("Added binding to SerialDisNet internal tag indexing") -- the
+    same call test3/test4/test5's live_tag_state() methods make. Returns
+    (maxindex, recycled), top of stack first, meant for result_pydis()'s
+    tag_seed argument via seed_tag_state().
+    """
+    G = build_exadis_network()
+    exadis_remove_tags(G)
+    serial = G.net._get_serial_network()
+    return int(serial._maxindex()), [int(i) for i in serial._recycled_indices()]
+
+
+def result_exadis():
+    """result_exadis: the network after both operations, in exadis
+
+    Returned as a DisNet, so that the same comparison serves both
+    codes. Only the comparison goes through pydis; the network is the
+    one exadis produced.
+    """
+    G = build_exadis_network()
+    exadis_remove_tags(G)
 
     tag1, tag2 = SPLIT_SEG
     serial = G.net._get_serial_network()
@@ -292,9 +358,10 @@ def test_code(label, G, ref):
 
 
 def main(write_ref_file=False):
-    G_pydis = result_pydis()
-
     if write_ref_file:
+        # no exadis dependency for this path: result_pydis()'s tag_seed
+        # stays at its default (None), same as always.
+        G_pydis = result_pydis()
         # a reference taken from a network that failed its own sanity
         # check would be worse than none
         if not G_pydis.is_sane():
@@ -313,16 +380,20 @@ def main(write_ref_file=False):
         return False
     ref = load_ref()
 
-    ok = test_code("pydis ", G_pydis, ref)
-
     try:
         import pyexadis
     except ImportError:
-        print("pyexadis not available; the exadis half of this test "
-              "did not run")
+        print("pyexadis not available; this test did not run")
         return False
 
     pyexadis.initialize()
+    # exadis initializes first here (unlike write_ref_file's path) so
+    # result_pydis() can be seeded from exadis' own live tag pool -- see
+    # its tag_seed argument and exadis_tag_state_after_removal()'s
+    # docstring.
+    tag_seed = exadis_tag_state_after_removal()
+    G_pydis = result_pydis(tag_seed=tag_seed)
+    ok = test_code("pydis ", G_pydis, ref)
     ok &= test_code("exadis", result_exadis(), ref)
     pyexadis.finalize()
     return bool(ok)

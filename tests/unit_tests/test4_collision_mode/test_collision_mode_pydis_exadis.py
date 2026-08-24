@@ -187,6 +187,8 @@ class StepRecord:
         self.pydis_dseg = 0
         self.exadis_collided = False
         self.pydis_collided = False
+        # tag pool: live exadis binding vs the stored reference recording
+        self.tag_state_match = None
         # comparison
         self.tags_match = None
         self.same_geometry = None
@@ -202,7 +204,7 @@ class StepRecord:
 
 
 def load_tag_state(path=TAG_STATE):
-    """load_tag_state: exadis' tag recycling state at the start of each step
+    """load_tag_state: exadis' recorded tag recycling state, one entry per step
 
     exadis carries maxindex and a stack of freed indices from one step to
     the next. The pydis side of this comparison is rebuilt with
@@ -212,11 +214,22 @@ def load_tag_state(path=TAG_STATE):
     collision rule, and without it the resulting-tags count cannot match
     however correct pydis is.
 
-    The file is a recording, made once by printing network->maxindex and
-    network->recycled_indices at the top of
-    CollisionRetroactive::retroactive_collision_parallel. Regenerate it
-    the same way if the reference trajectory changes; it is keyed by step
-    index and silently unused if absent.
+    Originally the only source for this: a recording made once by printing
+    network->maxindex and network->recycled_indices at the top of
+    CollisionRetroactive::retroactive_collision_parallel (manual C++
+    instrumentation, not reproducible from Python). As of exadis commit
+    20ea2e8 ("Added binding to SerialDisNet internal tag indexing"),
+    SerialDisNet exposes this live: G.net._get_serial_network()._maxindex()
+    and ._recycled_indices() (top of stack first, matching this recording's
+    own convention). seed_tag_state() below now seeds pydis' replay from
+    that live call instead of this file; this file, and this function, are
+    kept only as the reference check_tag_state_consistency() compares the
+    live binding against on every step, so a regression in either the
+    binding or the historical recording is caught rather than silently
+    trusted. Regenerate the file (same manual C++ instrumentation, or now
+    also possible by recording the live binding's own output) if the
+    reference trajectory changes; it is keyed by step index and silently
+    unused if absent.
 
     Returns a list, one entry per step, of (maxindex, [freed indices]) with
     the stack top first, or None when the file is not there.
@@ -339,7 +352,7 @@ def make_driver(SimulateNetwork, ExaDisNet, DisNet, DisNode):
             self.tag_state = tag_state
             self.records = []
 
-        def seed_tag_state(self, G, istep):
+        def seed_tag_state(self, G, maxindex, recycled):
             """seed_tag_state: give the replayed network exadis' tag pool
 
             import_data leaves a fresh network counting up from the highest
@@ -348,9 +361,13 @@ def make_driver(SimulateNetwork, ExaDisNet, DisNet, DisNode):
             without them makes every new tag differ, which shows up as a
             tag mismatch on steps whose geometry agrees exactly.
 
+            maxindex and recycled (top of stack first) are exadis' own live
+            values for this step, from live_tag_state() below -- see that
+            function for where this used to come from.
+
             pydis pops from the end of its list and exadis pops the top of
-            its stack, so the recording, which is written top first, is
-            reversed here.
+            its stack, so recycled, which arrives top first, is reversed
+            here.
 
             Indices still in use are dropped as a guard only. Correctly
             aligned the pool never names a live node, so this should never
@@ -358,18 +375,47 @@ def make_driver(SimulateNetwork, ExaDisNet, DisNet, DisNode):
             get_new_tag a tag the network already has, corrupting the
             replay rather than merely relabelling it.
             """
-            # The recording indexes collisions from zero; the driver's istep
-            # is one ahead of it. Measured over the run: with this offset the
-            # top of the pool is never a live node, and without it it is on
-            # 30 of the 39 steps that have a pool at all.
-            j = istep - 1
-            if self.tag_state is None or not 0 <= j < len(self.tag_state):
+            if maxindex is None:
                 return
-            maxindex, recycled = self.tag_state[j]
             live = {t[1] for t in G.all_nodes_tags()}
             free = [i for i in recycled if i not in live]
             G._max_tag = (0, max(maxindex, max(live)))
             G._recycled_tags = [(0, i) for i in reversed(free)]
+
+        def live_tag_state(self, N):
+            """live_tag_state: exadis' own current (maxindex, recycled) pool
+
+            Straight from exadis' own SerialDisNet via the binding added in
+            exadis commit 20ea2e8 -- see load_tag_state()'s docstring for
+            the history this replaces. recycled is returned top of stack
+            first, the same convention load_tag_state()'s file uses, so the
+            two are directly comparable in check_tag_state_consistency
+            without reordering either one.
+            """
+            sn = N.get_disnet(ExaDisNet).net._get_serial_network()
+            return int(sn._maxindex()), [int(i) for i in sn._recycled_indices()]
+
+        def check_tag_state_consistency(self, rec, live_maxindex, live_recycled):
+            """check_tag_state_consistency: live binding vs the stored recording
+
+            self.tag_state (loaded from ref_data/exadis_tag_state.npz) is no
+            longer what seeds the replay -- see seed_tag_state()'s docstring
+            -- but it is still exadis' own tag pool state at this same point
+            in an earlier, presumably-identical run of this trajectory. If
+            live and recorded ever disagree, either the live binding is
+            wrong, the recording is stale (the reference trajectory
+            changed and load_tag_state()'s file needs regenerating), or the
+            run has genuinely stopped being reproducible -- any of which is
+            worth surfacing rather than silently trusting one source.
+            Leaves rec.tag_state_match as None (not counted either way) on
+            a step the recording has no entry for.
+            """
+            j = rec.istep - 1
+            if self.tag_state is None or not 0 <= j < len(self.tag_state):
+                return
+            ref_maxindex, ref_recycled = self.tag_state[j]
+            rec.tag_state_match = (live_maxindex == ref_maxindex
+                                   and live_recycled == ref_recycled)
 
         def step_topological_operations(self, N, state):
             rec = StepRecord(state.get('istep', len(self.records)))
@@ -382,6 +428,12 @@ def make_driver(SimulateNetwork, ExaDisNet, DisNet, DisNode):
             rec.n_nodes_before = len(before['nodes']['tags'])
             rec.n_segs_before = len(before['segs']['nodeids'])
 
+            # exadis' own tag pool, at this same point (top of the collision
+            # handler) the old recording was made -- see seed_tag_state()'s
+            # and check_tag_state_consistency()'s docstrings.
+            live_maxindex, live_recycled = self.live_tag_state(N)
+            self.check_tag_state_consistency(rec, live_maxindex, live_recycled)
+
             self._measure_inputs(rec, before, state)
 
             # exadis, authoritative
@@ -393,7 +445,7 @@ def make_driver(SimulateNetwork, ExaDisNet, DisNet, DisNode):
             rec.exadis_collided = not diff_is_empty(rec.exadis_diff)
 
             # pydis, on a throwaway copy of the same input
-            self._replay_pydis(rec, before, after, state)
+            self._replay_pydis(rec, before, after, state, live_maxindex, live_recycled)
 
             self.records.append(rec)
 
@@ -434,11 +486,11 @@ def make_driver(SimulateNetwork, ExaDisNet, DisNet, DisNode):
                 rec.vel_missing = len(tags_now - vt)
                 rec.vel_dead = len(vt - tags_now)
 
-        def _replay_pydis(self, rec, before, after, state):
+        def _replay_pydis(self, rec, before, after, state, live_maxindex, live_recycled):
             """_replay_pydis: run the pydis collision on the same input"""
             G = DisNet()
             G.import_data(before)
-            self.seed_tag_state(G, rec.istep)
+            self.seed_tag_state(G, live_maxindex, live_recycled)
 
             round_trip = G.export_data()
             rec.segorder_preserved = (seg_tag_pairs(round_trip)
@@ -848,6 +900,25 @@ def check_agreement(records):
     return bool(ok)
 
 
+def check_tag_state_consistency(records):
+    """check_tag_state_consistency: live exadis tag-pool binding vs the stored recording
+
+    See SimulateNetworkComparingCollision.check_tag_state_consistency for
+    what is actually being compared. Steps the recording has no entry for
+    (r.tag_state_match is None) are not counted either way -- the recording
+    only covers the trajectory it was made against, and a shorter or longer
+    run than that is not itself a disagreement.
+    """
+    checked = [r for r in records if r.tag_state_match is not None]
+    bad = [r.istep for r in checked if not r.tag_state_match]
+    label = ("live exadis tag pool (maxindex, recycled) matches the stored "
+             "recording at every step it covers")
+    if bad:
+        label += "  [differs at %s]" % ", ".join(str(i) for i in bad)
+    ok = report(label, not bad and bool(checked))
+    return bool(ok)
+
+
 def check_invariants(records):
     """check_invariants: what must hold whichever collision rule runs
 
@@ -907,6 +978,7 @@ def main(argv=None):
     ok = check_setup(setup)
     ok &= check_invariants(records)
     ok &= check_agreement(records)
+    ok &= check_tag_state_consistency(records)
     print("")
     print("test_collision_mode_pydis_exadis: %s"
           % ("PASSED" if ok else "FAILED"))

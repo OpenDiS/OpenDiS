@@ -75,7 +75,8 @@ import numpy as np
 
 from framework.disnet_manager import DisNetManager
 from framework.simulation_setup import check_cutoff_maxseg
-from framework.testing import report, quiet_native_output, kokkos_summary, GREEN, RED, RESET
+from framework.testing import (report, quiet_native_output, kokkos_summary,
+                              max_nearest_distance, GREEN, RED, RESET)
 
 import test_collision_mode_pydis_exadis as t4
 
@@ -102,9 +103,20 @@ LBOX = 1000.0
 Z0 = 0.125 * LBOX
 CUTOFF = 0.25 * LBOX
 DT = 1.0e-9
-MAX_STEP = 200
+MAX_STEP = 300
 EC = 2.8e10
 EPS_ARM_ASYMMETRY = 1.0e-7
+
+# Second phase, matching tests/full_runs/03_binary_junction: the junction
+# forms unstressed, then this stress turns on and pulls it back apart,
+# exercising the topology handler on the way apart too, not just on the way
+# in. Same magnitude as that test's UNZIP_STRESS (see
+# examples/03_binary_junction/test_binary_junction_pydis_elast.py's comment
+# on it for how that value was chosen); the activation step is different by
+# request (STRESS_STEP=100 here, a fixed step, vs that test's
+# max_step // 2) rather than derived from MAX_STEP.
+UNZIP_STRESS = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 4.5e9])
+STRESS_STEP = 100
 
 # PyDiS split mode. 'Serial' is the one with an ExaDiS counterpart
 # (TopologySerial); 'MaxDiss' is pydis's original, unrelated algorithm and
@@ -119,6 +131,12 @@ PYDIS_MODE = 'Serial'
 # disagreement to confirm it does not also swallow one -- an open question
 # carried over from the plan (section 4).
 TIE_REL_THRESHOLD = 1e-4
+
+# Absolute tolerance for the max nearest-node position difference between
+# pydis's replayed and exadis' authoritative network, after topology runs
+# each step. Matches tests/full_runs/03_binary_junction's own TOL, same
+# length scale (LBOX=1000 in both).
+POS_DIFF_TOL = 1.0e-6
 
 OUT_DIR = Path(__file__).resolve().parent / 'output'
 REF_DIR = Path(__file__).resolve().parent / 'ref_data'
@@ -242,6 +260,8 @@ class StepRecord:
         self.pydis_dseg = 0
         self.exadis_split = False
         self.pydis_split = False
+        self.pos_diff = None      # max nearest-node distance, pydis vs exadis, after topology
+        self.tag_state_match = None  # live exadis tag pool vs the stored reference recording
         self.tags_match = None
         self.same_geometry = None
         self.same_counts = None
@@ -490,24 +510,74 @@ def make_driver(SimulateNetwork, ExaDisNet, DisNet, DisNode):
             self.tag_state = tag_state
             self.records = []
 
-        def seed_tag_state(self, G, istep):
+        def step_update_response(self, N, state):
+            """turn on UNZIP_STRESS at STRESS_STEP, matching
+            tests/full_runs/03_binary_junction's two-phase run: unstressed
+            junction formation, then stress pulling it back apart. This
+            class is built directly on pyexadis_base.SimulateNetwork (there
+            is no separate pydis-side SimulateNetwork run here to keep in
+            step, unlike that test's cross-process comparison), so exadis'
+            own istep convention applies with no offset.
+            """
+            state = super().step_update_response(N, state)
+            if state['istep'] == STRESS_STEP:
+                state["applied_stress"] = UNZIP_STRESS
+            return state
+
+        def seed_tag_state(self, G, maxindex, recycled):
             """seed_tag_state: give the replayed network exadis' tag pool
 
             Same logic as test4_collision_mode's method of the same name
-            (see its docstring for the general reasoning); reproduced here
-            rather than called on t4's driver instance, since it is a method
-            of that other class. tag_state[istep-1] = (maxindex, recycled),
-            recorded top-of-stack first by gen_tag_state.py, reversed here
-            because DisNet.get_new_tag() pops from the end of the list.
+            (see its docstring for the general reasoning and for
+            live_tag_state()'s history); reproduced here rather than called
+            on t4's driver instance, since it is a method of that other
+            class. maxindex/recycled (top of stack first) are exadis' own
+            live values for this step, from live_tag_state() below, reversed
+            here because DisNet.get_new_tag() pops from the end of the list.
             """
-            j = istep - 1
-            if self.tag_state is None or not 0 <= j < len(self.tag_state):
+            if maxindex is None:
                 return
-            maxindex, recycled = self.tag_state[j]
             live = {t[1] for t in G.all_nodes_tags()}
             free = [i for i in recycled if i not in live]
             G._max_tag = (0, max(maxindex, max(live)))
             G._recycled_tags = [(0, i) for i in reversed(free)]
+
+        def live_tag_state(self, N):
+            """live_tag_state: exadis' own current (maxindex, recycled) pool
+
+            Straight from exadis' own SerialDisNet via the binding added in
+            exadis commit 20ea2e8 ("Added binding to SerialDisNet internal
+            tag indexing"). Replaces gen_tag_state.py's file as what
+            actually seeds the replay; that file (loaded into
+            self.tag_state) is kept only as the reference
+            check_tag_state_consistency() compares this live call against,
+            since unlike test4_collision_mode's recording (made by
+            instrumenting exadis' C++ directly), gen_tag_state.py's file was
+            itself only ever a Python-level reconstruction (tracking which
+            tags disappear between snapshots), not exadis' actual internal
+            state -- worth checking against the real thing now that this
+            binding exists, rather than assumed to agree.
+            """
+            sn = N.get_disnet(ExaDisNet).net._get_serial_network()
+            return int(sn._maxindex()), [int(i) for i in sn._recycled_indices()]
+
+        def check_tag_state_consistency(self, rec, live_maxindex, live_recycled):
+            """check_tag_state_consistency: live binding vs gen_tag_state.py's recording
+
+            See live_tag_state()'s docstring for why the two might not
+            agree: the stored recording is a Python-level reconstruction,
+            not a direct reading of exadis' internal state. tag_state[i-1]
+            indexing matches gen_tag_state.py's own RecordingDriver, which
+            appends one entry per step at the same point in the pipeline
+            (after collision, before topology) as this method is called
+            from below.
+            """
+            j = rec.istep - 1
+            if self.tag_state is None or not 0 <= j < len(self.tag_state):
+                return
+            ref_maxindex, ref_recycled = self.tag_state[j]
+            rec.tag_state_match = (live_maxindex == ref_maxindex
+                                   and live_recycled == ref_recycled)
 
         def step_topological_operations(self, N, state):
             rec = StepRecord(state.get('istep', len(self.records)))
@@ -521,6 +591,13 @@ def make_driver(SimulateNetwork, ExaDisNet, DisNet, DisNode):
             rec.n_nodes_before = len(before['nodes']['tags'])
             rec.n_segs_before = len(before['segs']['nodeids'])
 
+            # exadis' own tag pool, at this same point (after collision,
+            # before topology) gen_tag_state.py's recording was made -- see
+            # seed_tag_state()'s and check_tag_state_consistency()'s
+            # docstrings.
+            live_maxindex, live_recycled = self.live_tag_state(N)
+            self.check_tag_state_consistency(rec, live_maxindex, live_recycled)
+
             # exadis, authoritative
             self.topology.Handle(N, state)
             after = N.get_disnet(ExaDisNet).export_data()
@@ -529,13 +606,13 @@ def make_driver(SimulateNetwork, ExaDisNet, DisNet, DisNode):
             rec.exadis_diff = t4.network_diff(before, after)
             rec.exadis_split = not t4.diff_is_empty(rec.exadis_diff)
 
-            self._replay_pydis(rec, before, after, state)
+            self._replay_pydis(rec, before, after, state, live_maxindex, live_recycled)
             self.records.append(rec)
 
             if self.remesh is not None:
                 self.remesh.Remesh(N, state)
 
-        def _replay_pydis(self, rec, before, after, state):
+        def _replay_pydis(self, rec, before, after, state, live_maxindex, live_recycled):
             """_replay_pydis: run the pydis topology handler on the same input
 
             A normal pydis-driven simulation populates state['nodeforce_dict']
@@ -546,7 +623,7 @@ def make_driver(SimulateNetwork, ExaDisNet, DisNet, DisNode):
             """
             G = DisNet()
             G.import_data(before)
-            self.seed_tag_state(G, rec.istep)
+            self.seed_tag_state(G, live_maxindex, live_recycled)
             DM = DisNetManager(G)
 
             try:
@@ -567,6 +644,10 @@ def make_driver(SimulateNetwork, ExaDisNet, DisNet, DisNode):
             rec.tags_match = (t4.node_tag_set(after_pydis) == t4.node_tag_set(after))
             cell_h = before['cell']['h']
             is_periodic = before['cell']['is_periodic']
+            rec.pos_diff = max_nearest_distance(
+                np.asarray(after_pydis['nodes']['positions'], dtype=float),
+                np.asarray(after['nodes']['positions'], dtype=float),
+                np.asarray(cell_h, dtype=float))
             rec.same_geometry = (canonical_form_pbc(after_pydis, cell_h, is_periodic)
                                  == canonical_form_pbc(after, cell_h, is_periodic))
             rec.same_counts = (rec.pydis_dn == rec.exadis_dn
@@ -828,6 +909,42 @@ def check_agreement(records):
     return bool(ok)
 
 
+def check_position_agreement(records):
+    """check_position_agreement: worst-case nodal position agreement, after topology
+
+    Reports the largest max-nearest-node distance between pydis's replayed
+    network and exadis' authoritative one, taken over every step (not just
+    the steps where a split happened), against POS_DIFF_TOL. This is a
+    coarser, absolute-distance check alongside same_geometry's exact
+    (tol=1e-6, up to relabelling) one -- same style as
+    tests/full_runs/03_binary_junction's own pydis-vs-exadis reporting.
+    """
+    diffs = [r for r in records if r.pos_diff is not None]
+    worst = max((r.pos_diff for r in diffs), default=float('nan'))
+    label = ("max nearest-node distance, pydis vs exadis, after topology = %.4e, "
+             "tolerance = %.1e" % (worst, POS_DIFF_TOL))
+    ok = report(label, bool(diffs) and worst < POS_DIFF_TOL)
+    return bool(ok)
+
+
+def check_tag_state_consistency(records):
+    """check_tag_state_consistency: live exadis tag-pool binding vs gen_tag_state.py's recording
+
+    See SimulateNetworkComparingTopology.check_tag_state_consistency for
+    what is being compared and why the two sources might disagree. Steps
+    the recording has no entry for (r.tag_state_match is None) are not
+    counted either way.
+    """
+    checked = [r for r in records if r.tag_state_match is not None]
+    bad = [r.istep for r in checked if not r.tag_state_match]
+    label = ("live exadis tag pool (maxindex, recycled) matches the stored "
+             "recording at every step it covers")
+    if bad:
+        label += "  [differs at %s]" % ", ".join(str(i) for i in bad)
+    ok = report(label, not bad and bool(checked))
+    return bool(ok)
+
+
 def check_invariants(records):
     """check_invariants: what must hold whichever split mode runs"""
     n = len(records)
@@ -872,6 +989,8 @@ def main(argv=None):
     ok = check_setup(setup)
     ok &= check_invariants(records)
     ok &= check_agreement(records)
+    ok &= check_position_agreement(records)
+    ok &= check_tag_state_consistency(records)
     print("")
     tag = GREEN + "PASSED" + RESET if ok else RED + "FAILED" + RESET
     print("test_topology_mode_pydis_exadis: %s" % tag)

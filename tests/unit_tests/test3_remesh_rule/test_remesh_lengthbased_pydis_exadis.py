@@ -110,22 +110,57 @@ def build_sim(state, cutoff, exadis_rule, pydis_rule, plot):
             self.record = []
             self.phase = 'load'
 
+        def live_tag_state(self, N):
+            """live_tag_state: exadis' own current (maxindex, recycled) pool
+
+            Straight from exadis' own SerialDisNet via the binding added in
+            exadis commit 20ea2e8 ("Added binding to SerialDisNet internal
+            tag indexing"); same call as test4_collision_mode's and
+            test5_topology_mode's methods of the same name. Unlike those two,
+            this test has no stored ref_data/exadis_tag_state.npz recording
+            to check against -- LengthBased remesh's own tag allocation
+            already agreed without seeding pydis' replay from exadis' pool
+            at all, so this is added defensively (matching test4/test5's
+            pattern for consistency) rather than because a disagreement was
+            observed.
+            """
+            sn = N.get_disnet(ExaDisNet).net._get_serial_network()
+            return int(sn._maxindex()), [int(i) for i in sn._recycled_indices()]
+
+        def seed_tag_state(self, G, maxindex, recycled):
+            """seed_tag_state: give the replayed network exadis' tag pool
+
+            Same logic as test4_collision_mode's/test5_topology_mode's
+            methods of the same name. maxindex/recycled (top of stack
+            first) are exadis' own live values for this step, reversed here
+            because DisNet.get_new_tag() pops from the end of the list.
+            """
+            if maxindex is None:
+                return
+            live = {t[1] for t in G.all_nodes_tags()}
+            free = [i for i in recycled if i not in live]
+            G._max_tag = (0, max(maxindex, max(live)))
+            G._recycled_tags = [(0, i) for i in reversed(free)]
+
         def step_topological_operations(self, N, state):
             if self.collision is not None:
                 self.collision.HandleCol(N, state)
 
             before = N.get_disnet(ExaDisNet).export_data()
+            live_maxindex, live_recycled = self.live_tag_state(N)
             self.remesh.Remesh(N, state)
             after = N.get_disnet(ExaDisNet).export_data()
-            self.record.append(self.compare(before, after, state))
+            self.record.append(self.compare(before, after, state,
+                                            live_maxindex, live_recycled))
 
-        def compare(self, before, after, state):
+        def compare(self, before, after, state, live_maxindex, live_recycled):
             """compare: pydis remesh on the same input, against exadis"""
             entry = {'before': counts(before), 'exadis': counts(after),
                      'pydis': None, 'same': False, 'error': None,
                      'phase': self.phase}
             try:
                 G = as_disnet(before)
+                self.seed_tag_state(G, live_maxindex, live_recycled)
                 self.pydis_remesh.Remesh(DisNetManager(G), state)
                 entry['pydis'] = (G.num_nodes(), G.num_segments())
                 entry['same'] = same_network(G, as_disnet(after),
