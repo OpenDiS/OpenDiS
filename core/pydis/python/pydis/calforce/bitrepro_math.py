@@ -9,9 +9,16 @@ differently by about a ULP, which is invisible on its own but shows up
 once a caller multiplies the result by something large, e.g. the
 Ec ~ 1e6 core-energy term in selfforcevec_LineTension.
 
-dot3()/norm3() below use only +, * and math.sqrt in a fixed, left-to-right
-order, so no BLAS library sits between the call and the answer -- the same
-reasoning as portable_math.c on the C side, one layer up the stack.
+dot3()/norm3()/matvec3()/cross3() below use only +, -, * and math.sqrt in a
+fixed, left-to-right order, so no BLAS library sits between the call and the
+answer -- the same reasoning as portable_math.c on the C side, one layer up the
+stack.
+
+matvec3() and cross3() are here for pkforcevec(), which reaches BLAS through
+the @ operator rather than np.dot(). np.cross() does not call BLAS, but it is
+written out too: it decides its output dtype and loop order from the shapes it
+is handed, and pinning three subtractions costs nothing next to leaving that to
+a library.
 
 Defaults to whichever way the compiled library went, via
 pydis.build_info.bitrepro_math(): every SYS ending in _repro sets
@@ -43,3 +50,21 @@ def dot3(a, b):
 def norm3(a):
     """norm3: ||a|| for a length-3 vector, without going through BLAS."""
     return math.sqrt(a[0]*a[0] + a[1]*a[1] + a[2]*a[2])
+
+
+def matvec3(m, v):
+    """matvec3: m.v for a 3x3 matrix and a length-3 vector, one dot3 per row
+
+    Replaces the @ operator, which dispatches to BLAS' gemv the same way
+    np.dot() dispatches to ddot. Returns a tuple; every caller either indexes
+    it or assigns it into a row of an array, and both work as they would with
+    an ndarray.
+    """
+    return (dot3(m[0], v), dot3(m[1], v), dot3(m[2], v))
+
+
+def cross3(a, b):
+    """cross3: a x b for length-3 vectors, component by component."""
+    return (a[1]*b[2] - a[2]*b[1],
+            a[2]*b[0] - a[0]*b[2],
+            a[0]*b[1] - a[1]*b[0])

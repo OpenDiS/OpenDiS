@@ -60,7 +60,8 @@ except ImportError:
     print("pydis_lib not found, using python version for force calculation")
 
 from .compute_stress_force_analytic_python  import python_segseg_force_vec
-from .bitrepro_math import ENABLED as BITREPRO_MATH, dot3, norm3
+from .bitrepro_math import (ENABLED as BITREPRO_MATH, cross3, dot3,
+                            matvec3, norm3)
 
 try:
     from ..collision.getmindist2_paradis import GetMinDist2_paradis as GetMinDist2
@@ -174,9 +175,9 @@ def pkforcevec(sigext, segs_data):
     R2 = segs_data["R2"]
     fpk = np.zeros((Nseg, 3))
     for i in range(Nseg):
-        sigb = sigext @ burg_vecs[i]
+        sigb = matvec3(sigext, burg_vecs[i]) if BITREPRO_MATH else sigext @ burg_vecs[i]
         dR = R2[i,:] - R1[i,:]
-        fpk[i,:] = np.cross(sigb, dR)
+        fpk[i,:] = cross3(sigb, dR) if BITREPRO_MATH else np.cross(sigb, dR)
     return fpk
 
 def selfforcevec_LineTension(MU, NU, Ec, segs_data, eps_L=1e-6):
