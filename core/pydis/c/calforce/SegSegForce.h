@@ -1,6 +1,8 @@
 #include <math.h>
 #define real8 double
 
+int SegSegForce_BitReproMath(void);
+
 void SpecialSegSegForce(real8 p1x, real8 p1y, real8 p1z,
                         real8 p2x, real8 p2y, real8 p2z,
                         real8 p3x, real8 p3y, real8 p3z,

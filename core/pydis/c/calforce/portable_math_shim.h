@@ -20,4 +20,11 @@
 #define log pydis_log
 #define atan pydis_atan
 
+/* Lets SegSegForce.c report whether it was compiled with this header in
+ * force, via SegSegForce_BitReproMath(). Defined here rather than passed
+ * as -D so that the answer comes from the same file that does the
+ * redirecting: if the -include is dropped, log/atan go back to libm and
+ * this macro disappears together, in one step. */
+#define PYDIS_BITREPRO_MATH 1
+
 #endif

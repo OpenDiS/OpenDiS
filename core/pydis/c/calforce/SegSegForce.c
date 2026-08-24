@@ -1,5 +1,24 @@
 #include "SegSegForce.h"
 
+/* Whether this file was compiled against the portable pydis_log/pydis_atan
+ * instead of the platform libm, which is what makes its output bitwise
+ * reproducible across platforms. PYDIS_BITREPRO_MATH comes from
+ * portable_math_shim.h, force-included ahead of this file by every SYS whose
+ * name ends in _repro; see core/pydis/c/CMakeLists.txt.
+ *
+ * Reported from here, rather than from a value cmake writes out separately,
+ * because here it cannot be stale or disagree with the library it describes:
+ * it is compiled from the same text, under the same flags, as the kernel it
+ * is reporting on. */
+int SegSegForce_BitReproMath(void)
+{
+#ifdef PYDIS_BITREPRO_MATH
+        return 1;
+#else
+        return 0;
+#endif
+}
+
 void SpecialSegSegForceHalf(real8 p1x, real8 p1y, real8 p1z,
                             real8 p2x, real8 p2y, real8 p2z,
                             real8 p3x, real8 p3y, real8 p3z,

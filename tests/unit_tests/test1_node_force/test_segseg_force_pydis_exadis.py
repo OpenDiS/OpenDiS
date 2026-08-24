@@ -49,6 +49,7 @@ from pydis.calforce.compute_stress_force_analytic_python import (
     python_segseg_force_vec)
 from framework.testing import (array_digest, report_close,
                                quiet_native_output, kokkos_summary)
+from pydis.build_info import bitrepro_math, build_description
 from segseg_tables import (TABLES, load, exadis_network,
                            MU as mu, NU as nu, A as a)
 
@@ -120,13 +121,22 @@ tolC = 1e-5
 
 
 def test_pydis(pairs, ref_forces, tol):
-    """test_pydis: both pydis kernels against the reference"""
+    """test_pydis: both pydis kernels against the reference
+
+    The two are held to different tolerances on a bitwise-reproducible build.
+    The compiled kernel is SegSegForce.c, built there against the portable
+    log/atan, so against a reference blessed by any such build it must agree
+    exactly and anything else is a reproducibility regression. The python/numpy
+    kernel reaches libm through numpy, which the build does not touch, so it
+    keeps the table's own tolerance either way.
+    """
     p1, p2, p3, p4, b12, b34 = pairs
+    tol_c = 0.0 if bitrepro_math() else tol
 
     # use ParaDiS library (SBA)
     fA = compute_segseg_force_list(p1, p2, p3, p4, b12, b34, mu, nu, a)
     ok = report_close("pydis : ParaDiS library (SBA)      ",
-                      np.concatenate(fA, axis=1), ref_forces, tol)
+                      np.concatenate(fA, axis=1), ref_forces, tol_c)
 
     # use Python code (translated from Matlab)
     fB = python_segseg_force_vec(p1, p2, p3, p4, b12, b34, mu, nu, a)
@@ -202,6 +212,7 @@ def exadis_forces(pairs):
 def main():
     print("segment-segment forces from pydis and exadis, against the "
           "stored references")
+    print(build_description())
     print("%d tables to check\n" % len(TABLES))
 
     tables = []

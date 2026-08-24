@@ -57,6 +57,7 @@ from pydis.calforce.calforce_disnet import CalForce as PyCalForce
 from framework.disnet_manager import DisNetManager
 from framework.simulation_setup import check_cutoff_maxseg
 from framework.testing import load_force_ref, report, report_close
+from pydis.build_info import bitrepro_math, build_description
 
 # the configuration, as node positions and connectivity
 RN_FILE    = 'loop_rn.dat'
@@ -82,6 +83,11 @@ Ec_linetension = 1.0e6
 Ec_elasticity = 0.0
 
 atol = 1.0e-6
+
+# The pydis elastic force comes from SegSegForce.c, so a bitwise-reproducible
+# build must reproduce a reference blessed by another such build exactly.
+# ExaDiS is built against its own platform libm regardless, and keeps atol.
+atol_pydis = 0.0 if bitrepro_math() else atol
 
 
 def load_config(rn_file=RN_FILE, links_file=LINKS_FILE):
@@ -226,21 +232,20 @@ def load_ref():
     return ref['tags'], ref['force_linetension'], ref['force_elasticity']
 
 
-def compare_to_ref(label, tags, f_lt, f_elast, ref):
+def compare_to_ref(label, tags, f_lt, f_elast, ref, tol=atol):
     """compare_to_ref: report one code's three comparisons"""
     ref_tags, ref_lt, ref_elast = ref
     ok = report("%s: node order matches the reference" % label,
                 np.array_equal(tags, ref_tags))
-    ok &= report_close("%s: line tension" % label, f_lt, ref_lt, atol)
-    ok &= report_close("%s: elasticity " % label, f_elast, ref_elast,
-                       atol)
+    ok &= report_close("%s: line tension" % label, f_lt, ref_lt, tol)
+    ok &= report_close("%s: elasticity " % label, f_elast, ref_elast, tol)
     return bool(ok)
 
 
 def test_pydis(ref):
     """test_pydis: the pydis forces against the stored reference"""
     tags, f_lt, f_elast = forces_pydis()
-    return compare_to_ref("pydis ", tags, f_lt, f_elast, ref)
+    return compare_to_ref("pydis ", tags, f_lt, f_elast, ref, atol_pydis)
 
 
 def test_exadis(ref):
@@ -253,6 +258,8 @@ def main(write_ref_file=False):
     if write_ref_file:
         write_ref(*forces_pydis())
         return True
+
+    print(build_description())
 
     ref = load_ref()
     if ref is None:

@@ -14,12 +14,21 @@ import argparse
 import numpy as np
 from pydis.calforce.compute_stress_analytic_paradis       import compute_seg_stress_coord_dep, compute_seg_stress_coord_indep
 from framework.testing import report_close
+from pydis.build_info import bitrepro_math, build_description
 
 mu = 1000.0
 nu = 0.3
 a = 0.01
 
-atol = 1e-10
+# Exact on a bitwise-reproducible build, where this result has no reason to
+# differ at all from a reference blessed by another such build, and holding it
+# to anything looser would let a reproducibility regression through.
+#
+# StressDueToSeg.c calls no log() or atan(), only arithmetic and sqrt, so it is
+# in fact reproducible either way and the _repro build changes nothing about it.
+# The tolerance follows the build regardless, so that such a run holds every
+# pydis kernel to exact equality with nothing quietly exempt.
+atol = 0.0 if bitrepro_math() else 1e-10
 
 seg_data = np.load(input_dir / "seg_data.npy")
 p1_list = seg_data[:, 0:3]
@@ -57,6 +66,7 @@ ref_stress = np.load(ref_dir / REF_NAME)
 
 # report_close prints the error, the tolerance it was judged against and a
 # coloured PASSED or FAILED on one line, the same as the other tests here
+print(build_description())
 passed = report_close("pydis : segment stress at %d field points "
                       "(compute_seg_stress_coord_indep)" % seg_stress.shape[0],
                       seg_stress, ref_stress, atol)

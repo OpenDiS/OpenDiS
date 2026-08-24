@@ -26,7 +26,16 @@ import numpy as np
 
 GREEN = '\033[32m'
 RED = '\033[31m'
+MAGENTA = '\033[35m'
 RESET = '\033[0m'
+
+# Marks a comparison made at zero tolerance, i.e. one demanding bitwise
+# equality rather than agreement to within something. Those lines mean
+# something different from the rest and are worth picking out at a glance:
+# they are the ones that hold a bitwise-reproducible build to the standard it
+# exists for, and the ones whose failure means reproducibility has regressed
+# rather than that an error grew.
+BITWISE_TAG = MAGENTA + '[BITWISE]' + RESET
 
 
 class _Captured:
@@ -110,10 +119,14 @@ def array_digest(arr):
     return hashlib.sha256(a.tobytes()).hexdigest()[:16]
 
 
-def report(name, passed):
-    """report: print a coloured PASSED/FAILED line; returns `passed` unchanged"""
+def report(name, passed, suffix=''):
+    """report: print a coloured PASSED/FAILED line; returns `passed` unchanged
+
+    suffix is appended after the PASSED/FAILED tag, for a note that qualifies
+    the result rather than naming what was tested.
+    """
     tag = GREEN + 'PASSED' + RESET if passed else RED + 'FAILED' + RESET
-    print("%s ... %s" % (name, tag))
+    print("%s ... %s%s" % (name, tag, suffix))
     return passed
 
 
@@ -228,6 +241,9 @@ def report_close(name, values, ref_values, atol, rtol=0.0):
     The reporting counterpart of np.allclose: prints one PASSED/FAILED
     line carrying the largest deviation and the tolerance it was judged
     against, so a passing run still says how much margin it had.
+
+    A comparison with both tolerances at zero is demanding bitwise equality,
+    and its line is tagged [BITWISE] so those stand out from the tolerant ones.
     """
     values, ref_values = np.asarray(values), np.asarray(ref_values)
     if values.shape != ref_values.shape:
@@ -235,8 +251,10 @@ def report_close(name, values, ref_values, atol, rtol=0.0):
                       % (name, values.shape, ref_values.shape), False)
     max_err = float(np.max(np.abs(values - ref_values)))
     passed = bool(np.allclose(values, ref_values, rtol=rtol, atol=atol))
+    # both tolerances zero means np.allclose is asking for exact equality
+    exact = (atol == 0.0 and rtol == 0.0)
     return report("%s: max error %.4e, atol %.1e" % (name, max_err, atol),
-                  passed)
+                  passed, suffix=' ' + BITWISE_TAG if exact else '')
 
 
 def same_network(G, G_ref, verbose=True):
