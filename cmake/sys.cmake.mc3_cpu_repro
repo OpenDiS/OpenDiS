@@ -1,0 +1,32 @@
+set(Kokkos_ENABLE_CUDA Off)
+set(Kokkos_ENABLE_CUDA_LAMBDA Off)
+
+set(CMAKE_C_COMPILER /opt/ohpc/pub/compiler/gcc/9.4.0/bin/gcc)
+
+# Loaded modules on this login node put a broken nvc++ (from cuda/nvhpc; it
+# needs 'makelocalrc' to work at all) on $CXX, which fails CMake's compiler
+# sanity check before any SYS-specific setting is even read. Pin CXX to the
+# g++ that matches the gcc picked above so a from-scratch configure gets
+# past that check. sys.cmake.mc3_cpu has this same gap; harmless there today
+# only because its builds have so far never started from a clean 'build/'
+# under this module environment.
+set(CMAKE_CXX_COMPILER /opt/ohpc/pub/compiler/gcc/9.4.0/bin/g++)
+
+set(FFTW_LIB_DIR $ENV{HOME}/usr/lib)
+set(FFTW_INC_DIR $ENV{HOME}/usr/include)
+
+message("FFTW_LIB_DIR = ${FFTW_LIB_DIR}")
+message("FFTW_INC_DIR = ${FFTW_INC_DIR}")
+
+set(EXADIS_PYTHON_BINDING On)
+set(PYTHON_EXECUTABLE $ENV{HOME}/.conda/envs/opendis/bin/python)
+
+# Same machine as mc3_cpu, but pydis's segment-segment force kernel is built
+# against a vendored, portable log()/atan() (see
+# core/pydis/c/calforce/portable_math.c) instead of glibc's, so that its
+# output is bitwise reproducible against a machine using a different libm
+# (e.g. macOS). See the SegSegForce.c/ParaDiS-library-(SBA) discussion in
+# tests/unit_tests/test1_node_force for why this matters and why it is not
+# the default: it trades nothing in accuracy (both are ~1ulp implementations
+# of the same function) for reproducibility, which most builds don't need.
+set(PYDIS_BITREPRO_MATH ON)
