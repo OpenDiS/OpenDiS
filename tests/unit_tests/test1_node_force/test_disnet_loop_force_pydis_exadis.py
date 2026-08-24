@@ -58,6 +58,7 @@ from framework.disnet_manager import DisNetManager
 from framework.simulation_setup import check_cutoff_maxseg
 from framework.testing import load_force_ref, report, report_close
 from pydis.build_info import bitrepro_math, build_description
+from pydis.calforce.bitrepro_math import ENABLED as numpy_bitrepro_math
 
 # the configuration, as node positions and connectivity
 RN_FILE    = 'loop_rn.dat'
@@ -84,10 +85,17 @@ Ec_elasticity = 0.0
 
 atol = 1.0e-6
 
-# The pydis elastic force comes from SegSegForce.c, so a bitwise-reproducible
-# build must reproduce a reference blessed by another such build exactly.
-# ExaDiS is built against its own platform libm regardless, and keeps atol.
-atol_pydis = 0.0 if bitrepro_math() else atol
+# Elasticity's self/pair forces come from SegSegForce.c (its Ec=0 core term
+# is exactly zero regardless of numpy, since it is multiplied by Ec), so a
+# bitwise-reproducible build must reproduce a reference blessed by another
+# such build exactly there. Line tension never touches SegSegForce.c at
+# all -- it is selfforcevec_LineTension with Ec=1e6, whose np.dot()/
+# np.linalg.norm() calls dispatch to the environment's BLAS (see
+# pydis.calforce.bitrepro_math) -- so its own exactness depends on that
+# separate, Python-side flag instead. ExaDiS is built against its own
+# platform libm regardless, and keeps atol for both.
+atol_lt     = 0.0 if numpy_bitrepro_math else atol
+atol_elast  = 0.0 if bitrepro_math()      else atol
 
 
 def load_config(rn_file=RN_FILE, links_file=LINKS_FILE):
@@ -232,20 +240,27 @@ def load_ref():
     return ref['tags'], ref['force_linetension'], ref['force_elasticity']
 
 
-def compare_to_ref(label, tags, f_lt, f_elast, ref, tol=atol):
-    """compare_to_ref: report one code's three comparisons"""
+def compare_to_ref(label, tags, f_lt, f_elast, ref, tol_lt=atol, tol_elast=atol):
+    """compare_to_ref: report one code's three comparisons
+
+    Two tolerances, not one: line tension and elasticity are bitwise
+    reproducible under different conditions (see atol_lt/atol_elast above),
+    so a caller that cares about that distinction needs to pass them
+    separately rather than getting one tol applied to both.
+    """
     ref_tags, ref_lt, ref_elast = ref
     ok = report("%s: node order matches the reference" % label,
                 np.array_equal(tags, ref_tags))
-    ok &= report_close("%s: line tension" % label, f_lt, ref_lt, tol)
-    ok &= report_close("%s: elasticity " % label, f_elast, ref_elast, tol)
+    ok &= report_close("%s: line tension" % label, f_lt, ref_lt, tol_lt)
+    ok &= report_close("%s: elasticity " % label, f_elast, ref_elast, tol_elast)
     return bool(ok)
 
 
 def test_pydis(ref):
     """test_pydis: the pydis forces against the stored reference"""
     tags, f_lt, f_elast = forces_pydis()
-    return compare_to_ref("pydis ", tags, f_lt, f_elast, ref, atol_pydis)
+    return compare_to_ref("pydis ", tags, f_lt, f_elast, ref,
+                          tol_lt=atol_lt, tol_elast=atol_elast)
 
 
 def test_exadis(ref):
