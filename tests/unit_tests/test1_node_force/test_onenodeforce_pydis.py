@@ -71,6 +71,20 @@ CUTOFF = None
 # docstring for why this is a rounding tolerance and not a physical one
 TOL_REL = 1e-12
 
+# Modes where the two routes agree exactly, and are held to it.
+#
+# LineTension is pure numpy on both routes and reaches each node's force by the
+# same additions in the same order, so it is bitwise, on every configuration
+# here including the multi-arm stars. Held to zero so that stops being an
+# accident nobody would notice losing.
+#
+# The elasticity modes cannot be: OneNodeForce sums only the pairs touching the
+# node while NodeForce sums all of them and accumulates, so the same
+# contributions arrive re-associated. That shows up on the 450-node loop, at
+# 1.1e-04 for Elasticity_SBA against a scale of 1.7e+13, and it is a rounding
+# difference rather than a disagreement.
+EXACT_MODES = ('LineTension',)
+
 MODES = ['LineTension', 'Elasticity_SBA', 'Elasticity_SBN1_SBA']
 
 # Multi-arm configurations, and the reason they are here.
@@ -177,9 +191,10 @@ def check_mode(mode, network=None, label=None):
                                  % (mode, label or 'loop'), False)
 
     many = np.array([nodeforce_dict[t] for t in tags])
+    tol = 0.0 if mode in EXACT_MODES else TOL_REL*scale
     ok = report_close("  %-22s %-13s OneNodeForce == NodeForce, %d nodes"
                       % (mode, label or 'loop', len(tags)),
-                      one, many, TOL_REL*scale)
+                      one, many, tol)
     if not ok:
         worst = int(np.argmax(np.abs(one - many).max(axis=1)))
         print("     worst node %s: OneNodeForce %s"
