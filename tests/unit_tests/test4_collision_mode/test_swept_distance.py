@@ -21,16 +21,33 @@ opendis_paths = [str(opendis_root / p) for p in ['python', 'core/pydis/python']]
 
 import numpy as np
 
-from framework.testing import report, verdict
+from framework.testing import report, report_close, verdict
 from pydis.collision.swept_distance import (
     enclosing_sphere, point_seg_min_dist, seg_seg_min_dist,
     point_point_min_dist_in_time, seg_seg_min_dist_in_time,
     segs_may_approach, swept_seg_seg_collision, hinge_cos_angle,
 )
 
-# positions come from exact arithmetic on small integers and halves, so
-# agreement should be to a few ULP rather than to a physical tolerance
-TOL = 1.0e-9
+# Every closeness check here is held to exact equality, and passes.
+#
+# The inputs are small integers and halves, so each expected value is exactly
+# representable and the routines land on it to the bit rather than to within a
+# few ULP. Holding them to zero makes that a property of the geometry code
+# rather than an observation about this machine, and any drift shows up
+# immediately instead of hiding under a tolerance.
+#
+# Two of them are worth watching, the swept cases at lines further down: those
+# come out of a Newton solve rather than closed-form arithmetic on exact
+# numbers, and were previously given 1e-6. They read exactly zero on the
+# configurations here, which are symmetric enough that the solve lands on the
+# analytic answer, but they are the two most likely to need a tolerance back if
+# the iteration ever changes.
+EXACT = 0.0
+
+# Slack for the one containment test, which asks whether four points lie inside
+# a sphere. That is an inequality on a computed radius, not a value with an
+# analytic counterpart, so it keeps a tolerance.
+SPHERE_SLACK = 1.0e-9
 
 # the thresholds ParaDiS HingeCollisionCriterion applies, which live in
 # the caller rather than in the geometry
@@ -42,8 +59,32 @@ def v(*args):
     return np.array(args, dtype=float)
 
 
-def close(a, b, tol=TOL):
-    return abs(float(a) - float(b)) < tol
+def report_vals(name, got, want, tol=EXACT):
+    """report_vals: a closeness check, showing the difference and the tolerance
+
+    report_close from framework.testing, with the values gathered into arrays so
+    that several quantities checked together (a distance and its two parameters,
+    say) report as one line carrying the worst of them. Every floating-point
+    comparison in this file goes through here or report_margin, so a passing run
+    still says how much room it had.
+    """
+    return report_close(name, np.atleast_1d(np.asarray(got, dtype=float)),
+                        np.atleast_1d(np.asarray(want, dtype=float)), tol)
+
+
+def report_margin(name, value, threshold, above):
+    """report_margin: a one-sided threshold check, showing value and margin
+
+    For the hinge cosines and the like, where the assertion is an inequality
+    rather than an equality, so there is no difference to quote against a
+    tolerance. The margin to the threshold is the useful number: it says how
+    close the case came to falling the other way.
+    """
+    value, threshold = float(value), float(threshold)
+    passed = value > threshold if above else value < threshold
+    return report("%s: value %.6f %s %.6f, margin %.3e"
+                  % (name, value, '>' if above else '<', threshold,
+                     abs(value - threshold)), passed)
 
 
 # --------------------------------------------------------------- static cases
@@ -54,25 +95,24 @@ def test_point_seg():
 
     # directly above the middle: foot of the perpendicular is interior
     dist2, l = point_seg_min_dist(v(0, 1, 0), *seg)
-    ok = report("point-seg: above the middle, dist2=1 at L=0.5",
-                close(dist2, 1.0) and close(l, 0.5))
+    ok = report_vals("point-seg: above the middle, dist2=1 at L=0.5",
+                     (dist2, l), (1.0, 0.5))
 
     # beyond the far end: the perpendicular foot is outside, so the
     # nearest point is the endpoint itself
     dist2, l = point_seg_min_dist(v(2, 0, 0), *seg)
-    ok &= report("point-seg: beyond the end, dist2=1 at L=1",
-                 close(dist2, 1.0) and close(l, 1.0))
+    ok &= report_vals("point-seg: beyond the end, dist2=1 at L=1",
+                      (dist2, l), (1.0, 1.0))
 
     # beyond the near end
     dist2, l = point_seg_min_dist(v(-2, 0, 0), *seg)
-    ok &= report("point-seg: before the start, dist2=1 at L=0",
-                 close(dist2, 1.0) and close(l, 0.0))
+    ok &= report_vals("point-seg: before the start, dist2=1 at L=0",
+                      (dist2, l), (1.0, 0.0))
 
     # degenerate segment: both ends coincide, so only the endpoint
     # branches can fire and the interior one must not divide by zero
     dist2, l = point_seg_min_dist(v(0, 3, 0), v(0, 0, 0), v(0, 0, 0))
-    ok &= report("point-seg: zero-length segment, dist2=9",
-                 close(dist2, 9.0))
+    ok &= report_vals("point-seg: zero-length segment, dist2=9", dist2, 9.0)
     return ok
 
 
@@ -81,27 +121,27 @@ def test_seg_seg():
     # perpendicular and offset in z; closest points are both mid-segment
     dist2, l1, l2 = seg_seg_min_dist(v(-1, 0, 0), v(1, 0, 0),
                                      v(0, -1, 1), v(0, 1, 1))
-    ok = report("seg-seg: skew pair, dist2=1 at L1=L2=0.5",
-                close(dist2, 1.0) and close(l1, 0.5) and close(l2, 0.5))
+    ok = report_vals("seg-seg: skew pair, dist2=1 at L1=L2=0.5",
+                     (dist2, l1, l2), (1.0, 0.5, 0.5))
 
     # parallel: the interior system is singular, so the answer has to come
     # from the boundary cases
     dist2, l1, l2 = seg_seg_min_dist(v(-1, 0, 0), v(1, 0, 0),
                                      v(-1, 1, 0), v(1, 1, 0))
-    ok &= report("seg-seg: parallel pair, dist2=1 (singular interior)",
-                 close(dist2, 1.0))
+    ok &= report_vals("seg-seg: parallel pair, dist2=1 (singular interior)",
+                      dist2, 1.0)
 
     # collinear and disjoint: nearest approach is end to end
     dist2, l1, l2 = seg_seg_min_dist(v(-1, 0, 0), v(1, 0, 0),
                                      v(2, 0, 0.5), v(4, 0, 0.5))
-    ok &= report("seg-seg: end to end, dist2=1.25 at L1=1, L2=0",
-                 close(dist2, 1.25) and close(l1, 1.0) and close(l2, 0.0))
+    ok &= report_vals("seg-seg: end to end, dist2=1.25 at L1=1, L2=0",
+                      (dist2, l1, l2), (1.25, 1.0, 0.0))
 
     # crossing at a point: zero distance, both interior
     dist2, l1, l2 = seg_seg_min_dist(v(-1, 0, 0), v(1, 0, 0),
                                      v(0, -1, 0), v(0, 1, 0))
-    ok &= report("seg-seg: crossing pair, dist2=0 at L1=L2=0.5",
-                 close(dist2, 0.0) and close(l1, 0.5) and close(l2, 0.5))
+    ok &= report_vals("seg-seg: crossing pair, dist2=0 at L1=L2=0.5",
+                      (dist2, l1, l2), (0.0, 0.5, 0.5))
     return ok
 
 
@@ -109,14 +149,18 @@ def test_enclosing_sphere():
     """the filter sphere contains what it claims to"""
     pts = [v(0, 0, 0), v(2, 0, 0), v(0, 2, 0), v(0, 0, 2)]
     center, radius = enclosing_sphere(pts)
-    inside = all(np.linalg.norm(p - center) <= radius + TOL for p in pts)
-    ok = report("sphere: contains all four points", inside)
+    # the worst overshoot, so the line says how much room the sphere had
+    worst = max(float(np.linalg.norm(p - center)) - radius for p in pts)
+    ok = report_margin("sphere: contains all four points", worst,
+                       SPHERE_SLACK, above=False)
 
     # coincident points must not produce a NaN centre, which is the case
     # the ParaDiS guard exists for and which a hinge produces in practice
     center, radius = enclosing_sphere([v(1, 1, 1)] * 4)
     ok &= report("sphere: four coincident points give a finite centre",
-                 np.all(np.isfinite(center)) and close(radius, 0.0))
+                 bool(np.all(np.isfinite(center))))
+    ok &= report_vals("sphere: four coincident points give radius 0",
+                      radius, 0.0)
     return ok
 
 
@@ -128,14 +172,14 @@ def test_point_point_in_time():
     # the half-way point of the interval, at unit distance
     dist2, t = point_point_min_dist_in_time(v(0, 0, 0), v(2, 0, 0),
                                             v(1, 1, 0), v(1, 1, 0))
-    ok = report("pt-pt in time: closest at t=0.5, dist2=1",
-                close(dist2, 1.0) and close(t, 0.5))
+    ok = report_vals("pt-pt in time: closest at t=0.5, dist2=1",
+                     (dist2, t), (1.0, 0.5))
 
     # both stationary: the answer must be the static one, at t=0
     dist2, t = point_point_min_dist_in_time(v(0, 0, 0), v(0, 0, 0),
                                             v(3, 0, 0), v(3, 0, 0))
-    ok &= report("pt-pt in time: stationary pair, dist2=9 at t=0",
-                 close(dist2, 9.0) and close(t, 0.0))
+    ok &= report_vals("pt-pt in time: stationary pair, dist2=9 at t=0",
+                      (dist2, t), (9.0, 0.0))
     return ok
 
 
@@ -151,9 +195,8 @@ def test_static_limit():
     b0, b1 = v(0, -1, 1), v(0, 1, 1)
     static = seg_seg_min_dist(a0, a1, b0, b1)
     swept = seg_seg_min_dist_in_time(a0, a0, a1, a1, b0, b0, b1, b1)
-    return report("swept: tau == t reproduces the static distance",
-                  close(swept[0], static[0]) and close(swept[1], static[1])
-                  and close(swept[2], static[2]))
+    return report_vals("swept: tau == t reproduces the static distance",
+                       swept[:3], static[:3])
 
 
 def test_crossing_during_interval():
@@ -164,8 +207,8 @@ def test_crossing_during_interval():
     dist2, l1, l2, t = seg_seg_min_dist_in_time(
         a0, a0, a1, a1,
         v(0, -1, 0.5), v(0, -1, -0.5), v(0, 1, 0.5), v(0, 1, -0.5))
-    ok = report("swept: crossing pair reaches dist2=0 mid-interval",
-                close(dist2, 0.0, 1e-6) and close(t, 0.5, 1e-6))
+    ok = report_vals("swept: crossing pair reaches dist2=0 mid-interval",
+                     (dist2, t), (0.0, 0.5))
 
     collided, dist2, l1, l2 = swept_seg_seg_collision(
         0.1, a0, a0, a1, a1,
@@ -182,8 +225,8 @@ def test_approaching_but_clear():
     args = (a0, a0, a1, a1,
             v(0, -1, 2), v(0, -1, 1), v(0, 1, 2), v(0, 1, 1))
     dist2, _, _, t = seg_seg_min_dist_in_time(*args)
-    ok = report("swept: approaching pair bottoms out at dist2=1",
-                close(dist2, 1.0, 1e-6) and close(t, 1.0, 1e-6))
+    ok = report_vals("swept: approaching pair bottoms out at dist2=1",
+                     (dist2, t), (1.0, 1.0))
 
     collided, _, _, _ = swept_seg_seg_collision(0.1, *args)
     ok &= report("criterion: approaching pair does not collide", not collided)
@@ -234,8 +277,10 @@ def test_lines_meet_but_segments_do_not():
     b1t, b1tau = v(5, 1, 0.5), v(5, 1, -0.5)
     collided, dist2, _, _ = swept_seg_seg_collision(
         0.1, a0, a0, a1, a1, b0t, b0tau, b1t, b1tau)
-    return report("criterion: intersecting lines, disjoint segments, no "
-                  "collision", not collided and dist2 > 0.1 * 0.1)
+    ok = report("criterion: intersecting lines, disjoint segments, no "
+                "collision", not collided)
+    return ok & report_margin("criterion: and their distance clears mindist^2",
+                              dist2, 0.1 * 0.1, above=True)
 
 
 def test_filter_rejects_distant_pairs():
@@ -270,28 +315,29 @@ def test_hinge_angle():
                 v(np.cos(theta), np.sin(theta), 0))
 
     # by construction the cosine of the angle between the two arms
+    got, want = [], []
     for theta in (0.05, 0.3, 1.0):
-        c = hinge_cos_angle(*arms(theta))
-        if not close(c, np.cos(theta)):
-            return report("hinge: cosine matches cos(theta)", False)
-    ok = report("hinge: cosine matches cos(theta) for several angles", True)
+        got.append(hinge_cos_angle(*arms(theta)))
+        want.append(np.cos(theta))
+    ok = report_vals("hinge: cosine matches cos(theta) at %d angles"
+                     % len(got), got, want)
 
     tight = hinge_cos_angle(*arms(0.1))      # cos = 0.995
     loose = hinge_cos_angle(*arms(0.3))      # cos = 0.955
     wide = hinge_cos_angle(*arms(0.8))       # cos = 0.697
 
-    ok &= report("hinge: a tight hinge passes the 0.98 threshold",
-                 tight > HINGE_TOL)
-    ok &= report("hinge: a 0.3 rad hinge fails 0.98 but passes the "
-                 "triangle-relaxed 0.9",
-                 loose < HINGE_TOL and loose > HINGE_TOL_TRI)
-    ok &= report("hinge: a wide hinge fails both thresholds",
-                 wide < HINGE_TOL_TRI)
+    ok &= report_margin("hinge: a tight hinge passes the 0.98 threshold",
+                        tight, HINGE_TOL, above=True)
+    ok &= report_margin("hinge: a 0.3 rad hinge fails the 0.98 threshold",
+                        loose, HINGE_TOL, above=False)
+    ok &= report_margin("hinge: a 0.3 rad hinge passes the relaxed 0.9",
+                        loose, HINGE_TOL_TRI, above=True)
+    ok &= report_margin("hinge: a wide hinge fails the relaxed 0.9 too",
+                        wide, HINGE_TOL_TRI, above=False)
 
     # a zero-length arm has no direction, so no threshold may accept it
-    ok &= report("hinge: zero-length arm yields 0.0",
-                 close(hinge_cos_angle(v(0, 0, 0), v(0, 0, 0), v(1, 0, 0)),
-                       0.0))
+    ok &= report_vals("hinge: zero-length arm yields 0.0",
+                      hinge_cos_angle(v(0, 0, 0), v(0, 0, 0), v(1, 0, 0)), 0.0)
     return ok
 
 
