@@ -134,9 +134,10 @@ TIE_REL_THRESHOLD = 1e-4
 
 # Absolute tolerance for the max nearest-node position difference between
 # pydis's replayed and exadis' authoritative network, after topology runs
-# each step. Matches tests/full_runs/03_binary_junction's own TOL, same
-# length scale (LBOX=1000 in both).
-POS_DIFF_TOL = 1.0e-6
+# each step. Tightened from 1e-6 once separated_positions' SPLIT_EPS nudge
+# was made additive (matching ParaDiS/ExaDiS) instead of multiplicative;
+# the worst step now measures 3.2e-13, well below this.
+POS_DIFF_TOL = 1.0e-10
 
 OUT_DIR = Path(__file__).resolve().parent / 'output'
 REF_DIR = Path(__file__).resolve().parent / 'ref_data'
@@ -921,6 +922,8 @@ def check_position_agreement(records):
     """
     diffs = [r for r in records if r.pos_diff is not None]
     worst = max((r.pos_diff for r in diffs), default=float('nan'))
+    worst_step = max(diffs, key=lambda r: r.pos_diff).istep if diffs else None
+    print("worst step: %s (pos_diff=%.4e)" % (worst_step, worst))
     label = ("max nearest-node distance, pydis vs exadis, after topology = %.4e, "
              "tolerance = %.1e" % (worst, POS_DIFF_TOL))
     ok = report(label, bool(diffs) and worst < POS_DIFF_TOL)

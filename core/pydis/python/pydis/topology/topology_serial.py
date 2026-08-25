@@ -285,7 +285,14 @@ def separated_positions(pos0: np.ndarray, dirvec: np.ndarray,
     straddles the original position rather than being centred on it. Either way
     the second node ends up split_dist along dirvec from the first.
     """
-    step = split_dist*(1.0 + SPLIT_EPS)*dirvec
+    # Additive, matching ParaDiS/ExaDiS's splitDist = 2*rann + eps (see
+    # exadis' topology_serial.h): SPLIT_EPS is a fixed nudge on the
+    # distance, not a fractional inflation of it. The old multiplicative
+    # form below scaled the nudge by split_dist (6x too large here),
+    # which was the source of test5_topology_mode's ~5e-12 position
+    # residual against exadis.
+    # step = split_dist*(1.0 + SPLIT_EPS)*dirvec
+    step = (split_dist + SPLIT_EPS)*dirvec
     if move_first:
         return pos0 - step, pos0.copy()
     return pos0.copy(), pos0 + step
