@@ -314,13 +314,26 @@ class RetroactiveCollision:
         glide plane when glide planes are in use, else the plane spanned by
         the line and the velocity, else by the line and the Burgers vector.
         An arm that defines none is skipped.
+
+        Both normalisations divide by a reciprocal rather than dividing, on a
+        bitwise-reproducible build, because that is what ExaDiS'
+        AdjustCollisionPoint does: `dir = 1.0/L * dir` and
+        `plane = 1.0/sqrt(n2mag2) * normal2`. x*(1/L) and x/L differ by an ulp
+        for about half of all inputs, and the offset below multiplies that by
+        |r|, which is of order the box edge, so an ulp in a normal becomes
+        ~5e-14 in an offset. Measured over the 459 arms of
+        tests/unit_tests/test4_collision_mode: 215 directions, 76 normals and
+        66 offsets differed before this, which is the scale of the
+        plane-selection residual that test reports.
         """
         r = self.G.nodes(tag).R
         for _, vec, burg, plane in self.G.arm_vectors(tag):
             length = float(_norm(vec))
             if length < 1.0e-20:
                 continue
-            direction = -vec / length          # from neighbour to this node
+            # from neighbour to this node
+            direction = ((1.0/length) * -vec if BITREPRO_MATH
+                         else -vec / length)
             options = []
             if self.use_glide_planes and plane is not None:
                 options.append(np.asarray(plane, dtype=float))
@@ -329,7 +342,8 @@ class RetroactiveCollision:
             for normal in options:
                 norm2 = float(_dot(normal, normal))
                 if norm2 > 1.0e-12:
-                    unit = normal / np.sqrt(norm2)
+                    unit = ((1.0/np.sqrt(norm2)) * normal if BITREPRO_MATH
+                            else normal / np.sqrt(norm2))
                     yield unit, float(_dot(unit, r))
                     break
 
