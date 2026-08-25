@@ -71,6 +71,11 @@ import numpy as np
 from framework.disnet_manager import DisNetManager
 from framework.simulation_setup import check_cutoff_maxseg
 from framework.simulation_setup import remesh_initial_config
+# exadis' arm order is not carried by export_data, and it breaks ties
+# between near-degenerate glide planes, so the replay has to be given it
+# explicitly, by apply_arm_order below. Same argument as seed_tag_state
+# below; see framework.arm_order.
+from framework.arm_order import export_arm_order, apply_arm_order
 from framework.testing import (report, report_close, verdict,
                                quiet_native_output, kokkos_summary)
 
@@ -506,6 +511,9 @@ def make_driver(SimulateNetwork, ExaDisNet, DisNet, DisNode):
             # and check_tag_state_consistency()'s docstrings.
             live_maxindex, live_recycled = self.live_tag_state(N)
             self.check_tag_state_consistency(rec, live_maxindex, live_recycled)
+            # before HandleCol, not after: exadis updates conn in place as it
+            # splits and merges, so this has to be the pre-collision order
+            live_arms = export_arm_order(N)
 
             self._measure_inputs(rec, before, state)
 
@@ -518,7 +526,8 @@ def make_driver(SimulateNetwork, ExaDisNet, DisNet, DisNode):
             rec.exadis_collided = not diff_is_empty(rec.exadis_diff)
 
             # pydis, on a throwaway copy of the same input
-            self._replay_pydis(rec, before, after, state, live_maxindex, live_recycled)
+            self._replay_pydis(rec, before, after, state, live_maxindex,
+                               live_recycled, live_arms)
 
             self.records.append(rec)
 
@@ -559,11 +568,13 @@ def make_driver(SimulateNetwork, ExaDisNet, DisNet, DisNode):
                 rec.vel_missing = len(tags_now - vt)
                 rec.vel_dead = len(vt - tags_now)
 
-        def _replay_pydis(self, rec, before, after, state, live_maxindex, live_recycled):
+        def _replay_pydis(self, rec, before, after, state, live_maxindex,
+                          live_recycled, live_arms):
             """_replay_pydis: run the pydis collision on the same input"""
             G = DisNet()
             G.import_data(before)
             self.seed_tag_state(G, live_maxindex, live_recycled)
+            apply_arm_order(G, live_arms)
 
             round_trip = G.export_data()
             rec.segorder_preserved = (seg_tag_pairs(round_trip)
