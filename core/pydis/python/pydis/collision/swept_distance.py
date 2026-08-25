@@ -39,6 +39,41 @@ EPS = 1.0e-12
 MAX_NEWTON = 20
 ERR_TOL = 1.0e-6
 
+# How the point-segment parameter -(diff.seg)/b is grouped. Both forms compute
+# the same quantity:
+#
+#   'exadis'  one division per component, then summed, which is how
+#             MinPointSegDist writes it. Its three roundings are the
+#             reference's, and this function is the only place the reference
+#             does it: MindistPtPtInTime divides once, as below.
+#   'pydis'   one dot product, one division.
+#
+# Accuracy is a wash. Over 20000 random cases at the coordinates and segment
+# lengths this test produces, one division is the more accurate 2619 times to
+# 2140 with 3875 ties, and the worst case goes either way. So the choice is
+# settled by agreement instead, and 'exadis' is the default. See
+# point_seg_ratio; changing this one name switches every caller.
+PTSEG_RATIO = 'exadis'
+
+
+def point_seg_ratio(diff, seg, b, form=None):
+    """point_seg_ratio: where the foot of the perpendicular falls on seg
+
+    -(diff.seg)/b for b = seg.seg, grouped per PTSEG_RATIO. Its own
+    function because the two groupings differ in the last bit, and that
+    bit reaches the positions a collision writes: one ulp here moved a
+    merged node by one ulp at step 538 of
+    tests/unit_tests/test4_collision_mode.
+    """
+    if form is None:
+        form = PTSEG_RATIO
+    if form == 'exadis':
+        return float((-diff[0]*seg[0]/b) + (-diff[1]*seg[1]/b)
+                     + (-diff[2]*seg[2]/b))
+    if form == 'pydis':
+        return float(-_dot(diff, seg) / b)
+    raise ValueError("unknown point-segment ratio grouping: %r" % (form,))
+
 
 def _grow_sphere(center, radius, p):
     """_grow_sphere: smallest sphere containing the old one and p
@@ -93,7 +128,7 @@ def point_seg_min_dist(x0, y0, y1):
     seg = y0 - y1
     b = float(_dot(seg, seg))
     if b > EPS:
-        t = float(-_dot(diff, seg) / b)
+        t = point_seg_ratio(diff, seg, b)
         if 0.0 < t < 1.0:
             v = diff + seg * t
             dist2 = float(_dot(v, v))

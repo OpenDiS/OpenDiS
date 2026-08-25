@@ -74,17 +74,26 @@ from framework.simulation_setup import remesh_initial_config
 from framework.testing import (report, report_close, verdict,
                                quiet_native_output, kokkos_summary)
 
-# Tolerance on the paired node positions. Not zero: the two codes reach a
-# collision point by the same arithmetic but not in the same order, and the run
-# sits at 6.6159e-12, stable to five figures over repeated runs. 1e-10 is that
-# floor with roughly 15x margin, the convention used for the segment-pair
-# tables in test1_node_force.
+# Tolerance on the paired node positions. Zero: the two codes agree on every
+# colliding step to the last bit, so report_close tags the line [BITWISE].
+# It was 6.6159e-12 when the rule was first complete, and five changes closed
+# that: the Newton solve through an explicit inverse rather than LAPACK,
+# closest_image by box-edge subtraction, a frame fix on the reference side, and
+# two grouping switches, SEGMENT_INTERP in collision_retroactive.py and
+# PTSEG_RATIO in swept_distance.py, each defaulting to the form the reference
+# writes. Flipping either switch reopens a residual of order 1e-14, which this
+# tolerance then catches.
 #
-# It is not the 1e-6 that canonical_form rounds to either. That rounding only
-# has to be coarse enough not to split two nodes that agree; it says nothing
-# about how well they agree, and leaving the tolerance there would let the
-# codes drift four orders before anything complained.
-ATOL_POS = 1.0e-10
+# The frame fix is a local, uncommitted change inside core/exadis, so a
+# `git submodule update` will make this assertion fail. That is deliberate: the
+# alternative was a tolerance loose enough to hide it.
+#
+# Exactness here rests on the single thread forced at the top of this file, as
+# in test3_remesh_rule: each step hands pydis exadis' own snapshot, so exadis'
+# trajectory does not enter the comparison, but its collision arithmetic is not
+# thread-invariant. check_setup below checks the count Kokkos actually took,
+# rather than leaving a later failure to be puzzled over.
+ATOL_POS = 0.0
 
 # ---------------------------------------------------------------- configuration
 
