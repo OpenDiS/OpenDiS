@@ -17,6 +17,20 @@ line at constant speed from its position at t to its position at tau, so
 
 import numpy as np
 
+# BLAS-free 3-vector arithmetic on a _repro build, the platform's numpy
+# otherwise. Bound once here rather than tested at each call site, because this
+# module has too many for that to stay readable. np.dot and np.linalg.norm on a
+# 3-vector both dispatch to BLAS, whose summation order is not fixed across
+# vendors; see pydis.calforce.bitrepro_math.
+from ..calforce.bitrepro_math import (ENABLED as BITREPRO_MATH,
+                                      dot_fixed, norm_fixed,
+                                      det3, solve3_by_inverse)
+
+if BITREPRO_MATH:
+    _dot, _norm = dot_fixed, norm_fixed
+else:
+    _dot, _norm = np.dot, np.linalg.norm
+
 # Hard-coded small number, as in the C. Distances are squared lengths in
 # units of b, so this is not a relative tolerance.
 EPS = 1.0e-12
@@ -36,7 +50,7 @@ def _grow_sphere(center, radius, p):
     same node.
     """
     d = p - center
-    ds = np.linalg.norm(d)
+    ds = _norm(d)
     if ds * ds < radius * radius:
         return center, radius
     new_radius = 0.5 * (radius + ds)
@@ -56,7 +70,7 @@ def enclosing_sphere(points):
     """
     points = np.asarray(points, dtype=float)
     center = 0.5 * (points[0] + points[1])
-    radius = 0.5 * np.linalg.norm(points[0] - points[1])
+    radius = 0.5 * _norm(points[0] - points[1])
     for p in points[2:]:
         center, radius = _grow_sphere(center, radius, p)
     return center, radius
@@ -69,20 +83,20 @@ def point_seg_min_dist(x0, y0, y1):
     ParaDiS MinPointSegDist.
     """
     diff = x0 - y0
-    best = (float(np.dot(diff, diff)), 0.0)
+    best = (float(_dot(diff, diff)), 0.0)
 
     d1 = x0 - y1
-    dist2 = float(np.dot(d1, d1))
+    dist2 = float(_dot(d1, d1))
     if dist2 < best[0]:
         best = (dist2, 1.0)
 
     seg = y0 - y1
-    b = float(np.dot(seg, seg))
+    b = float(_dot(seg, seg))
     if b > EPS:
-        t = float(-np.dot(diff, seg) / b)
+        t = float(-_dot(diff, seg) / b)
         if 0.0 < t < 1.0:
             v = diff + seg * t
-            dist2 = float(np.dot(v, v))
+            dist2 = float(_dot(v, v))
             if dist2 < best[0]:
                 best = (dist2, t)
     return best
@@ -97,7 +111,7 @@ def seg_seg_min_dist(x0, x1, y0, y1):
     parallel.
     """
     diff = x0 - y0
-    best = (float(np.dot(diff, diff)), 0.0, 0.0)
+    best = (float(_dot(diff, diff)), 0.0, 0.0)
 
     # the four edges of the solution square
     for x, fixed_first, fixed in ((x0, True, 0.0), (x1, True, 1.0)):
@@ -110,11 +124,11 @@ def seg_seg_min_dist(x0, x1, y0, y1):
             best = (dist2, l, fixed)
 
     seg1, seg2 = x1 - x0, y1 - y0
-    a = float(np.dot(seg1, seg1))
-    b = float(np.dot(seg2, seg2))
-    c = float(np.dot(seg1, seg2))
-    e = float(np.dot(seg1, diff))
-    d = float(np.dot(seg2, diff))
+    a = float(_dot(seg1, seg1))
+    b = float(_dot(seg2, seg2))
+    c = float(_dot(seg1, seg2))
+    e = float(_dot(seg1, diff))
+    d = float(_dot(seg2, diff))
     g = a * b - c * c
 
     if abs(g) > EPS:
@@ -122,7 +136,7 @@ def seg_seg_min_dist(x0, x1, y0, y1):
         l2 = (d + c * l1) / b
         if 0.0 < l1 < 1.0 and 0.0 < l2 < 1.0:
             v = diff + seg1 * l1 - seg2 * l2
-            dist2 = float(np.dot(v, v))
+            dist2 = float(_dot(v, v))
             if dist2 < best[0]:
                 best = (dist2, l1, l2)
     return best
@@ -135,20 +149,20 @@ def point_point_min_dist_in_time(x1t, x1tau, x2t, x2tau):
     ParaDiS MindistPtPtInTime.
     """
     diff = x1t - x2t
-    best = (float(np.dot(diff, diff)), 0.0)
+    best = (float(_dot(diff, diff)), 0.0)
 
     diff_tau = x1tau - x2tau
-    dist2 = float(np.dot(diff_tau, diff_tau))
+    dist2 = float(_dot(diff_tau, diff_tau))
     if dist2 < best[0]:
         best = (dist2, 1.0)
 
     ddiff = diff_tau - diff
-    b = float(np.dot(ddiff, ddiff))
+    b = float(_dot(ddiff, ddiff))
     if b > EPS:
-        t = float(-np.dot(diff, ddiff) / b)
+        t = float(-_dot(diff, ddiff) / b)
         if 0.0 < t < 1.0:
             v = diff + ddiff * t
-            dist2 = float(np.dot(v, v))
+            dist2 = float(_dot(v, v))
             if dist2 < best[0]:
                 best = (dist2, t)
     return best
@@ -165,7 +179,7 @@ def point_seg_min_dist_in_time(x1t, x1tau, x3t, x3tau, x4t, x4tau):
     covered them; seg_seg_min_dist_in_time does.
     """
     diff = x1t - x3t
-    best = (float(np.dot(diff, diff)), 0.0, 0.0)
+    best = (float(_dot(diff, diff)), 0.0, 0.0)
 
     for endpoint_t, endpoint_tau, l2 in ((x3t, x3tau, 0.0), (x4t, x4tau, 1.0)):
         dist2, t = point_point_min_dist_in_time(x1t, x1tau, endpoint_t,
@@ -178,16 +192,16 @@ def point_seg_min_dist_in_time(x1t, x1tau, x3t, x3tau, x4t, x4tau):
     dl34 = (x3tau - x3t) + (x4t - x4tau)
     dl13 = (x1tau - x1t) + (x3t - x3tau)
 
-    a = float(np.dot(diff, diff))
-    b = float(np.dot(diff, l34))
-    c = float(np.dot(diff, dl13))
-    d = float(np.dot(diff, dl34))
-    e = float(np.dot(l34, l34))
-    f = float(np.dot(l34, dl13))
-    g = float(np.dot(l34, dl34))
-    h = float(np.dot(dl13, dl13))
-    i = float(np.dot(dl13, dl34))
-    j = float(np.dot(dl34, dl34))
+    a = float(_dot(diff, diff))
+    b = float(_dot(diff, l34))
+    c = float(_dot(diff, dl13))
+    d = float(_dot(diff, dl34))
+    e = float(_dot(l34, l34))
+    f = float(_dot(l34, dl13))
+    g = float(_dot(l34, dl34))
+    h = float(_dot(dl13, dl13))
+    i = float(_dot(dl13, dl34))
+    j = float(_dot(dl34, dl34))
     d = d + f
 
     for _ in range(MAX_NEWTON):
@@ -200,7 +214,7 @@ def point_seg_min_dist_in_time(x1t, x1tau, x3t, x3tau, x4t, x4tau):
         m01 = d + 2.0 * g * l2 + 2.0 * t * (i + j * l2)
         m11 = e + 2.0 * g * t + t * t * j
         det = m00 * m11 - m01 * m01
-        if abs(det) < EPS or float(np.dot(err, err)) < ERR_TOL:
+        if abs(det) < EPS or float(_dot(err, err)) < ERR_TOL:
             break
         # Transcribed sign. This adds the correction where the segment
         # against segment solve below subtracts it; the same inconsistency
@@ -257,7 +271,7 @@ def seg_seg_min_dist_in_time(x1t, x1tau, x2t, x2tau, x3t, x3tau, x4t, x4tau):
     dl21 = (x2tau - x2t) + (x1t - x1tau)
     dl34 = (x3tau - x3t) + (x4t - x4tau)
 
-    dot = np.dot
+    dot = _dot          # the module alias, not np.dot; see the note at the top
     a, b, c = dot(l13, l13), dot(l13, l21), dot(l13, l34)
     d, e, f = dot(l13, dl13), dot(l13, dl21), dot(l13, dl34)
     g, h = dot(l21, l21), dot(l21, l34)
@@ -283,10 +297,17 @@ def seg_seg_min_dist_in_time(x1t, x1tau, x2t, x2tau, x3t, x3tau, x4t, x4tau):
             [m01, g + 2*j*t + ss*t2, h + k*t + tt*t2],
             [m02, h + k*t + tt*t2, ll + 2*o*t + u*t2],
         ])
-        if (abs(np.linalg.det(mat)) < EPS
-                or float(np.dot(err, err)) < ERR_TOL):
+        # det3 and solve3_by_inverse, not np.linalg: the reference forms the
+        # determinant as an explicit cofactor sum and the correction through
+        # an explicit inverse, where LAPACK factorizes. The two agree to
+        # about 1e-16 per iteration, and four iterations of that compound
+        # into 1e-13 in the ratio returned here, which is 1e-11 once it is
+        # multiplied by a segment length. That was the whole of the residual
+        # at step 271 of tests/unit_tests/test4_collision_mode.
+        if abs(det3(mat)) < EPS or float(_dot(err, err)) < ERR_TOL:
             break
-        t, l1, l2 = np.array([t, l1, l2]) - np.linalg.solve(mat, err)
+        corr = solve3_by_inverse(mat, err)
+        t, l1, l2 = t - corr[0], l1 - corr[1], l2 - corr[2]
 
     if 0.0 < t < 1.0 and 0.0 < l1 < 1.0 and 0.0 < l2 < 1.0:
         t2, l1l1, l2l2, l1l2 = t * t, l1 * l1, l2 * l2, l1 * l2
@@ -312,7 +333,7 @@ def segs_may_approach(seg1_points, seg2_points, mindist):
     c1, r1 = enclosing_sphere(seg1_points)
     c2, r2 = enclosing_sphere(seg2_points)
     reach = r1 + r2 + mindist
-    return float(np.dot(c1 - c2, c1 - c2)) < reach * reach
+    return float(_dot(c1 - c2, c1 - c2)) < reach * reach
 
 
 def swept_seg_seg_collision(mindist, x1t, x1tau, x2t, x2tau,
@@ -355,8 +376,8 @@ def hinge_cos_angle(p1, p3, p4):
     Returns 0.0 for a zero-length arm, which no threshold accepts.
     """
     l13, l14 = p1 - p3, p1 - p4
-    a = float(np.dot(l13, l13))
-    b = float(np.dot(l14, l14))
+    a = float(_dot(l13, l13))
+    b = float(_dot(l14, l14))
     if a < EPS or b < EPS:
         return 0.0
-    return float(np.dot(l13, l14) / np.sqrt(a) / np.sqrt(b))
+    return float(_dot(l13, l14) / np.sqrt(a) / np.sqrt(b))

@@ -235,6 +235,17 @@ def load_ref_npz(filename):
         return f['positions'], f['cell_h'], str(f['source'])
 
 
+def verdict(name, passed):
+    """verdict: print a coloured overall PASSED/FAILED line for a whole test
+
+    The closing line of a test file, as opposed to report()'s one line per
+    check. Same colours, so a run scrolling past reads the same either way.
+    """
+    tag = GREEN + 'PASSED' + RESET if passed else RED + 'FAILED' + RESET
+    print("%s: %s" % (name, tag))
+    return passed
+
+
 def report_close(name, values, ref_values, atol, rtol=0.0):
     """report_close: report whether two arrays agree, showing the error
 

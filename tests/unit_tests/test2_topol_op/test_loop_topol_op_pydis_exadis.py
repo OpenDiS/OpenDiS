@@ -57,11 +57,20 @@ import numpy as np
 
 from pydis.disnet import DisNet
 from framework.disnet_manager import DisNetManager
-from framework.testing import report, same_network
+from framework.testing import report, report_close, same_network
 
 # the configuration, as node positions and connectivity
 RN_FILE    = 'loop_rn.dat'
 LINKS_FILE = 'loop_links.dat'
+
+# Node positions are compared exactly. same_network already requires that,
+# through DisNode.is_equivalent comparing R with ==, so this is the tolerance
+# the test has always held them to; naming it here only puts the number on
+# screen next to it. Nothing here approximates: a merge takes one of two
+# existing positions and a split interpolates between two, so both codes should
+# land on the same bits, and any difference at all is a real disagreement rather
+# than accumulated error.
+ATOL_POS = 0.0
 
 # the operations under test
 REMOVE_TAGS = [(0, 5), (0, 6)]
@@ -348,12 +357,36 @@ def load_ref():
     return N.get_disnet(DisNet)
 
 
+def node_positions(G, tags):
+    """node_positions: the positions of the named nodes, in the order given"""
+    return np.array([G.nodes(tag).R for tag in tags])
+
+
 def test_code(label, G, ref):
-    """test_code: one code's result against the stored reference"""
+    """test_code: one code's result against the stored reference
+
+    same_network is the comparison that decides this test: it matches segments
+    by their end tags, reads the other network's Burgers vector from its own
+    source tag so a segment stored either way round compares equal, and treats
+    n and -n as one glide plane. It answers yes or no.
+
+    The position comparison after it adds no strictness, since same_network
+    already demands exact equality. It is there to report how far apart the two
+    are when the answer is no, which a boolean cannot say, and to distinguish a
+    disagreement of one ulp from one of a box length.
+    """
     ok = report("%s: network is sane after the operations" % label,
                 G.is_sane())
     ok &= report("%s: resulting network matches the reference" % label,
                  same_network(G, ref))
+
+    tags, ref_tags = sorted(G.all_nodes_tags()), sorted(ref.all_nodes_tags())
+    ok &= report("%s: node tags match the reference (%d nodes)"
+                 % (label, len(tags)), tags == ref_tags)
+    if tags == ref_tags:
+        ok &= report_close("%s: node positions" % label,
+                           node_positions(G, tags),
+                           node_positions(ref, tags), ATOL_POS)
     return bool(ok)
 
 

@@ -123,14 +123,97 @@ class Cell:
         ds -= self.is_periodic * np.round(ds)
         return np.dot(self.h, ds.T).T
 
-    def closest_image(self, Rref: np.ndarray, R: np.ndarray) -> np.ndarray:
-        """map: map R to the nearest image of Rref (if PBC is applied)
+    def is_orthogonal(self) -> bool:
+        """is_orthogonal: are the cell vectors axis-aligned
+
+        True when every off-diagonal entry of h is zero, which is the
+        negation of exadis Cell::is_triclinic in core/exadis/src/network.h.
+        Only an orthogonal cell has a single box edge per component, which
+        is what the 'edge' branch of closest_image needs.
         """
-        if not any(self.is_periodic):
-            return R
+        off = self.h - np.diag(np.diag(self.h))
+        return not np.any(off)
+
+    def _closest_image_scaled(self, Rref: np.ndarray, R: np.ndarray) -> np.ndarray:
+        """_closest_image_scaled: via scaled coordinates, for any cell shape
+
+        Transforms to scaled coordinates and back unconditionally, so R is
+        rebuilt from hinv @ (R - Rref) even when the image index is zero and
+        does not round-trip exactly.
+        """
         ds = np.dot(self.hinv, (R-Rref).T).T
         ds -= self.is_periodic * np.round(ds)
         return np.dot(self.h, ds.T).T + Rref
+
+    def _closest_image_edge(self, Rref: np.ndarray, R: np.ndarray) -> np.ndarray:
+        """_closest_image_edge: subtract whole box edges, orthogonal cells only
+
+        Keeps R and removes an exact multiple of the box edge per component,
+        so a point already in the nearest image comes back untouched. Caller
+        checks is_orthogonal first; there is no per-component edge otherwise.
+        """
+        out = np.array(R, dtype=float)
+        ref = np.asarray(Rref, dtype=float)
+        for k in range(3):
+            if self.is_periodic[k]:
+                edge = self.h[k, k]
+                out[..., k] -= np.rint((out[..., k] - ref[..., k])/edge)*edge
+        return out
+
+    def closest_image(self, Rref: np.ndarray, R: np.ndarray,
+                      method: str='edge') -> np.ndarray:
+        """closest_image: map R to the nearest periodic image of Rref
+
+        Same convention as exadis' Cell::pbc_position
+        (core/exadis/src/network.h) either way; method selects the
+        arithmetic, which changes the last bits but never which image is
+        chosen.
+
+        'scaled'
+            Always goes out to scaled coordinates and back, rebuilding R
+            from hinv @ (R - Rref) even when the image index is zero. The
+            long-standing pydis form, kept because every stored reference
+            up to 2026-08-24 was produced with it.
+
+        'edge'
+            For an orthogonal cell, keeps R and subtracts an exact multiple
+            of the box edge one component at a time,
+
+                rpbc.x -= rint((rpbc.x - r0.x)/Lbox.x) * Lbox.x
+
+            so a point already in the nearest image is returned untouched.
+            This is exadis' orthogonal branch. For a triclinic cell exadis
+            has no such edge either and does the scaled round trip, so
+            'edge' falls back to 'scaled' there and the two codes already
+            agree.
+
+        The two differ on about 4% of calls in a 1000-wide box, by up to one
+        ulp at the coordinate magnitude, 5.7e-14. Where a folded point sits
+        near a box face the loss is an ulp of the box edge instead, 1.1e-13
+        at 1000. Measured over tests/unit_tests/test4_collision_mode, moving
+        this rule to 'edge' takes the worst per-step disagreement with exadis
+        from 4.5e-13 to 1.2e-13.
+
+        'edge' is the more accurate of the two and is the default. It was
+        made the default on 2026-08-24 after measuring that it moves no
+        stored reference far enough to fail: all eight test folders pass
+        with it, including the zero-tolerance comparisons that
+        tests/unit_tests/test1_node_force asserts on a bitrepro build.
+
+        The np.dot calls in the scaled form are a further wrinkle for
+        reproducibility rather than for agreement: a 3x3 matvec goes to BLAS,
+        so the result depends on which BLAS numpy was built against. The
+        'edge' form has no matrix product and so no such dependence. See
+        pydis.calforce.bitrepro_math.
+        """
+        if not any(self.is_periodic):
+            return R
+        if method == 'edge' and self.is_orthogonal():
+            return self._closest_image_edge(Rref, R)
+        if method not in ('scaled', 'edge'):
+            raise ValueError("closest_image: method must be 'scaled' or "
+                             "'edge', got %r" % (method,))
+        return self._closest_image_scaled(Rref, R)
 
     def fold(self, R: np.ndarray) -> np.ndarray:
         """fold: map a position into the primary cell (if PBC is applied)

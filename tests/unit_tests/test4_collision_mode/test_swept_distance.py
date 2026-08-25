@@ -21,7 +21,7 @@ opendis_paths = [str(opendis_root / p) for p in ['python', 'core/pydis/python']]
 
 import numpy as np
 
-from framework.testing import report
+from framework.testing import report, verdict
 from pydis.collision.swept_distance import (
     enclosing_sphere, point_seg_min_dist, seg_seg_min_dist,
     point_point_min_dist_in_time, seg_seg_min_dist_in_time,
@@ -306,7 +306,7 @@ def main():
     for t in tests:
         ok &= bool(t())
     print("")
-    print("test_swept_distance: %s" % ("PASSED" if ok else "FAILED"))
+    verdict("test_swept_distance", ok)
     return 0 if ok else 1
 
 

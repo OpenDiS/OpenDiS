@@ -13,12 +13,21 @@ Parity is claimed for coarsen_mode=0 and enforce_glide_planes=0 only.
 """
 
 import os
+import re
 import sys
 from pathlib import Path
 
 # Kokkos reads this at initialize(), so it must be set before pyexadis is
 # imported. Multi-threaded exadis is not reproducible run to run.
-os.environ.setdefault('OMP_NUM_THREADS', '1')
+#
+# Assigned rather than setdefault: this test compares the two remesh rules at
+# zero tolerance, and exadis' remesh arithmetic is not thread-invariant. Forced
+# to 8 threads, one run in two diverged by 3.5527e-15, about one ULP, at step
+# 228. An OMP_NUM_THREADS inherited from the environment would therefore turn
+# the comparison flaky, so it is overridden here rather than merely defaulted.
+# Run the multi-threaded case deliberately if you want it, by editing this
+# line; do not expect the exact comparison to survive it.
+os.environ['OMP_NUM_THREADS'] = '1'
 
 # this script lives in tests/unit_tests/test3_remesh_rule/, so the repository
 # root is 3 levels up
@@ -32,7 +41,7 @@ import numpy as np
 
 from framework.disnet_manager import DisNetManager
 from framework.simulation_setup import check_cutoff_maxseg
-from framework.testing import report, same_network
+from framework.testing import report, report_close, same_network
 from framework.testing import quiet_native_output, kokkos_summary
 from pydis.disnet import DisNet
 from pydis import Remesh as PyDiS_Remesh
@@ -42,6 +51,19 @@ from test_frank_read_src_exadis_elast import init_frank_read_src_loop
 MAX_STEP = 250          # run twice: under load, then relaxing at zero stress
 CUTOFF_FRAC = 0.25      # cutoff as a fraction of the box edge
 DETAIL_STEPS = 3        # differing steps reported in full before summarising
+
+# Node positions are compared exactly. same_network already requires that,
+# through DisNode.is_equivalent comparing R with ==, so this is the tolerance
+# every step has always been held to; naming it puts the number on screen.
+#
+# Exactness here rests on the single thread forced at the top of this file, not
+# on remesh being inherently order-independent. Each step hands pydis exadis' own snapshot, so
+# the exadis trajectory's reproducibility does not enter the comparison; but
+# exadis' remesh arithmetic itself is not thread-invariant. Forced to 8 threads,
+# one run in two diverged at step 228 by 3.5527e-15, about one ULP, and
+# same_network failed with it. So the pin is load-bearing, and check_threads
+# below reports it rather than leaving a later failure to be puzzled over.
+ATOL_POS = 0.0
 PRINT_FREQ = 50         # steps between exadis progress lines
 STRESS = np.array([0.0, 0.0, 0.0, 0.0, -4.0e8, 0.0])
 
@@ -73,10 +95,51 @@ def as_disnet(data):
     return G
 
 
+def max_position_diff(G, G_ref):
+    """max_position_diff: greatest node position difference, matched by tag
+
+    Returns inf when the tag sets differ, since there is then no node-to-node
+    correspondence to measure and the two are not the same network anyway.
+    """
+    tags = sorted(G.all_nodes_tags())
+    if tags != sorted(G_ref.all_nodes_tags()):
+        return np.inf
+    if not tags:
+        return 0.0
+    a = np.array([G.nodes(t).R for t in tags])
+    b = np.array([G_ref.nodes(t).R for t in tags])
+    return float(np.max(np.abs(a - b)))
+
+
 def counts(data):
     """counts: nodes and segments in an exported network"""
     return (data["nodes"]["tags"].shape[0],
             data["segs"]["nodeids"].shape[0])
+
+
+def kokkos_threads(banner):
+    """kokkos_threads: the thread pool size Kokkos reports, or None
+
+    From the thread_pool_topology[ N x T x V ] line of the startup banner, whose
+    middle number is the thread count.
+    """
+    m = re.search(r'thread_pool_topology\[\s*\d+\s*x\s*(\d+)', banner)
+    return int(m.group(1)) if m else None
+
+
+def check_threads(banner):
+    """check_threads: exadis really is running on the one thread it needs
+
+    Read from the Kokkos banner, not from OMP_NUM_THREADS. This file now sets
+    that variable unconditionally, so checking it would only confirm this file
+    agrees with itself; the banner is what Kokkos actually took at
+    initialize(), which is the thing the exact comparison depends on. It would
+    also catch the assignment being moved after the pyexadis import, where it
+    would have no effect while still reading back as '1'.
+    """
+    threads = kokkos_threads(banner)
+    return report("setup: exadis is running on 1 thread (the exact comparison "
+                  "needs it), got %s" % threads, threads == 1)
 
 
 def check_scope(state):
@@ -157,14 +220,15 @@ def build_sim(state, cutoff, exadis_rule, pydis_rule, plot):
             """compare: pydis remesh on the same input, against exadis"""
             entry = {'before': counts(before), 'exadis': counts(after),
                      'pydis': None, 'same': False, 'error': None,
-                     'phase': self.phase}
+                     'maxdiff': None, 'phase': self.phase}
             try:
                 G = as_disnet(before)
                 self.seed_tag_state(G, live_maxindex, live_recycled)
                 self.pydis_remesh.Remesh(DisNetManager(G), state)
                 entry['pydis'] = (G.num_nodes(), G.num_segments())
-                entry['same'] = same_network(G, as_disnet(after),
-                                             verbose=False)
+                G_exadis = as_disnet(after)
+                entry['same'] = same_network(G, G_exadis, verbose=False)
+                entry['maxdiff'] = max_position_diff(G, G_exadis)
             except Exception as err:
                 entry['error'] = "%s: %s" % (type(err).__name__, err)
             return entry
@@ -227,7 +291,30 @@ def summarise(record):
         print("")
         print("  ... and %d more" % (len(bad) - DETAIL_STEPS))
 
-    return report("pydis and exadis LengthBased agree at every step", not bad)
+    ok = report("pydis and exadis LengthBased agree at every step", not bad)
+
+    # How far apart they are, not just whether they differ. A step that raised
+    # has no measurement to contribute and is already counted in `bad` above;
+    # if every step raised there is nothing to compare, which is a failure
+    # rather than a vacuous pass.
+    measured = [(i, e['maxdiff']) for i, e in enumerate(record)
+                if e['maxdiff'] is not None]
+    if not measured:
+        return bool(report("pydis vs exadis node positions: no step produced "
+                           "a comparable network", False) and ok)
+    step, worst = max(measured, key=lambda t: t[1])
+    # naming a step is only informative when one of them stands out; with every
+    # step at zero, calling out the first would suggest it differs from the rest
+    where = "" if worst == 0.0 else ", first at step %d" % step
+    # "after one remesh operation" because that is the whole of what is
+    # compared: pydis is handed exadis' snapshot and remeshes it once, so
+    # neither side accumulates, and a step's number is that step's
+    # disagreement rather than a running total
+    ok &= report_close("pydis vs exadis node positions after one remesh "
+                       "operation, worst of %d steps%s"
+                       % (len(measured), where),
+                       np.array([worst]), np.zeros(1), ATOL_POS)
+    return bool(ok)
 
 
 def main(config='frank_read', max_step=MAX_STEP, exadis_rule='LengthBased',
@@ -244,7 +331,10 @@ def main(config='frank_read', max_step=MAX_STEP, exadis_rule='LengthBased',
         print("exadis: %s" % line)
 
     net, state, cutoff = CONFIGS[config]()
-    passed = check_scope(state)
+    # both are setup checks, so && them rather than gating one on the other:
+    # a wrong thread count and a wrong glide-plane scope should both be named
+    passed = check_threads(buf.text)
+    passed = check_scope(state) and passed
     if passed:
         sim = build_sim(state, cutoff, exadis_rule, pydis_rule, plot)
         sim.max_step = max_step

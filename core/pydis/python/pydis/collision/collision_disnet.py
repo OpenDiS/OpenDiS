@@ -8,6 +8,10 @@ import numpy as np
 from ..disnet import DisNet, DisNode
 from framework.collision_base import Collision_Base
 from framework.disnet_manager import DisNetManager
+# see the note in collision_retroactive.py; np.dot on a 3-vector goes to BLAS
+from ..calforce.bitrepro_math import ENABLED as BITREPRO_MATH, dot_fixed
+_dot = dot_fixed if BITREPRO_MATH else np.dot
+
 from .collision_retroactive import (handle_collision_retroactive,
                                     CollisionRecord)
 
@@ -116,12 +120,12 @@ class Collision:
                         collided[j] = True
 
                         seg1_vec = p2 - p1
-                        close2node1 = (np.dot(seg1_vec, seg1_vec) * (L1    *L1))     < self.mindist2
-                        close2node2 = (np.dot(seg1_vec, seg1_vec) * ((1-L1)*(1-L1))) < self.mindist2
+                        close2node1 = (_dot(seg1_vec, seg1_vec) * (L1    *L1))     < self.mindist2
+                        close2node2 = (_dot(seg1_vec, seg1_vec) * ((1-L1)*(1-L1))) < self.mindist2
 
                         seg2_vec = p4 - p3
-                        close2node3 = (np.dot(seg2_vec, seg2_vec) * (L2    *L2))     < self.mindist2
-                        close2node4 = (np.dot(seg2_vec, seg2_vec) * ((1-L2)*(1-L2))) < self.mindist2
+                        close2node3 = (_dot(seg2_vec, seg2_vec) * (L2    *L2))     < self.mindist2
+                        close2node4 = (_dot(seg2_vec, seg2_vec) * ((1-L2)*(1-L2))) < self.mindist2
 
                         if close2node1:
                             mergenode1, splitSeg1, newPos1 = tag1, False, p1

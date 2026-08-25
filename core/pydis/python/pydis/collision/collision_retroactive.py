@@ -41,6 +41,19 @@ from ..util.glide_planes import PlaneSet, constrained_plane_point
 from ..util.state_access import velocities_by_tag, old_positions_by_tag
 from .swept_distance import swept_seg_seg_collision, hinge_cos_angle
 
+# BLAS-free 3-vector arithmetic on a _repro build, the platform's numpy
+# otherwise. Bound once here rather than tested at each call site, because this
+# module has too many for that to stay readable. np.dot and np.linalg.norm on a
+# 3-vector both dispatch to BLAS, whose summation order is not fixed across
+# vendors; see pydis.calforce.bitrepro_math.
+from ..calforce.bitrepro_math import (ENABLED as BITREPRO_MATH,
+                                      dot_fixed, norm_fixed)
+
+if BITREPRO_MATH:
+    _dot, _norm = dot_fixed, norm_fixed
+else:
+    _dot, _norm = np.dot, np.linalg.norm
+
 # mindist for the predictive interval: near zero, so that the second pass
 # fires only on segments that will genuinely cross rather than approach
 PREDICTIVE_MINDIST = 1.0e-6
@@ -55,6 +68,44 @@ HINGE_TOL_TRI = 0.9
 THROW_FACTOR = 4.0
 
 ZERO_LENGTH2 = 1.0e-20
+
+# Which grouping to use when interpolating a point along a segment. The two
+# forms are equal in exact arithmetic and differ in the last bits. Change this
+# one name to switch; nothing else needs touching.
+#
+#   'exadis'   (1-t)*r1 + t*r2      four roundings, on products the size of
+#              the coordinates. Agrees with exadis bit for bit, which is why
+#              it is the default.
+#   'pydis'    r1 + t*(r2 - r1)     two roundings, on a product the size of
+#              the segment, and the more accurate of the two: 4.2e-14 against
+#              7.2e-14 at step 264 of tests/unit_tests/test4_collision_mode,
+#              measured against exact rational arithmetic.
+#
+# Measured effect of choosing 'exadis' over 'pydis' on that test: the worst
+# position disagreement falls from 1.1369e-13 to 5.6843e-14, and the number of
+# colliding steps that disagree at all from 9 of 39 to 7 of 39. So this buys
+# agreement at a small, quantified cost in accuracy. Note that the frame the
+# interpolation happens in is a separate choice, settled the other way; see
+# merge_node_for_segment.
+SEGMENT_INTERP = 'exadis'
+
+
+def interpolate_on_segment(r1, r2, ratio, grouping=None):
+    """interpolate_on_segment: the point a fraction ratio of the way r1 to r2
+
+    r1 and r2 must already be in one periodic frame; this does no image
+    reduction and no folding. grouping selects between two algebraically
+    identical forms that round differently, defaulting to SEGMENT_INTERP,
+    which is where the trade-off and the measurements are recorded.
+    """
+    if grouping is None:
+        grouping = SEGMENT_INTERP
+    if grouping == 'exadis':
+        return (1.0 - ratio) * r1 + ratio * r2
+    if grouping == 'pydis':
+        return r1 + ratio * (r2 - r1)
+    raise ValueError("interpolate_on_segment: grouping must be 'exadis' or "
+                     "'pydis', got %r" % (grouping,))
 
 # upper bound on collision bins per direction, as exadis MAX_BOX
 MAX_BINS_PER_DIRECTION = 50
@@ -179,8 +230,8 @@ class RetroactiveCollision:
         p3_old, p3_now = self.swept(t3, p1_now)
         p4_old, p4_now = self.swept(t4, p3_now)
 
-        if (np.dot(p1_now - p2_now, p1_now - p2_now) < ZERO_LENGTH2
-                or np.dot(p3_now - p4_now, p3_now - p4_now) < ZERO_LENGTH2):
+        if (_dot(p1_now - p2_now, p1_now - p2_now) < ZERO_LENGTH2
+                or _dot(p3_now - p4_now, p3_now - p4_now) < ZERO_LENGTH2):
             return None
 
         hit, _, l1, l2 = swept_seg_seg_collision(
@@ -217,7 +268,7 @@ class RetroactiveCollision:
 
         r1 = self.G.nodes(tag1).R
         vec = self.G.seg_vector(tag1, tag2)
-        length2 = float(np.dot(vec, vec))
+        length2 = float(_dot(vec, vec))
 
         if ratio * ratio * length2 < self.mindist2:
             return tag1, self.velocity(tag1)
@@ -225,11 +276,28 @@ class RetroactiveCollision:
             return tag2, self.velocity(tag2)
 
         new_tag = self.G.get_new_tag()
-        # folded into the primary cell, as ParaDiS folds every split and
+        # Folded into the primary cell, as ParaDiS folds every split and
         # merge position with FoldBox. Without it a node placed across a
         # periodic face keeps an out-of-cell coordinate: the same point,
         # written differently, which compares unequal.
-        pnew = self.G.cell.fold(r1 + ratio * vec)
+        #
+        # FRAME, and this is the choice that is *not* exadis'. r1 is this
+        # segment's own first node at its home coordinates, so the
+        # interpolation happens at the segment's own magnitude. exadis instead
+        # reuses the coordinates it built to measure the pair, in which the
+        # *second* segment is expressed relative to the *first* segment's
+        # first node (collision_retroactive.cpp:1987-1988, consumed at :2031).
+        # Across a periodic face that interpolates a whole box edge from home,
+        # at a 64x coarser ulp, and the fold afterwards cannot recover the
+        # bits: 5.9e-14 against 2.6e-16 at step 300 of
+        # tests/unit_tests/test4_collision_mode, about 220x worse. To adopt
+        # exadis' frame anyway, thread a reference point down from collide and
+        # reduce both endpoints into it before interpolating.
+        #
+        # The GROUPING is a separate choice and does follow exadis: see
+        # SEGMENT_INTERP at the top of this module, which is a one-name switch.
+        r2 = self.G.cell.closest_image(Rref=r1, R=self.G.nodes(tag2).R)
+        pnew = self.G.cell.fold(interpolate_on_segment(r1, r2, ratio))
         self.G.insert_node_between(tag1, tag2, new_tag, pnew)
         v = ((1.0 - ratio) * self.velocity(tag1)
              + ratio * self.velocity(tag2))
@@ -245,7 +313,7 @@ class RetroactiveCollision:
         """
         r = self.G.nodes(tag).R
         for _, vec, burg, plane in self.G.arm_vectors(tag):
-            length = float(np.linalg.norm(vec))
+            length = float(_norm(vec))
             if length < 1.0e-20:
                 continue
             direction = -vec / length          # from neighbour to this node
@@ -255,10 +323,10 @@ class RetroactiveCollision:
             options.append(np.cross(direction, velocity))
             options.append(np.cross(direction, burg))
             for normal in options:
-                norm2 = float(np.dot(normal, normal))
+                norm2 = float(_dot(normal, normal))
                 if norm2 > 1.0e-12:
                     unit = normal / np.sqrt(norm2)
-                    yield unit, float(np.dot(unit, r))
+                    yield unit, float(_dot(unit, r))
                     break
 
     def collision_point(self, tag1, v1, tag2, v2):
@@ -360,7 +428,7 @@ class RetroactiveCollision:
             Rref=self.G.nodes(tag1).R, R=newpos)
         d2 = self.G.nodes(tag2).R - self.G.cell.closest_image(
             Rref=self.G.nodes(tag2).R, R=newpos)
-        return float(np.dot(d1, d1)) > limit and float(np.dot(d2, d2)) > limit
+        return float(_dot(d1, d1)) > limit and float(_dot(d2, d2)) > limit
 
     def merge(self, tag1, tag2, newpos):
         """merge: collapse the two nodes at newpos
@@ -410,6 +478,9 @@ class RetroactiveCollision:
         Shared by both passes, since they differ only in how they choose
         the pair and the ratios along it.
         """
+        # Each segment is split in its own periodic frame, which is not what
+        # exadis does; see merge_node_for_segment for the difference and for
+        # what to change to match it.
         node1, v1 = self.merge_node_for_segment(seg1[0], seg1[1], l1)
         if node1 is None:
             return
@@ -457,11 +528,11 @@ class RetroactiveCollision:
         for tag in self.G.all_nodes_tags():
             now = self.G.nodes(tag).R
             was = self.G.cell.closest_image(Rref=now, R=self.old_position(tag))
-            dr2max = max(dr2max, float(np.dot(now - was, now - was)))
+            dr2max = max(dr2max, float(_dot(now - was, now - was)))
         l2max = 0.0
         for t1, t2 in segments:
             vec = self.G.seg_vector(t1, t2)
-            l2max = max(l2max, float(np.dot(vec, vec)))
+            l2max = max(l2max, float(_dot(vec, vec)))
         return np.sqrt(4.0 * dr2max + 0.5 * l2max) + self.rann
 
     def segment_geometry(self, segments):
@@ -622,7 +693,7 @@ class RetroactiveCollision:
                     continue                  # shares a node: a hinge
                 delta = self.G.cell.map(mid[i] - mid[k])
                 limit = cutoff + half[i] + half[k]
-                if float(np.dot(delta, delta)) >= limit * limit:
+                if float(_dot(delta, delta)) >= limit * limit:
                     continue
                 yield seg_i, seg_k
 

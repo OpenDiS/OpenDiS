@@ -38,16 +38,25 @@ RUNNING IT
     python3 test_collision_mode_pydis_exadis.py --max-step 50
     python3 test_collision_mode_pydis_exadis.py --plot
 
-Single-threaded by construction: OMP_NUM_THREADS is pinned to 1 before
+Single-threaded by construction: OMP_NUM_THREADS is forced to 1 before
 pyexadis is imported, because multi-threaded ExaDiS varies run to run
 through the order of floating-point reductions, and over hundreds of
-steps that grows into visibly different trajectories.
+steps that grows into visibly different trajectories. check_setup reports
+the thread count Kokkos actually took, rather than the variable this file
+sets, so the pin cannot appear to hold while having no effect.
 """
 
 import os
+import re
 # must precede the pyexadis import, and therefore any framework import
-# that might pull it in
-os.environ.setdefault('OMP_NUM_THREADS', '1')
+# that might pull it in.
+#
+# Assigned rather than setdefault: an OMP_NUM_THREADS inherited from the
+# environment would silently reintroduce the run-to-run variation this test
+# exists to compare against, and over hundreds of steps that grows into
+# visibly different trajectories. Overridden here rather than merely
+# defaulted, so the comparison cannot be made flaky from outside.
+os.environ['OMP_NUM_THREADS'] = '1'
 
 import sys
 from pathlib import Path
@@ -62,7 +71,20 @@ import numpy as np
 from framework.disnet_manager import DisNetManager
 from framework.simulation_setup import check_cutoff_maxseg
 from framework.simulation_setup import remesh_initial_config
-from framework.testing import report, quiet_native_output, kokkos_summary
+from framework.testing import (report, report_close, verdict,
+                               quiet_native_output, kokkos_summary)
+
+# Tolerance on the paired node positions. Not zero: the two codes reach a
+# collision point by the same arithmetic but not in the same order, and the run
+# sits at 6.6159e-12, stable to five figures over repeated runs. 1e-10 is that
+# floor with roughly 15x margin, the convention used for the segment-pair
+# tables in test1_node_force.
+#
+# It is not the 1e-6 that canonical_form rounds to either. That rounding only
+# has to be coarse enough not to split two nodes that agree; it says nothing
+# about how well they agree, and leaving the tolerance there would let the
+# codes drift four orders before anything complained.
+ATOL_POS = 1.0e-10
 
 # ---------------------------------------------------------------- configuration
 
@@ -192,6 +214,8 @@ class StepRecord:
         # comparison
         self.tags_match = None
         self.same_geometry = None
+        self.max_pos_diff = None
+        self.match_one_to_one = None
         self.same_counts = None
         self.pydis_error = None
         self.pydis_traceback = None
@@ -256,6 +280,46 @@ def node_positions(data):
     """node_positions: tag -> position, from an export_data payload"""
     tags = [tuple(int(v) for v in t) for t in data['nodes']['tags']]
     return dict(zip(tags, np.asarray(data['nodes']['positions'], float)))
+
+
+def match_nodes(data_a, data_b):
+    """match_nodes: pair the two networks' nodes by position, ignoring tags
+
+    Returns (gap, one_to_one). gap is the largest distance between paired
+    nodes, taken both ways round so a node present in one network and not the
+    other cannot hide. one_to_one is False when two nodes of one network claim
+    the same partner, in which case the pairing is not an assignment and gap
+    understates the disagreement.
+
+    Keyed on position rather than on tags, because the two codes can give the
+    same physical node different tags: the run reports steps that "differ only
+    in tag allocation, same geometry", and a tag-keyed comparison would call
+    those infinitely far apart. Tag agreement is checked separately by
+    tags_match, which is the right place for it.
+
+    Nearest neighbour rather than an optimal assignment. The two are the same
+    thing while the networks nearly coincide, which is the regime this test
+    runs in, and one_to_one is what reports the case where they stop being.
+
+    Distances are minimum-image; this configuration is periodic in all three
+    directions.
+    """
+    ra = np.asarray(data_a['nodes']['positions'], float)
+    rb = np.asarray(data_b['nodes']['positions'], float)
+    if ra.shape[0] != rb.shape[0] or ra.size == 0:
+        return np.inf, False
+    h = np.asarray(data_a['cell']['h'], float)
+    d = ra[:, None, :] - rb[None, :, :]
+    s = d @ np.linalg.inv(h).T
+    s -= np.rint(s)
+    dist = np.linalg.norm(s @ h.T, axis=-1)
+
+    fwd, rev = dist.argmin(axis=1), dist.argmin(axis=0)
+    one_to_one = (len(set(fwd.tolist())) == fwd.size
+                  and len(set(rev.tolist())) == rev.size)
+    gap = max(dist[np.arange(fwd.size), fwd].max(),
+              dist[rev, np.arange(rev.size)].max())
+    return float(gap), bool(one_to_one)
 
 
 def canonical_form(data, tol=1e-6):
@@ -523,6 +587,8 @@ def make_driver(SimulateNetwork, ExaDisNet, DisNet, DisNode):
             rec.tags_match = (node_tag_set(after_pydis) == node_tag_set(after))
             rec.same_geometry = (canonical_form(after_pydis)
                                  == canonical_form(after))
+            rec.max_pos_diff, rec.match_one_to_one = match_nodes(after_pydis,
+                                                                 after)
             rec.same_counts = (rec.pydis_dn == rec.exadis_dn
                                and rec.pydis_dseg == rec.exadis_dseg)
 
@@ -557,8 +623,7 @@ def run(config='frank_read_elast', max_step=MAX_STEP, plot=False,
     # caller: this function runs inside the native-output filter, and
     # anything printed here would be swallowed with the Kokkos banner.
     use_gp, enforce_gp = glide_plane_settings(state)
-    setup = {'use_glide_planes': use_gp, 'enforce_glide_planes': enforce_gp,
-             'omp_num_threads': os.environ.get('OMP_NUM_THREADS')}
+    setup = {'use_glide_planes': use_gp, 'enforce_glide_planes': enforce_gp}
 
     # The neighbour list must be given a *pydis* Cell, not the exadis one
     # that net.cell returns here. Both expose is_periodic, but exadis' is a
@@ -867,14 +932,32 @@ def interval_split(records, agreeing):
     return counts
 
 
-def check_setup(setup):
-    """check_setup: the conditions the comparison is only meaningful under"""
+def kokkos_threads(banner):
+    """kokkos_threads: the thread pool size Kokkos reports, or None
+
+    From the thread_pool_topology[ N x T x V ] line of the startup banner,
+    whose middle number is the thread count.
+    """
+    m = re.search(r'thread_pool_topology\[\s*\d+\s*x\s*(\d+)', banner)
+    return int(m.group(1)) if m else None
+
+
+def check_setup(setup, banner):
+    """check_setup: the conditions the comparison is only meaningful under
+
+    The thread count comes from the Kokkos banner, not from OMP_NUM_THREADS.
+    This file sets that variable unconditionally, so reading it back would only
+    confirm the file agrees with itself; the banner is what Kokkos took at
+    initialize(). It also catches the assignment being moved after the pyexadis
+    import, where it would have no effect while still reading back as '1'.
+    """
     ok = report("setup: enforce_glide_planes resolves to 0",
                 setup['enforce_glide_planes'] == 0)
     ok &= report("setup: use_glide_planes resolves to 0",
                  setup['use_glide_planes'] == 0)
-    ok &= report("setup: OMP_NUM_THREADS is 1",
-                 setup['omp_num_threads'] == '1')
+    threads = kokkos_threads(banner)
+    ok &= report("setup: exadis is running on 1 thread, got %s" % threads,
+                 threads == 1)
     return bool(ok)
 
 
@@ -897,6 +980,33 @@ def check_agreement(records):
     if bad:
         label += "  [differs at %s]" % ", ".join(str(i) for i in bad)
     ok = report(label, not bad and bool(collided))
+
+    # How far apart the positions are, not just whether canonical_form called
+    # them equal. That comparison rounds to its own tol, so it cannot report a
+    # margin; a run sitting just inside the rounding would read the same as one
+    # agreeing to the last bit.
+    measured = [(r.istep, r.max_pos_diff) for r in collided
+                if r.max_pos_diff is not None]
+    if not measured:
+        return bool(report("node positions on colliding steps: nothing to "
+                           "compare", False) and ok)
+
+    # a pairing that is not one to one makes its gap a lower bound, so say so
+    degenerate = [r.istep for r in collided if r.match_one_to_one is False]
+    if degenerate:
+        ok &= report("node pairing is one to one on every colliding step "
+                     "[not at %s]"
+                     % ", ".join(str(i) for i in degenerate), False)
+
+    step, worst = max(measured, key=lambda t: t[1])
+    where = "" if worst == 0.0 else ", at step %d" % step
+    # "after one collision" because that is the whole of what is compared:
+    # _replay_pydis imports exadis' snapshot and runs the pydis rule on it
+    # once, so neither side accumulates and a step's number is that step's
+    # disagreement rather than a running total
+    ok &= report_close("node positions after one collision, worst of %d "
+                       "colliding steps%s" % (len(measured), where),
+                       np.array([worst]), np.zeros(1), ATOL_POS)
     return bool(ok)
 
 
@@ -975,13 +1085,12 @@ def main(argv=None):
     if args.diagnose:
         diagnose(records)
     print("")
-    ok = check_setup(setup)
+    ok = check_setup(setup, captured.text)
     ok &= check_invariants(records)
     ok &= check_agreement(records)
     ok &= check_tag_state_consistency(records)
     print("")
-    print("test_collision_mode_pydis_exadis: %s"
-          % ("PASSED" if ok else "FAILED"))
+    verdict("test_collision_mode_pydis_exadis", ok)
     return 0 if ok else 1
 
 
