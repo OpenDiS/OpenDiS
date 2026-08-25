@@ -21,6 +21,34 @@ so the test pins each implementation to the reference and thereby to
 the others. ExaDiS has no SBN1 quadrature variant, so the SBN1 case
 below stays pydis-only.
 
+ExaDiS' kernel and the compiled ParaDiS kernel agree bitwise once they share
+a libm. Measured 2026-08-24: against the pre-_repro reference (the one blessed
+from a plain -DSYS=mac build, git a74ccbf) ExaDiS reads exactly 0.0000e+00 on
+both tables, 160 pairs; against the current _repro reference it reads 7.0777e-11
+and 5.7650e-11, which is precisely the amount the reference moved when pydis was
+rebuilt with the portable log/atan. So the whole of the ExaDiS-versus-pydis
+difference on this kernel is those two functions, and every other operation in
+the two implementations already matches to the last bit.
+
+That means giving ExaDiS the same portable log/atan should make it agree
+*exactly* with a _repro pydis build here, not merely more closely. The
+transcendentals to redirect are all in one place:
+core/exadis/src/force_types/force_common.h, eight call sites, six log and two
+atan, inside SegSegForceIsotropic and its correction. Its local names
+(f_003v, log_Ra_Rdot_tp) are ParaDiS', which is why the bit-identity above is
+unsurprising: it is the same kernel. force_core.h has two more, in the Ecore
+default, which this test does not reach.
+
+Doing it is outside this folder, and the awkward part is that force_common.h
+lives in the ExaDiS submodule, so it is a patch-upstream-or-carry-a-local-diff
+decision rather than a build flag. Scope is CPU only, which keeps it simple:
+mac_repro and mc3_cpu_repro both set Kokkos_ENABLE_CUDA Off, so those log/atan
+calls compile as host code against libm and a host-only replacement suffices.
+
+This result covers FORCE_SEGSEG_ISO on these two tables. It says nothing about
+ExaDiS' other force models, or about a full simulation, where threading
+reintroduces variation of its own.
+
 compute_force_segseglist runs FORCE_SEGSEG_ISO over an explicit pair
 list and nothing else: no core, self, or PK term, which is what makes
 it comparable to the pydis kernels. The table becomes one network of
@@ -247,8 +275,21 @@ def main():
         print("--- table %d of %d: %s" % (n, len(tables), description))
         with quiet_native_output():
             f = exadis_forces(pairs)
+        # Exact on a bitwise-reproducible build, same as the pydis kernel and
+        # for the same reason: cmake/exadis_bitrepro redirects ExaDiS'
+        # force_common.h to the portable log/atan, and with those shared the two
+        # kernels agree to the last bit. bitrepro_math() reports the pydis
+        # library's own flag, which stands in for ExaDiS' because one CMake
+        # condition, PYDIS_BITREPRO_MATH, turns both on.
+        #
+        # Zero rather than a loose tolerance is what makes this test the guard
+        # for that redirection. It is reached by shadowing a submodule header on
+        # the include path, so it would detach silently if upstream renamed the
+        # file, moved those calls, or added an include ahead of vec.h. Held to
+        # the table's own tolerance a detached shim still passes; held to zero it
+        # fails at once.
         ok &= report_close("exadis: SegSegIso                  ",
-                           f, ref_forces, tol)
+                           f, ref_forces, 0.0 if bitrepro_math() else tol)
         print("")
     with quiet_native_output():
         pyexadis.finalize()
