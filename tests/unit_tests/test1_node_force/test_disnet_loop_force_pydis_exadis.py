@@ -39,6 +39,20 @@ below the all-pairs answer here. Hence a box of BOX_BINS*(CUTOFF +
 MAXSEG), which check_cutoff_maxseg asserts on every call.
 """
 
+import os
+# Kokkos reads this at initialize(), so it must be set before pyexadis is
+# imported, and therefore before any framework import that might pull it in.
+#
+# Assigned rather than setdefault, as in test3_remesh_rule and
+# test4_collision_mode. ExaDiS sums the segment-pair forces with a parallel
+# reduction, so the thread count changes the order the additions happen in and
+# with it the last bits of the answer: measured here, the exadis elasticity
+# residual is 1.4211e-14 on one thread and 1.9540e-14 on eight, each stable.
+# Neither is a defect, but leaving it to the machine's core count means the
+# number quietly depends on where the test runs.
+os.environ['OMP_NUM_THREADS'] = '1'
+
+import re
 import sys
 from pathlib import Path
 opendis_root = Path(__file__).resolve().parents[3]
@@ -56,7 +70,8 @@ from pydis.disnet import DisNet, Cell
 from pydis.calforce.calforce_disnet import CalForce as PyCalForce
 from framework.disnet_manager import DisNetManager
 from framework.simulation_setup import check_cutoff_maxseg
-from framework.testing import load_force_ref, report, report_close
+from framework.testing import (load_force_ref, report, report_close,
+                               quiet_native_output, kokkos_summary)
 from pydis.build_info import bitrepro_math, build_description
 from pydis.calforce.bitrepro_math import ENABLED as numpy_bitrepro_math
 
@@ -96,6 +111,25 @@ atol = 1.0e-6
 # platform libm regardless, and keeps atol for both.
 atol_lt     = 0.0 if numpy_bitrepro_math else atol
 atol_elast  = 0.0 if bitrepro_math()      else atol
+
+# ExaDiS is held to zero on the line tension and close to it on the elasticity.
+#
+# Line tension is exact. It is the core force alone, and on a _repro build
+# selfforcevec_LineTension evaluates it in ExaDiS' grouping, so the two agree to
+# the last bit against a pydis-blessed reference. Zero rather than a tolerance,
+# so that losing that grouping shows up as a failure rather than as drift.
+#
+# Elasticity cannot be exact, and the reason is not a formula or a rounding
+# choice: the pair sum is accumulated in a different *shape* by each code, per
+# node in ExaDiS against per segment then per node here, and 900 summands per
+# node re-associated differently land one to two ULP apart. Measured 1.4211e-14
+# single-threaded, with pydis 7.99e-15 and ExaDiS 1.33e-14 from the correctly
+# rounded sum, so neither is at fault. Matching it would mean adopting ExaDiS'
+# accumulation shape, which was measured and rejected: see the note on
+# OMP_NUM_THREADS above for why the thread count has to be pinned for even this
+# number to be stable. 1e-12 is the observed value with about 70x margin.
+atol_exadis_lt    = 0.0 if numpy_bitrepro_math else atol
+atol_exadis_elast = 1.0e-12
 
 
 def load_config(rn_file=RN_FILE, links_file=LINKS_FILE):
@@ -240,7 +274,8 @@ def load_ref():
     return ref['tags'], ref['force_linetension'], ref['force_elasticity']
 
 
-def compare_to_ref(label, tags, f_lt, f_elast, ref, tol_lt=atol, tol_elast=atol):
+def compare_to_ref(label, tags, f_lt, f_elast, ref, tol_lt=atol, tol_elast=atol,
+                   note_elast=None):
     """compare_to_ref: report one code's three comparisons
 
     Two tolerances, not one: line tension and elasticity are bitwise
@@ -252,6 +287,8 @@ def compare_to_ref(label, tags, f_lt, f_elast, ref, tol_lt=atol, tol_elast=atol)
     ok = report("%s: node order matches the reference" % label,
                 np.array_equal(tags, ref_tags))
     ok &= report_close("%s: line tension" % label, f_lt, ref_lt, tol_lt)
+    if note_elast:
+        print(note_elast)
     ok &= report_close("%s: elasticity " % label, f_elast, ref_elast, tol_elast)
     return bool(ok)
 
@@ -266,7 +303,36 @@ def test_pydis(ref):
 def test_exadis(ref):
     """test_exadis: the exadis forces against the same reference"""
     tags, f_lt, f_elast = forces_exadis()
-    return compare_to_ref("exadis", tags, f_lt, f_elast, ref)
+    # one line on screen; the reasoning is in the note on atol_exadis_elast
+    note = ("note: pydis cannot match exadis' summation order exactly, so the "
+            "next line is not held to zero")
+    return compare_to_ref("exadis", tags, f_lt, f_elast, ref,
+                          tol_lt=atol_exadis_lt, tol_elast=atol_exadis_elast,
+                          note_elast=note)
+
+
+def kokkos_threads(banner):
+    """kokkos_threads: the thread pool size Kokkos reports, or None
+
+    From the thread_pool_topology[ N x T x V ] line of the startup banner,
+    whose middle number is the thread count.
+    """
+    m = re.search(r'thread_pool_topology\[\s*\d+\s*x\s*(\d+)', banner)
+    return int(m.group(1)) if m else None
+
+
+def check_threads(banner):
+    """check_threads: ExaDiS really is running on the one thread it was pinned to
+
+    Read from the Kokkos banner, not from OMP_NUM_THREADS: this file sets that
+    variable unconditionally, so reading it back would only confirm the file
+    agrees with itself. The banner is what Kokkos took at initialize(), which
+    also catches the assignment being moved after the pyexadis import, where it
+    would have no effect while still reading back as '1'.
+    """
+    threads = kokkos_threads(banner)
+    return report("exadis: running on 1 thread (the pair sum's accumulation "
+                  "order depends on it), got %s" % threads, threads == 1)
 
 
 def main(write_ref_file=False):
@@ -289,7 +355,11 @@ def main(write_ref_file=False):
               "not run")
         return False
 
-    pyexadis.initialize()
+    with quiet_native_output() as buf:
+        pyexadis.initialize()
+    for line in kokkos_summary(buf.text):
+        print("exadis: %s" % line)
+    ok &= check_threads(buf.text)
     ok &= test_exadis(ref)
     pyexadis.finalize()
     return bool(ok)

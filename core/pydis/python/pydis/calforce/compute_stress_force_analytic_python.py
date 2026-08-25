@@ -1179,8 +1179,19 @@ def python_selfforce_vec(burg_list, p1_list, p2_list, mu, nu, a, Ec,
         fL = -Ec*(bs2 + be2/(1-nu))
         ft = Ec*2*bs*nu/(1-nu)
 
-        f2[i, 0] = bex*(S+ft) + fL*tx
-        f2[i, 1] = bey*(S+ft) + fL*ty
-        f2[i, 2] = bez*(S+ft) + fL*tz
+        # CHANGED, matching calforce/SelfForce.c rather than ParaDiS. ParaDiS
+        # writes bex*(S+ft) + fL*tx, adding S and ft before scaling be; ExaDiS
+        # arrives at the same algebra as (ft*be + fL*t) + S*be, by summing its
+        # core_force and self_force. The grouping below is ExaDiS', because that
+        # is what makes the two codes agree bitwise. See the long note in
+        # SelfForce.c; the two implementations must keep the same grouping or
+        # they stop agreeing with each other.
+        #
+        #   f2[i, 0] = bex*(S+ft) + fL*tx      # ParaDiS' own grouping
+        #   f2[i, 1] = bey*(S+ft) + fL*ty
+        #   f2[i, 2] = bez*(S+ft) + fL*tz
+        f2[i, 0] = (ft*bex + fL*tx) + S*bex
+        f2[i, 1] = (ft*bey + fL*ty) + S*bey
+        f2[i, 2] = (ft*bez + fL*tz) + S*bez
 
     return -f2, f2

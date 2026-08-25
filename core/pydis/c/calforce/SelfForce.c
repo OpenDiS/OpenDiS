@@ -54,9 +54,29 @@ void SelfForceIsotropic(int coreOnly, real8 MU, real8 NU,
         fL = -Ecore*(bs2 + be2/(1-NU));
         ft =  Ecore*2*bs*NU/(1-NU);
 
-        *f2x = bex*(S+ft) + fL*tx;
-        *f2y = bey*(S+ft) + fL*ty;
-        *f2z = bez*(S+ft) + fL*tz;
+        /* CHANGED, and deliberately not what ParaDiS writes.
+         *
+         * ParaDiS assembles this as
+         *
+         *     *f2x = bex*(S+ft) + fL*tx;
+         *     *f2y = bey*(S+ft) + fL*ty;
+         *     *f2z = bez*(S+ft) + fL*tz;
+         *
+         * adding S and ft before scaling be. ExaDiS reaches the same algebra by
+         * a different route: core_force returns -(ft*be + fL*t), self_force
+         * returns -(S*be), and force_lt.h adds them, which is
+         * (ft*be + fL*t) + S*be with the parenthesization below. The two differ
+         * by up to 3.7e-09 on realistic segments with a non-zero Ecore.
+         *
+         * The grouping below is used because it is what makes pydis and ExaDiS
+         * agree bitwise, which is the point of the _repro builds. It is a
+         * departure from the reference C, so it is spelled out rather than left
+         * to look like a transcription slip. Restore the three lines above to go
+         * back to ParaDiS' own rounding.
+         */
+        *f2x = (ft*bex + fL*tx) + S*bex;
+        *f2y = (ft*bey + fL*ty) + S*bey;
+        *f2z = (ft*bez + fL*tz) + S*bez;
 
         *f1x = -*f2x;
         *f1y = -*f2y;
