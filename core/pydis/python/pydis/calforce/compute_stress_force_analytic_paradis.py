@@ -206,3 +206,32 @@ def compute_segseg_force_list(
         )
 
     return f1, f2, f3, f4
+
+
+def compute_selfforce_list(burg_list, p1_list, p2_list, mu, nu, a, Ec,
+                           core_only=0):
+    """self force on each segment, through the compiled SelfForceList
+
+    ParaDiS SelfForce, one C call for the whole list rather than one per
+    segment. Returns (f1, f2), the force on each segment's first and second
+    node, f1 == -f2.
+
+    Prefer this over the numpy version in
+    compute_stress_force_analytic_python: on a _repro build its log() is the
+    portable one, so the result matches ExaDiS' kernel, which the numpy
+    version can only do by calling pydis_log itself.
+    """
+    burg = np.ascontiguousarray(burg_list, dtype=np.float64)
+    p1 = np.ascontiguousarray(p1_list, dtype=np.float64)
+    p2 = np.ascontiguousarray(p2_list, dtype=np.float64)
+    nseg = burg.shape[0]
+    fseg = np.zeros((nseg, 6), dtype=np.float64)
+
+    pydis_lib.SelfForceList(
+        int(core_only), real8(mu), real8(nu), real8(a), real8(Ec), int(nseg),
+        burg.ctypes.data_as(POINTER(real8)),
+        p1.ctypes.data_as(POINTER(real8)),
+        p2.ctypes.data_as(POINTER(real8)),
+        fseg.ctypes.data_as(POINTER(real8)))
+
+    return fseg[:, 0:3], fseg[:, 3:6]

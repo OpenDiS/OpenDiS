@@ -1127,3 +1127,60 @@ def python_segseg_force_vec(p1, p2, p3, p4, b1, b2, mu, nu, a):
     # change the order of input arguments: mu, nu, a -> a, mu, nu
     f1, f2, f3, f4 = RemoteNodeForce(p1, p2, p3, p4, b1, b2, a, mu, nu)
     return f1, f2, f3, f4
+
+
+def python_selfforce_vec(burg_list, p1_list, p2_list, mu, nu, a, Ec,
+                         core_only=0, log=None):
+    """self force on each segment, in numpy
+
+    The same expressions and the same grouping as the compiled SelfForce
+    (calforce/SelfForce.c, itself ParaDiS SelfForceIsotropic), so that a run
+    without the C library computes the same physics as one with it. Vectorized
+    over segments except for the log, which is scalar so that the log used can
+    be chosen.
+
+    log defaults to numpy's, which is the platform's. Pass pydis_lib.pydis_log
+    to match a compiled _repro build bit for bit; numpy's log is a different
+    implementation and will differ in the last place.
+
+    Returns (f1, f2), the force on each segment's first and second node.
+    Segments shorter than 1e-10 in length get zero, as ParaDiS' SelfForce
+    wrapper does.
+    """
+    burg = np.asarray(burg_list, dtype=float)
+    p1 = np.asarray(p1_list, dtype=float)
+    p2 = np.asarray(p2_list, dtype=float)
+    n = burg.shape[0]
+    f2 = np.zeros((n, 3))
+
+    d = p2 - p1
+    len2 = np.sum(d*d, axis=1)
+    live = len2 >= 1.0e-20
+
+    for i in np.nonzero(live)[0]:
+        ux, uy, uz = d[i, 0], d[i, 1], d[i, 2]
+        L = np.sqrt(ux*ux + uy*uy + uz*uz)
+        tx, ty, tz = ux/L, uy/L, uz/L
+        La = np.sqrt(L*L + a*a)
+
+        bx, by, bz = burg[i, 0], burg[i, 1], burg[i, 2]
+        bs = bx*tx + by*ty + bz*tz
+        bex, bey, bez = bx - bs*tx, by - bs*ty, bz - bs*tz
+        be2 = (bex*bex + bey*bey + bez*bez)
+        bs2 = bs*bs
+
+        if core_only:
+            S = 0.0
+        else:
+            ln = np.log((La+L)/a) if log is None else log((La+L)/a)
+            S = (-(2*nu*La+(1-nu)*a*a/La-(1+nu)*a)/L +
+                 (nu*ln-(1-nu)*0.5*L/La))*mu/4/np.pi/(1-nu)*bs
+
+        fL = -Ec*(bs2 + be2/(1-nu))
+        ft = Ec*2*bs*nu/(1-nu)
+
+        f2[i, 0] = bex*(S+ft) + fL*tx
+        f2[i, 1] = bey*(S+ft) + fL*ty
+        f2[i, 2] = bez*(S+ft) + fL*tz
+
+    return -f2, f2

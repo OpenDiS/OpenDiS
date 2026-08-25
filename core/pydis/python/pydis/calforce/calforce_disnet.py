@@ -49,12 +49,18 @@ from framework.disnet_manager import DisNetManager
 from framework.calforce_base import CalForce_Base
 
 try:
+    from .compute_stress_force_analytic_paradis import compute_selfforce_list
     from .compute_stress_force_analytic_paradis import compute_segseg_force_list, compute_segseg_force
     from .compute_stress_force_analytic_paradis import compute_segseg_force_batch
     from .compute_stress_force_analytic_paradis import compute_segseg_force_SBN1_vec, compute_segseg_force_SBN1
     from .compute_stress_force_analytic_paradis import compute_segseg_force_SBN1_SBA
     from .compute_stress_analytic_paradis       import compute_seg_stress_coord_dep, compute_seg_stress_coord_indep
 except ImportError:
+    # No compiled library: the self force falls back to its numpy twin, which
+    # computes the same expressions in the same grouping. The other kernels
+    # have no fallback wired yet.
+    from .compute_stress_force_analytic_python import (
+        python_selfforce_vec as compute_selfforce_list)
     # use python version instead
     # To do: put import commands here
     print("pydis_lib not found, using python version for force calculation")
@@ -66,6 +72,11 @@ from .bitrepro_math import (ENABLED as BITREPRO_MATH, cross3, dot3,
 try:
     from ..collision.getmindist2_paradis import GetMinDist2_paradis as GetMinDist2
 except ImportError:
+    # No compiled library: the self force falls back to its numpy twin, which
+    # computes the same expressions in the same grouping. The other kernels
+    # have no fallback wired yet.
+    from .compute_stress_force_analytic_python import (
+        python_selfforce_vec as compute_selfforce_list)
     # use python version instead
     from ..collision.getmindist2_python  import GetMinDist2_python as GetMinDist2
 
@@ -199,9 +210,20 @@ def selfforcevec_LineTension(MU, NU, Ec, segs_data, eps_L=1e-6):
         bs2 = bs*bs
         bev = burg_vecs[i] - bs*t
         be2 = dot3(bev, bev) if BITREPRO_MATH else np.sum(bev*bev)
-        Score = 2.0*NU*omninv*Ec*bs
-        LTcore = (bs2+be2*omninv)*Ec
-        fs1[i,:] = Score*bev - LTcore*t
+        if BITREPRO_MATH:
+            # ExaDiS' core_force (force_types/force_core.h), operation for
+            # operation: divide by (1-NU) at each use rather than multiplying
+            # by a precomputed reciprocal, and assemble as ft*be + fL*t. The
+            # same expression either way, rounded differently, and matching it
+            # is what takes the two codes from about 16 ulp apart to the last
+            # bit; see tests/unit_tests/test1_node_force.
+            fL = -Ec*(bs2 + be2/(1.0-NU))
+            ft = Ec*2*bs*NU/(1.0-NU)
+            fs1[i,:] = ft*bev + fL*t
+        else:
+            Score = 2.0*NU*omninv*Ec*bs
+            LTcore = (bs2+be2*omninv)*Ec
+            fs1[i,:] = Score*bev - LTcore*t
     fs0 = -fs1
     return fs0, fs1
 
@@ -210,6 +232,7 @@ class CalForce(CalForce_Base):
     """
     def __init__(self, state: dict={}, Ec: float=None, cutoff: float=None,
                  force_mode: str='Elasticity_SBA',
+                 self_force_mode: str='SelfForce',
                  use_cell_list: bool=True, batch_size: int=100000,
                  force_kernel: str='batch',
                  torch_device=None, torch_dtype=None) -> None:
@@ -222,6 +245,21 @@ class CalForce(CalForce_Base):
         # for a < 0.1, which is a property of the expression rather than an error.
         self.Ec = self.mu/4.0/np.pi*np.log(self.a/0.1) if Ec is None else Ec
         self.force_mode = force_mode
+
+        # How the elasticity modes get the i == j term and the core-energy term.
+        #
+        # 'SelfForce'   ParaDiS SelfForceIsotropic (NodeForce.c:2628), one
+        #               closed form covering both. This is also what ExaDiS
+        #               computes, as self_force plus core_force. The default.
+        # 'SegSegSelf'  the earlier pydis route: the segment-segment kernel
+        #               against the segment itself for the elastic part, with
+        #               the line-tension core term added on top. Kept as an
+        #               option so results produced with it stay reproducible.
+        #               It matches neither ParaDiS nor ExaDiS.
+        if self_force_mode not in ('SelfForce', 'SegSegSelf'):
+            raise ValueError("CalForce: unknown self_force_mode '%s', expected "
+                             "'SelfForce' or 'SegSegSelf'" % self_force_mode)
+        self.self_force_mode = self_force_mode
 
         # Two-stage segment-pair cutoff; see the module
         # docstring for the convention and why the mid-point stage is reproduced rather than
@@ -458,6 +496,44 @@ class CalForce(CalForce_Base):
         #state["segs_data_with_positions"] = segs_data_with_positions
         return state
 
+    def self_and_core_force(self, G, R1, R2, burg_vecs, segs_data, rows):
+        """self_and_core_force: the i == j term and the core-energy term
+
+        Returns (f0, f1), the contribution to each segment's two nodes, zero on
+        the segments not named in rows. Which route is taken is set by
+        self_force_mode; see __init__.
+        """
+        nseg = burg_vecs.shape[0]
+        f0 = np.zeros((nseg, 3))
+        f1 = np.zeros((nseg, 3))
+        idx = np.asarray(list(rows), dtype=int)
+        if idx.size == 0:
+            return f0, f1
+
+        if self.self_force_mode == 'SelfForce':
+            p1 = np.array([R1[i, :] for i in idx])
+            p2 = np.array([G.cell.closest_image(Rref=R1[i, :], R=R2[i, :])
+                           for i in idx])
+            a0, a1 = compute_selfforce_list(burg_vecs[idx, :], p1, p2,
+                                            self.mu, self.nu, self.a, self.Ec)
+            f0[idx] = a0
+            f1[idx] = a1
+            return f0, f1
+
+        # 'SegSegSelf': the segment against itself, then the core term on top
+        for i in idx:
+            p1 = R1[i, :].copy()
+            p2 = G.cell.closest_image(Rref=p1, R=R2[i, :].copy())
+            b12 = burg_vecs[i, :].copy()
+            g1, g2, _, _ = compute_segseg_force(p1, p2, p1, p2, b12, b12,
+                                                self.mu, self.nu, self.a)
+            f0[i] += g1
+            f1[i] += g2
+        fs0, fs1 = selfforcevec_LineTension(self.mu, self.nu, self.Ec, segs_data)
+        f0[idx] += fs0[idx]
+        f1[idx] += fs1[idx]
+        return f0, f1
+
     def OneNodeForce(self, DM: DisNetManager, state: dict, tag: Tag, update_state: bool=True) -> dict:
         """OneNodeForce: compute force calculation on one node
         """
@@ -592,24 +668,12 @@ class CalForce(CalForce_Base):
         fpk = pkforcevec(sigext, segs_data_with_positions)
         fseg = np.hstack((fpk*0.5, fpk*0.5))
 
-        # SelfForce: the i == j term, regularized by the core radius. Never
-        # cut off, matching NodeForce_Elasticity_SBA.
-        for i in arms:
-            p1 = R1[i,:].copy()
-            p2 = G.cell.closest_image(Rref=p1, R=R2[i,:].copy())
-            b12 = burg_vecs[i,:].copy()
-            f1, f2, f3, f4 = compute_segseg_force(p1, p2, p1, p2, b12, b12,
-                                                  self.mu, self.nu, self.a)
-            fseg[i, 0:3] += f1
-            fseg[i, 3:6] += f2
-
-        # Core force: the same Ecore contribution OneNodeForce_LineTension
-        # applies, added on top of the elastic self force above rather than
-        # replacing it; see NodeForce_Elasticity_SBA for the ParaDiS reference.
-        fs0, fs1 = selfforcevec_LineTension(self.mu, self.nu, self.Ec,
-                                            segs_data_with_positions)
-        fseg[arms, 0:3] += fs0[arms]
-        fseg[arms, 3:6] += fs1[arms]
+        # Self force and core force, on the arms only. Never cut off, matching
+        # NodeForce_Elasticity_SBA.
+        sf0, sf1 = self.self_and_core_force(G, R1, R2, burg_vecs,
+                                            segs_data_with_positions, arms)
+        fseg[:, 0:3] += sf0
+        fseg[:, 3:6] += sf1
 
         # ComputeForces against every other segment. select_pairs returns
         # i < j, so an arm can appear on either side of a pair and takes (f1,
@@ -791,26 +855,14 @@ class CalForce(CalForce_Base):
         for tag in G.all_nodes_tags():
             nodeforce_dict.update({tag: np.array([0.0,0.0,0.0])})
 
-        # self forces (i == j). Never cut off: ParaDiS applies SelfForce to every segment
-        # unconditionally (external/paradis/src/NodeForce.c:2688). The cell list never
-        # produces them either, since it yields only i < j.
-        for i in range(Nseg):
-            p1 = R1[i,:].copy()
-            p2 = G.cell.closest_image(Rref=p1, R=R2[i,:].copy())
-            b12 = burg_vecs[i,:].copy()
-            f1, f2, f3, f4 = compute_segseg_force(p1, p2, p1, p2, b12, b12,
-                                                  self.mu, self.nu, self.a)
-            fseg[i, 0:3] += f1
-            fseg[i, 3:6] += f2
-
-        # Core force: the same Ecore contribution NodeForce_LineTension applies,
-        # added on top of the elastic self force above rather than replacing
-        # it, matching SelfForceIsotropic(coreOnly=0) in ParaDiS
-        # (external/paradis/src/NodeForce.c:2628), which sums the two.
-        fs0, fs1 = selfforcevec_LineTension(self.mu, self.nu, self.Ec,
-                                            segs_data_with_positions)
-        fseg[:, 0:3] += fs0
-        fseg[:, 3:6] += fs1
+        # Self force and core force on every segment. Never cut off: ParaDiS
+        # applies SelfForce unconditionally (NodeForce.c:2688), and the cell
+        # list never yields i == j anyway, since it yields only i < j.
+        sf0, sf1 = self.self_and_core_force(G, R1, R2, burg_vecs,
+                                           segs_data_with_positions,
+                                           range(Nseg))
+        fseg[:, 0:3] += sf0
+        fseg[:, 3:6] += sf1
 
         # pair forces (i < j). Selection runs on the whole candidate set at once, then the
         # kernel is evaluated in bounded batches and scattered back onto the segments.

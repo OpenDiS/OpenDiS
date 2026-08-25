@@ -21,33 +21,35 @@ so the test pins each implementation to the reference and thereby to
 the others. ExaDiS has no SBN1 quadrature variant, so the SBN1 case
 below stays pydis-only.
 
-ExaDiS' kernel and the compiled ParaDiS kernel agree bitwise once they share
-a libm. Measured 2026-08-24: against the pre-_repro reference (the one blessed
-from a plain -DSYS=mac build, git a74ccbf) ExaDiS reads exactly 0.0000e+00 on
-both tables, 160 pairs; against the current _repro reference it reads 7.0777e-11
-and 5.7650e-11, which is precisely the amount the reference moved when pydis was
-rebuilt with the portable log/atan. So the whole of the ExaDiS-versus-pydis
-difference on this kernel is those two functions, and every other operation in
-the two implementations already matches to the last bit.
+On a _repro build ExaDiS agrees with pydis here to the last bit, so both are
+held to zero tolerance. How that came about is worth recording, because the
+mechanism is not obvious from either side.
 
-That means giving ExaDiS the same portable log/atan should make it agree
-*exactly* with a _repro pydis build here, not merely more closely. The
-transcendentals to redirect are all in one place:
-core/exadis/src/force_types/force_common.h, eight call sites, six log and two
-atan, inside SegSegForceIsotropic and its correction. Its local names
-(f_003v, log_Ra_Rdot_tp) are ParaDiS', which is why the bit-identity above is
-unsurprising: it is the same kernel. force_core.h has two more, in the Ecore
-default, which this test does not reach.
+The two kernels are the same code. ExaDiS' SegSegForceIsotropic
+(core/exadis/src/force_types/force_common.h) carries ParaDiS' own local names,
+f_003v and log_Ra_Rdot_tp among them, so it is a transliteration of the
+SegSegForce.c the pydis library compiles. Measured 2026-08-24, before anything
+was changed: against the pre-_repro reference, blessed from a plain -DSYS=mac
+build at git a74ccbf, ExaDiS read exactly 0.0000e+00 on both tables, 160 pairs.
+Against the _repro reference it read 7.0777e-11 and 5.7650e-11 -- precisely the
+amount those references moved when pydis was rebuilt with the portable log/atan.
+So the entire difference between the two codes on this kernel was those two
+functions, eight call sites, and nothing else.
 
-Doing it is outside this folder, and the awkward part is that force_common.h
-lives in the ExaDiS submodule, so it is a patch-upstream-or-carry-a-local-diff
-decision rather than a build flag. Scope is CPU only, which keeps it simple:
-mac_repro and mc3_cpu_repro both set Kokkos_ENABLE_CUDA Off, so those log/atan
-calls compile as host code against libm and a host-only replacement suffices.
+Giving ExaDiS the same log/atan therefore closed it exactly, from 7.0777e-11 and
+5.7650e-11 to 0.0000e+00 on both tables. cmake/exadis_bitrepro/ does it without
+editing the submodule, by shadowing force_common.h on the include path and
+reaching the real one with #include_next; that directory's header explains the
+mechanism and how it can detach silently. The zero tolerance below is what
+catches such a detachment, so it is part of the mechanism rather than a claim
+about precision.
 
-This result covers FORCE_SEGSEG_ISO on these two tables. It says nothing about
-ExaDiS' other force models, or about a full simulation, where threading
-reintroduces variation of its own.
+Two things this does not cover. force_core.h has two more log calls, in the
+Ecore default, which this test never reaches because it passes Ec explicitly.
+And the result is about FORCE_SEGSEG_ISO on these two tables: the loop-force
+test next door still shows ExaDiS a few times 1e-10 from pydis, because there
+the self and core terms come from different formulas in the two codes rather
+than from one transliterated kernel, which no shared libm can reconcile.
 
 compute_force_segseglist runs FORCE_SEGSEG_ISO over an explicit pair
 list and nothing else: no core, self, or PK term, which is what makes

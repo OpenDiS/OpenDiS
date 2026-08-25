@@ -99,6 +99,16 @@ class Table:
 # ill-conditioned there, not because any implementation is at fault; the
 # measurement is in the block comment in
 # test_segseg_force_pydis_exadis.py.
+#
+# Which comparisons still use these. On a _repro build the two kernels written
+# from ParaDiS' SegSegForce.c, pydis' compiled library and ExaDiS' SegSegIso,
+# are held to zero instead: they are the same code and, once they share a
+# log/atan, agree to the last bit. What is left on these tolerances is the
+# implementations that do not share that arithmetic, the python/numpy kernel
+# here and the torch one in test_segseg_force_torch.py, both of which reach
+# libm through their own libraries. So a change to these values now affects
+# only those, and the conditioning argument above is the reason they are two
+# orders apart.
 TABLES = [
     Table('segsep_min_2.5_max_32.5_iso_randombvecs_a0.010',
           'random geometry, 1-c^2 from 3.4e-03 to 0.95', 1e-8),

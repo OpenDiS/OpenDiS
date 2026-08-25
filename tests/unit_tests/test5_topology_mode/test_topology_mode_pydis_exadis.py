@@ -124,6 +124,34 @@ STRESS_STEP = 100
 # PYDIS_MODE default records for collision's 'Proximity' vs 'Retroactive'.
 PYDIS_MODE = 'Serial'
 
+# Which CalForce computes the trial-split force PyDiS's own Topology object
+# evaluates. 'exadis' (default) swaps in a fresh ExaDiS CalForce at Topology
+# construction instead of PyDiS's own -- the same force=<other code's
+# CalForce> interop already demonstrated in
+# examples/02_frank_read_src/test_frank_read_src_pydis_exadis.py -- so the
+# split direction is computed from identical forces on both sides. This
+# isolates PyDiS's own topology *algorithm* (split partition, direction,
+# separated_positions) from its compiled SegSegForce kernel, which
+# PYDIS_BITREPRO_MATH's portable log/atan (needed for pydis's own
+# cross-machine reproducibility, see cmake/sys.cmake.mac_repro) keeps from
+# matching ExaDiS' native-libm kernel bit-for-bit on this machine -- not a
+# formula difference (confirmed: test1_node_force's SBA and SegSegIso
+# kernels agree to 5 significant figures once both use native libm), just
+# two different math libraries.
+#
+# Measured 2026-08-24: with 'exadis', all 300 steps agree to exactly 0.0
+# except the two split steps, which land on 8.0389e-14 (~1 ULP at this run's
+# position magnitude) -- the same figure a from-scratch rebuild with native
+# libm (SYS=mac instead of mac_repro) independently produced, which is why
+# that floor is read as the split direction's final
+# vel/sqrt(dot(vel,vel)) normalization rounding differently between PyDiS's
+# numpy and ExaDiS' Kokkos/C++, not as a remaining trace of the libm
+# mismatch. 'pydis' switches the trial force back to PyDiS's own
+# Elasticity_SBA kernel -- the comparison that actually exercises PyDiS's
+# own compiled force kernel against ExaDiS', at today's floor of 3.2e-13 --
+# for whenever that comparison is the one wanted instead.
+PYDIS_FORCE_SOURCE = 'exadis'
+
 # Relative margin below which a disagreement is classified as a known tie
 # rather than a real difference. Actual measured ties (debug_topology_stage2.md
 # section 2) are ~1e-11 to 1e-13 relative; this is set several orders of
@@ -356,7 +384,7 @@ def pydis_own_margin(before_data, tag, arms_to_new_node, state):
     state_trial = dict(state)
     try:
         state_trial, node1, node2 = split_node_reusing_forces(
-            G, state_trial, tag, arms, mobility)
+            G, state_trial, tag, arms, force, mobility, params)
     except Exception:
         return None
     v1, v2 = state_trial["vel_dict"][node1], state_trial["vel_dict"][node2]
@@ -660,7 +688,8 @@ def make_driver(SimulateNetwork, ExaDisNet, DisNet, DisNode):
     return SimulateNetworkComparingTopology
 
 
-def run(max_step=MAX_STEP, plot=False, print_freq=20, pydis_mode=PYDIS_MODE):
+def run(max_step=MAX_STEP, plot=False, print_freq=20, pydis_mode=PYDIS_MODE,
+       force_source=PYDIS_FORCE_SOURCE):
     """run: the comparing simulation, returning the per-step records"""
     import pyexadis
     from pyexadis_base import ExaDisNet, SimulateNetwork, VisualizeNetwork
@@ -690,7 +719,8 @@ def run(max_step=MAX_STEP, plot=False, print_freq=20, pydis_mode=PYDIS_MODE):
 
     use_gp, enforce_gp = t4.glide_plane_settings(state)
     setup = {'use_glide_planes': use_gp, 'enforce_glide_planes': enforce_gp,
-             'omp_num_threads': os.environ.get('OMP_NUM_THREADS')}
+             'omp_num_threads': os.environ.get('OMP_NUM_THREADS'),
+             'force_source': force_source}
     # pydis' own use_glide_planes flag, read by the fix in topology_serial.py;
     # matched to whatever exadis actually resolved to rather than assumed,
     # for the same reason glide_plane_settings() itself reads back exadis'
@@ -720,12 +750,28 @@ def run(max_step=MAX_STEP, plot=False, print_freq=20, pydis_mode=PYDIS_MODE):
     # the same reason (see the comment there).
     pydis_mobility = PydisMobilityLaw(mobility_law='SimpleGlide', state=state,
                                       vmax=1.0e15)
+    # _t5_pydis_force stays PyDiS's own CalForce regardless of force_source:
+    # it is only used above for _replay_pydis's upfront whole-network
+    # NodeForce/Mobility populate, which evaluate_trial_split's
+    # recompute_segforce_for_split=True default (matching ExaDiS) never
+    # reads back from for the trial itself -- and it must stay picklable,
+    # since evaluate_trial_split deepcopies state; a pyexadis CalForce
+    # holds a non-picklable pyexadis.Params and would crash that deepcopy.
     state['_t5_pydis_force'] = pydis_force
     state['_t5_pydis_mobility'] = pydis_mobility
     state['_t5_topology_params'] = TopologyParams(state)
 
+    # force_source='exadis': PydiS's own Topology object is built with
+    # ExaDiS's CalForce instead of its own, the same force=<other code's
+    # CalForce> interop demonstrated in
+    # examples/02_frank_read_src/test_frank_read_src_pydis_exadis.py. Kept
+    # as a separate instance from the authoritative `calforce` above only
+    # because that one lives on ExaDiS's own Topology object already; using
+    # the same CalForce object for both would work too.
+    trial_force = (CalForce(force_mode='CUTOFF_MODEL', state=state, Ec=EC, cutoff=CUTOFF)
+                   if force_source == 'exadis' else pydis_force)
     pydis_topology = PydisTopology(split_mode=pydis_mode, state=state,
-                                   force=pydis_force, mobility=pydis_mobility)
+                                   force=trial_force, mobility=pydis_mobility)
 
     tag_state = t4.load_tag_state(path=TAG_STATE)
     Driver = make_driver(SimulateNetwork, ExaDisNet, DisNet, DisNode)
@@ -879,6 +925,8 @@ def diagnose(records):
 
 def check_setup(setup):
     """check_setup: the conditions the comparison is only meaningful under"""
+    print("setup: pydis Topology's trial-split force is %s's CalForce"
+         % setup['force_source'])
     ok = report("setup: OMP_NUM_THREADS is 1", setup['omp_num_threads'] == '1')
     return bool(ok)
 
@@ -970,13 +1018,18 @@ def main(argv=None):
     parser.add_argument('--pydis-mode', default=PYDIS_MODE,
                         choices=['MaxDiss', 'Serial'],
                         help='which pydis split mode to compare')
+    parser.add_argument('--pydis-force', default=PYDIS_FORCE_SOURCE,
+                        choices=['pydis', 'exadis'],
+                        help="whose CalForce computes pydis Topology's trial-split "
+                             "force; see PYDIS_FORCE_SOURCE's comment")
     args = parser.parse_args(argv)
 
     import pyexadis
     with quiet_native_output(enabled=not args.plot) as captured:
         pyexadis.initialize()
         records, setup = run(max_step=args.max_step, plot=args.plot,
-                             print_freq=args.print_freq, pydis_mode=args.pydis_mode)
+                             print_freq=args.print_freq, pydis_mode=args.pydis_mode,
+                             force_source=args.pydis_force)
     for line in kokkos_summary(captured.text):
         print("  %s" % line)
 

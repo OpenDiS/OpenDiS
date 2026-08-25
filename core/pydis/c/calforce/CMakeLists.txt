@@ -3,6 +3,7 @@ SET(SOURCES
   SegSegForce_SBN1.c
   SegSegForce_SBN1_SBA.c
   SegmentStress.c
+  SelfForce.c
   StressDueToSeg.c
   portable_math.c
 )
