@@ -37,6 +37,7 @@ from framework.simulation_setup import cell_widths
 
 from ..disnet import DisNet, DisNode
 from ..nbrlist.nbrlist import CellList
+from ..util.arm_order import insert_node_matching_exadis
 from ..util.glide_planes import PlaneSet, constrained_plane_point
 from ..util.state_access import velocities_by_tag, old_positions_by_tag
 from .swept_distance import swept_seg_seg_collision, hinge_cos_angle
@@ -298,7 +299,10 @@ class RetroactiveCollision:
         # SEGMENT_INTERP at the top of this module, which is a one-name switch.
         r2 = self.G.cell.closest_image(Rref=r1, R=self.G.nodes(tag2).R)
         pnew = self.G.cell.fold(interpolate_on_segment(r1, r2, ratio))
-        self.G.insert_node_between(tag1, tag2, new_tag, pnew)
+        # not G.insert_node_between directly: the new node's arms, and the two
+        # old nodes' arm slots, have to come out in exadis' order or a later
+        # merge breaks a near-degenerate plane tie the other way
+        insert_node_matching_exadis(self.G, tag1, tag2, new_tag, pnew)
         v = ((1.0 - ratio) * self.velocity(tag1)
              + ratio * self.velocity(tag2))
         return new_tag, v
