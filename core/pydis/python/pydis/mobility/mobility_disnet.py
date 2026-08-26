@@ -127,7 +127,14 @@ class MobilityLaw(MobilityLaw_Base):
                 # apply PBC
                 R2 = G.cell.closest_image(Rref=R1, R=R2)
                 Lsum += np.linalg.norm(R2-R1)
-            vel = f / (Lsum/2.0) * self.mob
+            # reciprocal-then-multiply, not divide-then-multiply: ExaDiS'
+            # MobilityGlide::node_velocity (mobility_types/mobility_glide.h)
+            # computes vi = P*(1.0/LtimesB * fi), and a/b is not always
+            # bit-identical to (1.0/b)*a in IEEE754. Measured directly
+            # against ExaDiS' own OneNodeMobility for
+            # test5_topology_mode's step 194: this form, not f/(Lsum/2)*mob,
+            # is what closes the gap (plan_topology_mode.md section 10).
+            vel = (1.0/(Lsum/2.0)) * f * self.mob
             normals = np.array([edge.plane_normal for edge in G.neighbor_segments_dict(tag).values()])
             #print("Mobility_SimpleGlide: tag = %s, vel = %s, normals = %s"%(tag, str(vel), str(normals)))
             vel = self.ortho_vel_glide_planes(vel, normals)

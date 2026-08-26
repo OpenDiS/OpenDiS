@@ -76,7 +76,8 @@ import numpy as np
 from framework.disnet_manager import DisNetManager
 from framework.simulation_setup import check_cutoff_maxseg
 from framework.testing import (report, quiet_native_output, kokkos_summary,
-                              max_nearest_distance, GREEN, RED, RESET)
+                              max_nearest_distance, GREEN, RED, RESET, BITWISE_TAG)
+from framework.arm_order import export_arm_order, apply_arm_order
 
 import test_collision_mode_pydis_exadis as t4
 
@@ -139,18 +140,40 @@ PYDIS_MODE = 'Serial'
 # kernels agree to 5 significant figures once both use native libm), just
 # two different math libraries.
 #
-# Measured 2026-08-24: with 'exadis', all 300 steps agree to exactly 0.0
-# except the two split steps, which land on 8.0389e-14 (~1 ULP at this run's
-# position magnitude) -- the same figure a from-scratch rebuild with native
-# libm (SYS=mac instead of mac_repro) independently produced, which is why
-# that floor is read as the split direction's final
-# vel/sqrt(dot(vel,vel)) normalization rounding differently between PyDiS's
-# numpy and ExaDiS' Kokkos/C++, not as a remaining trace of the libm
-# mismatch. 'pydis' switches the trial force back to PyDiS's own
-# Elasticity_SBA kernel -- the comparison that actually exercises PyDiS's
-# own compiled force kernel against ExaDiS', at today's floor of 3.2e-13 --
-# for whenever that comparison is the one wanted instead.
+# 'pydis' switches the trial force back to PyDiS's own Elasticity_SBA
+# kernel -- the comparison that actually exercises PyDiS's own compiled
+# force kernel against ExaDiS' -- for whenever that comparison is the one
+# wanted instead. See plan_topology_mode.md section 10 for the full
+# progression of residuals this and PYDIS_MOBILITY_SOURCE below produced;
+# not repeated here since superseding numbers would only go stale in two
+# places instead of one.
 PYDIS_FORCE_SOURCE = 'exadis'
+
+# Which MobilityLaw computes the trial-split velocity, same idea as
+# PYDIS_FORCE_SOURCE but for mobility. Needed in addition to
+# PYDIS_FORCE_SOURCE, not instead of it: sharing the force alone left a
+# ~1e-13 position residual, measured (section 10) to PyDiS's own numpy
+# NodeMobility_SimpleGlide and ExaDiS' own MobilityGlide::node_velocity
+# computing the same formula but not rounding every step of it identically
+# between numpy and Kokkos/C++ -- the same class of difference
+# PYDIS_BITREPRO_MATH exists to close for the force kernel, just not
+# something a portable-math shim reaches, since the mismatch is between
+# numpy and Kokkos/C++, not between two libm builds. 'exadis' (default)
+# wraps a fresh ExaDiS MobilityLaw in
+# pydis.mobility.exadis_backed.ExadisBackedMobility, which bridges its
+# array-convention output back to PyDiS's own state["vel_dict"] via
+# DisNet.convert_nodevel_array_to_dict -- Topology.__init__
+# (topology_disnet.py) requires mobility.__module__ to start with 'pydis',
+# stricter than the check it applies to force, which is why this needs a
+# wrapper class living under pydis/ rather than a bare ExaDiS MobilityLaw
+# the way force_source='exadis' can use one directly. Deliberately routed
+# through MobilityLaw.Mobility(), never OneNodeMobility(): the latter has a
+# confirmed upstream bug (core/exadis/python/pyexadis_base.py, `return f`
+# instead of `return v`, reported to the ExaDiS developer 2026-08-25) that
+# silently returns the input force unchanged instead of the computed
+# velocity. 'pydis' switches back to PyDiS's own MobilityLaw, for the
+# comparison that exercises PyDiS's own mobility formula against ExaDiS'.
+PYDIS_MOBILITY_SOURCE = 'exadis'
 
 # Relative margin below which a disagreement is classified as a known tie
 # rather than a real difference. Actual measured ties (debug_topology_stage2.md
@@ -162,10 +185,12 @@ TIE_REL_THRESHOLD = 1e-4
 
 # Absolute tolerance for the max nearest-node position difference between
 # pydis's replayed and exadis' authoritative network, after topology runs
-# each step. Tightened from 1e-6 once separated_positions' SPLIT_EPS nudge
-# was made additive (matching ParaDiS/ExaDiS) instead of multiplicative;
-# the worst step now measures 3.2e-13, well below this.
-POS_DIFF_TOL = 1.0e-10
+# each step. Tightened from 1e-6 to 1e-10 once separated_positions' SPLIT_EPS
+# nudge was made additive (matching ParaDiS/ExaDiS) instead of multiplicative,
+# then to 0.0 once framework.arm_order.rebase_export_data closed the last
+# arm-order-dependent residual (plan_topology_mode.md section 11): every step
+# now measures exactly 0.0000e+00.
+POS_DIFF_TOL = 0.0
 
 OUT_DIR = Path(__file__).resolve().parent / 'output'
 REF_DIR = Path(__file__).resolve().parent / 'ref_data'
@@ -627,6 +652,14 @@ def make_driver(SimulateNetwork, ExaDisNet, DisNet, DisNode):
             live_maxindex, live_recycled = self.live_tag_state(N)
             self.check_tag_state_consistency(rec, live_maxindex, live_recycled)
 
+            # exadis' own conn order, read now because Topology.Handle updates
+            # conn in place; export_data() below carries none of it. See
+            # framework.arm_order's docstring and plan_topology_mode.md
+            # section 10.3: TopologySerial builds its trial arm sets by
+            # indexing into conn order, so a PyDiS replay with a differently
+            # ordered neighbour list evaluates differently labelled trials.
+            live_arms = export_arm_order(N)
+
             # exadis, authoritative
             self.topology.Handle(N, state)
             after = N.get_disnet(ExaDisNet).export_data()
@@ -635,13 +668,15 @@ def make_driver(SimulateNetwork, ExaDisNet, DisNet, DisNode):
             rec.exadis_diff = t4.network_diff(before, after)
             rec.exadis_split = not t4.diff_is_empty(rec.exadis_diff)
 
-            self._replay_pydis(rec, before, after, state, live_maxindex, live_recycled)
+            self._replay_pydis(rec, before, after, state, live_maxindex, live_recycled,
+                               live_arms)
             self.records.append(rec)
 
             if self.remesh is not None:
                 self.remesh.Remesh(N, state)
 
-        def _replay_pydis(self, rec, before, after, state, live_maxindex, live_recycled):
+        def _replay_pydis(self, rec, before, after, state, live_maxindex, live_recycled,
+                          live_arms):
             """_replay_pydis: run the pydis topology handler on the same input
 
             A normal pydis-driven simulation populates state['nodeforce_dict']
@@ -653,8 +688,22 @@ def make_driver(SimulateNetwork, ExaDisNet, DisNet, DisNode):
             G = DisNet()
             G.import_data(before)
             self.seed_tag_state(G, live_maxindex, live_recycled)
+            # export_data() carries no connectivity, so the reimported G's
+            # arm order comes from the segment array instead of exadis' own
+            # conn history; put it back before Topology_Serial enumerates
+            # this node's arms (see live_arms above and section 10.3).
+            apply_arm_order(G, live_arms)
             DM = DisNetManager(G)
 
+            # ExadisBackedForce/ExadisBackedMobility read this to rebase
+            # their trial ExaDisNet onto before's own original segment
+            # order (framework.arm_order.rebase_export_data) instead of
+            # just placing each tag's own arms first -- see those modules'
+            # docstrings for why that closes a further ~9x of the residual.
+            # Cleared in finally: state is the one dict threaded through
+            # the whole run, and a stale snapshot here would leak into an
+            # unrelated later call.
+            state['_exadis_backed_before'] = before
             try:
                 state = state['_t5_pydis_force'].NodeForce(DM, state)
                 state = state['_t5_pydis_mobility'].Mobility(DM, state)
@@ -664,6 +713,8 @@ def make_driver(SimulateNetwork, ExaDisNet, DisNet, DisNode):
                 rec.pydis_error = "%s: %s" % (type(err).__name__, err)
                 rec.pydis_traceback = traceback.format_exc()
                 return
+            finally:
+                state.pop('_exadis_backed_before', None)
 
             rec.pydis_dn = G.num_nodes() - rec.n_nodes_before
             rec.pydis_dseg = G.num_segments() - rec.n_segs_before
@@ -689,7 +740,7 @@ def make_driver(SimulateNetwork, ExaDisNet, DisNet, DisNode):
 
 
 def run(max_step=MAX_STEP, plot=False, print_freq=20, pydis_mode=PYDIS_MODE,
-       force_source=PYDIS_FORCE_SOURCE):
+       force_source=PYDIS_FORCE_SOURCE, mobility_source=PYDIS_MOBILITY_SOURCE):
     """run: the comparing simulation, returning the per-step records"""
     import pyexadis
     from pyexadis_base import ExaDisNet, SimulateNetwork, VisualizeNetwork
@@ -698,6 +749,8 @@ def run(max_step=MAX_STEP, plot=False, print_freq=20, pydis_mode=PYDIS_MODE,
     from pydis import DisNet, DisNode
     from pydis import Topology as PydisTopology
     from pydis import CalForce as PydisCalForce, MobilityLaw as PydisMobilityLaw
+    from pydis.mobility.exadis_backed import ExadisBackedMobility
+    from pydis.calforce.exadis_backed import ExadisBackedForce
     from pydis.topology.topology_serial import TopologyParams
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -720,7 +773,7 @@ def run(max_step=MAX_STEP, plot=False, print_freq=20, pydis_mode=PYDIS_MODE,
     use_gp, enforce_gp = t4.glide_plane_settings(state)
     setup = {'use_glide_planes': use_gp, 'enforce_glide_planes': enforce_gp,
              'omp_num_threads': os.environ.get('OMP_NUM_THREADS'),
-             'force_source': force_source}
+             'force_source': force_source, 'mobility_source': mobility_source}
     # pydis' own use_glide_planes flag, read by the fix in topology_serial.py;
     # matched to whatever exadis actually resolved to rather than assumed,
     # for the same reason glide_plane_settings() itself reads back exadis'
@@ -768,10 +821,21 @@ def run(max_step=MAX_STEP, plot=False, print_freq=20, pydis_mode=PYDIS_MODE,
     # as a separate instance from the authoritative `calforce` above only
     # because that one lives on ExaDiS's own Topology object already; using
     # the same CalForce object for both would work too.
-    trial_force = (CalForce(force_mode='CUTOFF_MODEL', state=state, Ec=EC, cutoff=CUTOFF)
+    # wrapped, not passed directly: see ExadisBackedForce's own docstring
+    # for why the plain CalForce object here was not enough (arm order
+    # through the DisNetManager conversion, the same problem
+    # ExadisBackedMobility fixes for mobility below).
+    trial_force = (ExadisBackedForce(CalForce(force_mode='CUTOFF_MODEL', state=state,
+                                              Ec=EC, cutoff=CUTOFF))
                    if force_source == 'exadis' else pydis_force)
+    # mobility_source='exadis': wrapped, not passed directly, since
+    # Topology.__init__ requires mobility.__module__ to start with 'pydis'
+    # (topology_disnet.py) -- see ExadisBackedMobility's own docstring for
+    # why this is needed in addition to trial_force above, not instead of.
+    trial_mobility = (ExadisBackedMobility(MobilityLaw(mobility_law='SimpleGlide', state=state))
+                      if mobility_source == 'exadis' else pydis_mobility)
     pydis_topology = PydisTopology(split_mode=pydis_mode, state=state,
-                                   force=trial_force, mobility=pydis_mobility)
+                                   force=trial_force, mobility=trial_mobility)
 
     tag_state = t4.load_tag_state(path=TAG_STATE)
     Driver = make_driver(SimulateNetwork, ExaDisNet, DisNet, DisNode)
@@ -927,6 +991,8 @@ def check_setup(setup):
     """check_setup: the conditions the comparison is only meaningful under"""
     print("setup: pydis Topology's trial-split force is %s's CalForce"
          % setup['force_source'])
+    print("setup: pydis Topology's trial-split mobility is %s's MobilityLaw"
+         % setup['mobility_source'])
     ok = report("setup: OMP_NUM_THREADS is 1", setup['omp_num_threads'] == '1')
     return bool(ok)
 
@@ -974,7 +1040,12 @@ def check_position_agreement(records):
     print("worst step: %s (pos_diff=%.4e)" % (worst_step, worst))
     label = ("max nearest-node distance, pydis vs exadis, after topology = %.4e, "
              "tolerance = %.1e" % (worst, POS_DIFF_TOL))
-    ok = report(label, bool(diffs) and worst < POS_DIFF_TOL)
+    # <=, not <: a tolerance of exactly 0.0 demands worst == 0.0 exactly, and
+    # that boundary must still pass. Tagged the same way report_close tags a
+    # zero-tolerance comparison, for the same reason: bitwise agreement is a
+    # different, stronger claim than "within tolerance", worth calling out.
+    ok = report(label, bool(diffs) and worst <= POS_DIFF_TOL,
+               suffix=' ' + BITWISE_TAG if POS_DIFF_TOL == 0.0 else '')
     return bool(ok)
 
 
@@ -1022,6 +1093,10 @@ def main(argv=None):
                         choices=['pydis', 'exadis'],
                         help="whose CalForce computes pydis Topology's trial-split "
                              "force; see PYDIS_FORCE_SOURCE's comment")
+    parser.add_argument('--pydis-mobility', default=PYDIS_MOBILITY_SOURCE,
+                        choices=['pydis', 'exadis'],
+                        help="whose MobilityLaw computes pydis Topology's trial-split "
+                             "velocity; see PYDIS_MOBILITY_SOURCE's comment")
     args = parser.parse_args(argv)
 
     import pyexadis
@@ -1029,7 +1104,8 @@ def main(argv=None):
         pyexadis.initialize()
         records, setup = run(max_step=args.max_step, plot=args.plot,
                              print_freq=args.print_freq, pydis_mode=args.pydis_mode,
-                             force_source=args.pydis_force)
+                             force_source=args.pydis_force,
+                             mobility_source=args.pydis_mobility)
     for line in kokkos_summary(captured.text):
         print("  %s" % line)
 

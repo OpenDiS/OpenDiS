@@ -19,6 +19,7 @@ import numpy as np
 from copy import deepcopy
 
 from ..disnet import Tag
+from ..util.arm_order import split_node_matching_exadis
 from framework.disnet_manager import DisNetManager
 from .topology_ops import (build_split_list, exempt_from_collisions,
                            split_node_and_update_forces)
@@ -196,7 +197,7 @@ def split_node_reusing_forces(G, state, tag, nbrs_to_split, force, mobility,
     split decision.
     """
     pos0 = G.nodes(tag).R.copy()
-    node1, node2 = G.split_node(tag, pos0.copy(), pos0.copy(), nbrs_to_split)
+    node1, node2 = split_node_matching_exadis(G, tag, pos0.copy(), pos0.copy(), nbrs_to_split)
 
     if params.recompute_segforce_for_split:
         DM = DisNetManager(G)
@@ -256,9 +257,18 @@ def split_direction(vel1: np.ndarray, vel2: np.ndarray, epsvel: float):
         return None
     if max(vd1, vd2) <= epsvel*epsvel:
         return None
+    # Reciprocal-then-multiply, and negate as a separate last step, not
+    # -vel1/sqrt(vd1): ExaDiS' topology_serial.h normalizes as
+    # v0 = 1.0/v0mag*v0 (v0mag = v0.norm()), then, only for the winning
+    # side, vdir = -1.0*v0 -- a different instruction sequence from divide-
+    # then-negate, which is not always bit-identical in IEEE754. Matched
+    # here for the same reason NodeMobility_SimpleGlide's scaling was
+    # (plan_topology_mode.md section 10).
     if vd1 > vd2:
-        return -vel1/np.sqrt(vd1), True
-    return vel2/np.sqrt(vd2), False
+        v1mag = np.sqrt(vd1)
+        return -1.0*((1.0/v1mag)*vel1), True
+    v2mag = np.sqrt(vd2)
+    return (1.0/v2mag)*vel2, False
 
 
 def set_connecting_plane(G, tag1: Tag, tag2: Tag, dirvec: np.ndarray) -> None:

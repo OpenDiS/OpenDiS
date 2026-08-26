@@ -8,6 +8,7 @@ and can import these without importing the mode dispatch that selects it.
 import itertools
 
 from ..disnet import DisNode, Tag
+from ..util.arm_order import split_node_matching_exadis
 from framework.disnet_manager import DisNetManager
 
 
@@ -48,7 +49,7 @@ def exempt_from_collisions(state, *tags) -> None:
 def split_node_and_update_forces(G, state, tag, pos1, pos2, nbrs_to_split, force, mobility):
     """split_node_and_update_forces: split a node and refresh both new nodes' forces
     """
-    split_node1, split_node2 = G.split_node(tag, pos1, pos2, nbrs_to_split)
+    split_node1, split_node2 = split_node_matching_exadis(G, tag, pos1, pos2, nbrs_to_split)
     # calculate nodal forces and velocities for the trial split
     # To do: pass DisNetManager instead of DisNet in these static methods
     f1 = force.OneNodeForce(DisNetManager(G), state, split_node1, update_state=True)

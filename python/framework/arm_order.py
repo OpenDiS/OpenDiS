@@ -109,6 +109,182 @@ def set_node_arm_order(G, tag, nbr_tags):
         node._register_edge(edge)
 
 
+def export_data_with_arms_first(G, tags):
+    """export_data_with_arms_first: G.export_data(), reordered for ExaDiS'
+    generate_connectivity() to reproduce named tags' own arm order
+
+    The companion of export_arm_order()/apply_arm_order(), aimed the other
+    way: feeding an ExaDisNet from PyDiS, not reading one. ExaDiS'
+    generate_connectivity() (network.cpp), run inside
+    SerialDisNet::import_data() and the ExaDisNet(cell, nodes, segs)
+    constructor alike, builds each node's conn by scanning the segment
+    array once and appending a connection to both endpoints wherever they
+    occur -- so a node's rebuilt conn order is exactly the order its own
+    segments occur in that array, not any node's own view of it.
+    G.export_data()'s own segment order is the DisNet graph's global
+    edge-insertion history, which need not agree with any one node's own
+    per-node order (the same drift export_arm_order()'s docstring
+    describes, met from the export side instead of the import side).
+
+    Places each tag in tags' own arms (G.neighbors_tags(tag)'s order) at
+    the front of the segment array, processing tags in the order given and
+    each segment on its first mention, so a tag processed before its arms
+    are otherwise claimed sees generate_connectivity() reproduce its exact
+    order. A segment two named tags both claim (the connecting segment a
+    topology trial's two candidate nodes share) goes to whichever is
+    processed first; callers that need both should list the one whose
+    order matters more first, or avoid relying on that one shared slot's
+    order at all.
+
+    Only the segment array's row order changes; nodeids/burgers/planes
+    move together, and cell/nodes are untouched.
+    """
+    data = G.export_data()
+    tags_list = [tuple(int(v) for v in t) for t in data['nodes']['tags']]
+    tag_to_idx = {t: i for i, t in enumerate(tags_list)}
+    nodeids = data['segs']['nodeids']
+
+    from collections import deque
+    by_pair = {}
+    for k, (a, b) in enumerate(nodeids):
+        by_pair.setdefault(frozenset((int(a), int(b))), deque()).append(k)
+
+    order, placed = [], set()
+    for tag in tags:
+        tag_idx = tag_to_idx.get(tag)
+        if tag_idx is None:
+            continue
+        for nbr in G.neighbors_tags(tag):
+            nbr_idx = tag_to_idx.get(nbr)
+            if nbr_idx is None:
+                continue
+            q = by_pair.get(frozenset((tag_idx, nbr_idx)))
+            if not q:
+                continue
+            for _ in range(len(q)):
+                k = q.popleft()
+                if k not in placed:
+                    order.append(k)
+                    placed.add(k)
+                    break
+                q.append(k)
+    order.extend(k for k in range(len(nodeids)) if k not in placed)
+
+    data['segs'] = {key: np.asarray(val)[order] for key, val in data['segs'].items()}
+    return data
+
+
+def rebase_export_data(G, before):
+    """rebase_export_data: G.export_data(), with every segment before also
+    has kept at before's own original array row
+
+    export_data_with_arms_first fixes which of a node's own arms sees
+    generate_connectivity() first, and that turned out not to be the whole
+    story: measured directly on test5_topology_mode step 194, comparing
+    PyDiS' resulting split direction against ExaDiS' own true one (backed
+    out of its recorded final position), export_data_with_arms_first left a
+    2.16e-14 relative gap despite every node's own arm order already being
+    right. The remaining gap is the *other* nodes' arms: ExaDiS'
+    generate_connectivity() rebuilds every node's conn by a single pass
+    over the segment array, so a segment two nodes both still hold moving
+    position -- which export_data_with_arms_first's per-tag placement does
+    to segments it has not yet claimed -- also reorders whichever of those
+    two nodes was not the one being placed. A whole-network pair sum (the
+    force this feeds) sums over all of that, not just one node's arms, so
+    it is sensitive to the array's global order, not only to each node's
+    local view of it.
+
+    before is an ExaDisNet.export_data() snapshot of the network as it
+    stood before whatever produced G (a topology trial's split, here).
+    Segments unmodified by that change keep before's own row position
+    exactly; only the ones actually touched (an endpoint tag rewired to a
+    new node) are updated in place, matched to their original row by the
+    endpoint tag that did not move, restricted to candidates whose other
+    endpoint is a tag before did not have at all -- a split only ever
+    rewires an arm onto a node it just created, never onto one that already
+    existed, so that restriction is exact, unlike matching on the Burgers
+    vector alone (tried first; rejected because a crystal's segments reuse
+    a small set of glide directions, so two unrelated segments sharing a
+    node can carry the identical vector, and the wrong one matched first in
+    a direct test on step 194's real trial). This is exadis_own_margin's
+    own construction technique (test_topology_mode_pydis_exadis.py),
+    generalized: that function hand-writes the same reasoning for one
+    specific trial; this one derives it from a before/after diff so any
+    caller can use it. Segments new since before (a topology trial's
+    connecting segment, with both endpoints new) are appended at the end,
+    in G's own order, since before has no position for them to preserve.
+
+    Matching a row is not enough on its own: DisNet stores each edge with
+    a source/target that need not agree with which end before called n1,
+    so a segment picked up by tag alone can come back with its two ends
+    swapped and its Burgers vector negated to match -- physically the same
+    segment, but not the bit-identical row before had, since a sum that
+    later walks the array in n1/n2 order is not guaranteed invariant under
+    swapping both together (found directly on step 194's real trial: one
+    of the two rewired segments came back swapped, and that alone fully
+    accounted for the gap between this function's first version and
+    exadis_own_margin's hand-built construction). Every matched row is
+    therefore re-oriented to start from before's own n1 tag (or, for a
+    rewired row, whichever of its two tags before also used), negating the
+    Burgers vector to match; the plane normal is a property of the glide
+    plane, not of n1 vs n2, and is left alone. Confirmed directly against
+    exadis_own_margin's construction for step 194's real trial, after this
+    fix: bit-identical result.
+    """
+    data = G.export_data()
+    before_tags = [tuple(int(v) for v in t) for t in before['nodes']['tags']]
+    cur_tags = [tuple(int(v) for v in t) for t in data['nodes']['tags']]
+    new_tags = set(cur_tags) - set(before_tags)
+
+    before_nodeids = np.asarray(before['segs']['nodeids'])
+    cur_nodeids = np.asarray(data['segs']['nodeids'])
+
+    cur_by_pair = {}
+    for k, (a, b) in enumerate(cur_nodeids):
+        pair = frozenset((cur_tags[int(a)], cur_tags[int(b)]))
+        cur_by_pair.setdefault(pair, []).append(k)
+
+    matched = set()
+    order = []
+    flip = {}
+    for a, b in before_nodeids:
+        ta, tb = before_tags[int(a)], before_tags[int(b)]
+        j = next((c for c in cur_by_pair.get(frozenset((ta, tb)), ())
+                  if c not in matched), None)
+        if j is None:
+            # One endpoint was rewired to a new node; find the row that
+            # took its place by the endpoint that did not move, requiring
+            # the other endpoint to be a tag before had no node for at all.
+            for anchor in (ta, tb):
+                for c, (aa, bb) in enumerate(cur_nodeids):
+                    if c in matched:
+                        continue
+                    pair = (cur_tags[int(aa)], cur_tags[int(bb)])
+                    if anchor in pair and any(t in new_tags for t in pair):
+                        j = c
+                        break
+                if j is not None:
+                    break
+        if j is not None:
+            # Orient the matched row to start from before's own n1 tag
+            # (ta), or, if ta itself was the one rewired away, from tb --
+            # the endpoint before actually put first either way.
+            cj, cjb = cur_tags[int(cur_nodeids[j][0])], cur_tags[int(cur_nodeids[j][1])]
+            want_first = ta if ta in (cj, cjb) else tb
+            flip[j] = (cj != want_first)
+            order.append(j)
+            matched.add(j)
+    order.extend(k for k in range(len(cur_nodeids)) if k not in matched)
+
+    segs = {key: np.array(val)[order] for key, val in data['segs'].items()}
+    for row, j in enumerate(order):
+        if flip.get(j):
+            segs['nodeids'][row] = segs['nodeids'][row][::-1]
+            segs['burgers'][row] = -segs['burgers'][row]
+    data['segs'] = segs
+    return data
+
+
 def _exadis_net(N):
     """_exadis_net: the pyexadis network behind a manager, a wrapper, or itself
 
