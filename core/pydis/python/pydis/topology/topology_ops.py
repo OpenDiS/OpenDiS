@@ -46,6 +46,30 @@ def exempt_from_collisions(state, *tags) -> None:
         state['nodeflag_dict'][tag] |= DisNode.Flags.NO_COLLISIONS
 
 
+def ensure_node_forces(G, state, force, mobility):
+    """ensure_node_forces: fill in forces and velocities for nodes that have none
+
+    The collision handler runs before the split when collide_before_split is
+    set, and merges nodes without touching nodeforce_dict, so a multi-arm node
+    created by a collision reaches the split with no force recorded. Both split
+    modes need one to score the unsplit node.
+
+    The fill-in is network-wide rather than just the node about to be split,
+    because Mobility rebuilds every velocity from nodeforce_dict and raises on
+    any node missing from it. Nothing happens when the entries are already
+    there, so a run whose collisions never produce a multi-node is unaffected.
+    """
+    forces, vels = state["nodeforce_dict"], state.get("vel_dict", {})
+    stale = [tag for tag in G.all_nodes_tags()
+             if tag not in forces or tag not in vels]
+    if not stale:
+        return state
+    for tag in stale:
+        if tag not in forces:
+            force.OneNodeForce(DisNetManager(G), state, tag, update_state=True)
+    return mobility.Mobility(DisNetManager(G), state)
+
+
 def split_node_and_update_forces(G, state, tag, pos1, pos2, nbrs_to_split, force, mobility):
     """split_node_and_update_forces: split a node and refresh both new nodes' forces
     """

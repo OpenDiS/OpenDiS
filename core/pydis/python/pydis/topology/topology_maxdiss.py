@@ -18,7 +18,8 @@ import numpy as np
 from copy import deepcopy
 
 from ..disnet import Tag
-from .topology_ops import (build_split_list, exempt_from_collisions,
+from .topology_ops import (build_split_list, ensure_node_forces,
+                           exempt_from_collisions,
                            split_node_and_update_forces)
 
 
@@ -30,6 +31,7 @@ def Topology_MaxDiss(G, tag: Tag, state: dict, force, mobility, power_th=1e-3) -
     nbrs = list(G.neighbors_tags(tag))
     nbr_idx_list = build_split_list(n_degree)
 
+    state = ensure_node_forces(G, state, force, mobility)
     power0 = np.dot(state["nodeforce_dict"][tag], state["vel_dict"][tag])
 
     pos0 = G.nodes(tag).R

@@ -21,7 +21,8 @@ from copy import deepcopy
 from ..disnet import Tag
 from ..util.arm_order import split_node_matching_exadis
 from framework.disnet_manager import DisNetManager
-from .topology_ops import (build_split_list, exempt_from_collisions,
+from .topology_ops import (build_split_list, ensure_node_forces,
+                           exempt_from_collisions,
                            split_node_and_update_forces)
 
 # ParaDiS eps in SplitMultiNodes, used both to break the power comparison and
@@ -381,6 +382,7 @@ def Topology_Serial(G, tag: Tag, state: dict, force, mobility,
     nbr_idx_list = build_split_list(G.out_degree(tag))
 
     # the unsplit node is the baseline the trials have to beat
+    state = ensure_node_forces(G, state, force, mobility)
     power0 = np.dot(state["nodeforce_dict"][tag], state["vel_dict"][tag])
 
     best = None

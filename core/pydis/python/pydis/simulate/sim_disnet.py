@@ -69,10 +69,23 @@ class SimulateNetwork:
         """
         pass
 
+    def save_old_nodes(self, DM: DisNetManager, state: dict):
+        """save_old_nodes: record positions as they are at the start of the step
+
+        Retroactive collision compares the path swept between these and the
+        positions after integration, so without them it has nothing to test
+        against. Keyed by tag rather than by array offset, because the
+        topological operations reindex the nodes.
+        """
+        G = DM.get_disnet(DisNet)
+        state['oldpos_dict'] = {tag: G.nodes(tag).R.copy()
+                                for tag in G.all_nodes_tags()}
+        return state
+
     def step_integrate(self, DM: DisNetManager, state: dict):
         """step_integrate: invoked for time-integration at each time step
         """
-        #self.save_old_nodes(DM, state)
+        self.save_old_nodes(DM, state)
         state = self.calforce.NodeForce(DM, state)
         state = self.mobility.Mobility(DM, state)
         state = self.timeint.Update(DM, state)
