@@ -16,6 +16,7 @@ Output is written under the working directory this test is run from, not next
 to the sources.
 """
 
+import argparse
 import sys
 from pathlib import Path
 
@@ -48,18 +49,6 @@ WRITE_FREQ = MAX_STEP
 PYDIS_SCRIPT = 'test_disl_loop_pydis_elast.py'
 EXADIS_SCRIPT = 'test_disl_loop_exadis_elast.py'
 
-# how each example is invoked. --force-mode=CUTOFF_MODEL is what makes the
-# exadis run comparable; see the note at the top of this file.
-PYDIS_ARGS = ['--no-plot',
-              '--max-step', MAX_STEP,
-              '--print-freq', PRINT_FREQ,
-              '--write-freq', WRITE_FREQ]
-EXADIS_ARGS = ['--no-plot',
-               '--force-mode=CUTOFF_MODEL',
-               '--max-step', MAX_STEP,
-               '--print-freq', PRINT_FREQ,
-               '--write-freq', WRITE_FREQ]
-
 PYDIS_JSON = Path('output') / 'disl_loop_pydis_elast_final.json'
 EXADIS_JSON = Path('output') / 'disl_loop_exadis_elast_final.json'
 
@@ -74,13 +63,36 @@ REF_NPZ = (Path(__file__).resolve().parent / 'ref_data'
            / 'disl_loop_elast_ref.npz')
 
 
-def main():
+def main(plot=False):
+    # --force-mode=CUTOFF_MODEL is what makes the exadis run comparable; see
+    # the note at the top of this file. Both example scripts default to
+    # plot=True and expose --no-plot to turn it off, so plot=True here means
+    # passing neither flag rather than a --plot one.
+    common_args = (['--max-step', MAX_STEP,
+                    '--print-freq', PRINT_FREQ,
+                    '--write-freq', WRITE_FREQ]
+                   + ([] if plot else ['--no-plot']))
+    pydis_args = list(common_args)
+    exadis_args = ['--force-mode=CUTOFF_MODEL'] + common_args
+
+    # The exadis example does not pass coarsen_mode, so it gets the
+    # pyexadis_base default of 1, which pydis does not implement.
+    print("WARNING: the exadis example runs coarsen_mode=1 (node-centric), "
+          "pydis only has")
+    print("         coarsen_mode=0 (segment-centric, merge to the mid-point). "
+          "They differ by")
+    print("         half the short segment when both fire; this run just never "
+          "hits that case.")
+    print("")
+
     ok = True
 
     ok &= report("run pydis  example",
-                 run_script(examples_dir / PYDIS_SCRIPT, PYDIS_ARGS))
+                 run_script(examples_dir / PYDIS_SCRIPT, pydis_args,
+                            headless=not plot))
     ok &= report("run exadis example",
-                 run_script(examples_dir / EXADIS_SCRIPT, EXADIS_ARGS))
+                 run_script(examples_dir / EXADIS_SCRIPT, exadis_args,
+                            headless=not plot))
     if not ok:
         print("an example script failed; skipping the comparison")
         return False
@@ -115,7 +127,14 @@ def main():
 
 
 if __name__ == "__main__":
-    passed = main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--plot', dest='plot', action='store_true',
+                        help='let the two example scripts show their plots '
+                             '(off by default here, unlike running them '
+                             'directly)')
+    args = parser.parse_args()
+
+    passed = main(plot=args.plot)
     tag = '\033[32m' + 'PASSED' if passed else '\033[31m' + 'FAILED'
     print("test " + tag + '\033[0m')
     sys.exit(0 if passed else 1)
