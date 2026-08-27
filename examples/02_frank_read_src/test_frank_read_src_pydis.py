@@ -56,14 +56,15 @@ def main():
                                 state=state)
     topology  = Topology(split_mode='MaxDiss', state=state,
                          force=calforce, mobility=mobility)
-    collision = Collision(collision_mode='Proximity', state=state,
+    # Retroactive, as the exadis examples in this folder use
+    collision = Collision(collision_mode='Retroactive', state=state,
                           nbrlist=nbrlist)
     remesh    = Remesh(remesh_rule='LengthBased', state=state)
 
     sim = SimulateNetwork(calforce=calforce, mobility=mobility,
                           timeint=timeint, topology=topology,
                           collision=collision, remesh=remesh, vis=vis,
-                          state=state, max_step=200, loading_mode="stress",
+                          state=state, max_step=300, loading_mode="stress",
                           applied_stress=np.array(
                               [0.0, 0.0, 0.0, 0.0, -4.0e8, 0.0]),
                           print_freq=10, plot_freq=10, plot_pause_seconds=0.01,

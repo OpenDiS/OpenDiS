@@ -81,7 +81,7 @@ def init_frank_read_src_loop(arm_length=1.0, box_length=8.0,
 
     return DisNetManager(ExaDisNet(cell, rn, links))
 
-def main(plot=True, force_mode='DDD_FFT_MODEL', max_step=200,
+def main(plot=True, force_mode='DDD_FFT_MODEL', max_step=300,
          print_freq=10, write_freq=10):
     global net, sim, state
 
@@ -117,7 +117,7 @@ def main(plot=True, force_mode='DDD_FFT_MODEL', max_step=200,
     # CUTOFF_MODEL is the mode to use when comparing against
     # test_frank_read_src_pydis_elast.py: pydis' Elasticity_SBA applies the
     # minimum image convention (cell.closest_image) and sums no periodic images
-    # beyond that, which is what a truncated pair sum does. After 200 steps the
+    # beyond that, which is what a truncated pair sum does. At step 200 the
     # two reach a max bow-out of 447.3 and 447.1 respectively, while
     # DDD_FFT_MODEL reaches 474.0 because it adds the long-range image
     # contribution pydis omits. That is a real physical difference between the
@@ -200,7 +200,7 @@ if __name__ == "__main__":
     parser.add_argument('--force-mode', dest='force_mode', type=str,
                         default='DDD_FFT_MODEL',
                         choices=['DDD_FFT_MODEL', 'CUTOFF_MODEL'])
-    parser.add_argument('--max-step', dest='max_step', type=int, default=200)
+    parser.add_argument('--max-step', dest='max_step', type=int, default=300)
     parser.add_argument('--print-freq', dest='print_freq', type=int,
                         default=10,
                         help='steps between progress lines')

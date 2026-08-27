@@ -75,7 +75,7 @@ def init_frank_read_src_loop(arm_length=1.0, box_length=8.0,
 
     return DisNetManager(DisNet(cell=cell, rn=rn, links=links))
 
-def main(plot=True, max_step=200, print_freq=10, write_freq=10):
+def main(plot=True, max_step=300, print_freq=10, write_freq=10):
     global net, sim, state
 
     Lbox = 1000.0
@@ -174,7 +174,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--no-plot', dest='plot', action='store_false',
                         default=True)
-    parser.add_argument('--max-step', dest='max_step', type=int, default=200)
+    parser.add_argument('--max-step', dest='max_step', type=int, default=300)
     parser.add_argument('--print-freq', dest='print_freq', type=int,
                         default=10,
                         help='steps between progress lines')

@@ -77,7 +77,7 @@ def main(plot=True):
     sim = SimulateNetwork(calforce=calforce, mobility=mobility,
                           timeint=timeint, collision=collision,
                           topology=topology, remesh=remesh, vis=vis,
-                          state=state, max_step=200, loading_mode='stress',
+                          state=state, max_step=300, loading_mode='stress',
                           applied_stress=np.array(
                               [0.0, 0.0, 0.0, 0.0, -4.0e8, 0.0]),
                           print_freq=10, plot_freq=10, plot_pause_seconds=0.01,

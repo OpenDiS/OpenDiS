@@ -88,7 +88,7 @@ def main():
                                        state=state, force=pydis_calforce,
                                        mobility=exadis_mobility)
 
-    pydis_collision  = PyDiS_Collision(collision_mode='Proximity',
+    pydis_collision  = PyDiS_Collision(collision_mode='Retroactive',
                                        state=state, nbrlist=nbrlist)
     exadis_collision = ExaDiS_Collision(collision_mode='Retroactive',
                                         state=state)
@@ -106,7 +106,7 @@ def main():
                               topology=pydis_topology,
                               collision=exadis_collision,
                               remesh=exadis_remesh, vis=vis,
-                              state=state, max_step=200, loading_mode="stress",
+                              state=state, max_step=300, loading_mode="stress",
                               applied_stress=np.array(
                                   [0.0, 0.0, 0.0, 0.0, -4.0e8, 0.0]),
                               print_freq=10, plot_freq=10,
