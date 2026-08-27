@@ -18,9 +18,25 @@ from pydis import DisNode, DisNet, Cell, CellList
 from pydis import CalForce, MobilityLaw, TimeIntegration, Topology
 from pydis import Collision, Remesh, VisualizeNetwork, SimulateNetwork
 
+# Offset of the free middle node along the source line, in b. It breaks the
+# mirror symmetry of the initial configuration, which is what makes the first
+# self-collision an exact tie; see init_frank_read_src_loop. Both example
+# scripts must use the same value or the comparison is meaningless.
+#
+# The value is empirical and does not generalize. Measured first step at which
+# pydis and exadis part, and the residual there:
+#     0.0    step 260, 1.6200e+01      0.5   step 250, 7.4949e-05
+#     0.001  step 260, 2.2247e+00      2.0   step 260, 4.3081e-05
+#     0.05   step 263, 5.6169e+01      5.0   step 256, 5.1477e-05
+# 0.05 is the only value tried that carries both codes through the first two
+# collisions at round-off (9.17e-08 at step 260, 1.11e-07 at 262). That is not
+# a physical threshold, it is an overlap of each code's own round-off, so do
+# not expect it to survive a compiler, platform or code change on either side.
+MID_OFFSET = 0.05
+
 def init_frank_read_src_loop(arm_length=1.0, box_length=8.0,
                              burg_vec=np.array([1.0,0.0,0.0]),
-                             pbc=False, maxseg=None):
+                             pbc=False, maxseg=None, mid_offset=0.0):
     '''Generate an initial Frank-Read source configuration
     '''
     print("init_frank_read_src_loop: length = %f" % (arm_length))
@@ -33,6 +49,12 @@ def init_frank_read_src_loop(arm_length=1.0, box_length=8.0,
                    [0.0,  arm_length/2.0, 0.0,         PINNED],
                    [0.0,  arm_length/2.0, -arm_length, PINNED],
                    [0.0, -arm_length/2.0, -arm_length, PINNED]])
+    # mid_offset slides the free middle node along the line, breaking the
+    # mirror symmetry of the source about its own mid-plane. Without it the two
+    # halves of the expanding loop reach that plane simultaneously and the
+    # first collision is an exact tie between several equally valid segment
+    # pairs, which PyDiS and ExaDiS then resolve differently.
+    rn[1,1] += mid_offset
     rn[:,0:3] += cell.center()
 
     N = rn.shape[0]
@@ -64,7 +86,8 @@ def main(plot=True, max_step=200, print_freq=10, write_freq=10):
 
     net = init_frank_read_src_loop(box_length=Lbox,
                                    arm_length=0.125*Lbox, pbc=True,
-                                   maxseg=state["maxseg"])
+                                   maxseg=state["maxseg"],
+                                   mid_offset=MID_OFFSET)
     nbrlist = CellList(cell=net.cell, n_div=[8,8,8])
 
     if plot:
@@ -102,25 +125,31 @@ def main(plot=True, max_step=200, print_freq=10, write_freq=10):
     # mu/(4*pi)*log(a/0.1), and the two codes would no longer agree.
     calforce  = CalForce(force_mode='Elasticity_SBA', state=state,
                          Ec=0.0, cutoff=cutoff)
-    mobility  = MobilityLaw(mobility_law='SimpleGlide', state=state)
+    # vmax is raised above its 1e9 default because the companion exadis run's
+    # GLIDE mobility applies no velocity cap, as in 01_loop and
+    # 03_binary_junction. The default is not reached until the loop nears its
+    # first self-collision, where the true peak velocity is 5.6e9: pydis then
+    # clamped to 1e9 while exadis did not, so a node moved 1.0 per step
+    # instead of 5.6 and the two codes reached the collision on different
+    # steps.
+    mobility  = MobilityLaw(mobility_law='SimpleGlide', state=state,
+                            vmax=1.0e15)
     timeint   = TimeIntegration(integrator='EulerForward', dt=1.0e-8,
                                 state=state)
-    # KNOWN LIMITATION: this example only runs to step 269.
-    # Topology(split_mode='MaxDiss') calls OneNodeForce for any node with 4 or
-    # more arms, and OneNodeForce is not implemented for the Elasticity_* force
-    # modes. The bowing source stays free of such nodes until the expanding
-    # loop collides with itself; the first 4-arm node appears at step 270, and
-    # the run then stops with NotImplementedError: OneNodeForce_Elasticity_SBA
-    # not implemented yet Hence the default max_step=200 below. Topology cannot
-    # simply be disabled as a workaround: the Proximity collision handler reads
-    # the nodeflag_dict that only Topology.init_topology_exemptions creates, so
-    # topology=None fails earlier still with KeyError: 'nodeflag_dict'. To do:
-    # implement OneNodeForce_Elasticity_SBA (pydis/calforce/calforce_disnet.py)
-    # and raise max_step here. This test case should not be considered closed
-    # until then.
-    topology  = Topology(split_mode='MaxDiss', state=state,
+    # 'Serial' to match the 'TopologySerial' model the companion exadis run
+    # uses. Multi-arm nodes first appear when the expanding loop touches
+    # itself, at step 256; below that the split mode makes no difference.
+    #
+    # Topology cannot simply be disabled: the collision handler reads the
+    # nodeflag_dict that only Topology.init_topology_exemptions creates, so
+    # topology=None fails with KeyError: 'nodeflag_dict'.
+    topology  = Topology(split_mode='Serial', state=state,
                          force=calforce, mobility=mobility)
-    collision = Collision(collision_mode='Proximity', state=state,
+    # 'Retroactive' to match the companion exadis run. Nothing collides before
+    # step 256, so the choice only starts to matter past that. It matters a
+    # lot there: at step 261 Proximity leaves pydis with 4 more nodes than
+    # exadis, whereas Retroactive gives the same count.
+    collision = Collision(collision_mode='Retroactive', state=state,
                           nbrlist=nbrlist)
     remesh    = Remesh(remesh_rule='LengthBased', state=state)
 
@@ -145,7 +174,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--no-plot', dest='plot', action='store_false',
                         default=True)
-    # max_step > 269 currently fails, see the note on Topology in main()
     parser.add_argument('--max-step', dest='max_step', type=int, default=200)
     parser.add_argument('--print-freq', dest='print_freq', type=int,
                         default=10,

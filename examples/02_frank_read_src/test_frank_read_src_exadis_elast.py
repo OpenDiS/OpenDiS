@@ -21,13 +21,29 @@ try:
     from pyexadis_base import ExaDisNet, NodeConstraints
     from pyexadis_base import SimulateNetwork, VisualizeNetwork
     from pyexadis_base import CalForce, MobilityLaw, TimeIntegration
-    from pyexadis_base import Collision, Remesh
+    from pyexadis_base import Collision, Topology, Remesh
 except ImportError:
     raise ImportError('Cannot import pyexadis')
 
+# Offset of the free middle node along the source line, in b. It breaks the
+# mirror symmetry of the initial configuration, which is what makes the first
+# self-collision an exact tie; see init_frank_read_src_loop. Both example
+# scripts must use the same value or the comparison is meaningless.
+#
+# The value is empirical and does not generalize. Measured first step at which
+# pydis and exadis part, and the residual there:
+#     0.0    step 260, 1.6200e+01      0.5   step 250, 7.4949e-05
+#     0.001  step 260, 2.2247e+00      2.0   step 260, 4.3081e-05
+#     0.05   step 263, 5.6169e+01      5.0   step 256, 5.1477e-05
+# 0.05 is the only value tried that carries both codes through the first two
+# collisions at round-off (9.17e-08 at step 260, 1.11e-07 at 262). That is not
+# a physical threshold, it is an overlap of each code's own round-off, so do
+# not expect it to survive a compiler, platform or code change on either side.
+MID_OFFSET = 0.05
+
 def init_frank_read_src_loop(arm_length=1.0, box_length=8.0,
                              burg_vec=np.array([1.0,0.0,0.0]),
-                             pbc=False, maxseg=None):
+                             pbc=False, maxseg=None, mid_offset=0.0):
     '''Generate an initial Frank-Read source configuration
     '''
     print("init_frank_read_src_loop: length = %f" % (arm_length))
@@ -40,6 +56,12 @@ def init_frank_read_src_loop(arm_length=1.0, box_length=8.0,
                    [0.0,  arm_length/2.0, 0.0,         PINNED],
                    [0.0,  arm_length/2.0, -arm_length, PINNED],
                    [0.0, -arm_length/2.0, -arm_length, PINNED]])
+    # mid_offset slides the free middle node along the line, breaking the
+    # mirror symmetry of the source about its own mid-plane. Without it the two
+    # halves of the expanding loop reach that plane simultaneously and the
+    # first collision is an exact tie between several equally valid segment
+    # pairs, which PyDiS and ExaDiS then resolve differently.
+    rn[1,1] += mid_offset
     rn[:,0:3] += cell.center()
 
     N = rn.shape[0]
@@ -71,7 +93,8 @@ def main(plot=True, force_mode='DDD_FFT_MODEL', max_step=200,
 
     net = init_frank_read_src_loop(box_length=Lbox,
                                    arm_length=0.125*Lbox, pbc=True,
-                                   maxseg=state["maxseg"])
+                                   maxseg=state["maxseg"],
+                                   mid_offset=MID_OFFSET)
 
     if plot:
         try:
@@ -137,8 +160,22 @@ def main(plot=True, force_mode='DDD_FFT_MODEL', max_step=200,
     timeint   = TimeIntegration(integrator='EulerForward', dt=1.0e-8,
                                 state=state)
     collision = Collision(collision_mode='Retroactive', state=state)
-    topology  = None
-    remesh    = Remesh(remesh_rule='LengthBased', state=state)
+    # 'TopologySerial' to match the companion pydis run's split_mode='Serial'.
+    # Topology was None here while pydis could not split a multi-arm node under
+    # an Elasticity_* force mode. The expanding loop first touches itself at
+    # step 256, and from there on a run without splitting is not comparable.
+    topology  = Topology(topology_mode='TopologySerial', state=state,
+                         force=calforce, mobility=mobility)
+    # coarsen_mode=0 is the segment-centric coarsening branch: a segment
+    # shorter than minseg has its two endpoints merged to their mid-point. It
+    # is the only branch pydis implements, and the only one verified against
+    # exadis (tests/unit_tests/test3_remesh_rule, bitwise over 500 steps).
+    # pyexadis_base.Remesh defaults to coarsen_mode=1, which is node-centric
+    # instead: a two-arm node with either arm shorter than minseg is merged
+    # into its nearer neighbour, at that neighbour's own position. Leaving the
+    # default in place compares pydis against an algorithm it does not have,
+    # and the two answers differ by half the short segment.
+    remesh    = Remesh(remesh_rule='LengthBased', state=state, coarsen_mode=0)
 
     sim = SimulateNetwork(calforce=calforce, mobility=mobility,
                           timeint=timeint, collision=collision,
