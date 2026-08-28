@@ -38,5 +38,7 @@ class TimeIntegration:
     def Update_EulerForward(self, G: DisNet, vel_dict: dict, applied_stress: np.ndarray) -> None:
         """TimeIntegration_EulerForward: Euler forward time integration
         """
+        # Fold into the primary cell to reduce round-off error, as ParaDiS
+        # does (FoldBox in Util.c), also consistent with exadis
         for tag, vel in vel_dict.items():
-            G.nodes(tag).R += vel * self.dt
+            G.nodes(tag).R = G.cell.fold(G.nodes(tag).R + vel * self.dt)
