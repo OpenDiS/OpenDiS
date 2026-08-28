@@ -115,7 +115,11 @@ def main(plot=True, force_mode='DDD_FFT_MODEL', max_step=200, dt=1.0e-9,
     timeint   = TimeIntegration(integrator='EulerForward', dt=dt, state=state)
     collision = Collision(collision_mode='Retroactive', state=state)
     topology  = None
-    remesh    = Remesh(remesh_rule='LengthBased', state=state)
+    # coarsen_mode=1 is pyexadis_base.Remesh's own default, stated explicitly
+    # so that it is visible next to the matching line in
+    # test_disl_loop_pydis_elast.py: pydis defaults to 0 instead, so two
+    # implicit defaults meant the two codes ran different algorithms.
+    remesh    = Remesh(remesh_rule='LengthBased', state=state, coarsen_mode=1)
 
     sim = SimulateNetwork(calforce=calforce, mobility=mobility, timeint=timeint,
                           collision=collision, topology=topology, remesh=remesh, vis=vis,

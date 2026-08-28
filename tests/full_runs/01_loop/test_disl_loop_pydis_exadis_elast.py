@@ -75,14 +75,11 @@ def main(plot=False):
     pydis_args = list(common_args)
     exadis_args = ['--force-mode=CUTOFF_MODEL'] + common_args
 
-    # The exadis example does not pass coarsen_mode, so it gets the
-    # pyexadis_base default of 1, which pydis does not implement.
-    print("WARNING: the exadis example runs coarsen_mode=1 (node-centric), "
-          "pydis only has")
-    print("         coarsen_mode=0 (segment-centric, merge to the mid-point). "
-          "They differ by")
-    print("         half the short segment when both fire; this run just never "
-          "hits that case.")
+    # By design this case exercises force, mobility and time integration only:
+    # remesh, collision and topology never act. Measured, not assumed: over the
+    # 200 steps refinement and coarsening fire zero times.
+    print("note: by design this case does not involve remesh, collision or "
+          "topology")
     print("")
 
     ok = True

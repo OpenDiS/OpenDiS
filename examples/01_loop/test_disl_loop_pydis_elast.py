@@ -65,8 +65,15 @@ def main(plot=True, max_step=200, dt=1.0e-9, print_freq=10, write_freq=10):
     # would be ~0.4*mu), so the loop collapses and annihilates within ~15 steps. At radius
     # 100 the critical stress is ~6.5e8 Pa, which is what the applied stress below is set
     # against. The material constants mu and nu are unchanged from test_disl_loop_pydis.py.
+    # coarsen_mode=1 is the node-centric coarsening algorithm: a 2-arm node
+    # with an arm under minseg is merged into its nearer neighbour, which does
+    # not move. It is exadis' and ParaDiS' default, and is stated here rather
+    # than left implicit because pydis' own default is 0, the segment-centric
+    # algorithm. Matched by test_disl_loop_exadis_elast.py; the two defaults
+    # differ, so leaving both implicit compared two different algorithms.
     state = {"burgmag": 3e-10, "mu": 160e9, "nu": 0.31, "a": 1.0,
-             "maxseg": 60.0, "minseg": 20.0, "rann": 3.0}
+             "maxseg": 60.0, "minseg": 20.0, "rann": 3.0,
+             "coarsen_mode": 1}
 
     # Matched by test_disl_loop_exadis_elast.py so the two truncate the
     # segment-segment interaction identically. Must satisfy
