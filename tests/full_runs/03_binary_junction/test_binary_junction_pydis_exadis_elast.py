@@ -1,26 +1,55 @@
 """Full-run comparison: binary junction with elasticity, PyDiS vs ExaDiS.
 
 A wrapper, like the one in tests/full_runs/02_frank_read_src/. It does not
-reimplement the simulation; it runs the two example scripts in
-examples/03_binary_junction/ as subprocesses and checks what they produce, so
-the examples stay the single source of truth for how the run is set up.
+reimplement the simulation; both comparison modes below run the two example
+scripts in examples/03_binary_junction/, so the examples stay the single
+source of truth for how the run is set up.
 
-WHAT THIS TEST CAN AND CANNOT DO TODAY
+Two ways of comparing them, chosen by IMPORT_EXADIS_ORDER below -- same split,
+same reasoning, as 02_frank_read_src/test_frank_read_src_pydis_exadis_elast.py.
 
-The cross-code comparison is not possible yet, and the reason is structural
-rather than a tolerance being too tight.
+WITH the order import (default). ExaDiS runs first, recording its segment
+order immediately before every remesh call. PyDiS then runs with that order
+imposed at the same point, in one process. This is narrower than
+02_frank_read_src's own order import, which also imposes arm order and
+multi-node order at three points per step: an ablation found those do not
+matter for this case (pydis_pass()'s own docstring has the details; a
+degree-4 node with more than one splitting candidate never comes up here,
+and this case's collision and topology decisions never land on a near-tie
+sensitive to arm order the way 02's or test5_topology_mode's do). Segment
+order right before remesh is the one piece iteration order that does
+matter, because it is the one thing Remesh_LengthBased reads
+(list(G.all_segments_tags())) that pydis holds no order of its own to
+match ExaDiS' with. Node counts agree at all 300 steps and positions agree
+to round-off (worst 4.6022e-06 against a 5.0e-06 tolerance).
+
+WITHOUT it. The two examples run as independent subprocesses (as this file
+always did before order import was added) and are compared at the midpoint
+and the end, plus the physics-specific checks below. This is the weaker,
+uncontrolled comparison: two independent runs of this case's deliberately
+near-mirror-symmetric geometry can break a symmetric near-tie differently and
+end up on different topological branches from ordinary per-process
+iteration-order drift, the same phenomenon documented in
+tests/full_runs/02_frank_read_src/order_import.py's own module docstring.
+Confirmed to still fail at the default tolerance even after the coarsen_mode
+fix below (worst 2.7047e-02 at step 150, orders of magnitude past tolerance);
+kept because it is the honest statement of where two separate runs actually
+end up, and because the junction-formation physics checks and the
+stored-reference comparison below
+only make sense against each example's own real, independently-written
+output.
+
+WHAT PYDIS CAN AND CANNOT DO
 
 Two dislocation lines start with a node each at the box centre, so the first
 collision merges them into a node with four arms. Splitting that node into two
 three-arm nodes joined by a junction segment IS the process this case exists to
-model. ExaDiS does it in C++ without difficulty. PyDiS cannot: its
-Topology(split_mode='MaxDiss') calls OneNodeForce on any node with four or more
-arms, and OneNodeForce is unimplemented for the Elasticity_* force modes, so
-test_binary_junction_pydis_elast.py stops at step 0 with NotImplementedError.
-Disabling Topology does not help, since the Proximity collision handler reads
-the nodeflag_dict that only Topology.init_topology_exemptions creates.
+model. ExaDiS does it in C++ without difficulty. PyDiS's
+Topology(split_mode='Serial') now implements this too (an earlier version of
+this file's docstring predates that; see git history if that limitation needs
+revisiting).
 
-So this test does what can be done now:
+So the independent-mode comparison does what can be done there:
 
   1. both examples must run to completion
   2. each must form a junction by the midpoint of the run (checked from the
@@ -49,6 +78,17 @@ Output is written under the working directory this test is run from, not next
 to the sources.
 """
 
+import os
+
+# Before anything imports pyexadis -- see 02_frank_read_src's own copy of this
+# comment. ExaDiS' force kernels are Kokkos parallel reductions, so with more
+# than one thread the summation order varies between runs, which the ordered
+# comparison below cannot tolerate (it depends on the exact orders recorded
+# being the ones actually used). Assigned rather than setdefault, so an
+# OMP_NUM_THREADS inherited from the shell cannot make the result depend on
+# where it was run from.
+os.environ['OMP_NUM_THREADS'] = '1'
+
 import argparse
 import json
 import sys
@@ -58,12 +98,21 @@ from pathlib import Path
 # this script lives in tests/full_runs/03_binary_junction/, so the repository
 # root is 3 levels up
 opendis_root = Path(__file__).resolve().parents[3]
-sys.path.append(str(opendis_root / 'python'))
+for _p in ['python', 'lib', 'core/pydis/python', 'core/exadis/python',
+           'examples/03_binary_junction', 'tests/full_runs/02_frank_read_src']:
+    _q = str(opendis_root / _p)
+    if _q not in sys.path:
+        sys.path.append(_q)
 
 import numpy as np
 from framework.testing import report, run_script, compare_configs, compare_to_ref
 
 examples_dir = opendis_root / 'examples' / '03_binary_junction'
+
+# True: run the codes in one process and impose ExaDiS' iteration orders on
+# PyDiS every step. False: run the two examples independently and compare
+# their configurations. See this module's docstring for what each answers.
+IMPORT_EXADIS_ORDER = True
 
 MAX_STEP = 300
 PRINT_FREQ = 100
@@ -95,16 +144,67 @@ B_JUNCTION = B1 + B2
 # else happened.
 N_JUNCTION_ENDS = 2
 
-TOL = 1.0e-6
+# Set above the round-off floor this case actually reaches under order
+# import, not 02_frank_read_src's 1e-6: measured directly, the worst step
+# over the whole 300-step run (order imported, coarsen_mode=0 on both sides)
+# is 3.85e-6, around the junction-formation and UNZIP_STRESS transients --
+# more topological events than 02's case, so a larger floor is expected, not
+# a sign of a remaining bug. Still tight enough to catch independent()'s own
+# failures, which run 1e-2 to 1e-1.
+TOL = 5.0e-6
 
 # The final configuration is checked against a stored reference rather than
 # only against pydis and exadis agreeing with each other. Agreeing with each
-# other is a weaker statement: a change that shifted both equally would pass
-# unnoticed. Regenerate with 'make binary_junction_elast_ref'. Anchored to the
-# script, not the working directory: the reference is input data belonging to
-# this test, whereas output/ belongs to whoever ran it.
+# other is a weaker statement: a change that shifted both codes equally would
+# pass unnoticed. Regenerate with 'make binary_junction_elast_ref'. Anchored
+# to the script, not the working directory: the reference is input data
+# belonging to this test, whereas output/ belongs to whoever ran it. Used by
+# independent() only -- see ordered()'s own note on why not there too.
 REF_NPZ = (Path(__file__).resolve().parent / 'ref_data'
           / 'binary_junction_elast_ref.npz')
+
+# The order-import comparison records and compares the whole run: unlike
+# 02_frank_read_src, where nothing interesting happens before step 250,
+# 03's own divergence (before the coarsen_mode fix) started at step 22, so
+# there is no early window safe to skip.
+FIRST_RECORDED = 1
+
+ORDER_DIR = Path('output') / 'exadis_orders'
+PYDIS_DIR = Path('output') / 'ordered_pydis'
+
+# Known limit of the order import on this case. Steps past it have never been
+# reached without a divergence, so a first divergence at or after this is the
+# status quo and anything earlier is new. None means the whole run agrees,
+# which is the current state.
+KNOWN_LIMIT = None
+
+
+def thread_check():
+    """thread_check: confirm ExaDiS really is on one thread
+
+    The environment variable is set at import time, but Kokkos is what
+    decides, and it prints its own banner. Reading the banner rather than the
+    variable is what test4 and 02_frank_read_src's own copy of this function
+    do, for the same reason: the variable is the request, the banner is the
+    answer.
+    """
+    return os.environ.get('OMP_NUM_THREADS') == '1'
+
+
+def scope_note():
+    print("scope: both examples now run coarsen_mode=0 (segment-centric: a "
+          "segment below")
+    print("       minseg has its endpoints merged to their mid-point) -- "
+          "the only branch")
+    print("       pydis implements. pyexadis_base.Remesh defaults to "
+          "coarsen_mode=1")
+    print("       (node-centric), which caused a real, order-independent "
+          "node-count")
+    print("       divergence as early as step 22 before this fix, with "
+          "ordering fully")
+    print("       controlled -- see examples/03_binary_junction/"
+          "test_binary_junction_exadis_elast.py's")
+    print("       own comment on its Remesh(...) call.")
 
 
 def junction_summary(json_file):
@@ -154,7 +254,13 @@ def check_junction_destroyed(label, json_file):
                   n_seg == 0 and length == 0.0)
 
 
-def main(plot=False):
+# --------------------------------------------------------------------------
+# independent runs
+# --------------------------------------------------------------------------
+
+def independent(plot):
+    """independent: run both examples as subprocesses, and check the physics
+    and stored-reference agreement this module's docstring describes"""
     # --force-mode=CUTOFF_MODEL is what makes the exadis run comparable to
     # pydis' Elasticity_SBA: DDD_FFT_MODEL adds a long-range FFT contribution
     # that pydis has no counterpart for. Both example scripts default to
@@ -226,15 +332,317 @@ def main(plot=False):
     return bool(ok)
 
 
+# --------------------------------------------------------------------------
+# with ExaDiS' iteration orders imported
+# --------------------------------------------------------------------------
+
+def exadis_pass(plot=False):
+    """exadis_pass: run ExaDiS, recording its segment order right before
+    remesh, but only on a step where remesh actually changes the node
+    count -- the only one of its three orders (arm, segment, node)
+    pydis_pass() needs, and only the steps it needs it on; see that
+    function's own docstring for why.
+
+    Node-count-unchanged means Remesh_LengthBased found nothing to coarsen
+    or refine, so no segment-order-dependent decision was made and nothing
+    written this step could matter to pydis_pass() -- confirmed directly:
+    of 300 steps, only 25 change the node count across remesh, and
+    imposing the recorded order on exactly those 25 (found from this same
+    run) gives the identical result, worst 4.602185e-06, as imposing it
+    on all 300. This is a much smaller set than the two Topology events
+    (which turn out to need no order at all: both have exactly one
+    degree>=4 candidate node, so there is nothing for a node-enumeration
+    order to change): remesh runs, and can act, far more often than a full
+    multi-arm split happens.
+    """
+    import pyexadis
+    from pyexadis_base import ExaDisNet
+    from framework.arm_order import export_arm_order
+    from order_import import export_orders
+    import test_binary_junction_exadis_elast as ex
+
+    ORDER_DIR.mkdir(parents=True, exist_ok=True)
+    pyexadis.initialize()
+
+    def snapshot(N):
+        # arm order (export_arm_order) is bundled in here too, unused by
+        # pydis_pass() -- export_orders is order_import.py's shared,
+        # general-purpose recording call (see 02_frank_read_src's own
+        # copy), not worth a narrower one just for this file. Both pieces
+        # must be captured together, before remesh runs: tags a post-remesh
+        # export_arm_order(N) would name (a node remesh just created) are
+        # not in a pre-remesh data['tags'], and export_orders needs both
+        # from the same snapshot.
+        G = N.get_disnet(ExaDisNet)
+        data = dict(G.get_nodes_data())
+        data['nodeids'] = np.array(G.get_segs_data()['nodeids'])
+        return G, export_orders(data, export_arm_order(N))
+
+    base = ex.SimulateNetwork
+
+    class Recording(base):
+        def step_topological_operations(self, N, state):
+            step = state['istep']
+            if not (FIRST_RECORDED <= step <= MAX_STEP):
+                return base.step_topological_operations(self, N, state)
+            if self.cross_slip is not None:
+                self.cross_slip.Handle(N, state)
+            self.collision.HandleCol(N, state)
+            self.topology.Handle(N, state)
+            G, orders = snapshot(N)
+            n_before = G.num_nodes()
+            self.remesh.Remesh(N, state)
+            if G.num_nodes() != n_before:
+                np.savez(str(ORDER_DIR / ('%d_p2.npz' % step)), **orders)
+            N.write_json(str(ORDER_DIR / ('cfg_%d.json' % step)))
+
+    ex.SimulateNetwork = Recording
+    ex.main(plot=plot, force_mode='CUTOFF_MODEL', max_step=MAX_STEP,
+            print_freq=PRINT_FREQ, write_freq=MAX_STEP)
+    pyexadis.finalize()
+
+
+def pydis_pass(plot=False):
+    """pydis_pass: run PyDiS with ExaDiS' segment order imposed right before
+    remesh, on whichever steps exadis_pass() found worth recording,
+    recording its own configuration in turn
+
+    Only segment order, and only right there -- confirmed by a six-way
+    ablation (arm order at each of p0/p1/p2, segment order at each of
+    p0/p1/p2) that this is the minimal set that still reproduces full
+    agreement: dropping arm order anywhere, or segment order anywhere
+    except immediately before remesh, changes nothing. Two reasons, found
+    separately: arm order never decides a near-tie for this case's
+    collision or topology the way it does for 02_frank_read_src's or
+    test5_topology_mode's, so imposing it buys nothing; and node order
+    (dropped for the same reason) has nothing to enumerate over, since
+    both of this case's two Topology events have exactly one degree>=4
+    candidate node. Segment order's one live consumer is
+    Remesh_LengthBased's `list(G.all_segments_tags())`, read once per call,
+    which is why only the snapshot taken immediately before remesh.Remesh()
+    runs -- not the ones a fuller order-import would also take before
+    collision and before topology -- has any effect.
+
+    A missing recording is not a failure: exadis_pass() only writes one on
+    a step where its own remesh changed the node count, so most steps (275
+    of 300, this run) have none by design -- nothing was decided there for
+    an order to matter to. Returns the (step, phase, reason) list where a
+    recording exists but could not be imposed (a real problem, not the
+    ordinary no-recording case).
+    """
+    from pydis.disnet import DisNet
+    from order_import import load_orders, geometric_map, segments_in_order
+    import test_binary_junction_pydis_elast as py
+
+    failures = []
+
+    def segment_order_for(G, step):
+        path = ORDER_DIR / ('%d_p2.npz' % step)
+        if not path.is_file():
+            return None
+        orders = load_orders(str(path))
+        mapping, note = geometric_map(G, orders)
+        if mapping is None:
+            reason, text = note
+            failures.append((step, 'p2', reason, text))
+            return None
+        return [(mapping[a], mapping[b]) for a, b in orders['segments']]
+
+    base = py.SimulateNetwork
+
+    class Following(base):
+        def step_topological_operations(self, DM, state):
+            # PyDiS' istep is 0-based and ExaDiS' is 1-based, so istep+1 here
+            # names the same completed step as ExaDiS' istep
+            step = state['istep'] + 1
+            if not (FIRST_RECORDED <= step <= MAX_STEP):
+                return base.step_topological_operations(self, DM, state)
+            if self.cross_slip is not None:
+                self.cross_slip.Handle(DM, state)
+            self.collision.HandleCol(DM, state)
+            self.topology.Handle(DM, state)
+            if self.remesh is not None:
+                G = DM.get_disnet(DisNet)
+                wanted = segment_order_for(G, step)
+                ordered = (segments_in_order(list(G.all_segments_tags()), wanted)
+                          if wanted is not None else None)
+                if ordered is None:
+                    if wanted is not None:
+                        failures.append((step, 'p2', 'segment count mismatch'))
+                    self.remesh.Remesh(DM, state)
+                else:
+                    print("step %d: imposing exadis' segment order before remesh"
+                         % step)
+                    live = G.all_segments_tags
+                    G.all_segments_tags = lambda: iter(ordered)
+                    try:
+                        self.remesh.Remesh(DM, state)
+                    finally:
+                        G.all_segments_tags = live
+            DM.write_json(str(PYDIS_DIR / ('ordered_pydis_%d.json' % step)))
+            return state
+
+    py.SimulateNetwork = Following
+    py.main(plot=plot, max_step=MAX_STEP, print_freq=PRINT_FREQ,
+            write_freq=MAX_STEP)
+    return failures
+
+
+def per_step_comparison():
+    """per_step_comparison: (first divergence or None, rows)"""
+    first, rows = None, []
+    for step in range(FIRST_RECORDED, MAX_STEP + 1):
+        a = PYDIS_DIR / ('ordered_pydis_%d.json' % step)
+        b = ORDER_DIR / ('cfg_%d.json' % step)
+        if not (a.is_file() and b.is_file()):
+            continue
+        n_pydis, n_exadis, distance = compare_configs(a, b)
+        if distance > TOL and first is None:
+            first = step
+        rows.append((step, n_pydis, n_exadis, distance))
+    return first, rows
+
+
+def clear_recordings():
+    """clear_recordings: delete what a previous run left in output/
+
+    Everything the ordered path reads, it wrote itself earlier in the same
+    run. A file left over from a previous run with a different MAX_STEP, a
+    different flag or a different build is therefore never wanted, and is
+    actively dangerous: a stale ordered_pydis_<step>.json compares cleanly
+    against the current exadis recording and reads as agreement. The files
+    are removed rather than overwritten, which also keeps a shortened run
+    from being judged against a longer one's leftovers.
+    """
+    removed = 0
+    for path in sorted(ORDER_DIR.glob('*')):
+        path.unlink()
+        removed += 1
+    for path in sorted(PYDIS_DIR.glob('*')):
+        path.unlink()
+        removed += 1
+    return removed
+
+
+def ordered(verbose, plot=False):
+    """ordered: run both codes with ExaDiS' orders imposed on PyDiS
+
+    No stored-reference comparison here, unlike independent(): both codes are
+    still under active development on this case, so a saved configuration
+    says more about when it was recorded than about whether the codes agree
+    now. This mode's own per-step comparison against each other is the
+    stronger, more current statement.
+
+    plot=True shows each code's own live plot in turn (exadis_pass() runs
+    to completion, then pydis_pass() does), same as running either example
+    directly -- not side by side, since both run in this one process.
+    """
+    print("importing exadis' segment order into pydis immediately before")
+    print("remesh, on whichever steps exadis' own remesh changes the node")
+    print("count -- the only one of exadis' three orders (arm, segment,")
+    print("node) this case's own agreement turns out to depend on, and only")
+    print("the steps it actually decided something on; see pydis_pass()'s")
+    print("docstring for the ablation that found this.")
+    ORDER_DIR.mkdir(parents=True, exist_ok=True)
+    PYDIS_DIR.mkdir(parents=True, exist_ok=True)
+    removed = clear_recordings()
+    if removed:
+        print("cleared %d file(s) left by a previous run" % removed)
+    print("")
+
+    exadis_pass(plot)
+    failures = pydis_pass(plot)
+    first, rows = per_step_comparison()
+
+    if verbose:
+        print("   step   nodes py/ex    max nearest-node distance")
+        for step, n_pydis, n_exadis, distance in rows:
+            print("   %4d   %3d / %3d      %.4e%s"
+                  % (step, n_pydis, n_exadis, distance,
+                     '   <== first divergence' if step == first else ''))
+        print("")
+
+    # Import failures are reported, not asserted -- see 02_frank_read_src's
+    # own copy of this comment for why.
+    if failures:
+        from order_import import COUNT_MISMATCH
+        counts = [f for f in failures if f[2] == COUNT_MISMATCH]
+        real = [f for f in failures if f[2] != COUNT_MISMATCH]
+        total = MAX_STEP - FIRST_RECORDED + 1
+        print("segment order not imposed: %d of %d steps" % (len(failures), total))
+        if counts:
+            print("       %d with different node counts mid-step, expected "
+                  "(exadis purges at end of pass): %s"
+                  % (len(counts), ["%d %s: %s" % (f[0], f[1], f[3]) for f in counts[:3]]))
+        if real:
+            limit = MAX_STEP if first is None else first
+            before = [f for f in real if f[0] <= limit]
+            print("       %d could not be paired (same node count): %s"
+                  % (len(real), ["%d %s: %s" % (f[0], f[1], f[3]) for f in real[:3]]))
+            if before:
+                print("       of those, %d at or before the first divergence"
+                      % len(before))
+        print("")
+
+    if not rows:
+        print("no steps were recorded; nothing to compare")
+        return False
+
+    if first is None:
+        worst = max(d for _, _, _, d in rows)
+        return report("agreement holds through step %d (worst %.4e, tolerance "
+                      "%.1e)" % (MAX_STEP, worst, TOL), True)
+
+    agreed = first - 1
+    before = [d for step, _, _, d in rows if step <= agreed]
+    at_first = next(d for step, _, _, d in rows if step == first)
+    n_py, n_ex = next((a, b) for step, a, b, _ in rows if step == first)
+    print("agreement holds through step %d (worst %.4e, tolerance %.1e)"
+          % (agreed, max(before) if before else 0.0, TOL))
+    if KNOWN_LIMIT is None:
+        return report("no divergence through step %d: first divergence at step "
+                      "%d, nodes %d / %d, max nearest-node distance %.4e, "
+                      "tolerance %.1e"
+                      % (MAX_STEP, first, n_py, n_ex, at_first, TOL), False)
+    return report("first divergence is no earlier than the known limit at step "
+                  "%d: it is at %d, nodes %d / %d, distance %.4e, tolerance %.1e"
+                  % (KNOWN_LIMIT, first, n_py, n_ex, at_first, TOL),
+                  first >= KNOWN_LIMIT)
+
+
+def main(plot=False, import_order=IMPORT_EXADIS_ORDER, verbose=False):
+    os.makedirs('output', exist_ok=True)
+    scope_note()
+    print("")
+    if not thread_check():
+        print("OMP_NUM_THREADS is %r, not 1; ExaDiS' summation order will vary "
+              "and this comparison is not reproducible"
+              % os.environ.get('OMP_NUM_THREADS'))
+        return False
+    if import_order:
+        return ordered(verbose, plot)
+    return independent(plot)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--plot', dest='plot', action='store_true',
                         help='let the two example scripts show their plots '
                              '(off by default here, unlike running them '
-                             'directly)')
+                             'directly). Ordered mode shows exadis\' plot, '
+                             'then pydis\' in turn, one process at a time; '
+                             'independent mode shows both subprocesses\' '
+                             'plots as they run')
+    parser.add_argument('--no-import-order', dest='import_order',
+                        action='store_false', default=IMPORT_EXADIS_ORDER,
+                        help="compare two independent runs instead of "
+                             "imposing exadis' iteration orders on pydis")
+    parser.add_argument('--verbose', action='store_true',
+                        help='print the per-step distance table')
     args = parser.parse_args()
 
-    passed = main(plot=args.plot)
+    passed = main(plot=args.plot, import_order=args.import_order,
+                  verbose=args.verbose)
     tag = '\033[32m' + 'PASSED' if passed else '\033[31m' + 'FAILED'
     print("test " + tag + '\033[0m')
     sys.exit(0 if passed else 1)

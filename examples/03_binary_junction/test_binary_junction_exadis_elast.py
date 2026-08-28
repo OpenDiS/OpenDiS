@@ -203,7 +203,18 @@ def main(plot=True, force_mode='CUTOFF_MODEL', max_step=200, dt=1.0e-9,
     topology  = Topology(topology_mode='TopologySerial', state=state,
                          force=calforce, mobility=mobility)
     collision = Collision(collision_mode='Proximity', state=state)
-    remesh    = Remesh(remesh_rule='LengthBased', state=state)
+    # coarsen_mode=0, matching 02_frank_read_src/test_frank_read_src_exadis_elast.py's own
+    # remesh construction: it is the only coarsening branch pydis implements
+    # (segment-centric, merge to the mid-point), and pyexadis_base.Remesh's coarsen_mode=1
+    # default (node-centric) ran a genuinely different algorithm on the two sides of the
+    # comparison, not merely a different pass order. Left at the default, node counts
+    # diverged as early as step 22 (checked with ordering otherwise fully controlled, via
+    # tests/full_runs/03_binary_junction/test_binary_junction_pydis_exadis_elast.py's
+    # order-import mode), 128 steps before UNZIP_STRESS -- pydis performed two more
+    # bisections than exadis in the very step a junction node's short arms are absorbed.
+    # This closes that: node counts now agree at all 300 steps, position residual ~1e-6
+    # round-off.
+    remesh    = Remesh(remesh_rule='LengthBased', state=state, coarsen_mode=0)
 
     # First half: no applied stress. The junction forms from the mutual
     # elastic attraction of the two lines and from their line tension alone,
