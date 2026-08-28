@@ -17,6 +17,22 @@ class RemeshParams:
     def __init__(self, state: dict) -> None:
         self.maxseg = state.get("maxseg", None)
         self.minseg = state.get("minseg", None)
+        # Which coarsening algorithm, matching exadis RemeshSerial::Params.
+        #   0 (default here): segment-centric. Walk segments; merge the two
+        #     endpoints of one shorter than minseg, survivor at the mid-point.
+        #   1 (default in exadis' python wrapper and in ParaDiS): node-centric.
+        #     Walk 2-arm unconstrained nodes; merge one whose shorter arm is
+        #     under minseg into its nearer neighbour, which does not move.
+        # The two are different algorithms, not settings of one, and they
+        # coarsen different configurations. See Remesh_LengthBased.
+        #
+        # 0 is the default here only because it is what pydis implemented
+        # first, so every existing caller already expects it; exadis' own
+        # python default is 1.
+        self.coarsen_mode = state.get("coarsen_mode", 0)
+        if self.coarsen_mode not in (0, 1):
+            raise ValueError("RemeshParams: coarsen_mode must be 0 or 1, got %r"
+                             % (self.coarsen_mode,))
         # One interleaved pass over the segments (True, matches exadis) or
         # coarsening and then refinement as two passes (False, matches ParaDiS).
         # See Remesh_LengthBased: this is the pass structure, and it decides

@@ -21,4 +21,20 @@ foreach(script IN LISTS UNIT_TEST_SCRIPTS)
 endforeach()
 
 list(LENGTH UNIT_TEST_SCRIPTS n_unit_tests)
+
+# Extra invocations, for scripts that cover more than one case through an argument. The glob
+# above registers each script once, with no arguments, so anything reached only by a flag
+# needs its own entry here or ctest would cover less than the folder makefiles do.
+#
+# test3_remesh_rule compares one coarsening algorithm per run, chosen by --coarsen-mode, and
+# its default is 1. Mode 0 is a different algorithm, not a variation, so it is registered
+# separately; test3_remesh_rule/makefile runs both for the same reason.
+add_test(NAME unit.test3_remesh_rule.test_remesh_lengthbased_pydis_exadis.coarsen0
+         COMMAND ${Python3_EXECUTABLE}
+                 "${CMAKE_CURRENT_SOURCE_DIR}/test3_remesh_rule/test_remesh_lengthbased_pydis_exadis.py"
+                 --coarsen-mode 0)
+set_tests_properties(unit.test3_remesh_rule.test_remesh_lengthbased_pydis_exadis.coarsen0
+                     PROPERTIES LABELS unit)
+math(EXPR n_unit_tests "${n_unit_tests} + 1")
+
 message(STATUS "unit_tests: registered ${n_unit_tests} CTest case(s)")

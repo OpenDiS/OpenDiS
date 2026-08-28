@@ -77,7 +77,18 @@ def Remesh_LengthBased(G: DisNet, params) -> None:
 
     Lengths and merge points are read live in both shapes, at the moment each
     segment is visited. Only the candidate list is fixed in advance.
+
+    Both shapes above are coarsen_mode 0. coarsen_mode 1 is a different
+    algorithm and takes its own path: refine every over-long segment, then
+    coarsen node by node. See _coarsen_nodes.
     """
+    if getattr(params, 'coarsen_mode', 0) == 1:
+        # recycle=True: this refinement runs before any coarsening, so the
+        # tag pool holds only what earlier passes freed, which exadis reuses
+        _refine(G, params, list(G.all_segments_tags()), recycle=True)
+        _coarsen_nodes(G, params)
+        return
+
     all_segments_list = list(G.all_segments_tags())
     if getattr(params, 'interleave_coarsen_refine', True):
         _interleave(G, params, all_segments_list)
@@ -150,20 +161,27 @@ def _coarsen_segment(G: DisNet, tag1, tag2, r1, r2,
         G.nodes(survivor).R = R.copy()
 
 
-def _refine_segment(G: DisNet, tag1, tag2, r1, r2) -> None:
+def _refine_segment(G: DisNet, tag1, tag2, r1, r2, recycle=False) -> None:
     """_refine_segment: bisect one over-length segment
 
     A segment between two pinned nodes is left alone.
 
-    RULE CHANGE (LengthBased): recycle=False, so a node inserted here cannot
-    take a tag freed by coarsening. exadis frees tags only in
-    SerialDisNet::purge_network, once the whole pass is over, so a tag freed
-    during a pass is not available within it.
+    RULE CHANGE (LengthBased): recycle=False by default, so a node inserted
+    here cannot take a tag freed by coarsening earlier in the same pass. exadis
+    frees tags only in SerialDisNet::purge_network, once the whole pass is
+    over, so a tag freed during a pass is not available within it.
+
+    recycle=True is for a refinement pass that runs before any coarsening, as
+    coarsen_mode 1's does. Nothing has been freed within the pass yet there, so
+    the pool holds only tags freed by earlier passes, which exadis' split_seg
+    does draw on. Refusing them would be wrong rather than conservative:
+    measured on tests/unit_tests/test3_remesh_rule at steps 302 and 380, where
+    exadis reused a tag and pydis took maxindex+1.
     """
     if (G.nodes(tag1).constraint == DisNode.Constraints.PINNED_NODE and
             G.nodes(tag2).constraint == DisNode.Constraints.PINNED_NODE):
         return
-    G.insert_node_between(tag1, tag2, G.get_new_tag(recycle=False),
+    G.insert_node_between(tag1, tag2, G.get_new_tag(recycle=recycle),
                           (r1 + r2)/2.0)
     if not G.is_sane():
         raise ValueError("Remesh_LengthBased: sanity check failed after a bisection")
@@ -200,6 +218,71 @@ def _interleave(G: DisNet, params, all_segments_list) -> None:
             _coarsen_segment(G, tag1, tag2, r1, r2, merged_into, merged_already)
     if not G.is_sane():
         raise ValueError("Remesh_LengthBased: sanity check failed after interleave")
+
+
+def _coarsen_nodes(G: DisNet, params) -> None:
+    """_coarsen_nodes: coarsen_mode 1, node-centric coarsening
+
+    Walks 2-arm unconstrained nodes rather than segments. A node whose shorter
+    arm is under minseg is merged into its NEARER neighbour, and that neighbour
+    stays where it is. Mirrors the coarsen_mode == 1 block of exadis'
+    refine_coarsen (core/exadis/src/remesh.h), which is also the shape of
+    ParaDiS' MeshCoarsen (external/paradis/src/RemeshRule_2.c), and is exadis'
+    python-side default.
+
+    Three ways it differs from mode 0, all of them consequences of walking
+    nodes instead of segments:
+
+    - NOTHING MOVES. The survivor is placed at r0, its own position taken as
+      the image nearest the node being removed, so mode 1 only ever deletes
+      nodes. Mode 0 puts the survivor at the mid-point of the merged segment.
+    - The test is on the node, so a node needs only ONE arm under minseg to go;
+      mode 0 needs the one segment it is looking at to be under minseg.
+    - Constrained means `constraint != UNCONSTRAINED`, which also excludes
+      surface and corner nodes; mode 0's constrained_node only excludes pinned
+      ones.
+
+    Two exadis details reproduced deliberately:
+
+    - `frozen` mirrors the dead-arm side effect documented in _movable. A
+      survivor keeps a zeroed-Burgers arm to the node it absorbed until the
+      end-of-pass purge, so its arm count reads 3 and the `conn[i].num != 2`
+      test skips it for the rest of the pass.
+    - exadis also skips a candidate whose neighbour has no connections left.
+      That cannot arise here: pydis deletes an absorbed node outright, so it
+      cannot still be someone's neighbour.
+
+    Neighbour order does not matter, unlike elsewhere in this file: it only
+    decides which of l0, l1 is which, and the choice is made on the lengths.
+    Only an exact tie would depend on the order.
+    """
+    frozen = set()
+    for tag in list(G.all_nodes_tags()):
+        if not G.has_node(tag) or tag in frozen:
+            continue
+        if G.out_degree(tag) != 2:
+            continue
+        if G.nodes(tag).constraint != DisNode.Constraints.UNCONSTRAINED:
+            continue
+
+        ri = G.nodes(tag).R.copy()
+        nbrs = list(G.neighbors_tags(tag))
+        r = [G.cell.closest_image(Rref=ri, R=G.nodes(n).R.copy()) for n in nbrs]
+        length = [float(np.linalg.norm(ri_n - ri)) for ri_n in r]
+        if min(length) > params.minseg:
+            continue
+
+        near = 0 if length[0] < length[1] else 1
+        survivor, R = nbrs[near], r[near]
+        G.remove_two_arm_node(tag)
+        frozen.add(survivor)
+        # the removal can orphan the survivor and take it with it
+        if G.has_node(survivor):
+            G.nodes(survivor).R = R.copy()
+
+    if not G.is_sane():
+        raise ValueError("Remesh_LengthBased: sanity check failed after "
+                         "node-centric coarsening")
 
 
 def _coarsen(G: DisNet, params, all_segments_list) -> None:
@@ -251,7 +334,7 @@ def _coarsen(G: DisNet, params, all_segments_list) -> None:
         raise ValueError("Remesh_LengthBased: sanity check failed 1")
 
 
-def _refine(G: DisNet, params, all_segments_list) -> None:
+def _refine(G: DisNet, params, all_segments_list, recycle=False) -> None:
     """_refine: bisect segments longer than maxseg
 
     all_segments_list is the pre-coarsen snapshot from Remesh_LengthBased,
@@ -267,7 +350,7 @@ def _refine(G: DisNet, params, all_segments_list) -> None:
             continue
         tag1, tag2, r1, r2, length = live
         if length > params.maxseg:
-            _refine_segment(G, tag1, tag2, r1, r2)
+            _refine_segment(G, tag1, tag2, r1, r2, recycle=recycle)
 
     if not G.is_sane():
         raise ValueError("Remesh_LengthBased: sanity check failed 2")

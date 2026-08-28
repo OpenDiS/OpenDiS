@@ -9,7 +9,12 @@ The run is two-phase: under load the loop only expands and only refinement
 fires, so a second phase at zero stress lets it contract and exercises
 coarsening.
 
-Parity is claimed for coarsen_mode=0 and enforce_glide_planes=0 only.
+Both coarsening algorithms are covered, selected by --coarsen-mode: 0
+segment-centric, 1 node-centric (the default here, and exadis' and ParaDiS'
+own default). Whichever is chosen is passed to both codes from one place, so
+the two are never compared across different algorithms. `make` runs both.
+
+Parity is claimed for enforce_glide_planes=0 only.
 """
 
 import os
@@ -154,7 +159,7 @@ def check_scope(state):
                   and not state.get("use_glide_planes", 0))
 
 
-def build_sim(state, cutoff, exadis_rule, pydis_rule, plot):
+def build_sim(state, cutoff, exadis_rule, pydis_rule, plot, coarsen_mode):
     """build_sim: the comparing driver, wired up
 
     Built here rather than at module scope so importing this file does not
@@ -236,8 +241,11 @@ def build_sim(state, cutoff, exadis_rule, pydis_rule, plot):
     # Ec=0.0 matches pydis Elasticity_SBA, which has no core-energy term.
     # CUTOFF_MODEL is the mode pydis can match: both truncate the pair sum at
     # the minimum image.
-    # coarsen_mode=0 is the segment-centric branch, the one pydis implements;
-    # the python wrapper defaults it to 1, so it has to be passed.
+    # coarsen_mode is passed to both sides from one place, so the two cannot be
+    # compared across different coarsening algorithms. It has to be passed
+    # explicitly either way: exadis' python wrapper defaults it to 1 and pydis
+    # defaults it to 0. pydis reads it from state.
+    state["coarsen_mode"] = coarsen_mode
     return RemeshCompare(
         state=state,
         calforce=CalForce(force_mode='CUTOFF_MODEL', state=state, Ec=0.0,
@@ -248,7 +256,7 @@ def build_sim(state, cutoff, exadis_rule, pydis_rule, plot):
         collision=Collision(collision_mode='Retroactive', state=state),
         topology=None,
         remesh=ExaDiS_Remesh(remesh_rule=exadis_rule, state=state,
-                             coarsen_mode=0),
+                             coarsen_mode=coarsen_mode),
         pydis_remesh=PyDiS_Remesh(state=state, remesh_rule=pydis_rule),
         vis=VisualizeNetwork() if plot else None,
         max_step=MAX_STEP, loading_mode='stress', applied_stress=STRESS,
@@ -318,7 +326,7 @@ def summarise(record):
 
 
 def main(config='frank_read', max_step=MAX_STEP, exadis_rule='LengthBased',
-         pydis_rule='LengthBased', plot=False):
+         pydis_rule='LengthBased', plot=False, coarsen_mode=1):
     try:
         import pyexadis
     except ImportError:
@@ -331,15 +339,25 @@ def main(config='frank_read', max_step=MAX_STEP, exadis_rule='LengthBased',
         print("exadis: %s" % line)
 
     net, state, cutoff = CONFIGS[config]()
+    # named up front, not just in the banner below: the two coarsening modes are
+    # different algorithms, so which one ran is the first thing to know when
+    # reading a result, passing or failing
+    print("setup: coarsen_mode = %d (%s), passed to both codes"
+          % (coarsen_mode,
+             'node-centric, the exadis and ParaDiS default'
+             if coarsen_mode == 1 else 'segment-centric'))
     # both are setup checks, so && them rather than gating one on the other:
     # a wrong thread count and a wrong glide-plane scope should both be named
     passed = check_threads(buf.text)
     passed = check_scope(state) and passed
     if passed:
-        sim = build_sim(state, cutoff, exadis_rule, pydis_rule, plot)
+        sim = build_sim(state, cutoff, exadis_rule, pydis_rule, plot,
+                        coarsen_mode)
         sim.max_step = max_step
-        print("comparing '%s' remesh, exadis '%s' against pydis '%s'"
-              % (config, exadis_rule, pydis_rule))
+        print("comparing '%s' remesh, exadis '%s' against pydis '%s', "
+              "coarsen_mode=%d (%s)"
+              % (config, exadis_rule, pydis_rule, coarsen_mode,
+                 'node-centric' if coarsen_mode == 1 else 'segment-centric'))
 
         print("phase 'load': %d steps under applied stress" % max_step)
         sim.run(net, state)
@@ -370,6 +388,11 @@ if __name__ == "__main__":
                         choices=sorted(CONFIGS))
     parser.add_argument('--pydis-rule', dest='pydis_rule',
                         default='LengthBased')
+    parser.add_argument('--coarsen-mode', dest='coarsen_mode', type=int,
+                        default=1, choices=[0, 1],
+                        help='coarsening algorithm, passed to both codes: 0 '
+                             'segment-centric, 1 node-centric (the exadis and '
+                             'ParaDiS default)')
     parser.add_argument('--plot', dest='plot', action='store_true',
                         default=False,
                         help='show the network while it runs; off by '
@@ -377,7 +400,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     passed = main(config=args.config, max_step=args.max_step,
-                  pydis_rule=args.pydis_rule, plot=args.plot)
+                  pydis_rule=args.pydis_rule, plot=args.plot,
+                  coarsen_mode=args.coarsen_mode)
     tag = '\033[32m' + 'PASSED' if passed else '\033[31m' + 'FAILED'
     print("test " + tag + '\033[0m')
     sys.exit(0 if passed else 1)
