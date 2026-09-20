@@ -267,6 +267,14 @@ class RetroactiveCollision:
         if not self.G.has_segment(tag1, tag2):
             return None, None
 
+        # Work in the stored direction, whichever way round the caller named
+        # the segment: the hinge pass names it (hinge, far node), while exadis
+        # reaches segments by index, so its close2node1 test and its split
+        # ordering both follow the stored one. See DisNet.segment_as_stored.
+        s1, s2 = self.G.segment_as_stored(tag1, tag2)
+        if (s1, s2) != (tag1, tag2):
+            tag1, tag2, ratio = s1, s2, 1.0 - ratio
+
         r1 = self.G.nodes(tag1).R
         vec = self.G.seg_vector(tag1, tag2)
         length2 = float(_dot(vec, vec))

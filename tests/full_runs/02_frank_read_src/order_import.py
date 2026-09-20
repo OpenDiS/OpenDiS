@@ -29,7 +29,6 @@ happens WITHIN a pass, because ExaDiS permutes its own arrays as it goes.
 
 import numpy as np
 
-from framework.arm_order import apply_arm_order
 
 BOX = 1000.0
 
@@ -143,14 +142,27 @@ def apply_orders(G, orders):
     could not be built; see geometric_map for what note carries. segment_order
     is a list of PyDiS tag pairs in ExaDiS' segment order, and node_rank is
     {PyDiS tag: ExaDiS node index}; both are for the callers that consult them,
-    since PyDiS holds no such order of its own to overwrite. The arm order is
-    applied here, in place, because a PyDiS node does hold one.
+    since PyDiS holds no such order of its own to overwrite.
+
+    Arm order is NOT imposed. It was, and dropping it changes nothing here: the
+    two codes' arm orders genuinely differ, at 82 of 118 nodes, and both
+    coarsening branches still agree through step 300 (coarsen_mode 0
+    bit-identically). Arm order reaches a result only through the summation
+    order of a node's arms and through glide-plane tie-breaks, and nothing on
+    this trajectory turns on either. It is load-bearing elsewhere, in
+    tests/unit_tests/test2_topol_op and test5_topology_mode, which is why
+    export_orders still records it.
+
+    Segment directions are NOT imposed, and do not need to be: PyDiS stores
+    every segment the way ExaDiS does, its merge, split and coarsening
+    operations putting the surviving or new node into the endpoint slot the node
+    it replaces held. Verified over all 300 steps of this case, both coarsening
+    branches. See DisNet.segment_as_stored for why it matters; imposing the
+    direction here instead would hide a regression in it.
     """
     mapping, note = geometric_map(G, orders)
     if mapping is None:
         return None, None, note
-    apply_arm_order(G, {mapping[t]: [mapping[n] for n in neighbours]
-                        for t, neighbours in orders['arms'].items()})
     segment_order = [(mapping[a], mapping[b]) for a, b in orders['segments']]
     node_rank = {mapping[t]: i for i, t in enumerate(orders['tags'])}
     return segment_order, node_rank, note

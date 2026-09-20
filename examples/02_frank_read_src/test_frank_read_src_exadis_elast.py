@@ -81,7 +81,7 @@ def init_frank_read_src_loop(arm_length=1.0, box_length=8.0,
 
     return DisNetManager(ExaDisNet(cell, rn, links))
 
-def main(plot=True, force_mode='DDD_FFT_MODEL', max_step=300,
+def main(plot=True, force_mode='DDD_FFT_MODEL', max_step=300, coarsen_mode=1,
          print_freq=10, write_freq=10):
     global net, sim, state
 
@@ -166,16 +166,17 @@ def main(plot=True, force_mode='DDD_FFT_MODEL', max_step=300,
     # step 256, and from there on a run without splitting is not comparable.
     topology  = Topology(topology_mode='TopologySerial', state=state,
                          force=calforce, mobility=mobility)
-    # coarsen_mode=0 is the segment-centric coarsening branch: a segment
-    # shorter than minseg has its two endpoints merged to their mid-point. It
-    # is the only branch pydis implements, and the only one verified against
-    # exadis (tests/unit_tests/test3_remesh_rule, bitwise over 500 steps).
-    # pyexadis_base.Remesh defaults to coarsen_mode=1, which is node-centric
-    # instead: a two-arm node with either arm shorter than minseg is merged
-    # into its nearer neighbour, at that neighbour's own position. Leaving the
-    # default in place compares pydis against an algorithm it does not have,
-    # and the two answers differ by half the short segment.
-    remesh    = Remesh(remesh_rule='LengthBased', state=state, coarsen_mode=0)
+    # coarsen_mode is stated rather than left to pyexadis_base.Remesh, whose
+    # default is 1, so that the companion pydis run can be given the same
+    # branch. 0 is segment-centric (a segment shorter than minseg has its two
+    # endpoints merged to their mid-point), 1 is node-centric (a two-arm node
+    # with either arm shorter than minseg is merged into its nearer neighbour,
+    # at that neighbour's own position). They are different algorithms, not
+    # settings of one, and on the same configuration their answers differ by
+    # half the short segment, so a comparison run has to fix the same value on
+    # both sides. tests/full_runs/02_frank_read_src runs both.
+    remesh    = Remesh(remesh_rule='LengthBased', state=state,
+                       coarsen_mode=coarsen_mode)
 
     sim = SimulateNetwork(calforce=calforce, mobility=mobility,
                           timeint=timeint, collision=collision,
@@ -201,6 +202,9 @@ if __name__ == "__main__":
                         default='DDD_FFT_MODEL',
                         choices=['DDD_FFT_MODEL', 'CUTOFF_MODEL'])
     parser.add_argument('--max-step', dest='max_step', type=int, default=300)
+    # 1 by default: it is exadis' own python default and ParaDiS' rule.
+    parser.add_argument('--coarsen-mode', dest='coarsen_mode', type=int,
+                        choices=(0, 1), default=1)
     parser.add_argument('--print-freq', dest='print_freq', type=int,
                         default=10,
                         help='steps between progress lines')
@@ -215,7 +219,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     main(plot=args.plot, force_mode=args.force_mode,
-         max_step=args.max_step, print_freq=args.print_freq,
+         max_step=args.max_step, coarsen_mode=args.coarsen_mode,
+         print_freq=args.print_freq,
          write_freq=args.write_freq)
 
     # explore the network after simulation

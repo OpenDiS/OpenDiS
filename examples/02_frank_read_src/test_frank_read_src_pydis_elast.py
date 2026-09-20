@@ -75,12 +75,19 @@ def init_frank_read_src_loop(arm_length=1.0, box_length=8.0,
 
     return DisNetManager(DisNet(cell=cell, rn=rn, links=links))
 
-def main(plot=True, max_step=300, print_freq=10, write_freq=10):
+def main(plot=True, max_step=300, print_freq=10, write_freq=10,
+         coarsen_mode=1):
     global net, sim, state
 
     Lbox = 1000.0
+    # coarsen_mode selects the coarsening branch; see RemeshParams. 0 is
+    # segment-centric (endpoints of a short segment merge to their mid-point),
+    # 1 is node-centric (a two-arm node with a short arm merges into its nearer
+    # neighbour, which does not move). The companion exadis run takes the same
+    # value, and tests/full_runs/02_frank_read_src compares both.
     state = {"burgmag": 3e-10, "mu": 50e9, "nu": 0.3, "a": 1.0,
-             "maxseg": 0.04*Lbox, "minseg": 0.01*Lbox, "rann": 3.0}
+             "maxseg": 0.04*Lbox, "minseg": 0.01*Lbox, "rann": 3.0,
+             "coarsen_mode": coarsen_mode}
     cutoff = 0.25*Lbox
     check_cutoff_maxseg(Lbox*np.eye(3), cutoff, state["maxseg"])
 
@@ -175,6 +182,9 @@ if __name__ == "__main__":
     parser.add_argument('--no-plot', dest='plot', action='store_false',
                         default=True)
     parser.add_argument('--max-step', dest='max_step', type=int, default=300)
+    # 1 by default: it is exadis' own python default and ParaDiS' rule.
+    parser.add_argument('--coarsen-mode', dest='coarsen_mode', type=int,
+                        choices=(0, 1), default=1)
     parser.add_argument('--print-freq', dest='print_freq', type=int,
                         default=10,
                         help='steps between progress lines')
@@ -189,6 +199,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     main(plot=args.plot, max_step=args.max_step,
+         coarsen_mode=args.coarsen_mode,
          print_freq=args.print_freq, write_freq=args.write_freq)
 
     # explore the network after simulation

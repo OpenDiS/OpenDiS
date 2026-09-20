@@ -24,5 +24,21 @@ foreach(script IN LISTS FULL_RUN_SCRIPTS)
         TIMEOUT 1800)
 endforeach()
 
+# 02_frank_read_src's comparison harness compares one coarsening branch per
+# invocation, and with no arguments that is coarsen_mode=1, which the glob above
+# already registered. The other branch is a different algorithm rather than a
+# setting of the same one, so it gets its own case. The makefile in that folder
+# adds the same extra run, so make and ctest still cover the same set.
+set(mode0_script
+    "${CMAKE_CURRENT_SOURCE_DIR}/02_frank_read_src/test_frank_read_src_pydis_exadis_elast.py")
+if(EXISTS "${mode0_script}")
+    set(mode0_name
+        full_run.02_frank_read_src.test_frank_read_src_pydis_exadis_elast.coarsen_mode0)
+    add_test(NAME ${mode0_name}
+             COMMAND ${Python3_EXECUTABLE} "${mode0_script}" --coarsen-mode 0)
+    set_tests_properties(${mode0_name} PROPERTIES LABELS full_run TIMEOUT 1800)
+    list(APPEND FULL_RUN_SCRIPTS "${mode0_script}")
+endif()
+
 list(LENGTH FULL_RUN_SCRIPTS n_full_runs)
 message(STATUS "full_runs: registered ${n_full_runs} CTest case(s)")

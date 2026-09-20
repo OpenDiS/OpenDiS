@@ -31,8 +31,8 @@ near-mirror-symmetric geometry can break a symmetric near-tie differently and
 end up on different topological branches from ordinary per-process
 iteration-order drift, the same phenomenon documented in
 tests/full_runs/02_frank_read_src/order_import.py's own module docstring.
-Confirmed to still fail at the default tolerance even after the coarsen_mode
-fix below (worst 2.7047e-02 at step 150, orders of magnitude past tolerance);
+Confirmed to still fail at the default tolerance even with both codes on the
+same coarsen_mode (worst 2.7047e-02 at step 150, orders of magnitude past tolerance);
 kept because it is the honest statement of where two separate runs actually
 end up, and because the junction-formation physics checks and the
 stored-reference comparison below
@@ -114,6 +114,13 @@ examples_dir = opendis_root / 'examples' / '03_binary_junction'
 # their configurations. See this module's docstring for what each answers.
 IMPORT_EXADIS_ORDER = True
 
+# Coarsening branch, passed to both examples so neither falls back to its own
+# default: pydis defaults to 0 and pyexadis_base.Remesh to 1. 1 is
+# node-centric, exadis' and ParaDiS' rule, and both branches are verified
+# against exadis bitwise in tests/unit_tests/test3_remesh_rule. Either value
+# works here; --coarsen-mode on both example scripts overrides it by hand.
+COARSEN_MODE = 1
+
 MAX_STEP = 300
 PRINT_FREQ = 100
 WRITE_FREQ = MAX_STEP
@@ -192,19 +199,14 @@ def thread_check():
 
 
 def scope_note():
-    print("scope: both examples now run coarsen_mode=0 (segment-centric: a "
-          "segment below")
-    print("       minseg has its endpoints merged to their mid-point) -- "
-          "the only branch")
-    print("       pydis implements. pyexadis_base.Remesh defaults to "
-          "coarsen_mode=1")
-    print("       (node-centric), which caused a real, order-independent "
-          "node-count")
-    print("       divergence as early as step 22 before this fix, with "
-          "ordering fully")
-    print("       controlled -- see examples/03_binary_junction/"
-          "test_binary_junction_exadis_elast.py's")
-    print("       own comment on its Remesh(...) call.")
+    print("scope: both examples are given coarsen_mode=%d, rather than each "
+          "taking its own" % COARSEN_MODE)
+    print("       default (pydis 0, pyexadis_base 1). Those are different "
+          "coarsening")
+    print("       algorithms, not settings of one: mismatching them moved node "
+          "counts apart")
+    print("       as early as step 22, with ordering otherwise fully "
+          "controlled.")
 
 
 def junction_summary(json_file):
@@ -270,6 +272,7 @@ def independent(plot):
                     '--print-freq', PRINT_FREQ,
                     '--write-freq', WRITE_FREQ]
                    + ([] if plot else ['--no-plot']))
+    common_args += ['--coarsen-mode', str(COARSEN_MODE)]
     pydis_args = list(common_args)
     exadis_args = ['--force-mode=CUTOFF_MODEL'] + common_args
 
@@ -398,6 +401,7 @@ def exadis_pass(plot=False):
 
     ex.SimulateNetwork = Recording
     ex.main(plot=plot, force_mode='CUTOFF_MODEL', max_step=MAX_STEP,
+            coarsen_mode=COARSEN_MODE,
             print_freq=PRINT_FREQ, write_freq=MAX_STEP)
     pyexadis.finalize()
 
@@ -483,8 +487,8 @@ def pydis_pass(plot=False):
             return state
 
     py.SimulateNetwork = Following
-    py.main(plot=plot, max_step=MAX_STEP, print_freq=PRINT_FREQ,
-            write_freq=MAX_STEP)
+    py.main(plot=plot, max_step=MAX_STEP, coarsen_mode=COARSEN_MODE,
+            print_freq=PRINT_FREQ, write_freq=MAX_STEP)
     return failures
 
 

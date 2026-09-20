@@ -90,7 +90,7 @@ def init_two_disl_lines(z0=1.0, box_length=8.0,
 
 
 def main(plot=True, force_mode='CUTOFF_MODEL', max_step=200, dt=1.0e-9,
-         print_freq=10, write_freq=10):
+         coarsen_mode=1, print_freq=10, write_freq=10):
     global net, sim, state
 
     # Same scale as the companion pydis run, and as 01_loop and
@@ -203,18 +203,18 @@ def main(plot=True, force_mode='CUTOFF_MODEL', max_step=200, dt=1.0e-9,
     topology  = Topology(topology_mode='TopologySerial', state=state,
                          force=calforce, mobility=mobility)
     collision = Collision(collision_mode='Proximity', state=state)
-    # coarsen_mode=0, matching 02_frank_read_src/test_frank_read_src_exadis_elast.py's own
-    # remesh construction: it is the only coarsening branch pydis implements
-    # (segment-centric, merge to the mid-point), and pyexadis_base.Remesh's coarsen_mode=1
-    # default (node-centric) ran a genuinely different algorithm on the two sides of the
-    # comparison, not merely a different pass order. Left at the default, node counts
-    # diverged as early as step 22 (checked with ordering otherwise fully controlled, via
-    # tests/full_runs/03_binary_junction/test_binary_junction_pydis_exadis_elast.py's
-    # order-import mode), 128 steps before UNZIP_STRESS -- pydis performed two more
-    # bisections than exadis in the very step a junction node's short arms are absorbed.
-    # This closes that: node counts now agree at all 300 steps, position residual ~1e-6
-    # round-off.
-    remesh    = Remesh(remesh_rule='LengthBased', state=state, coarsen_mode=0)
+    # coarsen_mode is stated rather than left to pyexadis_base.Remesh, whose
+    # default is 1, so that the companion pydis run can be given the same
+    # branch. 0 is segment-centric (a segment shorter than minseg has its two
+    # endpoints merged to their mid-point), 1 is node-centric (a two-arm node
+    # with either arm shorter than minseg is merged into its nearer neighbour,
+    # at that neighbour's own position). They are different algorithms, not
+    # settings of one, so a comparison run has to fix the same value on both
+    # sides; pydis implemented 0 first and defaults to it, exadis defaults to
+    # 1. Both are verified against exadis bitwise in
+    # tests/unit_tests/test3_remesh_rule.
+    remesh    = Remesh(remesh_rule='LengthBased', state=state,
+                       coarsen_mode=coarsen_mode)
 
     # First half: no applied stress. The junction forms from the mutual
     # elastic attraction of the two lines and from their line tension alone,
@@ -277,6 +277,9 @@ if __name__ == "__main__":
                         default='CUTOFF_MODEL',
                         choices=['CUTOFF_MODEL', 'DDD_FFT_MODEL'])
     parser.add_argument('--max-step', dest='max_step', type=int, default=200)
+    # 1 by default: it is exadis' own python default and ParaDiS' rule.
+    parser.add_argument('--coarsen-mode', dest='coarsen_mode', type=int,
+                        choices=(0, 1), default=1)
     parser.add_argument('--dt', dest='dt', type=float, default=1.0e-9)
     parser.add_argument('--print-freq', dest='print_freq', type=int,
                         default=10,
@@ -292,6 +295,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     main(plot=args.plot, force_mode=args.force_mode, max_step=args.max_step,
+         coarsen_mode=args.coarsen_mode,
          dt=args.dt, print_freq=args.print_freq, write_freq=args.write_freq)
 
     # explore the network after simulation

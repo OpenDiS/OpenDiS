@@ -603,6 +603,26 @@ class DisNet(DisNet_Python):
         edge = self._G.edge_between(node1, node2)
         self._G.remove_edge(edge)
 
+    def segment_as_stored(self, tag1: Tag, tag2: Tag) -> Tuple[Tag, Tag]:
+        """segment_as_stored: this segment's two endpoints, in the stored order
+
+        Which way round a segment is stored is no physics, every reader going
+        through DisEdge.burg_vec_from, but rules break ties on it: exadis'
+        retroactive collision merges into a segment's FIRST endpoint whenever
+        the collision point is within rann of it, so on a segment shorter than
+        2*rann the stored direction alone picks the survivor. The operations
+        below therefore put a surviving or new node into the endpoint slot the
+        node it replaces held, and callers naming a segment from a node's point
+        of view come through here first.
+        """
+        node1 = self.tags_to_nodes[tag1]
+        node2 = self.tags_to_nodes[tag2]
+        edge = self._G.edge_between(node1, node2)
+        if edge is None:
+            raise ValueError("segment_as_stored: no segment %s-%s"
+                             % (str(tag1), str(tag2)))
+        return edge.source.tag, edge.target.tag
+
     def _zero_edge(self, tag1: Tag, tag2: Tag) -> None:
         """zero_edge: set an edge's Burgers vector to zero, keeping the edge
            user is not supposed to call this low level function, does not guarantee sanity
@@ -696,9 +716,15 @@ class DisNet(DisNet_Python):
         self._add_edge(new_tag, tag2, new_edge_attr)
         self._remove_edge(tag1, tag2)
     
-    def remove_two_arm_node(self, old_tag: Tag) -> None:
+    def remove_two_arm_node(self, old_tag: Tag, survivor: Tag=None) -> None:
         """remove_two_arm_node: remove a node with two arms from the network
            guarantees sanity after operation
+
+        survivor names the neighbour that takes the removed node's place and
+        so inherits the endpoint slot old_tag held, as exadis' merge_nodes does
+        (core/exadis/src/network.cpp). Left None, the joining segment's
+        direction comes from old_tag's arm order instead. See
+        segment_as_stored.
         """
         if not self.has_node(old_tag):
             raise ValueError("remove_two_arm_node: Node %s does not exist" % str(old_tag))
@@ -710,9 +736,28 @@ class DisNet(DisNet_Python):
         tag1, tag2 = self.neighbors_tags(old_tag)
         end_nodes_connected = self.has_segment(tag1, tag2)
 
-        prev_link_attr = self.segments((old_tag, tag2))
-        new_link_attr = DisEdge(tag2, tag1, prev_link_attr.burg_vec_from(tag2).copy(), prev_link_attr.plane_normal.copy())
-        self._combine_edge(tag1, tag2, new_link_attr)
+        if survivor is None:
+            prev_link_attr = self.segments((old_tag, tag2))
+            new_link_attr = DisEdge(tag2, tag1, prev_link_attr.burg_vec_from(tag2).copy(), prev_link_attr.plane_normal.copy())
+            self._combine_edge(tag1, tag2, new_link_attr)
+            self._remove_node(old_tag)
+            return
+
+        if survivor not in (tag1, tag2):
+            raise ValueError("remove_two_arm_node: survivor %s is not a "
+                             "neighbour of %s" % (str(survivor), str(old_tag)))
+        other = tag1 if survivor == tag2 else tag2
+        arm = self.segments((old_tag, other))
+        old_first = next(first for nbr, _, first
+                         in self._arms_with_direction(old_tag) if nbr == other)
+        # the survivor stands where old_tag stood, inheriting its slot and its
+        # view of this arm, so the Burgers vector is read from whichever node
+        # becomes first
+        first, second = (survivor, other) if old_first else (other, survivor)
+        b_from = arm.burg_vec_from(old_tag if first == survivor else other)
+        new_link_attr = DisEdge(first, second, b_from.copy(),
+                                arm.plane_normal.copy())
+        self._combine_edge(first, second, new_link_attr)
         self._remove_node(old_tag)
 
         # remove neighbor nodes if they become orphaned
@@ -859,12 +904,20 @@ class DisNet(DisNet_Python):
             else:
                 self._remove_edge(targetNode, deadNode)
 
-        for nbr_tag, link_attr in list(self.neighbor_segments_dict(deadNode).items()):
+        for nbr_tag, link_attr, dead_first in list(self._arms_with_direction(deadNode)):
             if nbr_tag == targetNode or nbr_tag == deadNode:
                 continue
             shared = self.has_segment(targetNode, nbr_tag)
             new_link_attr = DisEdge(nbr_tag, targetNode, link_attr.burg_vec_from(nbr_tag).copy(), link_attr.plane_normal.copy())
-            self._combine_edge(targetNode, nbr_tag, new_link_attr)
+            # The transferred arm keeps its stored direction, the survivor
+            # taking the slot the dead node held, as exadis
+            # merge_nodes_position does. Rebuilding it as survivor -> neighbour
+            # reverses every arm that pointed into the dead node. See
+            # segment_as_stored.
+            if dead_first:
+                self._combine_edge(targetNode, nbr_tag, new_link_attr)
+            else:
+                self._combine_edge(nbr_tag, targetNode, new_link_attr)
 
             # To do: reset seg forces
 
@@ -876,6 +929,17 @@ class DisNet(DisNet_Python):
                 self._zero_edge(deadNode, nbr_tag)
             else:
                 self._remove_edge(deadNode, nbr_tag)
+
+    def _arms_with_direction(self, tag: Tag):
+        """_arms_with_direction: (nbr_tag, attr, tag_is_first) for each arm
+
+        tag_is_first says whether this node is the segment's stored first
+        endpoint, which neighbor_segments_dict does not carry.
+        """
+        for edge in self.tags_to_nodes[tag].edges():
+            tag_is_first = edge.source.tag == tag
+            nbr_tag = edge.target.tag if tag_is_first else edge.source.tag
+            yield nbr_tag, edge.attr, tag_is_first
 
     def purge_network(self, tol: float=1e-8) -> None:
         """purge_network: drop annihilated segments and the nodes they orphan
@@ -929,13 +993,24 @@ class DisNet(DisNet_Python):
         self.nodes(split_node1).R = pos1.copy()
 
         bv = np.zeros(3)
+        # read before the loop starts removing arms
+        tag_first = {nbr: first for nbr, _, first in self._arms_with_direction(tag)}
         for nbr in nbrs_to_split:
             if not self.has_segment(tag, nbr):
                 raise ValueError("split_node: Node %s and %s are not connected" % (str(tag), str(nbr)))
 
             link_attr = self.segments((tag, nbr))
-            new_link_attr = DisEdge(nbr, split_node2, link_attr.burg_vec_from(nbr).copy(), link_attr.plane_normal.copy())
-            self._add_edge(split_node2, nbr, new_link_attr)
+            # A transferred arm keeps its stored direction, the new node
+            # taking the slot the split node held, as exadis split_node does.
+            # See segment_as_stored.
+            if tag_first[nbr]:
+                first, second, b_source = split_node2, nbr, tag
+            else:
+                first, second, b_source = nbr, split_node2, nbr
+            new_link_attr = DisEdge(first, second,
+                                    link_attr.burg_vec_from(b_source).copy(),
+                                    link_attr.plane_normal.copy())
+            self._add_edge(first, second, new_link_attr)
             bv += link_attr.burg_vec_from(tag)
 
             self._remove_edge(tag, nbr)

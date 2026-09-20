@@ -6,7 +6,8 @@
 #
 #   make                      run every test, report a non-zero status if any failed
 #   make test_frank_read_src_pydis_exadis_elast.py   run one test
-#   make list                 show which tests would run
+#   make list                 show which runs would happen (a test can appear
+#                             more than once, with different arguments)
 #   make frank_read_src_elast_ref   regenerate the reference configuration
 #
 # PYTHON can be overridden to match the interpreter CMake was configured with:
@@ -16,6 +17,15 @@
 
 PYTHON ?= python3
 TESTS  := $(wildcard test_*.py)
+
+# The comparison harness compares one coarsening branch per invocation, and with
+# no arguments that is coarsen_mode=1. The two branches are different algorithms
+# rather than settings of one, so both are covered here, as a second invocation.
+# '@' stands for the space between an argument and the next, since the loop below
+# splits its list on whitespace. tests/full_runs/CMakeLists.txt registers the
+# same extra run with CTest, so make and ctest still cover the same set.
+EXTRA_RUNS := test_frank_read_src_pydis_exadis_elast.py@--coarsen-mode@0
+RUNS       := $(TESTS) $(EXTRA_RUNS)
 
 EXAMPLES = ../../../examples/02_frank_read_src
 REF_NPZ  = output/frank_read_src_elast_ref.npz
@@ -31,7 +41,8 @@ REF_NPZ  = output/frank_read_src_elast_ref.npz
 # than as an exit code nobody reads as SIGSEGV.
 all:
 	@rc=0; failed=""; \
-	for t in $(TESTS); do \
+	for r in $(RUNS); do \
+	    t=`echo $$r | tr '@' ' '`; \
 	    echo "=== $$t"; \
 	    $(PYTHON) $$t; s=$$?; \
 	    if [ $$s -ne 0 ]; then \
@@ -55,7 +66,7 @@ $(TESTS):
 	@$(PYTHON) $@
 
 list:
-	@for t in $(TESTS); do echo $$t; done
+	@for r in $(RUNS); do echo $$r | tr '@' ' '; done
 
 # Regenerate the reference configuration the tests here compare against.
 # Either _elast example can produce it; pydis is used, and the code that wrote

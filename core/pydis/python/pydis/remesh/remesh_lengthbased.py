@@ -153,7 +153,7 @@ def _coarsen_segment(G: DisNet, tag1, tag2, r1, r2,
         return
     if G.out_degree(tag) != 2:
         return
-    G.remove_two_arm_node(tag)
+    G.remove_two_arm_node(tag, survivor=survivor)
     merged_into[tag] = survivor
     merged_already.add(survivor)
     # the removal can orphan the survivor and take it with it
@@ -274,7 +274,7 @@ def _coarsen_nodes(G: DisNet, params) -> None:
 
         near = 0 if length[0] < length[1] else 1
         survivor, R = nbrs[near], r[near]
-        G.remove_two_arm_node(tag)
+        G.remove_two_arm_node(tag, survivor=survivor)
         frozen.add(survivor)
         # the removal can orphan the survivor and take it with it
         if G.has_node(survivor):

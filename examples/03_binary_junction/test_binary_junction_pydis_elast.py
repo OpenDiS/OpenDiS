@@ -110,7 +110,8 @@ def init_two_disl_lines(z0=1.0, box_length=8.0,
     return DisNetManager(DisNet(cell=cell, rn=rn, links=links))
 
 
-def main(plot=True, max_step=200, dt=1.0e-9, print_freq=10, write_freq=10):
+def main(plot=True, max_step=200, dt=1.0e-9, coarsen_mode=1,
+         print_freq=10, write_freq=10):
     global net, sim, state
 
     # Lengths are in units of the Burgers vector, and this case is set up at
@@ -121,8 +122,13 @@ def main(plot=True, max_step=200, dt=1.0e-9, print_freq=10, write_freq=10):
     # segments of order 40 separates the two.
     Lbox = 1000.0
     z0 = 0.125*Lbox
+    # coarsen_mode: 0 segment-centric, 1 node-centric. Stated rather than
+    # left to pydis' own default of 0, so the companion exadis run, whose
+    # default is 1, can be given the same branch. See
+    # test_binary_junction_exadis_elast.py.
     state = {"burgmag": 3e-10, "mu": 160e9, "nu": 0.31, "a": 1.0,
-             "maxseg": 0.04*Lbox, "minseg": 0.01*Lbox, "rann": 3.0}
+             "maxseg": 0.04*Lbox, "minseg": 0.01*Lbox, "rann": 3.0,
+             "coarsen_mode": coarsen_mode}
 
     # cutoff + maxseg <= d/3; see the note on CalForce below
     cutoff = 0.25*Lbox
@@ -274,6 +280,9 @@ if __name__ == "__main__":
                              'first half, then UNZIP_STRESS turns on for the '
                              'second half and pulls it apart')
     parser.add_argument('--dt', dest='dt', type=float, default=1.0e-9)
+    # 1 by default, matching exadis' python default and ParaDiS' rule.
+    parser.add_argument('--coarsen-mode', dest='coarsen_mode', type=int,
+                        choices=(0, 1), default=1)
     parser.add_argument('--print-freq', dest='print_freq', type=int,
                         default=10,
                         help='steps between progress lines')
@@ -288,6 +297,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     main(plot=args.plot, max_step=args.max_step, dt=args.dt,
+         coarsen_mode=args.coarsen_mode,
          print_freq=args.print_freq, write_freq=args.write_freq)
 
     # explore the network after simulation
