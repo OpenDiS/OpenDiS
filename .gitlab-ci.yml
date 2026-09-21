@@ -1,0 +1,42 @@
+# OpenDiS CI, on the MC3 gpu-ampere runner (shell executor, tags MC3 + CPU).
+#
+# Build only for now. The unit and full_run jobs come next, once this is green;
+# see .plan for the sequence and for why each line below is what it is.
+
+stages: [build]
+
+variables:
+  # exadis, ctypesgen and graph come from github; external/paradis carries
+  # update = none in .gitmodules and is skipped, which is what we want here
+  GIT_SUBMODULE_STRATEGY: recursive
+  # The build job starts with rm -rf build, so every pipeline builds cold by
+  # choice. These exclusions are for the test jobs added next: the shell
+  # executor runs git clean -ffdx before each job, which would otherwise take
+  # build/, the installed lib/, and pyexadis*.so with it. Needs concurrent = 1.
+  GIT_CLEAN_FLAGS: -ffdx -e build/ -e lib/ -e core/exadis/python/
+
+default:
+  tags: [MC3, CPU]
+  interruptible: true
+  before_script:
+    # module purge drops cuda/nvhpc, loaded by default on this node, whose
+    # nvc++ fails CMake's compiler check before any SYS setting is read. It
+    # also drops cmake and gnu9, both defaults, so load them back.
+    - module purge
+    - module load gnu9/9.4.0 cmake/3.24.2
+    # the conda env the build targets, on PATH rather than via conda activate
+    # so this does not depend on where conda.sh lives on the node
+    - export PATH=$HOME/.conda/envs/opendis/bin:$PATH
+    - which python3 && python3 --version && cmake --version | head -1
+
+build:
+  stage: build
+  script:
+    # the pinned exadis lacks three local fixes; this applies them to the
+    # freshly cloned submodule and is a no-op once they land upstream
+    - python3 ci/patches/2026-09-20/apply_patches.py
+    - rm -rf build; ./configure.sh -DSYS=mc3_cpu_repro
+    - cmake --build build -j 8
+    - cmake --build build --target install
+    # prove the built pieces import, and that the _repro math actually took
+    - python3 -c "import sys; sys.path[:0]=['python','lib','core/pydis/python','core/exadis/python']; import pyexadis; from pydis.build_info import build_description; print(build_description())"

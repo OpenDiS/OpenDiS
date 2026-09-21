@@ -1,0 +1,13 @@
+diff --git a/src/topology_types/topology_serial.h b/src/topology_types/topology_serial.h
+index bfebbc6..f766d88 100644
+--- a/src/topology_types/topology_serial.h
++++ b/src/topology_types/topology_serial.h
+@@ -42,7 +42,7 @@ public:
+         //printf("split_multi_nodes\n");
+         //if (!network->form_junctions) return;
+         
+-        int debug = 0;
++        int debug = (getenv("EXADIS_TOPO_DEBUG") != NULL);
+         
+         int nmultinodes = 0;
+         int nsplits = 0;

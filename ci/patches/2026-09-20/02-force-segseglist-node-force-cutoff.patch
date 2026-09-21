@@ -1,0 +1,75 @@
+diff --git a/src/force_types/force_segseglist.h b/src/force_types/force_segseglist.h
+index e14fff5..1bed3fc 100644
+--- a/src/force_types/force_segseglist.h
++++ b/src/force_types/force_segseglist.h
+@@ -597,22 +597,69 @@ public:
+         SerialDisNet* net = system->get_serial_network();
+         auto nodes = net->get_nodes();
+         auto conn = net->get_conn();
++        auto segs = net->get_segs();
+         
+         // Recompute neighbor list for now...
+         NeighborBin* neighbor = generate_neighbor_segs(net, segseglist->cutoff, system->params.maxseg);
+         
+-        auto neilist = neighbor->query(nodes[i].pos);
++        // FIX: query the bins per arm, at that arm's mid-point, and enforce the
++        // cutoff on the true segment-to-segment distance, exactly as the full
++        // force path does in BuildSegSegList above. The previous version (kept
++        // below) queried once at the node position and reused that list for
++        // every arm, and included every segment the query returned without any
++        // distance test. Since the bins are sized cutoff+maxseg and query()
++        // returns the +-1 bin neighborhood, that pulled in pairs well beyond
++        // cutoff, so node_force() disagreed with compute() as soon as any pair
++        // exceeded the cutoff: measured on examples/02_frank_read_src with
++        // CUTOFF_MODEL, the two routes agree to 1e-14 while the whole
++        // configuration fits inside the cutoff and then diverge to 2e-2
++        // relative from the first step where they do not (step 112 there).
++        // TopologySerial scores its trial splits with node_force(), so the
++        // split direction was being decided from an over-included force.
++        //
++        // Old version:
++        //   auto neilist = neighbor->query(nodes[i].pos);
++        //   for (int j = 0; j < conn[i].num; j++) {
++        //       int k = conn[i].seg[j];
++        //       for (int l = 0; l < neilist.size(); l++) {
++        //           int n = neilist[l];
++        //           if (n == k) continue;
++        //           SegSegForce fs = force->segseg_force(system, net, SegSeg(k, n), 1, 0);
++        //           f += ((conn[i].order[j] == 1) ? fs.f1 : fs.f2);
++        //       }
++        //   }
++        double cutoff2 = segseglist->cutoff * segseglist->cutoff;
++        // EXADIS_OLD_NODEFORCE=1 restores the buggy behavior, for A/B testing
++        bool use_old = (getenv("EXADIS_OLD_NODEFORCE") != NULL);
+         
+         Vec3 f(0.0);
++        if (use_old) {
++            auto neilist = neighbor->query(nodes[i].pos);
++            for (int j = 0; j < conn[i].num; j++) {
++                int k = conn[i].seg[j];
++                for (int l = 0; l < neilist.size(); l++) {
++                    int n = neilist[l];
++                    if (n == k) continue;
++                    SegSegForce fs = force->segseg_force(system, net, SegSeg(k, n), 1, 0);
++                    f += ((conn[i].order[j] == 1) ? fs.f1 : fs.f2);
++                }
++            }
++        } else {
+         for (int j = 0; j < conn[i].num; j++) {
+             int k = conn[i].seg[j];
++            Vec3 rk1 = nodes[segs[k].n1].pos;
++            Vec3 rk2 = net->cell.pbc_position(rk1, nodes[segs[k].n2].pos);
++            auto neilist = neighbor->query(net->cell.pbc_fold(0.5*(rk1+rk2)));
+             for (int l = 0; l < neilist.size(); l++) {
+                 int n = neilist[l];
+                 if (n == k) continue;
++                double dist2 = get_min_dist2_segseg(net, k, n);
++                if (dist2 < 0.0 || dist2 >= cutoff2) continue;
+                 SegSegForce fs = force->segseg_force(system, net, SegSeg(k, n), 1, 0);
+                 f += ((conn[i].order[j] == 1) ? fs.f1 : fs.f2);
+             }
+         }
++        }
+         
+         delete neighbor;
+         
