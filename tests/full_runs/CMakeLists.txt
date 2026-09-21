@@ -9,15 +9,13 @@
 # The test list is a glob, matching the $(wildcard test_*.py) used by the makefiles, so make
 # and ctest cover the same set.
 
-find_package(Python3 REQUIRED COMPONENTS Interpreter)
-
 # One working directory per case, inside the build tree. A test writes its output into the
 # directory it runs in, which is what you want running it by hand from its own folder, and
 # the reason they must not share one under ctest: 02's clear_recordings sweeps
 # output/ordered_pydis, the names 03 writes to, so run together in one directory 02 deletes
 # 03's recordings mid-run. Keyed on the test name, so two cases of one script separate.
 function(add_full_run_case name script)
-    add_test(NAME ${name} COMMAND ${Python3_EXECUTABLE} "${script}" ${ARGN})
+    add_test(NAME ${name} COMMAND ${OPENDIS_TEST_PYTHON} "${script}" ${ARGN})
     set(rundir "${CMAKE_CURRENT_BINARY_DIR}/run/${name}")
     file(MAKE_DIRECTORY "${rundir}")   # ctest does not create WORKING_DIRECTORY
     set_tests_properties(${name} PROPERTIES

@@ -41,14 +41,24 @@ build:
     - cmake --build build --target install
     # prove the built pieces import, and that the _repro math actually took
     - python3 -c "import sys; sys.path[:0]=['python','lib','core/pydis/python','core/exadis/python']; import pyexadis; from pydis.build_info import build_description; print(build_description())"
+  # The two products the test jobs cannot rebuild for themselves. Passing them
+  # as artifacts rather than relying on what is left in the working directory
+  # keeps a test job retried on its own from running against a workspace whose
+  # pyexadis*.so an earlier submodule update deleted. The build tree itself is
+  # far too big to ship and stays on disk, so retrying a test job still needs
+  # the build job's build/ to be there; ctest says so plainly if it is not.
+  artifacts:
+    expire_in: 1 week
+    paths:
+      - core/exadis/python/pyexadis*.so
+      - lib/
 
-# Both test jobs consume what the build job left in this same directory, so they
-# take the workspace as it stands: GIT_STRATEGY none skips fetch, checkout and
-# clean entirely. GIT_CLEAN_FLAGS alone was not enough, because the submodule
-# update step cleans inside each submodule, where a superproject-relative
-# exclude like core/exadis/python/ does not apply, and it deleted the freshly
-# built pyexadis*.so. Relies on concurrent = 1 and one runner, so the build and
-# test jobs of a pipeline share a working directory.
+# Both test jobs consume the build tree the build job left in this same working
+# directory, which relies on concurrent = 1 and one runner. What they must not
+# do is update the submodules: that step runs git clean inside each submodule,
+# where a superproject-relative exclude like core/exadis/python/ does not apply,
+# and it deleted the freshly built pyexadis*.so. Hence GIT_SUBMODULE_STRATEGY
+# none here, with the module itself arriving from the build job's artifacts.
 #
 # ctest is parallel here: the tests pin their own thread count, and each case
 # has its own working directory under build/tests/*/run/, so they no longer
@@ -57,8 +67,9 @@ build:
 
 unit:
   stage: unit
+  needs: [build]
   variables:
-    GIT_STRATEGY: none
+    GIT_SUBMODULE_STRATEGY: none
   script:
     - ctest --test-dir build -L unit -j 8 --output-on-failure --output-junit report-unit.xml
   artifacts:
@@ -68,8 +79,9 @@ unit:
 
 full_run:
   stage: full_run
+  needs: [build]
   variables:
-    GIT_STRATEGY: none
+    GIT_SUBMODULE_STRATEGY: none
   script:
     - ctest --test-dir build -L full_run -j 4 --output-on-failure --output-junit report-full.xml
   artifacts:

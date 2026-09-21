@@ -4,18 +4,14 @@
 # __file__, so those follow the script rather than the working directory. Each script exits
 # 0 on success and 1 on failure, which is what CTest reads.
 #
-# Note the interpreter matters: it must be the one with numpy that the build targets. If
-# CMake picks the wrong one, configure with
-#     -DPython3_EXECUTABLE=/path/to/python3
-
-find_package(Python3 REQUIRED COMPONENTS Interpreter)
+# The interpreter is OPENDIS_TEST_PYTHON, resolved in tests/CMakeLists.txt.
 
 # One working directory per case, inside the build tree, as tests/full_runs does and for
 # the same reason: a test writes its output into the directory it runs in, which is what
 # you want running it by hand from its own folder, and means they must not share one under
 # ctest. Keyed on the test name, so two cases of one script separate.
 function(add_unit_case name script)
-    add_test(NAME ${name} COMMAND ${Python3_EXECUTABLE} "${script}" ${ARGN})
+    add_test(NAME ${name} COMMAND ${OPENDIS_TEST_PYTHON} "${script}" ${ARGN})
     set(rundir "${CMAKE_CURRENT_BINARY_DIR}/run/${name}")
     file(MAKE_DIRECTORY "${rundir}")   # ctest does not create WORKING_DIRECTORY
     set_tests_properties(${name} PROPERTIES LABELS unit WORKING_DIRECTORY "${rundir}")
