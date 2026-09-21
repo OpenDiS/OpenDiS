@@ -6,13 +6,13 @@
 # force kernel and ExaDiS in one process means building ExaDiS for that same
 # environment.
 #
-#     conda activate disl_dyn
+#     conda activate <your-env>
 #     ./configure.sh -DSYS=mac_torch
 #     cmake --build build -j 8 ; cmake --build build --target install
 #
 # or without activating anything:
 #
-#     ./configure.sh -DSYS=mac_torch -DCONDA_ENV=/opt/anaconda3/envs/disl_dyn
+#     ./configure.sh -DSYS=mac_torch -DCONDA_ENV=/path/to/conda/envs/<your-env>
 #
 # The resulting pyexadis is named for its ABI, pyexadis.cpython-313-darwin.so
 # for python 3.13, so modules built for different interpreters sit side by side
@@ -29,8 +29,8 @@ if(NOT DEFINED CONDA_ENV)
   else()
     message(FATAL_ERROR
       "SYS=mac_torch needs a conda environment. Either activate one before "
-      "configuring, 'conda activate disl_dyn', or name it explicitly, "
-      "-DCONDA_ENV=/opt/anaconda3/envs/disl_dyn")
+      "configuring, 'conda activate <your-env>', or name it explicitly, "
+      "-DCONDA_ENV=/path/to/conda/envs/<your-env>")
   endif()
 endif()
 

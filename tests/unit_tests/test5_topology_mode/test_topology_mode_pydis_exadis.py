@@ -14,15 +14,13 @@ from there rather than duplicated.
 WHAT THIS MEASURES, AND WHY A DISAGREEMENT IS NOT AUTOMATICALLY A BUG
 
 PyDiS's 'Serial' split mode is a transcription of ParaDiS SplitMultiNodes and
-is the mode ExaDiS's TopologySerial also ports (see
-.plan/2026-08-17/debug_topology.md), so unlike collision this comparison runs
+is the mode ExaDiS's TopologySerial also ports, so unlike collision this comparison runs
 the *same* algorithm on both sides and full agreement is the expectation, not
 an aspiration. But the split-direction decision inside that algorithm is, on
 any node whose local geometry is exactly or near-exactly symmetric, a genuine
 mathematical tie: both mirror-image split directions dissipate the same
 power, decided only by which way each code's independent floating-point
-roundoff happens to fall. This was measured directly, not assumed (see
-.plan/2026-08-21/debug_topology_stage2.md section 2): feeding one code's
+roundoff happens to fall. This was measured directly, not assumed: feeding one code's
 exact pre-split geometry into the other's own force and mobility bindings
 finds the same tie, at the ~1e-11 to 1e-13 relative level, resolved in
 opposite directions.
@@ -39,7 +37,7 @@ is a real finding and this test fails on it.
 RUNNING IT
 
     make                       run at the default step count
-    make PYTHON=/opt/anaconda3/bin/python3
+    make PYTHON=$CONDA_PREFIX/bin/python3
     python3 test_topology_mode_pydis_exadis.py --max-step 100
     python3 test_topology_mode_pydis_exadis.py --diagnose
 
@@ -86,9 +84,8 @@ import test_collision_mode_pydis_exadis as t4
 # The base is examples/03_binary_junction, current tuned state, decided by
 # the user 2026-08-21: two dislocation lines whose coincident free centre
 # nodes collide into a 4-arm node that TopologySerial then splits into a
-# binary junction. This is the exact case
-# .plan/2026-08-21/debug_topology_stage2.md's mirror-tie investigation was
-# built around, and the plan's sequencing (finish this test, then return to
+# binary junction. This is the exact case the mirror-tie investigation was
+# built around, and the sequencing (finish this test, then return to
 # tests/full_runs/03_binary_junction) is why: this test's classifier is
 # meant to be the tool that finishes that debugging, so it needs to run on
 # that same geometry rather than a different one chosen to avoid the tie.
@@ -206,7 +203,7 @@ def base_state():
     a topological split (Crystal::initialize, core/exadis/src/crystal.h:126,
     forces use_glide_planes=0 whenever no crystal type is set at all) --
     resolved to be the actual root cause of the tests/full_runs/03_binary_junction
-    divergence (.plan/2026-08-21/debug_topology_stage2.md, section 11), not
+    divergence, not
     a tie. Checked via t4.glide_plane_settings, same as test4_collision_mode,
     rather than assumed.
 
@@ -230,8 +227,7 @@ def init_two_disl_lines(state, pbc=False):
     and module-level globals set by main(), not a library module meant for
     import. Kept identical, including the EPS_ARM_ASYMMETRY symmetry-breaking
     perturbation and its justification; see that file's own comment for why
-    it is needed and .plan/2026-08-21/debug_topology_stage2.md for how the
-    value was found.
+    it is needed and how the value was found.
     """
     import pyexadis
     from pyexadis_base import ExaDisNet, NodeConstraints
@@ -795,7 +791,7 @@ def run(max_step=MAX_STEP, plot=False, print_freq=20, pydis_mode=PYDIS_MODE,
     # nodes' raw speeds exceed vmax, both get rescaled to exactly vmax:
     # vd1 == vd2 == vmax**2 == 1e18 to the last bit, regardless of what the
     # actual forces were. That exact-looking tie was chased for a long time
-    # as if it were physical (.plan/2026-08-21/debug_topology_stage2.md) --
+    # as if it were physical --
     # it was this clamp. ExaDiS' own GLIDE mobility has no such cap, so
     # leaving pydis at its default silently compared a clamped quantity
     # against an unclamped one. Matches the vmax already used in

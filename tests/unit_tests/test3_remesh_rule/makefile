@@ -13,7 +13,7 @@
 #   make list           show which runs would happen
 #
 # PYTHON can be overridden to match the interpreter CMake was configured with:
-#   make PYTHON=/opt/anaconda3/envs/disl_dyn/bin/python3
+#   make PYTHON=$CONDA_PREFIX/bin/python3
 
 PYTHON ?= python3
 TESTS  := $(wildcard test_*.py)

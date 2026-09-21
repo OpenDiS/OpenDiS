@@ -70,7 +70,7 @@ def init_two_disl_lines(z0=1.0, box_length=8.0,
     # and lengthens the other where they meet at node 1 -- a length
     # asymmetry local to the arms directly involved in the split, rather
     # than a transverse perturbation of a distant point. That distinction
-    # was measured to matter (.plan/2026-08-21/debug_topology_stage2.md):
+    # was measured to matter:
     # a transverse perturbation of a far node only reaches the split
     # decision through the long-range elastic term, which Ec=2.8e10 (see
     # the note on CalForce below) now dwarfs, so it could be swept over five

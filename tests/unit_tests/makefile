@@ -12,7 +12,7 @@
 #                                       invoked from here
 #
 # PYTHON is passed down, so a single override applies everywhere:
-#   make PYTHON=/opt/anaconda3/bin/python3
+#   make PYTHON=$CONDA_PREFIX/bin/python3
 #
 # ctest is the equivalent for CI: it needs a configured build tree, this does not.
 

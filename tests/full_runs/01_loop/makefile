@@ -10,7 +10,7 @@
 #   make disl_loop_elast_ref   regenerate the reference configuration
 #
 # PYTHON can be overridden to match the interpreter CMake was configured with:
-#   make PYTHON=/opt/anaconda3/bin/python3
+#   make PYTHON=$CONDA_PREFIX/bin/python3
 #
 # No environment setup is needed: each script locates the repository from its own __file__.
 

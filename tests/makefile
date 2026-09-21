@@ -13,7 +13,7 @@
 #                                       invoked from here
 #
 # PYTHON is passed all the way down, so a single override applies everywhere:
-#   make PYTHON=/opt/anaconda3/bin/python3
+#   make PYTHON=$CONDA_PREFIX/bin/python3
 #
 # This needs no build directory. ctest is the equivalent for CI and does need one:
 #   ctest --test-dir build --output-on-failure

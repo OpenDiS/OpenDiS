@@ -34,7 +34,7 @@ the invariants that must hold regardless of which collision rule runs.
 RUNNING IT
 
     make                       run at the default step count
-    make PYTHON=/opt/anaconda3/bin/python3
+    make PYTHON=$CONDA_PREFIX/bin/python3
     python3 test_collision_mode_pydis_exadis.py --max-step 50
     python3 test_collision_mode_pydis_exadis.py --plot
 
