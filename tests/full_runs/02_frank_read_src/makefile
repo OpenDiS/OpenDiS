@@ -18,14 +18,19 @@
 PYTHON ?= python3
 TESTS  := $(wildcard test_*.py)
 
-# The comparison harness compares one coarsening branch per invocation, and with
-# no arguments that is coarsen_mode=1. The two branches are different algorithms
-# rather than settings of one, so both are covered here, as a second invocation.
-# '@' stands for the space between an argument and the next, since the loop below
-# splits its list on whitespace. tests/full_runs/CMakeLists.txt registers the
-# same extra run with CTest, so make and ctest still cover the same set.
-EXTRA_RUNS := test_frank_read_src_pydis_exadis_elast.py@--coarsen-mode@0
-RUNS       := $(TESTS) $(EXTRA_RUNS)
+# The comparison harness compares one coarsening branch per invocation. The two
+# branches are different algorithms rather than settings of one, so each is run
+# explicitly, with --coarsen-mode always given: relying on the script's default
+# for one of them would make that mode's coverage depend on what the default is,
+# and make the other look like the special case. '@' stands for the space between
+# an argument and the next, since the loop below splits its list on whitespace.
+# tests/full_runs/CMakeLists.txt registers the same two runs with CTest, so make
+# and ctest cover the same set.
+COARSEN_SCRIPT := test_frank_read_src_pydis_exadis_elast.py
+COARSEN_MODES  := 0 1
+COARSEN_RUNS   := $(foreach m,$(COARSEN_MODES),$(COARSEN_SCRIPT)@--coarsen-mode@$(m))
+PLAIN_TESTS    := $(filter-out $(COARSEN_SCRIPT),$(TESTS))
+RUNS           := $(PLAIN_TESTS) $(COARSEN_RUNS)
 
 EXAMPLES = ../../../examples/02_frank_read_src
 REF_NPZ  = output/frank_read_src_elast_ref.npz

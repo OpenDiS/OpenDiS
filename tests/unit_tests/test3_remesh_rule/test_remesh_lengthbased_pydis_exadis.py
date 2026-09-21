@@ -262,7 +262,7 @@ def build_sim(state, cutoff, exadis_rule, pydis_rule, plot, coarsen_mode):
         max_step=MAX_STEP, loading_mode='stress', applied_stress=STRESS,
         print_freq=PRINT_FREQ, write_freq=None,
         plot_freq=10 if plot else None, plot_pause_seconds=0.01,
-        write_dir=str(Path(__file__).resolve().parent / 'output'))
+        write_dir='output')
 
 
 def summarise(record):

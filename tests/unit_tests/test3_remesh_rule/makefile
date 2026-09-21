@@ -5,9 +5,10 @@
 # set.
 #
 # Each test is run once per coarsening algorithm, since the two are different algorithms
-# rather than settings of one and pydis implements both. The script's own default is
-# COARSEN_MODES' last entry, 1, matching exadis and ParaDiS. CMakeLists.txt registers the
-# non-default mode as its own ctest case, so the two runners still cover the same set.
+# rather than settings of one and pydis implements both. --coarsen-mode is always given
+# rather than letting either run fall through to the script's own default, which is 1,
+# matching exadis and ParaDiS. CMakeLists.txt registers the same two runs as separate
+# ctest cases, so the two runners cover the same set.
 #
 #   make                run every test in every coarsening mode
 #   make list           show which runs would happen
