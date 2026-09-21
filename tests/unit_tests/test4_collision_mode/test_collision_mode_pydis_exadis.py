@@ -132,10 +132,10 @@ NDIV = [8, 8, 8]
 PYDIS_MODE = 'Retroactive'
 
 # SimulateNetwork.run writes a stress/strain summary at the end whatever
-# write_freq says, so it needs somewhere to put it. Next to this script
-# rather than relative to the working directory, so the test behaves the
-# same under ctest, which runs it from the build tree.
-OUT_DIR = Path(__file__).resolve().parent / 'output'
+# write_freq says, so it needs somewhere to put it. Relative to the
+# working directory, as the other tests are: ctest gives each case its
+# own under build/, and a manual run puts it in this folder.
+OUT_DIR = Path('output')
 REF_DIR = Path(__file__).resolve().parent / 'ref_data'
 TAG_STATE = REF_DIR / 'exadis_tag_state.npz'
 

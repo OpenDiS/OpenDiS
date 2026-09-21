@@ -45,7 +45,7 @@ import numpy as np
 
 import test_topology_mode_pydis_exadis as t5
 
-OUT_DIR = Path(__file__).resolve().parent / 'output'
+OUT_DIR = Path('output')   # cwd-relative, as the tests are
 OUT_FILE = OUT_DIR / 'exadis_tag_state.npz'
 
 

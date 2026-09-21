@@ -189,7 +189,7 @@ TIE_REL_THRESHOLD = 1e-4
 # now measures exactly 0.0000e+00.
 POS_DIFF_TOL = 0.0
 
-OUT_DIR = Path(__file__).resolve().parent / 'output'
+OUT_DIR = Path('output')   # cwd-relative, as the other tests are
 REF_DIR = Path(__file__).resolve().parent / 'ref_data'
 TAG_STATE = REF_DIR / 'exadis_tag_state.npz'
 
