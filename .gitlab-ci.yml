@@ -1,9 +1,10 @@
 # OpenDiS CI, on the MC3 gpu-ampere runner (shell executor, tags MC3 + CPU).
 #
-# Build only for now. The unit and full_run jobs come next, once this is green;
-# see .plan for the sequence and for why each line below is what it is.
+# Build, then the unit tests, then the full runs. Separate stages rather than one
+# test stage, so unit results land before the slower full runs start and a unit
+# failure stops there. Either failing fails the pipeline.
 
-stages: [build]
+stages: [build, unit, full_run]
 
 variables:
   # exadis, ctypesgen and graph come from github; external/paradis carries
@@ -40,3 +41,28 @@ build:
     - cmake --build build --target install
     # prove the built pieces import, and that the _repro math actually took
     - python3 -c "import sys; sys.path[:0]=['python','lib','core/pydis/python','core/exadis/python']; import pyexadis; from pydis.build_info import build_description; print(build_description())"
+
+# Both test jobs rely on the build tree surviving from the build job, which is
+# what the GIT_CLEAN_FLAGS exclusions above are for. ctest is parallel here:
+# the tests pin their own thread count, and each case has its own working
+# directory under build/tests/*/run/, so they no longer share an output/.
+
+unit:
+  stage: unit
+  script:
+    - ctest --test-dir build -L unit -j 8 --output-on-failure --output-junit report-unit.xml
+  artifacts:
+    when: always
+    reports:
+      junit: report-unit.xml
+
+full_run:
+  stage: full_run
+  script:
+    - ctest --test-dir build -L full_run -j 4 --output-on-failure --output-junit report-full.xml
+  artifacts:
+    when: always
+    reports:
+      junit: report-full.xml
+    paths:
+      - build/tests/full_runs/run/*/output/*.json   # to inspect a divergence
