@@ -1,11 +1,13 @@
-"""Apply this directory's patches to the core/exadis submodule.
+"""Apply this directory's patches to the core/exadis submodule. OBSOLETE.
 
-Three fixes sent to the exadis developer on 2026-09-20 and not yet upstream.
-The pinned submodule commit does not carry them, so a freshly cloned exadis
-needs them before the tests can pass. Drop a patch from this directory once
-its fix lands upstream.
+Three fixes sent to the exadis developer on 2026-09-20, all three since
+released upstream in their own form: 633f882, 8015d07 and 99b17ca, carried
+by the submodule from exadis 99b17ca onwards. These patches will not apply
+to that commit and the CI build job no longer runs this script. Kept only
+as the record of what was asked for; delete the directory when that record
+stops being useful.
 
-    python3 ci/patches/2026-09-20/apply_patches.py [path/to/exadis]
+    python3 ci/patches/2026-09-20-obsolete/apply_patches.py [path/to/exadis]
 
 Re-running is a no-op: a patch already in the tree is reported and skipped.
 Exits nonzero if any patch fails to apply, which on a clean clone means the

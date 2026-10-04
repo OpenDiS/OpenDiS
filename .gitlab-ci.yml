@@ -33,9 +33,6 @@ default:
 build:
   stage: build
   script:
-    # the pinned exadis lacks three local fixes; this applies them to the
-    # freshly cloned submodule and is a no-op once they land upstream
-    - python3 ci/patches/2026-09-20/apply_patches.py
     - rm -rf build; ./configure.sh -DSYS=mc3_cpu_repro
     - cmake --build build -j 8
     - cmake --build build --target install
