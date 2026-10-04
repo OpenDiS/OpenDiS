@@ -13,6 +13,13 @@ did: the serial node_force queried the neighbor bins once at the node position,
 reused that list for every arm, and summed every returned pair with no distance
 test, while the full path filters on get_min_dist2_segseg < cutoff2.
 
+MATCH_GLOBAL
+
+This test passes match_global=True, which applies the whole-network path's
+cutoff test per arm. The default keeps the single node-position query on
+purpose, to agree with the team node_force that Topology uses, so it is only
+reported here, not asserted.
+
 THE CUTOFF IS THE POINT
 
 That defect is invisible while the whole configuration fits inside the cutoff,
@@ -20,11 +27,8 @@ since then no pair the bins return should be rejected anyway. It only appears
 once a pair lands inside the +-1 bin neighborhood and outside the cutoff, which
 is the ordinary case in any run large enough to need a cutoff. So this test runs
 CUTOFF_MODEL twice: once with a cutoff that keeps every pair, and once with one
-that keeps a minority of them. The second is the case with teeth. Against the
-unfixed node_force, reachable in this build as EXADIS_OLD_NODEFORCE=1, the
-tight-cutoff loop fails by 3.7e-02 relative while every all-pairs line passes,
-so a version of this test that only ever used a generous cutoff would have gone
-green over the defect.
+that keeps a minority of them. Only the second separates the two branches: the
+default parts by 3.7e-02 relative there, and agrees on every all-pairs line.
 
 Only the loop exercises that filtering. Every pair of segments in a star shares
 the central node, so a star has no non-adjacent pairs for a cutoff to reject and
@@ -119,33 +123,14 @@ BOX_BINS = 3.0
 # being an accident nobody would notice losing.
 EXACT_MODES = ('LineTension',)
 
-# Relative to the largest nodal force in the network.
-#
-# 1e-7 is NOT a rounding tolerance, and the CUTOFF_MODEL rows do not pass on
-# rounding. They carry a residual of 1.1e-08 of the largest force which is
-# unexplained and looks like a real inconsistency in ExaDiS' per-node pair sum,
-# separate from the cutoff defect above and present with or without
-# EXADIS_OLD_NODEFORCE. What is measured:
-#
-#   ExaDiS NodeForce    vs pydis Elasticity_SBA : 9.8e-15 of scale
-#   ExaDiS OneNodeForce vs pydis Elasticity_SBA : 1.1e-08 of scale
-#   ExaDiS OneNodeForce vs ExaDiS NodeForce     : 1.1e-08 of scale
-#
-# so of the four routes to this force, three agree to rounding and ExaDiS'
-# per-node one is the outlier. Re-association cannot account for it: summing the
-# worst node's 894 pair contributions gives sum|f| / |sum f| = 2.3, so the sum is
-# well conditioned and double precision predicts ~5e-16, seven orders below what
-# is seen. The residual grows with the pairs included, 3.1e-11 at cutoff 20,
-# 4.0e-09 at 50, 1.1e-08 at 100 and flat thereafter, which points at a per-pair
-# difference rather than at one bad pair. node_force asks for one side of each
-# pair, segseg_force(..., 1, 0), where the full path takes both; the same flags
-# make no difference in pydis' port of the kernel, so ExaDiS' own one-sided
-# branch is the place to look next.
-#
-# Left passing rather than red because there is no fix to point at yet, and the
-# gap is still three orders below the 3.7e-02 an unfiltered node_force produces,
-# so the row above keeps its teeth. Tighten this to ~1e-12 to turn the residual
-# into a failure once it is understood.
+# Relative to the largest nodal force in the network. Not a rounding
+# tolerance: the CUTOFF_MODEL rows carry about 1.1e-08, and the cause is
+# measured. The pair kernel is not symmetric in its arguments: passing the same
+# two segments the other way round moves a node's force by up to 9.0e-09 in
+# pydis' port of it. NodeForce evaluates each pair once with the lower index
+# first, while OneNodeForce always puts the node's own arm first, so about half
+# the pairs are evaluated the other way round. 1e-7 leaves about 8x margin and
+# sits far below the 3.7e-02 the default route gives at the tight cutoff.
 TOL_REL = 1e-7
 
 # Multi-arm configurations, the same stars the pydis test uses so that the two
@@ -167,6 +152,16 @@ STARS = {
 STAR_ARM_LENGTH = 100.0
 
 PINNED, FREE = 7, 0
+
+
+def default_route_residual(calforce, N, state, tags, many, scale):
+    """default_route_residual: match_global=False's residual, relative to scale
+
+    Reported, not asserted; see MATCH_GLOBAL in the module docstring.
+    """
+    one = np.array([calforce.OneNodeForce(N, state, t, update_state=False)
+                    for t in tags])
+    return float(np.max(np.abs(one - many)))/scale
 
 
 def cutoff_note(cutoff):
@@ -288,7 +283,8 @@ def check_case(mode, shown, config, label, cutoff=None):
     try:
         # update_state=False, or each call would overwrite the very row it is
         # about to be compared against
-        one = np.array([calforce.OneNodeForce(N, state, t, update_state=False)
+        one = np.array([calforce.OneNodeForce(N, state, t, update_state=False,
+                                              match_global=True)
                         for t in tags])
     except Exception as exc:
         print("     %s: %s" % (type(exc).__name__, str(exc).splitlines()[0][:100]))
@@ -297,6 +293,9 @@ def check_case(mode, shown, config, label, cutoff=None):
     scale = max(float(np.max(np.abs(many))), 1e-30)
     tol = 0.0 if mode in EXACT_MODES else TOL_REL*scale
     ok = report_close("%s %d nodes" % (name, len(tags)), one, many, tol)
+    if cutoff and label == 'loop':
+        print("     match_global=False: %.2e, not asserted"
+              % default_route_residual(calforce, N, state, tags, many, scale))
     if not ok:
         worst = int(np.argmax(np.abs(one - many).max(axis=1)))
         print("     worst node %s: OneNodeForce %s"

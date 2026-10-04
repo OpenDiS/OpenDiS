@@ -45,6 +45,7 @@ import numpy as np
 from typing import Tuple
 from ..disnet import DisNet, Tag
 from ..nbrlist.nbrlist import CellList
+from . import neighbor_bin
 from framework.disnet_manager import DisNetManager
 from framework.calforce_base import CalForce_Base
 
@@ -226,6 +227,18 @@ def selfforcevec_LineTension(MU, NU, Ec, segs_data, eps_L=1e-6):
             fs1[i,:] = Score*bev - LTcore*t
     fs0 = -fs1
     return fs0, fs1
+
+def has_length(p1, p2):
+    """has_length: whether segments (p1, p2) are long enough to interact
+
+    ExaDiS' segseg_force returns zero force for a pair with either squared
+    length below 1e-20 (core/exadis/src/force_types/force_iso.h), which is what
+    keeps the zero-length segment between two coincident trial-split nodes out
+    of the pair sum. Works on single points or on arrays of them.
+    """
+    d = np.asarray(p2) - np.asarray(p1)
+    return np.sum(d*d, axis=-1) >= 1.e-20
+
 
 class CalForce(CalForce_Base):
     """CalForce_DisNet: class for calculating forces on dislocation network
@@ -534,12 +547,21 @@ class CalForce(CalForce_Base):
         f1[idx] += fs1[idx]
         return f0, f1
 
-    def OneNodeForce(self, DM: DisNetManager, state: dict, tag: Tag, update_state: bool=True) -> dict:
+    def OneNodeForce(self, DM: DisNetManager, state: dict, tag: Tag,
+                     update_state: bool=True, match_global: bool=False) -> dict:
         """OneNodeForce: compute force calculation on one node
+
+        match_global=True selects the segment pairs exactly as NodeForce does,
+        so the result equals that node's NodeForce entry to rounding. The
+        default reproduces ExaDiS' default node_force instead, which Topology
+        is meant to use: one bin query at the node position, kept for every
+        arm, with no segment-to-segment distance test (see neighbor_bin). The
+        two coincide when there is no cutoff.
         """
         applied_stress = state["applied_stress"]
         G = DM.get_disnet(DisNet)
-        f = self.OneNodeForce_Functions[self.force_mode](G, applied_stress, tag)
+        f = self.OneNodeForce_Functions[self.force_mode](G, applied_stress, tag,
+                                                         match_global=match_global)
         # update force dictionary if needed
         if update_state:
             if "nodeforces" in state and "nodeforcetags" in state:
@@ -556,8 +578,12 @@ class CalForce(CalForce_Base):
 
         return f
 
-    def OneNodeForce_LineTension(self, G: DisNet, applied_stress: np.ndarray, tag) -> float:
+    def OneNodeForce_LineTension(self, G: DisNet, applied_stress: np.ndarray, tag,
+                                 match_global: bool=False) -> float:
         """OneNodeForce_LineTension: return force on one node from line tension
+
+        match_global is accepted for the common signature; with no pair sum
+        there is nothing for it to select.
         """
         # To do: refactor this into a function
         Nseg = G.out_degree(tag) # This line is different
@@ -613,7 +639,8 @@ class CalForce(CalForce_Base):
 
         return f
 
-    def OneNodeForce_Elasticity_SBA(self, G: DisNet, applied_stress: np.ndarray, tag) -> float:
+    def OneNodeForce_Elasticity_SBA(self, G: DisNet, applied_stress: np.ndarray, tag,
+                                    match_global: bool=False) -> float:
         """OneNodeForce_Elasticity_SBA: force on one node, elastic interactions
 
         Translated from SetOneNodeForce in ParaDiS
@@ -675,30 +702,12 @@ class CalForce(CalForce_Base):
         fseg[:, 0:3] += sf0
         fseg[:, 3:6] += sf1
 
-        # ComputeForces against every other segment. select_pairs returns
-        # i < j, so an arm can appear on either side of a pair and takes (f1,
-        # f2) or (f3, f4) accordingly. Pairs touching no arm are dropped before
-        # the kernel runs, which is the whole saving over NodeForce.
-        idx_i, idx_j, P1, P2, P3, P4 = self.select_pairs(G, R1, R2,
-                                                         source_tags,
-                                                         target_tags, Nseg)
-        if idx_i.size:
-            is_arm = np.zeros(Nseg, dtype=bool)
-            is_arm[arms] = True
-            touches = is_arm[idx_i] | is_arm[idx_j]
-            idx_i, idx_j = idx_i[touches], idx_j[touches]
-            P1, P2, P3, P4 = P1[touches], P2[touches], P3[touches], P4[touches]
-
-        if idx_i.size:
-            B12, B34 = burg_vecs[idx_i], burg_vecs[idx_j]
-            f_a, f_b = fseg[:, 0:3], fseg[:, 3:6]
-            for start, stop, f1, f2, f3, f4 in self._pair_forces(P1, P2, P3, P4,
-                                                                 B12, B34):
-                ii, jj = idx_i[start:stop], idx_j[start:stop]
-                np.add.at(f_a, ii, f1)
-                np.add.at(f_b, ii, f2)
-                np.add.at(f_a, jj, f3)
-                np.add.at(f_b, jj, f4)
+        # ComputeForces against the other segments
+        if match_global or self.cutoff2 is None:
+            self._add_global_pairs(G, R1, R2, burg_vecs, source_tags,
+                                   target_tags, Nseg, arms, fseg)
+        else:
+            self._add_node_query_pairs(G, R1, R2, burg_vecs, tag, arms, fseg)
 
         # the nodal force is the sum of this node's arm forces. Both ends are
         # added when a segment starts and finishes at this node, matching the
@@ -711,7 +720,86 @@ class CalForce(CalForce_Base):
                 f += fseg[i, 3:6]
         return f
 
-    def OneNodeForce_Elasticity_SBN1_SBA(self, G: DisNet, applied_stress: np.ndarray, tag) -> float:
+    def _add_global_pairs(self, G, R1, R2, burg_vecs, source_tags, target_tags,
+                          Nseg, arms, fseg):
+        """_add_global_pairs: add the arms' share of the pairs NodeForce computes
+
+        select_pairs returns i < j, so an arm can appear on either side of a
+        pair and takes (f1, f2) or (f3, f4) accordingly. Pairs touching no arm
+        are dropped before the kernel runs, which is the whole saving over
+        NodeForce.
+        """
+        idx_i, idx_j, P1, P2, P3, P4 = self.select_pairs(G, R1, R2, source_tags,
+                                                         target_tags, Nseg)
+        if idx_i.size:
+            is_arm = np.zeros(Nseg, dtype=bool)
+            is_arm[arms] = True
+            touches = is_arm[idx_i] | is_arm[idx_j]
+            idx_i, idx_j = idx_i[touches], idx_j[touches]
+            P1, P2, P3, P4 = P1[touches], P2[touches], P3[touches], P4[touches]
+        if not idx_i.size:
+            return
+        f_a, f_b = fseg[:, 0:3], fseg[:, 3:6]
+        for start, stop, f1, f2, f3, f4 in self._pair_forces(
+                P1, P2, P3, P4, burg_vecs[idx_i], burg_vecs[idx_j]):
+            ii, jj = idx_i[start:stop], idx_j[start:stop]
+            np.add.at(f_a, ii, f1)
+            np.add.at(f_b, ii, f2)
+            np.add.at(f_a, jj, f3)
+            np.add.at(f_b, jj, f4)
+
+    def node_query_partners(self, G, R1, R2, tag) -> np.ndarray:
+        """node_query_partners: segments ExaDiS' default node_force pairs with tag
+
+        One query at the node's own position, unfolded as ExaDiS leaves it,
+        over the segments' folded mid-points at cutoff + maxseg; see
+        neighbor_bin. R2 is already imaged next to R1.
+        """
+        mid = G.cell.fold(0.5*(R1 + R2))
+        return np.array(neighbor_bin.query(G.cell, mid, G.nodes(tag).R,
+                                           self.cutoff + self.maxseg),
+                        dtype=np.int64)
+
+    def _add_node_query_pairs(self, G, R1, R2, burg_vecs, tag, arms, fseg):
+        """_add_node_query_pairs: add each arm's pairs with the queried segments
+
+        Every arm k against every queried segment but itself, k taken first
+        and the partner imaged next to it, as ExaDiS' segseg_force(k, n) does.
+        Only k's end forces are kept.
+        """
+        near = self.node_query_partners(G, R1, R2, tag)
+        K, N = np.repeat(arms, near.size), np.tile(near, arms.size)
+        K, N = K[K != N], N[K != N]
+        if not K.size:
+            return
+        P1 = R1[K]
+        P2 = G.cell.closest_image(Rref=P1, R=R2[K])
+        P3 = G.cell.closest_image(Rref=P1, R=R1[N])
+        P4 = G.cell.closest_image(Rref=P3, R=R2[N])
+        live = has_length(P1, P2) & has_length(P3, P4)
+        if not live.any():
+            return
+        K, N, P1, P2, P3, P4 = (x[live] for x in (K, N, P1, P2, P3, P4))
+        f_a, f_b = fseg[:, 0:3], fseg[:, 3:6]
+        for start, stop, f1, f2, _, _ in self._pair_forces(
+                P1, P2, P3, P4, burg_vecs[K], burg_vecs[N]):
+            np.add.at(f_a, K[start:stop], f1)
+            np.add.at(f_b, K[start:stop], f2)
+
+    @staticmethod
+    def _sbn1_partners(i, Nseg, near):
+        """_sbn1_partners: (a, b) segment pairs for arm i, as the kernel takes them
+
+        near None: every segment, in the order NodeForce evaluated each pair, so
+        the imaging matches. Otherwise arm i's self term, then i first against
+        each queried segment, as ExaDiS orders a pair in node_force.
+        """
+        if near is None:
+            return [(i, j) if j >= i else (j, i) for j in range(Nseg)]
+        return [(i, i)] + [(i, int(n)) for n in near if n != i]
+
+    def OneNodeForce_Elasticity_SBN1_SBA(self, G: DisNet, applied_stress: np.ndarray, tag,
+                                         match_global: bool=False) -> float:
         """OneNodeForce_Elasticity_SBN1_SBA: force on one node, SBN1 quadrature
 
         The SBN1 counterpart of OneNodeForce_Elasticity_SBA, and translated
@@ -757,11 +845,10 @@ class CalForce(CalForce_Base):
         weights = np.array([0.555555555555556, 0.888888888888889,
                             0.555555555555556])
 
+        near = (None if match_global or self.cutoff2 is None
+                else self.node_query_partners(G, R1, R2, tag))
         for i in arms:
-            for j in range(Nseg):
-                # evaluate the pair in the order NodeForce used, so the
-                # imaging matches; see the docstring
-                a_idx, b_idx = (i, j) if j >= i else (j, i)
+            for a_idx, b_idx in self._sbn1_partners(i, Nseg, near):
                 p1 = R1[a_idx,:].copy()
                 p2 = R2[a_idx,:].copy()
                 p3 = R1[b_idx,:].copy()
@@ -776,10 +863,14 @@ class CalForce(CalForce_Base):
 
                 tag1, tag2 = tuple(source_tags[a_idx]), tuple(target_tags[a_idx])
                 tag3, tag4 = tuple(source_tags[b_idx]), tuple(target_tags[b_idx])
-                if self.cutoff2 is not None and a_idx != b_idx:
+                if (near is None and self.cutoff2 is not None
+                        and a_idx != b_idx):
                     if not self.within_cutoff(G.cell, p1, p2, p3, p4,
                                               (tag1, tag2), (tag3, tag4)):
                         continue
+                if (near is not None and a_idx != b_idx
+                        and not (has_length(p1, p2) and has_length(p3, p4))):
+                    continue
 
                 f1, f2, f3, f4 = compute_segseg_force_SBN1_SBA(
                     p1, p2, p3, p4, b12, b34, self.mu, self.nu, self.a,

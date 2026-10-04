@@ -12,6 +12,11 @@ the arrangement that drifts, so this pins the invariant:
 
     OneNodeForce(tag) == the NodeForce() entry for tag, for every node
 
+OneNodeForce is called with match_global=True, as in
+test_onenodeforce_exadis.py: that is the setting meant to equal NodeForce.
+The default reproduces ExaDiS' default node_force instead, which Topology
+uses; with no cutoff, as here, the two coincide.
+
 Equality is required to rounding rather than to a physical tolerance.
 Both routes sum the same segment contributions in the same units, and a
 correct OneNodeForce differs from its NodeForce row only by the order the
@@ -185,7 +190,8 @@ def check_mode(mode, network=None, label=None):
     for i, tag in enumerate(tags):
         try:
             one[i] = calforce.OneNodeForce(net, state, tag,
-                                           update_state=False)
+                                           update_state=False,
+                                           match_global=True)
         except NotImplementedError as exc:
             return False, report("  %-22s %-13s OneNodeForce is implemented"
                                  % (mode, label or 'loop'), False)

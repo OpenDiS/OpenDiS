@@ -59,9 +59,10 @@ class ExadisBackedForce:
         exadis_net.import_data(data)
         DM.add_disnet(exadis_net)
 
-    def OneNodeForce(self, DM, state, tag, update_state=True):
+    def OneNodeForce(self, DM, state, tag, update_state=True, match_global=False):
         self._register_ordered_net(DM, state)
-        return self.force.OneNodeForce(DM, state, tag, update_state=update_state)
+        return self.force.OneNodeForce(DM, state, tag, update_state=update_state,
+                                       match_global=match_global)
 
     def NodeForce(self, DM, state, pre_compute=True):
         self._register_ordered_net(DM, state)
