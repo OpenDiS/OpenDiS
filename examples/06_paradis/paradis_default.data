@@ -1,0 +1,35 @@
+dataFileVersion =   4  
+numFileSegments =   1  
+minCoordinates = [
+  -1.750000e+04
+  -1.750000e+04
+  -1.750000e+04
+  ]
+maxCoordinates = [
+  1.750000e+04
+  1.750000e+04
+  1.750000e+04
+  ]
+nodeCount =   0
+dataDecompType =   1  
+dataDecompGeometry = [
+  1
+  1
+  1
+  ]
+
+#
+#  END OF DATA FILE PARAMETERS
+#
+
+domainDecomposition = 
+ -17500.0000
+     -17500.0000
+         -17500.0000
+          17500.0000
+      17500.0000
+  17500.0000
+
+nodalData = 
+#  Primary lines: node_tag, x, y, z, num_arms, constraint
+#  Secondary lines: arm_tag, burgx, burgy, burgz, nx, ny, nz

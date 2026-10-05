@@ -30,3 +30,7 @@ output*
 # swallowed by the blanket *.dat above and a fresh clone cannot run the tests.
 !tests/*/*/input_data/*.dat
 !tests/*/*/ref_data/*.dat
+
+# paradis_default.data is a committed input deck for examples/06_paradis, not
+# something a run produces, so it must survive the blanket *.data above.
+!examples/06_paradis/*.data
