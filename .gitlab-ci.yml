@@ -7,8 +7,10 @@
 stages: [build, unit, full_run]
 
 variables:
-  # exadis, ctypesgen and graph come from github; external/paradis carries
-  # update = none in .gitmodules and is skipped, which is what we want here
+  # the three submodules are exadis, ctypesgen and graph, all from github.
+  # paradis is not among them: it lives in extensions/paradis as ordinary
+  # files, so nothing here reaches for a gitlab repository the runner's
+  # token may not be able to read
   GIT_SUBMODULE_STRATEGY: recursive
   # The build job starts with rm -rf build, so every pipeline builds cold by
   # choice. These exclusions are for the test jobs added next: the shell
