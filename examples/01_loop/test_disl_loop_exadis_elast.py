@@ -2,13 +2,20 @@ import numpy as np
 import sys, os
 
 # Import pyexadis
-pyexadis_paths = ['../../python', '../../lib', '../../core/pydis/python', '../../core/exadis/python/']
-[sys.path.append(os.path.abspath(path)) for path in pyexadis_paths if not path in sys.path]
+from pathlib import Path
+# this script lives in examples/01_loop/, so the repository root is 2 levels up
+opendis_root = Path(__file__).resolve().parents[2]
+pyexadis_paths = [str(opendis_root / p)
+                  for p in ['python', 'lib', 'core/pydis/python',
+                            'core/exadis/python']]
+[sys.path.append(path) for path in pyexadis_paths if not path in sys.path]
 np.set_printoptions(threshold=20, edgeitems=5)
 
 try:
     import pyexadis
     from framework.disnet_manager import DisNetManager
+    from framework.simulation_setup import check_cutoff_maxseg
+    from framework.testing import write_ref_npz
     from pyexadis_base import ExaDisNet, NodeConstraints, SimulateNetwork, VisualizeNetwork
     from pyexadis_base import CalForce, MobilityLaw, TimeIntegration, Collision, Remesh
 except ImportError:
@@ -34,7 +41,8 @@ def init_circular_loop(radius=100.0, N=20, box_length=1000.0, burg_vec=np.array(
 
     return DisNetManager(ExaDisNet(cell, rn, links))
 
-def main(plot=True, force_mode='DDD_FFT_MODEL', max_step=200, dt=1.0e-9):
+def main(plot=True, force_mode='DDD_FFT_MODEL', max_step=200, dt=1.0e-9,
+         print_freq=10, write_freq=10):
     global net, sim, state
 
     Lbox = 1000.0
@@ -60,7 +68,14 @@ def main(plot=True, force_mode='DDD_FFT_MODEL', max_step=200, dt=1.0e-9):
     # would be ~0.4*mu), so the loop collapses and annihilates almost immediately. At radius
     # 100 the critical stress is ~6.5e8 Pa, which is what the applied stress below is set
     # against. The material constants mu and nu are unchanged from test_disl_loop_exadis.py.
-    state = {"burgmag": 3e-10, "mu": 160e9, "nu": 0.31, "a": 1.0, "maxseg": 60.0, "minseg": 20.0, "rann": 3.0}
+    state = {"burgmag": 3e-10, "mu": 160e9, "nu": 0.31, "a": 1.0,
+             "maxseg": 60.0, "minseg": 20.0, "rann": 3.0}
+
+    # Matched by test_disl_loop_pydis_elast.py so the two truncate
+    # identically, and satisfying cutoff + maxseg <= d/3 keeps the exadis
+    # neighbor list in the regime where it is exact.
+    cutoff = 0.25*Lbox
+    check_cutoff_maxseg(Lbox*np.eye(3), cutoff, state["maxseg"])
 
     # Full elastic interactions, in contrast to the LineTension mode used in
     # test_disl_loop_exadis.py:
@@ -85,9 +100,11 @@ def main(plot=True, force_mode='DDD_FFT_MODEL', max_step=200, dt=1.0e-9):
     # and then drop Ec=0.0 from this example.
     Ec = 0.0
     if force_mode == 'DDD_FFT_MODEL':
-        calforce = CalForce(force_mode='DDD_FFT_MODEL', state=state, Ec=Ec, Ngrid=32, cell=net.cell)
+        calforce = CalForce(force_mode='DDD_FFT_MODEL', state=state,
+                            Ec=Ec, Ngrid=32, cell=net.cell)
     elif force_mode == 'CUTOFF_MODEL':
-        calforce = CalForce(force_mode='CUTOFF_MODEL', state=state, Ec=Ec, cutoff=0.5*Lbox)
+        calforce = CalForce(force_mode='CUTOFF_MODEL', state=state,
+                            Ec=Ec, cutoff=cutoff)
     else:
         raise ValueError('Unsupported force_mode %s for this example' % force_mode)
 
@@ -98,14 +115,19 @@ def main(plot=True, force_mode='DDD_FFT_MODEL', max_step=200, dt=1.0e-9):
     timeint   = TimeIntegration(integrator='EulerForward', dt=dt, state=state)
     collision = Collision(collision_mode='Retroactive', state=state)
     topology  = None
-    remesh    = Remesh(remesh_rule='LengthBased', state=state)
+    # coarsen_mode=1 is pyexadis_base.Remesh's own default, stated explicitly
+    # so that it is visible next to the matching line in
+    # test_disl_loop_pydis_elast.py: pydis defaults to 0 instead, so two
+    # implicit defaults meant the two codes ran different algorithms.
+    remesh    = Remesh(remesh_rule='LengthBased', state=state, coarsen_mode=1)
 
     sim = SimulateNetwork(calforce=calforce, mobility=mobility, timeint=timeint,
                           collision=collision, topology=topology, remesh=remesh, vis=vis,
                           state=state, max_step=max_step, loading_mode='stress',
                           applied_stress=np.array([0.0, 0.0, 0.0, 0.0, -1.0e9, 0.0]),
-                          print_freq=10, plot_freq=10, plot_pause_seconds=0.01,
-                          write_freq=10, write_dir='output')
+                          print_freq=print_freq, plot_freq=10,
+                          plot_pause_seconds=0.01,
+                          write_freq=write_freq, write_dir='output')
     sim.run(net, state)
 
 
@@ -119,15 +141,32 @@ if __name__ == "__main__":
                         choices=['DDD_FFT_MODEL', 'CUTOFF_MODEL'])
     parser.add_argument('--max-step', dest='max_step', type=int, default=200)
     parser.add_argument('--dt', dest='dt', type=float, default=1.0e-9)
+    parser.add_argument('--print-freq', dest='print_freq', type=int,
+                        default=10,
+                        help='steps between progress lines')
+    parser.add_argument('--write-freq', dest='write_freq', type=int,
+                        default=10,
+                        help='steps between intermediate configuration '
+                             'dumps under output/')
+    parser.add_argument('--write-ref', dest='write_ref', action='store_true',
+                        default=False,
+                        help='also save the final configuration as a '
+                             'reference .npz under output/')
     args = parser.parse_args()
 
-    main(plot=args.plot, force_mode=args.force_mode, max_step=args.max_step, dt=args.dt)
+    main(plot=args.plot, force_mode=args.force_mode,
+         max_step=args.max_step, dt=args.dt,
+         print_freq=args.print_freq, write_freq=args.write_freq)
 
     # explore the network after simulation
     G  = net.get_disnet(ExaDisNet)
 
     os.makedirs('output', exist_ok=True)
     net.write_json('output/disl_loop_exadis_elast_final.json')
+
+    if args.write_ref:
+        write_ref_npz(net, 'output/disl_loop_elast_ref.npz',
+                      source='exadis')
 
     if not sys.flags.interactive:
         pyexadis.finalize()

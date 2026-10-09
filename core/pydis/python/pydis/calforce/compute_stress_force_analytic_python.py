@@ -24,7 +24,16 @@ def RemoteNodeForce(x1, x2, x3, x4, bp, b, a, mu, nu):
     f2 = np.zeros_like(x2)
     f4 = np.zeros_like(x3)
     f3 = np.zeros_like(x4)
-    eps = 1e-06
+    # Threshold on 1-c^2 below which the two segments are treated as parallel and handed to
+    # SpecialRemoteNodeForce, which also receives it as ecrit. Must match the compiled
+    # ParaDiS kernel this function mirrors (core/pydis/c/calforce/SegSegForce.c: eps = 1e-4,
+    # ecrit = 1e-4) and exadis (core/exadis/src/force_types/force_common.h:1039 eps = 1e-4,
+    # :611 ecrit = 1e-4). It was 1e-06 here, a hundred times tighter, so pairs with
+    # 1e-6 < 1-c^2 < 1e-4 took the general branch in python while taking the parallel branch
+    # in C. That branch is ill-conditioned as segments approach parallel, and it was the sole
+    # source of the ~1e-6 disagreement between the two implementations; away from the
+    # threshold they agree to ~1e-12.
+    eps = 1e-04
 
     Diff = x4 - x3
     oneoverL = 1.0 / np.sqrt(np.sum(np.multiply(Diff, Diff), axis=1))
@@ -48,10 +57,30 @@ def RemoteNodeForce(x1, x2, x3, x4, bp, b, a, mu, nu):
 
     nonpar = np.logical_not(spindex)
     if np.sum(nonpar) > 0:
-        txtp = np.cross(t[nonpar, :], tp[nonpar, :])
-        onemc2inv = 1.0 / onemc2[nonpar]
+        # BUG FIX: this block used to index a handful of arrays with [nonpar] while every
+        # other array it combines them with stayed full length. That only works when no pair
+        # is parallel, i.e. when nonpar is all True; as soon as one parallel pair is present
+        # the shapes disagree and numpy raises
+        #     ValueError: operands could not be broadcast together
+        # It went unnoticed because the unit-test dataset
+        # (tests/unit_tests/test1_node_force/ref_data/segsep_..._randombvecs.dat) contains
+        # no parallel pairs, while real dislocation networks routinely do.
+        #
+        # The block is written to run at FULL length: f1..f4 are allocated np.zeros_like(x1)
+        # above, reassigned wholesale here, and the parallel rows are overwritten at the end
+        # of the function by SpecialRemoteNodeForce. So the fix is to drop the stray [nonpar]
+        # subsetting rather than to add more of it. Parallel rows are still evaluated here and
+        # their results discarded, which is why onemc2 is clamped just below: without it those
+        # rows divide by ~0 and spray inf/nan through the arithmetic before being replaced.
+        #
+        # Subsetting the whole block consistently and scattering back with f1[nonpar,:] = ...
+        # would avoid that wasted work, but it means rewriting ~150 references across 600+
+        # lines and is left as an optimisation.
+        onemc2 = np.where(spindex, 1.0, onemc2)
+        txtp = np.cross(t, tp)
+        onemc2inv = 1.0 / onemc2
         R = np.concatenate(
-            (x3[nonpar, :] - x1[nonpar, :], x4[nonpar, :] - x2[nonpar, :]), axis=1
+            (x3 - x1, x4 - x2), axis=1
         )
         d = np.multiply(np.sum(np.multiply(R[:, 0:3], txtp), 1), onemc2inv)
         temp1 = np.array(
@@ -292,17 +321,17 @@ def RemoteNodeForce(x1, x2, x3, x4, bp, b, a, mu, nu):
         a2m8p = a2 * m8p
 
         tpxt = -txtp
-        txbp = np.cross(t[nonpar, :], bp[nonpar, :])
-        tpxb = np.cross(tp[nonpar, :], b[nonpar, :])
-        bxt = np.cross(b[nonpar, :], t[nonpar, :])
-        bpxtp = np.cross(bp[nonpar, :], tp[nonpar, :])
+        txbp = np.cross(t, bp)
+        tpxb = np.cross(tp, b)
+        bxt = np.cross(b, t)
+        bpxtp = np.cross(bp, tp)
 
-        tdb = np.sum(np.multiply(t[nonpar, :], b[nonpar, :]), 1)
-        tdbp = np.sum(np.multiply(t[nonpar, :], bp[nonpar, :]), 1)
-        tpdb = np.sum(np.multiply(tp[nonpar, :], b[nonpar, :]), 1)
-        tpdbp = np.sum(np.multiply(tp[nonpar, :], bp[nonpar, :]), 1)
-        txtpdb = np.sum(np.multiply(txtp[nonpar, :], b[nonpar, :]), 1)
-        tpxtdbp = np.sum(np.multiply(tpxt[nonpar, :], bp[nonpar, :]), 1)
+        tdb = np.sum(np.multiply(t, b), 1)
+        tdbp = np.sum(np.multiply(t, bp), 1)
+        tpdb = np.sum(np.multiply(tp, b), 1)
+        tpdbp = np.sum(np.multiply(tp, bp), 1)
+        txtpdb = np.sum(np.multiply(txtp, b), 1)
+        tpxtdbp = np.sum(np.multiply(tpxt, bp), 1)
         txbpdtp = tpxtdbp
         tpxbdt = txtpdb
 
@@ -891,7 +920,12 @@ def SpecialRemoteNodeForce(
     corsize = len(corindex)
 
     if corsize > 0:
-        print("SpecialRemoteNodeForce: f3cor and f4cor")
+        # BUG FIX: these were python lists of 1-D arrays, and RemoteNodeForce starts with
+        # x1.ndim, so this branch raised AttributeError on entry. It was unreachable while
+        # the parallel threshold here was 1e-6: only near-parallel pairs take this
+        # correction, and those were being routed to the general formula instead.
+        x12, x1mod2, x2mod2, x22, x32, x42, bp2, b2 = (
+            np.array(v) for v in (x12, x1mod2, x2mod2, x22, x32, x42, bp2, b2))
         whocares1, whocares2, f3cor2, f4cor2 = RemoteNodeForce(
             x12, x1mod2, x32, x42, bp2, b2, a, mu, nu
         )
@@ -1055,7 +1089,9 @@ def SpecialRemoteNodeForce(
     corsize = len(corindex)
 
     if corsize > 0:
-        print("SpecialRemoteNodeForce: f1cor and f2cor")
+        # same fix as the f3cor/f4cor branch above
+        x32, x3mod2, x4mod2, x42, x12, x22, bp2, b2 = (
+            np.array(v) for v in (x32, x3mod2, x4mod2, x42, x12, x22, bp2, b2))
         whocares1, whocares2, f1cor2, f2cor2 = RemoteNodeForce(
             x32, x3mod2, x12, x22, b2, bp2, a, mu, nu
         )
@@ -1091,3 +1127,71 @@ def python_segseg_force_vec(p1, p2, p3, p4, b1, b2, mu, nu, a):
     # change the order of input arguments: mu, nu, a -> a, mu, nu
     f1, f2, f3, f4 = RemoteNodeForce(p1, p2, p3, p4, b1, b2, a, mu, nu)
     return f1, f2, f3, f4
+
+
+def python_selfforce_vec(burg_list, p1_list, p2_list, mu, nu, a, Ec,
+                         core_only=0, log=None):
+    """self force on each segment, in numpy
+
+    The same expressions and the same grouping as the compiled SelfForce
+    (calforce/SelfForce.c, itself ParaDiS SelfForceIsotropic), so that a run
+    without the C library computes the same physics as one with it. Vectorized
+    over segments except for the log, which is scalar so that the log used can
+    be chosen.
+
+    log defaults to numpy's, which is the platform's. Pass pydis_lib.pydis_log
+    to match a compiled _repro build bit for bit; numpy's log is a different
+    implementation and will differ in the last place.
+
+    Returns (f1, f2), the force on each segment's first and second node.
+    Segments shorter than 1e-10 in length get zero, as ParaDiS' SelfForce
+    wrapper does.
+    """
+    burg = np.asarray(burg_list, dtype=float)
+    p1 = np.asarray(p1_list, dtype=float)
+    p2 = np.asarray(p2_list, dtype=float)
+    n = burg.shape[0]
+    f2 = np.zeros((n, 3))
+
+    d = p2 - p1
+    len2 = np.sum(d*d, axis=1)
+    live = len2 >= 1.0e-20
+
+    for i in np.nonzero(live)[0]:
+        ux, uy, uz = d[i, 0], d[i, 1], d[i, 2]
+        L = np.sqrt(ux*ux + uy*uy + uz*uz)
+        tx, ty, tz = ux/L, uy/L, uz/L
+        La = np.sqrt(L*L + a*a)
+
+        bx, by, bz = burg[i, 0], burg[i, 1], burg[i, 2]
+        bs = bx*tx + by*ty + bz*tz
+        bex, bey, bez = bx - bs*tx, by - bs*ty, bz - bs*tz
+        be2 = (bex*bex + bey*bey + bez*bez)
+        bs2 = bs*bs
+
+        if core_only:
+            S = 0.0
+        else:
+            ln = np.log((La+L)/a) if log is None else log((La+L)/a)
+            S = (-(2*nu*La+(1-nu)*a*a/La-(1+nu)*a)/L +
+                 (nu*ln-(1-nu)*0.5*L/La))*mu/4/np.pi/(1-nu)*bs
+
+        fL = -Ec*(bs2 + be2/(1-nu))
+        ft = Ec*2*bs*nu/(1-nu)
+
+        # CHANGED, matching calforce/SelfForce.c rather than ParaDiS. ParaDiS
+        # writes bex*(S+ft) + fL*tx, adding S and ft before scaling be; ExaDiS
+        # arrives at the same algebra as (ft*be + fL*t) + S*be, by summing its
+        # core_force and self_force. The grouping below is ExaDiS', because that
+        # is what makes the two codes agree bitwise. See the long note in
+        # SelfForce.c; the two implementations must keep the same grouping or
+        # they stop agreeing with each other.
+        #
+        #   f2[i, 0] = bex*(S+ft) + fL*tx      # ParaDiS' own grouping
+        #   f2[i, 1] = bey*(S+ft) + fL*ty
+        #   f2[i, 2] = bez*(S+ft) + fL*tz
+        f2[i, 0] = (ft*bex + fL*tx) + S*bex
+        f2[i, 1] = (ft*bey + fL*ty) + S*bey
+        f2[i, 2] = (ft*bez + fL*tz) + S*bez
+
+    return -f2, f2

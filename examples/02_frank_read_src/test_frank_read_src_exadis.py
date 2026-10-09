@@ -2,29 +2,37 @@ import numpy as np
 import sys, os
 
 # Import pyexadis
-pyexadis_paths = ['../../python', '../../lib', '../../core/pydis/python', '../../core/exadis/python/']
-[sys.path.append(os.path.abspath(path)) for path in pyexadis_paths if not path in sys.path]
+pyexadis_paths = ['../../python', '../../lib', '../../core/pydis/python',
+                  '../../core/exadis/python/']
+[sys.path.append(os.path.abspath(path)) for path in pyexadis_paths
+ if not path in sys.path]
 np.set_printoptions(threshold=20, edgeitems=5)
 
 try:
     import pyexadis
     from framework.disnet_manager import DisNetManager
-    from pyexadis_base import ExaDisNet, NodeConstraints, SimulateNetwork, VisualizeNetwork
-    from pyexadis_base import CalForce, MobilityLaw, TimeIntegration, Collision, Remesh
+    from pyexadis_base import ExaDisNet, NodeConstraints
+    from pyexadis_base import SimulateNetwork, VisualizeNetwork
+    from pyexadis_base import CalForce, MobilityLaw, TimeIntegration
+    from pyexadis_base import Collision, Remesh
 except ImportError:
     raise ImportError('Cannot import pyexadis')
 
-def init_frank_read_src_loop(arm_length=1.0, box_length=8.0, burg_vec=np.array([1.0,0.0,0.0]), pbc=False):
+def init_frank_read_src_loop(arm_length=1.0, box_length=8.0,
+                             burg_vec=np.array([1.0,0.0,0.0]),
+                             pbc=False):
     '''Generate an initial Frank-Read source configuration
     '''
     print("init_frank_read_src_loop: length = %f" % (arm_length))
     cell = pyexadis.Cell(h=box_length*np.eye(3), is_periodic=[pbc,pbc,pbc])
     
-    rn    = np.array([[0.0, -arm_length/2.0, 0.0,         NodeConstraints.PINNED_NODE],
-                      [0.0,  0.0,            0.0,         NodeConstraints.UNCONSTRAINED],
-                      [0.0,  arm_length/2.0, 0.0,         NodeConstraints.PINNED_NODE],
-                      [0.0,  arm_length/2.0, -arm_length, NodeConstraints.PINNED_NODE],
-                      [0.0, -arm_length/2.0, -arm_length, NodeConstraints.PINNED_NODE]])
+    PINNED = NodeConstraints.PINNED_NODE
+    FREE   = NodeConstraints.UNCONSTRAINED
+    rn = np.array([[0.0, -arm_length/2.0, 0.0,         PINNED],
+                   [0.0,  0.0,            0.0,         FREE],
+                   [0.0,  arm_length/2.0, 0.0,         PINNED],
+                   [0.0,  arm_length/2.0, -arm_length, PINNED],
+                   [0.0, -arm_length/2.0, -arm_length, PINNED]])
     rn[:,0:3] += cell.center()
     
     N = rn.shape[0]
@@ -40,7 +48,8 @@ def main(plot=True):
     global net, sim, state
     
     Lbox = 1000.0
-    net = init_frank_read_src_loop(box_length=Lbox, arm_length=0.125*Lbox, pbc=True)
+    net = init_frank_read_src_loop(box_length=Lbox,
+                                   arm_length=0.125*Lbox, pbc=True)
 
     if plot:
         try:
@@ -54,19 +63,23 @@ def main(plot=True):
     else:
         vis = None
     
-    state = {"burgmag": 3e-10, "mu": 50e9, "nu": 0.3, "a": 1.0, "maxseg": 0.04*Lbox, "minseg": 0.01*Lbox, "rann": 3.0}
+    state = {"burgmag": 3e-10, "mu": 50e9, "nu": 0.3, "a": 1.0,
+             "maxseg": 0.04*Lbox, "minseg": 0.01*Lbox, "rann": 3.0}
     
     calforce  = CalForce(force_mode='LineTension', state=state)
     mobility  = MobilityLaw(mobility_law='SimpleGlide', state=state)
-    timeint   = TimeIntegration(integrator='EulerForward', dt=1.0e-8, state=state)
+    timeint   = TimeIntegration(integrator='EulerForward', dt=1.0e-8,
+                                state=state)
     collision = Collision(collision_mode='Retroactive', state=state)
     topology  = None
     remesh    = Remesh(remesh_rule='LengthBased', state=state)
     
-    sim = SimulateNetwork(calforce=calforce, mobility=mobility, timeint=timeint, 
-                          collision=collision, topology=topology, remesh=remesh, vis=vis,
-                          state=state, max_step=200, loading_mode='stress',
-                          applied_stress=np.array([0.0, 0.0, 0.0, 0.0, -4.0e8, 0.0]),
+    sim = SimulateNetwork(calforce=calforce, mobility=mobility,
+                          timeint=timeint, collision=collision,
+                          topology=topology, remesh=remesh, vis=vis,
+                          state=state, max_step=300, loading_mode='stress',
+                          applied_stress=np.array(
+                              [0.0, 0.0, 0.0, 0.0, -4.0e8, 0.0]),
                           print_freq=10, plot_freq=10, plot_pause_seconds=0.01,
                           write_freq=10, write_dir='output')
     sim.run(net, state)
@@ -77,7 +90,8 @@ if __name__ == "__main__":
 
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--no-plot', dest='plot', action='store_false', default=True)
+    parser.add_argument('--no-plot', dest='plot', action='store_false',
+                        default=True)
     args = parser.parse_args()
 
     main(plot=args.plot)

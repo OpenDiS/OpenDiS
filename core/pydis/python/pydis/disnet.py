@@ -123,14 +123,105 @@ class Cell:
         ds -= self.is_periodic * np.round(ds)
         return np.dot(self.h, ds.T).T
 
-    def closest_image(self, Rref: np.ndarray, R: np.ndarray) -> np.ndarray:
-        """map: map R to the nearest image of Rref (if PBC is applied)
+    def is_orthogonal(self) -> bool:
+        """is_orthogonal: are the cell vectors axis-aligned
+
+        True when every off-diagonal entry of h is zero, which is the
+        negation of exadis Cell::is_triclinic in core/exadis/src/network.h.
+        Only an orthogonal cell has a single box edge per component, which
+        is what the 'edge' branch of closest_image needs.
         """
-        if not any(self.is_periodic):
-            return R
+        off = self.h - np.diag(np.diag(self.h))
+        return not np.any(off)
+
+    def _closest_image_scaled(self, Rref: np.ndarray, R: np.ndarray) -> np.ndarray:
+        """_closest_image_scaled: via scaled coordinates, for any cell shape
+
+        Transforms to scaled coordinates and back unconditionally, so R is
+        rebuilt from hinv @ (R - Rref) even when the image index is zero and
+        does not round-trip exactly.
+        """
         ds = np.dot(self.hinv, (R-Rref).T).T
         ds -= self.is_periodic * np.round(ds)
         return np.dot(self.h, ds.T).T + Rref
+
+    def _closest_image_edge(self, Rref: np.ndarray, R: np.ndarray) -> np.ndarray:
+        """_closest_image_edge: subtract whole box edges, orthogonal cells only
+
+        Keeps R and removes an exact multiple of the box edge per component,
+        so a point already in the nearest image comes back untouched. Caller
+        checks is_orthogonal first; there is no per-component edge otherwise.
+        """
+        out = np.array(R, dtype=float)
+        ref = np.asarray(Rref, dtype=float)
+        for k in range(3):
+            if self.is_periodic[k]:
+                edge = self.h[k, k]
+                out[..., k] -= np.rint((out[..., k] - ref[..., k])/edge)*edge
+        return out
+
+    def closest_image(self, Rref: np.ndarray, R: np.ndarray,
+                      method: str='edge') -> np.ndarray:
+        """closest_image: map R to the nearest periodic image of Rref
+
+        Same convention as exadis' Cell::pbc_position
+        (core/exadis/src/network.h) either way; method selects the
+        arithmetic, which changes the last bits but never which image is
+        chosen.
+
+        'scaled'
+            Always goes out to scaled coordinates and back, rebuilding R
+            from hinv @ (R - Rref) even when the image index is zero. The
+            long-standing pydis form, kept because every stored reference
+            up to 2026-08-24 was produced with it.
+
+        'edge'
+            For an orthogonal cell, keeps R and subtracts an exact multiple
+            of the box edge one component at a time,
+
+                rpbc.x -= rint((rpbc.x - r0.x)/Lbox.x) * Lbox.x
+
+            so a point already in the nearest image is returned untouched.
+            This is exadis' orthogonal branch. For a triclinic cell exadis
+            has no such edge either and does the scaled round trip, so
+            'edge' falls back to 'scaled' there and the two codes already
+            agree.
+
+        The two differ on about 4% of calls in a 1000-wide box, by up to one
+        ulp at the coordinate magnitude, 5.7e-14. Where a folded point sits
+        near a box face the loss is an ulp of the box edge instead, 1.1e-13
+        at 1000. Measured over tests/unit_tests/test4_collision_mode, moving
+        this rule to 'edge' takes the worst per-step disagreement with exadis
+        from 4.5e-13 to 1.2e-13.
+
+        'edge' is the more accurate of the two and is the default. It was
+        made the default on 2026-08-24 after measuring that it moves no
+        stored reference far enough to fail: all eight test folders pass
+        with it, including the zero-tolerance comparisons that
+        tests/unit_tests/test1_node_force asserts on a bitrepro build.
+
+        The np.dot calls in the scaled form are a further wrinkle for
+        reproducibility rather than for agreement: a 3x3 matvec goes to BLAS,
+        so the result depends on which BLAS numpy was built against. The
+        'edge' form has no matrix product and so no such dependence. See
+        pydis.calforce.bitrepro_math.
+        """
+        if not any(self.is_periodic):
+            return R
+        if method == 'edge' and self.is_orthogonal():
+            return self._closest_image_edge(Rref, R)
+        if method not in ('scaled', 'edge'):
+            raise ValueError("closest_image: method must be 'scaled' or "
+                             "'edge', got %r" % (method,))
+        return self._closest_image_scaled(Rref, R)
+
+    def fold(self, R: np.ndarray) -> np.ndarray:
+        """fold: map a position into the primary cell (if PBC is applied)
+
+        The image of R nearest the cell centre. Corresponds to FoldBox in
+        external/ParaDiS.git/src/Util.c.
+        """
+        return self.closest_image(Rref=self.center(), R=R)
 
     def center(self) -> np.ndarray:
         """center: return the center of the cell
@@ -168,12 +259,19 @@ class DisNet(DisNet_Python):
             super().__init__(source, target)
             self.attr = edge_attr
 
-    def __init__(self, cell=None, rn=None, links=None) -> None:
+    def __init__(self, cell=None, rn=None, links=None,
+                 recycle_tags=True, recycle_LIFO=True) -> None:
         self._G = Graph()
         # provide a reference from tags back to nodes (with attr)
         self.tags_to_nodes = {}
         self.cell = Cell() if cell is None else cell
         self._recycled_tags = []
+        # highest tag ever handed out, so an index is not reissued just
+        # because the node holding it was removed
+        self._max_tag = (0, -1)
+        # how get_new_tag reuses the tags of removed nodes
+        self.recycle_tags = recycle_tags
+        self.recycle_LIFO = recycle_LIFO
         if rn is not None or links is not None:
             self.add_nodes_segments_from_list(rn, links)
 
@@ -184,6 +282,7 @@ class DisNet(DisNet_Python):
         self._G.clear()
         self.tags_to_nodes.clear()
         self._recycled_tags.clear()
+        self._max_tag = (0, -1)
 
     def neighbors_tags(self, tag: Tag):
         """neighbors: return neighbor tags (as iterator) of a node
@@ -472,6 +571,7 @@ class DisNet(DisNet_Python):
         node = self.Node_with_attr(tag, node_attr)
         self.tags_to_nodes[tag] = node
         self._G.add_node(node)
+        self._max_tag = max(self._max_tag, tag)
     
     def _add_edge(self, tag1: Tag, tag2: Tag, edge_attr: DisEdge) -> None:
         """add_edge: add an edge to the network
@@ -502,6 +602,32 @@ class DisNet(DisNet_Python):
         node2 = self.tags_to_nodes[tag2]
         edge = self._G.edge_between(node1, node2)
         self._G.remove_edge(edge)
+
+    def segment_as_stored(self, tag1: Tag, tag2: Tag) -> Tuple[Tag, Tag]:
+        """segment_as_stored: this segment's two endpoints, in the stored order
+
+        Which way round a segment is stored is no physics, every reader going
+        through DisEdge.burg_vec_from, but rules break ties on it: exadis'
+        retroactive collision merges into a segment's FIRST endpoint whenever
+        the collision point is within rann of it, so on a segment shorter than
+        2*rann the stored direction alone picks the survivor. The operations
+        below therefore put a surviving or new node into the endpoint slot the
+        node it replaces held, and callers naming a segment from a node's point
+        of view come through here first.
+        """
+        node1 = self.tags_to_nodes[tag1]
+        node2 = self.tags_to_nodes[tag2]
+        edge = self._G.edge_between(node1, node2)
+        if edge is None:
+            raise ValueError("segment_as_stored: no segment %s-%s"
+                             % (str(tag1), str(tag2)))
+        return edge.source.tag, edge.target.tag
+
+    def _zero_edge(self, tag1: Tag, tag2: Tag) -> None:
+        """zero_edge: set an edge's Burgers vector to zero, keeping the edge
+           user is not supposed to call this low level function, does not guarantee sanity
+        """
+        self.segments((tag1, tag2)).burg_vec[:] = 0.0
 
     def _combine_edge(self, tag1: Tag, tag2: Tag, edge_attr: DisEdge) -> None:
         """combine_edge: combine an edge with an existing edge
@@ -554,16 +680,25 @@ class DisNet(DisNet_Python):
         if not self.is_sane():
             raise ValueError("add_nodes_segments_from_list: sanity check failed")
     
-    def get_new_tag(self, recycle = True) -> Tag:
+    def get_new_tag(self, recycle = None, LIFO = None) -> Tag:
         """get_new_tag: return a new tag for a new node
+           recycle and LIFO default to the network settings recycle_tags
+           and recycle_LIFO, and may be overridden per call
            if recycle == True, then take from list of recycled node tags
            recycle == False makes it easier to debug as node tags are never reused
+           LIFO == True takes the tag freed most recently, matching exadis
         """
+        if recycle is None: recycle = self.recycle_tags
+        if LIFO is None: LIFO = self.recycle_LIFO
         if recycle and len(self._recycled_tags) > 0:
-            return self._recycled_tags.pop(0)
+            return self._recycled_tags.pop() if LIFO \
+                   else self._recycled_tags.pop(0)
         else:
-            max_tag = max(self.all_nodes_tags())
-            return (max_tag[0], max_tag[1]+1)
+            # RULE CHANGE (LengthBased): counts up from the highest tag ever
+            # issued, not from the highest still in use, so removing the
+            # top node does not put its index back in circulation. Matches
+            # exadis SerialDisNet::get_new_tag, which counts from maxindex.
+            return (self._max_tag[0], self._max_tag[1]+1)
 
     def insert_node(self, tag1: Tag, tag2: Tag, new_tag: Tag, R: np.ndarray) -> None:
         insert_node_between(tag1, tag2, new_tag, R)
@@ -581,9 +716,15 @@ class DisNet(DisNet_Python):
         self._add_edge(new_tag, tag2, new_edge_attr)
         self._remove_edge(tag1, tag2)
     
-    def remove_two_arm_node(self, old_tag: Tag) -> None:
+    def remove_two_arm_node(self, old_tag: Tag, survivor: Tag=None) -> None:
         """remove_two_arm_node: remove a node with two arms from the network
            guarantees sanity after operation
+
+        survivor names the neighbour that takes the removed node's place and
+        so inherits the endpoint slot old_tag held, as exadis' merge_nodes does
+        (core/exadis/src/network.cpp). Left None, the joining segment's
+        direction comes from old_tag's arm order instead. See
+        segment_as_stored.
         """
         if not self.has_node(old_tag):
             raise ValueError("remove_two_arm_node: Node %s does not exist" % str(old_tag))
@@ -595,9 +736,28 @@ class DisNet(DisNet_Python):
         tag1, tag2 = self.neighbors_tags(old_tag)
         end_nodes_connected = self.has_segment(tag1, tag2)
 
-        prev_link_attr = self.segments((old_tag, tag2))
-        new_link_attr = DisEdge(tag2, tag1, prev_link_attr.burg_vec_from(tag2).copy(), prev_link_attr.plane_normal.copy())
-        self._combine_edge(tag1, tag2, new_link_attr)
+        if survivor is None:
+            prev_link_attr = self.segments((old_tag, tag2))
+            new_link_attr = DisEdge(tag2, tag1, prev_link_attr.burg_vec_from(tag2).copy(), prev_link_attr.plane_normal.copy())
+            self._combine_edge(tag1, tag2, new_link_attr)
+            self._remove_node(old_tag)
+            return
+
+        if survivor not in (tag1, tag2):
+            raise ValueError("remove_two_arm_node: survivor %s is not a "
+                             "neighbour of %s" % (str(survivor), str(old_tag)))
+        other = tag1 if survivor == tag2 else tag2
+        arm = self.segments((old_tag, other))
+        old_first = next(first for nbr, _, first
+                         in self._arms_with_direction(old_tag) if nbr == other)
+        # the survivor stands where old_tag stood, inheriting its slot and its
+        # view of this arm, so the Burgers vector is read from whichever node
+        # becomes first
+        first, second = (survivor, other) if old_first else (other, survivor)
+        b_from = arm.burg_vec_from(old_tag if first == survivor else other)
+        new_link_attr = DisEdge(first, second, b_from.copy(),
+                                arm.plane_normal.copy())
+        self._combine_edge(first, second, new_link_attr)
         self._remove_node(old_tag)
 
         # remove neighbor nodes if they become orphaned
@@ -630,7 +790,39 @@ class DisNet(DisNet_Python):
             if self.out_degree(nbr_tag) == 0:
                 self._remove_node(nbr_tag)
 
-    def merge_node(self, tag1: Tag, tag2: Tag):
+    def seg_vector(self, tag1: Tag, tag2: Tag) -> np.ndarray:
+        """seg_vector: vector from tag1 to tag2, under the minimum image
+        """
+        R1 = self.nodes(tag1).R
+        return self.cell.closest_image(Rref=R1, R=self.nodes(tag2).R) - R1
+
+    def seg_length(self, tag1: Tag, tag2: Tag) -> float:
+        """seg_length: distance between two connected nodes, under the minimum image
+        """
+        return float(np.linalg.norm(self.seg_vector(tag1, tag2)))
+
+    def arm_vectors(self, tag: Tag) -> list:
+        """arm_vectors: one entry per arm of a node
+
+        Each entry is (nbr_tag, vec, burg_vec, plane_normal), with vec the
+        minimum-image vector from this node to that neighbour and burg_vec
+        oriented as leaving this node. plane_normal is None when the edge
+        carries none.
+
+        Collects in one place what several callers otherwise open-code:
+        the neighbour walk, the periodic reduction, and getting the
+        Burgers vector the right way round.
+        """
+        arms = []
+        for nbr_tag, edge in self.neighbor_segments_dict(tag).items():
+            arms.append((nbr_tag,
+                         self.seg_vector(tag, nbr_tag),
+                         edge.burg_vec_from(tag).copy(),
+                         getattr(edge, "plane_normal", None)))
+        return arms
+
+    def merge_node(self, tag1: Tag, tag2: Tag, position: np.ndarray=None,
+                   ignore_constraints: bool=False, defer_purge: bool=False):
         """merge_node: merge two nodes into one
            guarantees sanity after operation
            return mergedTag (tag1 or tag2) if merge is successful, None otherwise
@@ -638,11 +830,31 @@ class DisNet(DisNet_Python):
 
         Remove any links between node1 and node2
         If merged node has double-links to any neighbor, combine them into one (or zero) link
+
+        position, when given, is where the surviving node is placed. Without
+        it the survivor stays where it was, which is the previous and still
+        the default behaviour. Corresponds to exadis SerialDisNet::merge_nodes
+        (no position) and merge_nodes_position (with one), in
+        core/exadis/src/network.cpp.
+
+        ignore_constraints merges tag1 into tag2 even when both are pinned,
+        which otherwise returns MERGE_NOT_PERMITTED. The caller then owns
+        the decision, having already chosen which of the two survives.
+
+        defer_purge keeps the dead node and any annihilated arm in the
+        network instead of deleting them, leaving both for a later
+        purge_network. This is exadis behaviour; ParaDiS deletes eagerly
+        here, in MergeNode and RemoveDoubleLinks. The two give different
+        results, because a pass that runs before the purge sees the
+        annihilated arms as ordinary connectivity. Collision selects it
+        with its purge_at_end argument.
         """
         node1Deletable = self.nodes(tag1).constraint != DisNode.Constraints.PINNED_NODE
         node2Deletable = self.nodes(tag2).constraint != DisNode.Constraints.PINNED_NODE
 
-        if node1Deletable:
+        if ignore_constraints:
+            targetNode, deadNode = tag2, tag1
+        elif node1Deletable:
             targetNode, deadNode = tag2, tag1
         elif node2Deletable:
             targetNode, deadNode = tag1, tag2
@@ -653,18 +865,15 @@ class DisNet(DisNet_Python):
 
         # To do: update plastic strain due to merged node operation
 
-        # Remove any links between targetNode and deadNode
-        if self.has_segment(targetNode, deadNode):
-            self._remove_edge(targetNode, deadNode)
+        self._merge_arms(deadNode, targetNode, defer_purge)
 
-        # Move all connections from the dead node to the target node
-        # and add a new connection from the target node to each of the
-        # dead node's neighbors.
-        for nbr_tag, link_attr in self.neighbor_segments_dict(deadNode).items():
-            new_link_attr = DisEdge(nbr_tag, targetNode, link_attr.burg_vec_from(nbr_tag).copy(), link_attr.plane_normal.copy())
-            self._combine_edge(targetNode, nbr_tag, new_link_attr)
-
-            # To do: reset seg forces
+        if defer_purge:
+            # the dead node and the annihilated arms stay until purge_network
+            mergedTag = targetNode
+            status = 'MERGE_NODE_SUCCESS'
+            if position is not None:
+                self.nodes(mergedTag).R = np.array(position, dtype=float)
+            return mergedTag, status
 
         self._remove_node(deadNode)
 
@@ -673,12 +882,81 @@ class DisNet(DisNet_Python):
         if self.has_node(targetNode) and self.out_degree(targetNode) > 0:
             mergedTag = targetNode
             status = 'MERGE_NODE_SUCCESS'
+            if position is not None:
+                self.nodes(mergedTag).R = np.array(position, dtype=float)
         else:
             mergedTag = None
             status = 'MERGE_NODE_ORPHANED'
 
         return mergedTag, status
     
+    def _merge_arms(self, deadNode: Tag, targetNode: Tag, defer_purge: bool=False) -> None:
+        """merge_arms: move the dead node's arms onto the target node
+           user is not supposed to call this low level function, does not guarantee sanity
+
+        With defer_purge the dead node keeps every arm it cannot hand over,
+        zeroed rather than deleted, which is what exadis
+        SerialDisNet::merge_nodes_position does. See merge_node.
+        """
+        if self.has_segment(targetNode, deadNode):
+            if defer_purge:
+                self._zero_edge(targetNode, deadNode)
+            else:
+                self._remove_edge(targetNode, deadNode)
+
+        for nbr_tag, link_attr, dead_first in list(self._arms_with_direction(deadNode)):
+            if nbr_tag == targetNode or nbr_tag == deadNode:
+                continue
+            shared = self.has_segment(targetNode, nbr_tag)
+            new_link_attr = DisEdge(nbr_tag, targetNode, link_attr.burg_vec_from(nbr_tag).copy(), link_attr.plane_normal.copy())
+            # The transferred arm keeps its stored direction, the survivor
+            # taking the slot the dead node held, as exadis
+            # merge_nodes_position does. Rebuilding it as survivor -> neighbour
+            # reverses every arm that pointed into the dead node. See
+            # segment_as_stored.
+            if dead_first:
+                self._combine_edge(targetNode, nbr_tag, new_link_attr)
+            else:
+                self._combine_edge(nbr_tag, targetNode, new_link_attr)
+
+            # To do: reset seg forces
+
+            if not defer_purge:
+                continue
+            if shared:
+                # the two arms have been summed onto the target's own arm,
+                # so this one is annihilated but stays until purge_network
+                self._zero_edge(deadNode, nbr_tag)
+            else:
+                self._remove_edge(deadNode, nbr_tag)
+
+    def _arms_with_direction(self, tag: Tag):
+        """_arms_with_direction: (nbr_tag, attr, tag_is_first) for each arm
+
+        tag_is_first says whether this node is the segment's stored first
+        endpoint, which neighbor_segments_dict does not carry.
+        """
+        for edge in self.tags_to_nodes[tag].edges():
+            tag_is_first = edge.source.tag == tag
+            nbr_tag = edge.target.tag if tag_is_first else edge.source.tag
+            yield nbr_tag, edge.attr, tag_is_first
+
+    def purge_network(self, tol: float=1e-8) -> None:
+        """purge_network: drop annihilated segments and the nodes they orphan
+           guarantees sanity after operation
+
+        Corresponds to exadis SerialDisNet::purge_network in
+        core/exadis/src/network.cpp. Only needed after merges made with
+        defer_purge; eager merges leave nothing to collect.
+        """
+        for (tag1, tag2), attr in list(self.all_segments_mapping()):
+            if np.max(np.abs(attr.burg_vec)) < tol:
+                self._remove_edge(tag1, tag2)
+
+        for tag in list(self.all_nodes_tags()):
+            if self.out_degree(tag) == 0:
+                self._remove_node(tag)
+
     def find_precise_glide_plane(self, bv: np.ndarray, dirv: np.ndarray, dot_cutoff=0.9995) -> np.ndarray:
         """find_precise_glide_plane: find glide plane normal given burgers vector and line direction
         """
@@ -715,13 +993,24 @@ class DisNet(DisNet_Python):
         self.nodes(split_node1).R = pos1.copy()
 
         bv = np.zeros(3)
+        # read before the loop starts removing arms
+        tag_first = {nbr: first for nbr, _, first in self._arms_with_direction(tag)}
         for nbr in nbrs_to_split:
             if not self.has_segment(tag, nbr):
                 raise ValueError("split_node: Node %s and %s are not connected" % (str(tag), str(nbr)))
 
             link_attr = self.segments((tag, nbr))
-            new_link_attr = DisEdge(nbr, split_node2, link_attr.burg_vec_from(nbr).copy(), link_attr.plane_normal.copy())
-            self._add_edge(split_node2, nbr, new_link_attr)
+            # A transferred arm keeps its stored direction, the new node
+            # taking the slot the split node held, as exadis split_node does.
+            # See segment_as_stored.
+            if tag_first[nbr]:
+                first, second, b_source = split_node2, nbr, tag
+            else:
+                first, second, b_source = nbr, split_node2, nbr
+            new_link_attr = DisEdge(first, second,
+                                    link_attr.burg_vec_from(b_source).copy(),
+                                    link_attr.plane_normal.copy())
+            self._add_edge(first, second, new_link_attr)
             bv += link_attr.burg_vec_from(tag)
 
             self._remove_edge(tag, nbr)

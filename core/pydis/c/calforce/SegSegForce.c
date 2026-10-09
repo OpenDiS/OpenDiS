@@ -1,5 +1,24 @@
 #include "SegSegForce.h"
 
+/* Whether this file was compiled against the portable pydis_log/pydis_atan
+ * instead of the platform libm, which is what makes its output bitwise
+ * reproducible across platforms. PYDIS_BITREPRO_MATH comes from
+ * portable_math_shim.h, force-included ahead of this file by every SYS whose
+ * name ends in _repro; see core/pydis/c/CMakeLists.txt.
+ *
+ * Reported from here, rather than from a value cmake writes out separately,
+ * because here it cannot be stale or disagree with the library it describes:
+ * it is compiled from the same text, under the same flags, as the kernel it
+ * is reporting on. */
+int SegSegForce_BitReproMath(void)
+{
+#ifdef PYDIS_BITREPRO_MATH
+        return 1;
+#else
+        return 0;
+#endif
+}
+
 void SpecialSegSegForceHalf(real8 p1x, real8 p1y, real8 p1z,
                             real8 p2x, real8 p2y, real8 p2z,
                             real8 p3x, real8 p3y, real8 p3z,
@@ -1121,5 +1140,41 @@ void SegSegForce(real8 p1x, real8 p1y, real8 p1z,
                              a, MU, NU, seg12Local, seg34Local,
                              fp1x, fp1y, fp1z, fp2x, fp2y, fp2z,
                              fp3x, fp3y, fp3z, fp4x, fp4y, fp4z);
+        return;
+}
+
+/*-------------------------------------------------------------------------
+ *
+ *      Function:    SegSegForceList
+ *      Description: Evaluate SegSegForce for n segment pairs in a single call.
+ *                   See SegSegForce.h for why this entry point exists.
+ *
+ *------------------------------------------------------------------------*/
+void SegSegForceList(int n,
+                     const real8 *p1, const real8 *p2,
+                     const real8 *p3, const real8 *p4,
+                     const real8 *b12, const real8 *b34,
+                     real8 a, real8 MU, real8 NU,
+                     int seg12Local, int seg34Local,
+                     real8 *f1, real8 *f2, real8 *f3, real8 *f4)
+{
+        int k;
+
+        for (k = 0; k < n; k++) {
+                int i = 3*k;
+                SegSegForce(p1[i], p1[i+1], p1[i+2],
+                            p2[i], p2[i+1], p2[i+2],
+                            p3[i], p3[i+1], p3[i+2],
+                            p4[i], p4[i+1], p4[i+2],
+                            b12[i], b12[i+1], b12[i+2],
+                            b34[i], b34[i+1], b34[i+2],
+                            a, MU, NU,
+                            seg12Local, seg34Local,
+                            &f1[i], &f1[i+1], &f1[i+2],
+                            &f2[i], &f2[i+1], &f2[i+2],
+                            &f3[i], &f3[i+1], &f3[i+2],
+                            &f4[i], &f4[i+1], &f4[i+2]);
+        }
+
         return;
 }

@@ -1,0 +1,27 @@
+diff --git a/src/collision_types/collision_retroactive.cpp b/src/collision_types/collision_retroactive.cpp
+index d341a79..1d0276d 100644
+--- a/src/collision_types/collision_retroactive.cpp
++++ b/src/collision_types/collision_retroactive.cpp
+@@ -2028,7 +2028,21 @@ void CollisionRetroactive::retroactive_collision_parallel(System* system)
+             mergenode2 = n4;
+             vmn2 = network->nodes[n4].v;
+         } else {
+-            Vec3 pnew = (1.0-L2) * p3 + L2 * p4;
++            // LOCAL CHANGE, not upstream (caiwei/claude 2026-08-24). Was:
++            //     Vec3 pnew = (1.0-L2) * p3 + L2 * p4;
++            // p3 and p4 are the second segment reduced against the FIRST
++            // segment's first node, so across a periodic face they sit a box
++            // edge from home and interpolating between them quantizes to the
++            // coarser ulp there; pbc_fold cannot recover it. Reducing the
++            // segment against its own first node instead keeps the
++            // interpolation at home magnitude. The grouping is left exactly as
++            // it was, matching the first segment ten lines up; only the frame
++            // changes.
++            // Measured on tests/unit_tests/test4_collision_mode: 5.9e-14 ->
++            // 3.6e-15 on the affected split.
++            Vec3 q3 = network->nodes[n3].pos;
++            Vec3 q4 = network->cell.pbc_position(q3, network->nodes[n4].pos);
++            Vec3 pnew = (1.0 - L2) * q3 + L2 * q4;
+             pnew = network->cell.pbc_fold(pnew);
+             mergenode2 = network->split_seg(k, pnew);
+             vmn2 = (1.0-L2) * network->nodes[n3].v + L2 * network->nodes[n4].v;
