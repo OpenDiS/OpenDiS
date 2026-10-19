@@ -57,7 +57,8 @@ def Topology_MaxDiss(G, tag: Tag, state: dict, force, mobility, power_th=1e-3) -
 
     if do_split:
         nbrs_to_split = [nbrs[i] for i in nbr_idx_list[k_sel]]
-        state, split_node1, split_node2 = split_node_and_update_forces(G, state, tag, pos0.copy(), pos0.copy(), nbrs_to_split, force, mobility)
+        state, split_node1, split_node2 = split_node_and_update_forces(G, state, tag, pos0.copy(), pos0.copy(), nbrs_to_split, force, mobility,
+                                                                       plast_acc=state.get("plast_acc"))
         exempt_from_collisions(state, split_node1, split_node2)
 
     return state

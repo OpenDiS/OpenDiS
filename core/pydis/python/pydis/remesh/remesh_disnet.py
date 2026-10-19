@@ -81,5 +81,6 @@ class Remesh:
         """Remesh: remesh dislocation network according to remesh_rule
         """
         G = DM.get_disnet(DisNet)
-        self.Remesh_Functions[self.remesh_rule](G, self.params)
+        self.Remesh_Functions[self.remesh_rule](G, self.params,
+                                                plast_acc=state.get("plast_acc"))
         return state

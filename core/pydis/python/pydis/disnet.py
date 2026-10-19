@@ -703,11 +703,29 @@ class DisNet(DisNet_Python):
     def insert_node(self, tag1: Tag, tag2: Tag, new_tag: Tag, R: np.ndarray) -> None:
         insert_node_between(tag1, tag2, new_tag, R)
 
-    def insert_node_between(self, tag1: Tag, tag2: Tag, new_tag: Tag, R: np.ndarray) -> None:
+    def move_node(self, tag: Tag, pos: np.ndarray, plast_acc=None) -> None:
+        """move_node: place a node at pos, accounting for the area its arms sweep
+
+        Corresponds to exadis SerialDisNet::move_node
+        (core/exadis/src/network.cpp), except that pos is stored as given
+        rather than folded, as the assignments it replaces did. plast_acc,
+        a pydis.util.plastic_strain.PlasticStrainAccum, collects the swept
+        area; None skips the accounting.
+        """
+        pos = np.array(pos, dtype=float)
+        if plast_acc is not None:
+            plast_acc.add_moves(self, {tag: (self.nodes(tag).R, pos)})
+        self.nodes(tag).R = pos
+
+    def insert_node_between(self, tag1: Tag, tag2: Tag, new_tag: Tag, R: np.ndarray,
+                            plast_acc=None) -> None:
         """insert_node_between: insert a node between two existing nodes
            guarantees sanity after operation
+
+        With plast_acc, the area swept by bending the segment out to R is
+        accounted, as a node created at tag1 and moved to R. It is zero when
+        R lies on the segment.
         """
-        # To do: update plastic strain if new node position is not on segment
         self._add_node(new_tag, DisNode(R=R.copy()))
         prev_edge_attr = self.segments((tag1, tag2))
         new_edge_attr = DisEdge(tag1, new_tag, prev_edge_attr.burg_vec_from(tag1).copy(), prev_edge_attr.plane_normal.copy())
@@ -715,8 +733,11 @@ class DisNet(DisNet_Python):
         new_edge_attr = DisEdge(tag2, new_tag, prev_edge_attr.burg_vec_from(tag2).copy(), prev_edge_attr.plane_normal.copy())
         self._add_edge(new_tag, tag2, new_edge_attr)
         self._remove_edge(tag1, tag2)
+        if plast_acc is not None:
+            plast_acc.add_moves(self, {new_tag: (self.nodes(tag1).R, R)})
     
-    def remove_two_arm_node(self, old_tag: Tag, survivor: Tag=None) -> None:
+    def remove_two_arm_node(self, old_tag: Tag, survivor: Tag=None,
+                            position: np.ndarray=None, plast_acc=None) -> None:
         """remove_two_arm_node: remove a node with two arms from the network
            guarantees sanity after operation
 
@@ -725,15 +746,24 @@ class DisNet(DisNet_Python):
         (core/exadis/src/network.cpp). Left None, the joining segment's
         direction comes from old_tag's arm order instead. See
         segment_as_stored.
+
+        position, which needs a survivor, is where the survivor ends up, as
+        in exadis' merge_nodes_position. With plast_acc the area swept is
+        accounted as old_tag and the survivor moving there together, or as
+        old_tag collapsing onto the survivor, or onto its first neighbour,
+        when no position is given.
         """
         if not self.has_node(old_tag):
             raise ValueError("remove_two_arm_node: Node %s does not exist" % str(old_tag))
         if self.out_degree(old_tag) != 2:
             raise ValueError("remove_two_arm_node: Node %s does not have two arms" % str(old_tag))
-
-        # To do: update plastic strain due to removed node operation
+        if position is not None and survivor is None:
+            raise ValueError("remove_two_arm_node: position needs a survivor")
 
         tag1, tag2 = self.neighbors_tags(old_tag)
+        if plast_acc is not None:
+            plast_acc.add_moves(self, self._collapse_moves(
+                old_tag, survivor if survivor is not None else tag1, position))
         end_nodes_connected = self.has_segment(tag1, tag2)
 
         if survivor is None:
@@ -763,6 +793,21 @@ class DisNet(DisNet_Python):
         # remove neighbor nodes if they become orphaned
         self.remove_empty_arms(tag1)
         self.remove_empty_arms(tag2)
+        # the removal can orphan the survivor and take it with it
+        if position is not None and self.has_node(survivor):
+            self.nodes(survivor).R = np.array(position, dtype=float)
+
+    def _collapse_moves(self, dead: Tag, target: Tag, position=None) -> dict:
+        """_collapse_moves: {tag: (old, new)} for dead merging into target
+
+        Both end at position when it is given; otherwise target stays and
+        dead moves onto it. The form PlasticStrainAccum.add_moves takes.
+        """
+        end = self.nodes(target).R if position is None else position
+        moves = {dead: (self.nodes(dead).R, end)}
+        if position is not None:
+            moves[target] = (self.nodes(target).R, position)
+        return moves
 
     def remove_empty_arms(self, tag: Tag, tol = 1e-8) -> None:
         """remove_empty_arms: remove any zero-Burgers vector arms between a node and any of its neighbors
@@ -822,7 +867,8 @@ class DisNet(DisNet_Python):
         return arms
 
     def merge_node(self, tag1: Tag, tag2: Tag, position: np.ndarray=None,
-                   ignore_constraints: bool=False, defer_purge: bool=False):
+                   ignore_constraints: bool=False, defer_purge: bool=False,
+                   plast_acc=None):
         """merge_node: merge two nodes into one
            guarantees sanity after operation
            return mergedTag (tag1 or tag2) if merge is successful, None otherwise
@@ -848,6 +894,10 @@ class DisNet(DisNet_Python):
         results, because a pass that runs before the purge sees the
         annihilated arms as ordinary connectivity. Collision selects it
         with its purge_at_end argument.
+
+        plast_acc accounts the area swept as both nodes reach the merged
+        position, measured on the arms before they are combined. It is kept
+        when the merge orphans the node: the arms did sweep that area.
         """
         node1Deletable = self.nodes(tag1).constraint != DisNode.Constraints.PINNED_NODE
         node2Deletable = self.nodes(tag2).constraint != DisNode.Constraints.PINNED_NODE
@@ -863,7 +913,8 @@ class DisNet(DisNet_Python):
             status = 'MERGE_NOT_PERMITTED'
             return mergedTag, status
 
-        # To do: update plastic strain due to merged node operation
+        if plast_acc is not None:
+            plast_acc.add_moves(self, self._collapse_moves(deadNode, targetNode, position))
 
         self._merge_arms(deadNode, targetNode, defer_purge)
 
@@ -974,18 +1025,23 @@ class DisNet(DisNet_Python):
 
         return pn
 
-    def split_node(self, tag: Tag, pos1: np.ndarray, pos2: np.ndarray, nbrs_to_split: list, eps_b = 1e-3) -> (Tag, Tag):
+    def split_node(self, tag: Tag, pos1: np.ndarray, pos2: np.ndarray, nbrs_to_split: list, eps_b = 1e-3,
+                   plast_acc=None) -> (Tag, Tag):
         """split_node: split a node into two nodes with neighbors split according to partition
            guarantees sanity after operation
 
         inputs:
            tag: tag of the node to be split
            nbrs_to_split: list of tags of neighbors to be split off to the new node
+           plast_acc: collects the area swept as both products leave tag's
+              position, including any segment created between them, which
+              exadis' execute_split counts as zero
 
         outputs:
            split_node1: tag of the node to which all unselected arms are connected
            split_node2: tag of the node to which all selected arms are connected
         """
+        pos_old = self.nodes(tag).R.copy()
         split_node1 = tag
         split_node2 = self.get_new_tag()
         self._add_node(split_node2, DisNode(R=pos2.copy()))
@@ -1032,6 +1088,9 @@ class DisNet(DisNet_Python):
 
             self._add_edge(split_node1, split_node2, DisEdge(split_node1, split_node2, burg_vec=bv.copy(), plane_normal=pn.copy()))
 
+        if plast_acc is not None:
+            plast_acc.add_moves(self, {split_node1: (pos_old, pos1),
+                                       split_node2: (pos_old, pos2)})
         #print("split_node: original tag = %s -> new tags = %s, %s, bv = %s" % (str(tag), str(split_node1), str(split_node2)))
         return split_node1, split_node2
 

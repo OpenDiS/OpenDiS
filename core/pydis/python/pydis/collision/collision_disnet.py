@@ -135,7 +135,8 @@ class Collision:
                             splitSeg1, newPos1 = True, (1-L1)*p1 + L1*p2
                             # skip velocity for now
                             new_tag = G.get_new_tag()
-                            G.insert_node_between(tag1, tag2, new_tag, newPos1)
+                            G.insert_node_between(tag1, tag2, new_tag, newPos1,
+                                                  plast_acc=state.get("plast_acc"))
                             mergenode1 = new_tag
 
                         if close2node3:
@@ -146,7 +147,8 @@ class Collision:
                             splitSeg2, newPos2 = True, (1-L2)*p3 + L2*p4
                             # skip velocity for now
                             new_tag = G.get_new_tag()
-                            G.insert_node_between(tag3, tag4, new_tag, newPos2)
+                            G.insert_node_between(tag3, tag4, new_tag, newPos2,
+                                                  plast_acc=state.get("plast_acc"))
                             mergenode2 = new_tag
 
                         # To do: determine precise position satisfying glide constraints
@@ -230,9 +232,9 @@ class Collision:
                                 and G.has_segment(mergenode1, mergenode2)):
                             newPos = newPos1.copy()
 
-                        mergedTag, status = G.merge_node(mergenode1, mergenode2)
-                        if mergedTag != None:
-                            G.nodes(mergedTag).R = newPos
+                        mergedTag, status = G.merge_node(
+                            mergenode1, mergenode2, position=newPos,
+                            plast_acc=state.get("plast_acc"))
 
         # In ParaDiS the hinge case (zipping) is handled separately
         # They are skipped here for simplicity

@@ -21,7 +21,7 @@ framework.arm_order, whose set_node_arm_order this uses.
 from framework.arm_order import set_node_arm_order
 
 
-def insert_node_matching_exadis(G, tag1, tag2, new_tag, R):
+def insert_node_matching_exadis(G, tag1, tag2, new_tag, R, plast_acc=None):
     """insert_node_matching_exadis: split a segment, ExaDiS' arm order kept
 
     GUARANTEE, load-bearing for keeping this equivalent to plain PyDiS
@@ -61,14 +61,15 @@ def insert_node_matching_exadis(G, tag1, tag2, new_tag, R):
     order2 = [new_tag if nbr == tag1 else nbr
               for nbr in G.neighbors_tags(tag2)]
 
-    G.insert_node_between(tag1, tag2, new_tag, R)
+    G.insert_node_between(tag1, tag2, new_tag, R, plast_acc=plast_acc)
 
     set_node_arm_order(G, tag1, order1)
     set_node_arm_order(G, tag2, order2)
     set_node_arm_order(G, new_tag, [tag2, tag1])
 
 
-def split_node_matching_exadis(G, tag, pos1, pos2, nbrs_to_split, eps_b=1e-3):
+def split_node_matching_exadis(G, tag, pos1, pos2, nbrs_to_split, eps_b=1e-3,
+                               plast_acc=None):
     """split_node_matching_exadis: split a multi-arm node, ExaDiS' arm order kept
 
     GUARANTEE, load-bearing for keeping this equivalent to plain PyDiS
@@ -106,6 +107,7 @@ def split_node_matching_exadis(G, tag, pos1, pos2, nbrs_to_split, eps_b=1e-3):
     since reversing an arbitrarily-ordered list would not reproduce
     anything ExaDiS does.
     """
-    split_node1, split_node2 = G.split_node(tag, pos1, pos2, nbrs_to_split, eps_b)
+    split_node1, split_node2 = G.split_node(tag, pos1, pos2, nbrs_to_split, eps_b,
+                                            plast_acc=plast_acc)
     set_node_arm_order(G, split_node2, list(reversed(nbrs_to_split)))
     return split_node1, split_node2

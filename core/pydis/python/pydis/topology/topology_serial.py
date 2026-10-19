@@ -400,7 +400,8 @@ def Topology_Serial(G, tag: Tag, state: dict, force, mobility,
 
     power, pos1, pos2, nbrs_to_split = best
     state, split_node1, split_node2 = split_node_and_update_forces(
-        G, state, tag, pos1, pos2, nbrs_to_split, force, mobility)
+        G, state, tag, pos1, pos2, nbrs_to_split, force, mobility,
+        plast_acc=state.get("plast_acc"))
     exempt_from_collisions(state, split_node1, split_node2)
 
     return state

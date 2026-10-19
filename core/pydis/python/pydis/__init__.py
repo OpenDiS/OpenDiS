@@ -11,3 +11,4 @@ from .remesh.remesh_disnet import Remesh
 from .visualize.vis_disnet import VisualizeNetwork
 from .simulate.sim_disnet import SimulateNetwork
 from .nbrlist.nbrlist import CellList
+from .util.fcc_slip_sys import FCC_slip_sys

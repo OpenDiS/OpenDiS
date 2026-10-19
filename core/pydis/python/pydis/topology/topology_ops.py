@@ -70,10 +70,14 @@ def ensure_node_forces(G, state, force, mobility):
     return mobility.Mobility(DisNetManager(G), state)
 
 
-def split_node_and_update_forces(G, state, tag, pos1, pos2, nbrs_to_split, force, mobility):
+def split_node_and_update_forces(G, state, tag, pos1, pos2, nbrs_to_split, force, mobility,
+                                 plast_acc=None):
     """split_node_and_update_forces: split a node and refresh both new nodes' forces
+
+    plast_acc is for the split that is kept; trial splits leave it None.
     """
-    split_node1, split_node2 = split_node_matching_exadis(G, tag, pos1, pos2, nbrs_to_split)
+    split_node1, split_node2 = split_node_matching_exadis(G, tag, pos1, pos2, nbrs_to_split,
+                                                         plast_acc=plast_acc)
     # calculate nodal forces and velocities for the trial split
     # To do: pass DisNetManager instead of DisNet in these static methods
     f1 = force.OneNodeForce(DisNetManager(G), state, split_node1, update_state=True)

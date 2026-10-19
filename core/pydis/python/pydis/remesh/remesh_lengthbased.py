@@ -49,7 +49,7 @@ def _movable(G: DisNet, tag, merged_already) -> bool:
     return (_removable(G, tag) and tag not in merged_already)
 
 
-def Remesh_LengthBased(G: DisNet, params) -> None:
+def Remesh_LengthBased(G: DisNet, params, plast_acc=None) -> None:
     """Remesh_LengthBased: coarsen below minseg, refine above maxseg
 
     Two shapes, chosen by params.interleave_coarsen_refine.
@@ -85,18 +85,19 @@ def Remesh_LengthBased(G: DisNet, params) -> None:
     if getattr(params, 'coarsen_mode', 0) == 1:
         # recycle=True: this refinement runs before any coarsening, so the
         # tag pool holds only what earlier passes freed, which exadis reuses
-        _refine(G, params, list(G.all_segments_tags()), recycle=True)
-        _coarsen_nodes(G, params)
+        _refine(G, params, list(G.all_segments_tags()), recycle=True,
+                plast_acc=plast_acc)
+        _coarsen_nodes(G, params, plast_acc=plast_acc)
         return
 
     all_segments_list = list(G.all_segments_tags())
     if getattr(params, 'interleave_coarsen_refine', True):
-        _interleave(G, params, all_segments_list)
+        _interleave(G, params, all_segments_list, plast_acc=plast_acc)
         return
-    _coarsen(G, params, all_segments_list)
+    _coarsen(G, params, all_segments_list, plast_acc=plast_acc)
     if getattr(params, 'refine_from_fresh_scan', False):
         all_segments_list = list(G.all_segments_tags())
-    _refine(G, params, all_segments_list)
+    _refine(G, params, all_segments_list, plast_acc=plast_acc)
 
 
 def _follow_merges(merged_into, tag):
@@ -131,7 +132,7 @@ def _live_segment(G: DisNet, merged_into, tag1, tag2):
 
 
 def _coarsen_segment(G: DisNet, tag1, tag2, r1, r2,
-                     merged_into, merged_already) -> None:
+                     merged_into, merged_already, plast_acc=None) -> None:
     """_coarsen_segment: merge one under-length segment's endpoints
 
     RULE CHANGE (LengthBased): the second endpoint is removed and the first
@@ -153,15 +154,13 @@ def _coarsen_segment(G: DisNet, tag1, tag2, r1, r2,
         return
     if G.out_degree(tag) != 2:
         return
-    G.remove_two_arm_node(tag, survivor=survivor)
+    G.remove_two_arm_node(tag, survivor=survivor, position=R, plast_acc=plast_acc)
     merged_into[tag] = survivor
     merged_already.add(survivor)
-    # the removal can orphan the survivor and take it with it
-    if G.has_node(survivor):
-        G.nodes(survivor).R = R.copy()
 
 
-def _refine_segment(G: DisNet, tag1, tag2, r1, r2, recycle=False) -> None:
+def _refine_segment(G: DisNet, tag1, tag2, r1, r2, recycle=False,
+                    plast_acc=None) -> None:
     """_refine_segment: bisect one over-length segment
 
     A segment between two pinned nodes is left alone.
@@ -182,12 +181,12 @@ def _refine_segment(G: DisNet, tag1, tag2, r1, r2, recycle=False) -> None:
             G.nodes(tag2).constraint == DisNode.Constraints.PINNED_NODE):
         return
     G.insert_node_between(tag1, tag2, G.get_new_tag(recycle=recycle),
-                          (r1 + r2)/2.0)
+                          (r1 + r2)/2.0, plast_acc=plast_acc)
     if not G.is_sane():
         raise ValueError("Remesh_LengthBased: sanity check failed after a bisection")
 
 
-def _interleave(G: DisNet, params, all_segments_list) -> None:
+def _interleave(G: DisNet, params, all_segments_list, plast_acc=None) -> None:
     """_interleave: one pass, each segment refined or coarsened as it is reached
 
     exadis' loop shape, and the reason it matters. ExaDiS' refine_coarsen
@@ -213,14 +212,15 @@ def _interleave(G: DisNet, params, all_segments_list) -> None:
             continue
         tag1, tag2, r1, r2, length = live
         if length > params.maxseg:
-            _refine_segment(G, tag1, tag2, r1, r2)
+            _refine_segment(G, tag1, tag2, r1, r2, plast_acc=plast_acc)
         elif length < params.minseg:
-            _coarsen_segment(G, tag1, tag2, r1, r2, merged_into, merged_already)
+            _coarsen_segment(G, tag1, tag2, r1, r2, merged_into, merged_already,
+                             plast_acc=plast_acc)
     if not G.is_sane():
         raise ValueError("Remesh_LengthBased: sanity check failed after interleave")
 
 
-def _coarsen_nodes(G: DisNet, params) -> None:
+def _coarsen_nodes(G: DisNet, params, plast_acc=None) -> None:
     """_coarsen_nodes: coarsen_mode 1, node-centric coarsening
 
     Walks 2-arm unconstrained nodes rather than segments. A node whose shorter
@@ -274,18 +274,15 @@ def _coarsen_nodes(G: DisNet, params) -> None:
 
         near = 0 if length[0] < length[1] else 1
         survivor, R = nbrs[near], r[near]
-        G.remove_two_arm_node(tag, survivor=survivor)
+        G.remove_two_arm_node(tag, survivor=survivor, position=R, plast_acc=plast_acc)
         frozen.add(survivor)
-        # the removal can orphan the survivor and take it with it
-        if G.has_node(survivor):
-            G.nodes(survivor).R = R.copy()
 
     if not G.is_sane():
         raise ValueError("Remesh_LengthBased: sanity check failed after "
                          "node-centric coarsening")
 
 
-def _coarsen(G: DisNet, params, all_segments_list) -> None:
+def _coarsen(G: DisNet, params, all_segments_list, plast_acc=None) -> None:
     """_coarsen: merge the endpoints of segments shorter than minseg
 
     all_segments_list fixes *which* segments are candidates (the pre-pass
@@ -328,13 +325,15 @@ def _coarsen(G: DisNet, params, all_segments_list) -> None:
             continue
         tag1, tag2, r1, r2, length = live
         if length < params.minseg:
-            _coarsen_segment(G, tag1, tag2, r1, r2, merged_into, merged_already)
+            _coarsen_segment(G, tag1, tag2, r1, r2, merged_into, merged_already,
+                             plast_acc=plast_acc)
 
     if not G.is_sane():
         raise ValueError("Remesh_LengthBased: sanity check failed 1")
 
 
-def _refine(G: DisNet, params, all_segments_list, recycle=False) -> None:
+def _refine(G: DisNet, params, all_segments_list, recycle=False,
+            plast_acc=None) -> None:
     """_refine: bisect segments longer than maxseg
 
     all_segments_list is the pre-coarsen snapshot from Remesh_LengthBased,
@@ -350,7 +349,8 @@ def _refine(G: DisNet, params, all_segments_list, recycle=False) -> None:
             continue
         tag1, tag2, r1, r2, length = live
         if length > params.maxseg:
-            _refine_segment(G, tag1, tag2, r1, r2, recycle=recycle)
+            _refine_segment(G, tag1, tag2, r1, r2, recycle=recycle,
+                            plast_acc=plast_acc)
 
     if not G.is_sane():
         raise ValueError("Remesh_LengthBased: sanity check failed 2")

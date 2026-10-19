@@ -161,6 +161,8 @@ class RetroactiveCollision:
 
         self.velocities = velocities_by_tag(state)
         self.old_positions = old_positions_by_tag(state)
+        # swept area of the merges and splits below, when the caller tracks it
+        self.plast_acc = state.get("plast_acc")
         self.missing_velocity = 0
         self.missing_old_position = 0
         self.last_planes = 0
@@ -310,7 +312,8 @@ class RetroactiveCollision:
         # not G.insert_node_between directly: the new node's arms, and the two
         # old nodes' arm slots, have to come out in exadis' order or a later
         # merge breaks a near-degenerate plane tie the other way
-        insert_node_matching_exadis(self.G, tag1, tag2, new_tag, pnew)
+        insert_node_matching_exadis(self.G, tag1, tag2, new_tag, pnew,
+                                    plast_acc=self.plast_acc)
         v = ((1.0 - ratio) * self.velocity(tag1)
              + ratio * self.velocity(tag2))
         return new_tag, v
@@ -487,7 +490,8 @@ class RetroactiveCollision:
             survivor, dead = tag1, tag2
         return self.G.merge_node(dead, survivor, position=newpos,
                                  ignore_constraints=True,
-                                 defer_purge=self.purge_at_end)
+                                 defer_purge=self.purge_at_end,
+                                 plast_acc=self.plast_acc)
 
     def latch(self, *tags):
         """latch: bar every segment on these nodes from colliding again"""
