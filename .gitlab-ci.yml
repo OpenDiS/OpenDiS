@@ -36,6 +36,8 @@ default:
     # so this does not depend on where conda.sh lives on the node
     - export PATH=$HOME/.conda/envs/opendis/bin:$PATH
     - which python3 && python3 --version && cmake --version | head -1
+    # the tier of tolerances the tests run in, as the framework resolves it
+    - python3 -c "import sys; sys.path[:0] = ['python']; from framework import testing; print('test tier:', testing.TIER)"
 
 build:
   stage: build
