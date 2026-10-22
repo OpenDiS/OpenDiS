@@ -17,6 +17,11 @@ variables:
   # executor runs git clean -ffdx before each job, which would otherwise take
   # build/, the installed lib/, and pyexadis*.so with it. Needs concurrent = 1.
   GIT_CLEAN_FLAGS: -ffdx -e build/ -e lib/ -e core/exadis/python/
+  # The tests' strict tier: bitwise agreement wherever a test asks for it, which
+  # this runner's _repro build holds. Without it the tests run the user tier,
+  # which allows for the round-off of other machines and compilers; see
+  # python/framework/testing.py.
+  OPENDIS_TEST_TIER: strict
 
 default:
   tags: [MC3, CPU]

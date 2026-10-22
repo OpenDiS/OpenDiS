@@ -314,12 +314,18 @@ def test_hinge_angle():
         return (v(0, 0, 0), v(1, 0, 0),
                 v(np.cos(theta), np.sin(theta), 0))
 
-    # by construction the cosine of the angle between the two arms
+    # Arms with integer coordinates from Pythagorean triples (a, b, c), so that
+    # the cosine is one correctly rounded division, b/c, on any machine: the
+    # squared lengths and the dot product are exact integers, and so are their
+    # square roots. Arms made with np.cos and np.sin would carry the platform's
+    # libm into the answer, and an exact check of them would hold only where it
+    # was written (it missed by one ulp on a machine whose numpy rounds them
+    # differently).
     got, want = [], []
-    for theta in (0.05, 0.3, 1.0):
-        got.append(hinge_cos_angle(*arms(theta)))
-        want.append(np.cos(theta))
-    ok = report_vals("hinge: cosine matches cos(theta) at %d angles"
+    for a, b, c in ((3, 4, 5), (5, 12, 13), (8, 15, 17)):
+        got.append(hinge_cos_angle(v(0, 0, 0), v(c, 0, 0), v(b, a, 0)))
+        want.append(b / c)
+    ok = report_vals("hinge: cosine matches b/c at %d Pythagorean angles"
                      % len(got), got, want)
 
     tight = hinge_cos_angle(*arms(0.1))      # cos = 0.995

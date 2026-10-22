@@ -77,7 +77,8 @@ from framework.simulation_setup import remesh_initial_config
 # below; see framework.arm_order.
 from framework.arm_order import export_arm_order, apply_arm_order
 from framework.testing import (report, report_close, verdict,
-                               quiet_native_output, kokkos_summary)
+                               quiet_native_output, kokkos_summary,
+                               strict_tier, tier_tol)
 
 # Tolerance on the paired node positions. Zero: the two codes agree on every
 # colliding step to the last bit, so report_close tags the line [BITWISE].
@@ -89,16 +90,20 @@ from framework.testing import (report, report_close, verdict,
 # writes. Flipping either switch reopens a residual of order 1e-14, which this
 # tolerance then catches.
 #
-# The frame fix is a local, uncommitted change inside core/exadis, so a
-# `git submodule update` will make this assertion fail. That is deliberate: the
-# alternative was a tolerance loose enough to hide it.
+# The frame fix is ExaDiS commit 633f882, which the pinned submodule has had
+# since 99b17ca; an ExaDiS without it makes this assertion fail. That is
+# deliberate: the alternative was a tolerance loose enough to hide it.
 #
 # Exactness here rests on the single thread forced at the top of this file, as
 # in test3_remesh_rule: each step hands pydis exadis' own snapshot, so exadis'
 # trajectory does not enter the comparison, but its collision arithmetic is not
 # thread-invariant. check_setup below checks the count Kokkos actually took,
 # rather than leaving a later failure to be puzzled over.
-ATOL_POS = 0.0
+#
+# That is the strict tier (framework.testing). The user tier allows 1e-9, for
+# another machine's round-off: a build that fuses multiply-adds lands 9.0e-12
+# apart at step 301.
+ATOL_POS = tier_tol(0.0, 1.0e-9)
 
 # ---------------------------------------------------------------- configuration
 
@@ -1045,8 +1050,14 @@ def check_tag_state_consistency(records):
              "recording at every step it covers")
     if bad:
         label += "  [differs at %s]" % ", ".join(str(i) for i in bad)
-    ok = report(label, not bad and bool(checked))
-    return bool(ok)
+    passed = not bad and bool(checked)
+    if passed or strict_tier():
+        return bool(report(label, passed))
+    # The recording follows one trajectory, which any change of round-off moves
+    # from step 263 on: a build that fuses multiply-adds does so. Outside the
+    # strict tier a mismatch is reported, then, but not counted.
+    print("%s ... not counted in the user tier" % label)
+    return True
 
 
 def check_invariants(records):

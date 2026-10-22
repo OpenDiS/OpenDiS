@@ -13,7 +13,7 @@ import argparse
 
 import numpy as np
 from pydis.calforce.compute_stress_analytic_paradis       import compute_seg_stress_coord_dep, compute_seg_stress_coord_indep
-from framework.testing import report_close
+from framework.testing import report_close, tier_tol
 from pydis.build_info import bitrepro_math, build_description
 
 mu = 1000.0
@@ -28,7 +28,9 @@ a = 0.01
 # in fact reproducible either way and the _repro build changes nothing about it.
 # The tolerance follows the build regardless, so that such a run holds every
 # pydis kernel to exact equality with nothing quietly exempt.
-atol = 0.0 if bitrepro_math() else 1e-10
+# zero in the strict tier only: in the user tier (framework.testing) a
+# _repro build allows for another machine's round-off, as any other build does
+atol = tier_tol(0.0, 1e-10) if bitrepro_math() else 1e-10
 
 seg_data = np.load(input_dir / "seg_data.npy")
 p1_list = seg_data[:, 0:3]

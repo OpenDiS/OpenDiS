@@ -74,7 +74,8 @@ import numpy as np
 from framework.disnet_manager import DisNetManager
 from framework.simulation_setup import check_cutoff_maxseg
 from framework.testing import (report, quiet_native_output, kokkos_summary,
-                              max_nearest_distance, GREEN, RED, RESET, BITWISE_TAG)
+                              max_nearest_distance, GREEN, RED, RESET, BITWISE_TAG,
+                              strict_tier, tier_tol)
 from framework.arm_order import export_arm_order, apply_arm_order
 
 import test_collision_mode_pydis_exadis as t4
@@ -187,7 +188,11 @@ TIE_REL_THRESHOLD = 1e-4
 # then to 0.0 once framework.arm_order.rebase_export_data closed the last
 # arm-order-dependent residual (plan_topology_mode.md section 11): every step
 # now measures exactly 0.0000e+00.
-POS_DIFF_TOL = 0.0
+#
+# That is the strict tier (framework.testing); the user tier allows 1e-10, for
+# another machine's round-off: a build that fuses multiply-adds lands 8.0e-14
+# apart at step 194.
+POS_DIFF_TOL = tier_tol(0.0, 1.0e-10)
 
 OUT_DIR = Path('output')   # cwd-relative, as the other tests are
 REF_DIR = Path(__file__).resolve().parent / 'ref_data'
@@ -1059,8 +1064,14 @@ def check_tag_state_consistency(records):
              "recording at every step it covers")
     if bad:
         label += "  [differs at %s]" % ", ".join(str(i) for i in bad)
-    ok = report(label, not bad and bool(checked))
-    return bool(ok)
+    passed = not bad and bool(checked)
+    if passed or strict_tier():
+        return bool(report(label, passed))
+    # As in test4_collision_mode: the recording follows one trajectory, which a
+    # change of round-off can move, so outside the strict tier a mismatch is
+    # reported but not counted.
+    print("%s ... not counted in the user tier" % label)
+    return True
 
 
 def check_invariants(records):

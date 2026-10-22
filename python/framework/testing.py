@@ -37,6 +37,27 @@ RESET = '\033[0m'
 # rather than that an error grew.
 BITWISE_TAG = MAGENTA + '[BITWISE]' + RESET
 
+# Two tiers of tolerances. The strict tier holds a build to what the CI runner
+# and the machines that blessed the references meet: bitwise agreement wherever
+# a test asks for it, and the margins measured there. The user tier, the
+# default, allows for the round-off of other machines and compilers, which is
+# real but no defect: a compiler that fuses a*b + c into one multiply-add, as
+# clang does on Apple silicon unless told not to, or a numpy whose cos and sin
+# round differently. OPENDIS_TEST_TIER=strict selects the strict tier, as
+# .gitlab-ci.yml does; anything else, or nothing, the user tier.
+TIER = ('strict' if os.environ.get('OPENDIS_TEST_TIER', '').strip().lower() == 'strict'
+        else 'user')
+
+
+def strict_tier():
+    """strict_tier: whether this run holds the strict tier of tolerances"""
+    return TIER == 'strict'
+
+
+def tier_tol(strict, user):
+    """tier_tol: this run's tolerance, given the strict tier's and the user tier's"""
+    return strict if strict_tier() else user
+
 
 class _Captured:
     """_Captured: carries text out of quiet_native_output's closed file"""
@@ -126,7 +147,8 @@ def report(name, passed, suffix=''):
     the result rather than naming what was tested.
     """
     tag = GREEN + 'PASSED' + RESET if passed else RED + 'FAILED' + RESET
-    print("%s ... %s%s" % (name, tag, suffix))
+    # a failure says which tier it failed in: in the user tier it is not round-off
+    print("%s ... %s%s%s" % (name, tag, suffix, '' if passed else ' (%s tier)' % TIER))
     return passed
 
 

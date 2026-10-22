@@ -79,7 +79,7 @@ for _p in ['python', 'lib', 'core/pydis/python', 'core/exadis/python',
     if _q not in sys.path:
         sys.path.append(_q)
 
-from framework.testing import report, run_script, compare_configs
+from framework.testing import report, run_script, compare_configs, tier_tol
 
 examples_dir = opendis_root / 'examples' / '02_frank_read_src'
 
@@ -93,7 +93,10 @@ IMPORT_EXADIS_ORDER = True
 # flaky, but anything approaching this bound means a real divergence. The two
 # codes' positions drift apart at ~1e-07 in a box of 1000 over the first 260
 # steps of ordinary motion, which is the floor this sits above.
-TOL = 1.0e-6
+# That is the strict tier (framework.testing); the user tier allows ten times
+# as much, for another machine's round-off: a build that fuses multiply-adds
+# reaches 6.0e-07 here.
+TOL = tier_tol(1.0e-6, 1.0e-5)
 
 MAX_STEP = 300
 

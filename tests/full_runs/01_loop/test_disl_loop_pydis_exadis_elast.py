@@ -24,7 +24,7 @@ from pathlib import Path
 # root is 3 levels up
 opendis_root = Path(__file__).resolve().parents[3]
 sys.path.append(str(opendis_root / 'python'))
-from framework.testing import report, run_script
+from framework.testing import report, run_script, tier_tol
 from framework.testing import compare_configs, compare_to_ref
 
 examples_dir = opendis_root / 'examples' / '01_loop'
@@ -33,7 +33,9 @@ examples_dir = opendis_root / 'examples' / '01_loop'
 # Set well above the measured round-off: summation order in the threaded ExaDiS
 # kernels is not deterministic, so an exact figure would be flaky, while
 # anything approaching this bound would mean a real divergence.
-TOL = 1.0e-6
+# That is the strict tier (framework.testing); the user tier allows ten times
+# as much, for another machine's round-off.
+TOL = tier_tol(1.0e-6, 1.0e-5)
 
 MAX_STEP = 200
 

@@ -42,6 +42,20 @@ set(CMAKE_DISABLE_IN_SOURCE_BUILD ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_INSTALL_PREFIX install)
 
+# A _repro build must agree bitwise with every other _repro build, so it must
+# round every floating-point operation the same way. Compilers may instead fuse
+# a*b + c into one multiply-add, rounded once rather than twice, wherever the
+# target has the instruction: clang does by default (-ffp-contract=on), so on
+# arm64, which always has it, every compiled kernel moved in its last bits
+# against x86_64, which has it only with -mfma or a -march that includes it.
+# So contraction is off for every C and C++ target of such a build, the pydis
+# library, ExaDiS and Kokkos alike, all added below. On x86_64 without FMA this
+# changes nothing; on x86_64 with -mfma it gives back those same results.
+if(PYDIS_BITREPRO_MATH)
+    add_compile_options($<$<COMPILE_LANGUAGE:C,CXX>:-ffp-contract=off>)
+    message(" floating-point contraction off (-ffp-contract=off)")
+endif()
+
 add_subdirectory(core/pydis)
 add_subdirectory(core/exadis)
 

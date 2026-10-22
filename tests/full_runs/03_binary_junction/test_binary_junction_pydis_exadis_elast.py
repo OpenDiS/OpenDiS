@@ -105,7 +105,8 @@ for _p in ['python', 'lib', 'core/pydis/python', 'core/exadis/python',
         sys.path.append(_q)
 
 import numpy as np
-from framework.testing import report, run_script, compare_configs, compare_to_ref
+from framework.testing import (report, run_script, compare_configs, compare_to_ref,
+                               tier_tol)
 
 examples_dir = opendis_root / 'examples' / '03_binary_junction'
 
@@ -158,7 +159,12 @@ N_JUNCTION_ENDS = 2
 # more topological events than 02's case, so a larger floor is expected, not
 # a sign of a remaining bug. Still tight enough to catch independent()'s own
 # failures, which run 1e-2 to 1e-1.
-TOL = 5.0e-6
+#
+# That is the strict tier (framework.testing), only 9% above the floor where it
+# was measured. The user tier allows 1.0e-4, for another machine's round-off: a
+# build that fuses multiply-adds passes 5e-06 at step 53, and its worst over the
+# 300 steps is 8.4e-06.
+TOL = tier_tol(5.0e-6, 1.0e-4)
 
 # The final configuration is checked against a stored reference rather than
 # only against pydis and exadis agreeing with each other. Agreeing with each

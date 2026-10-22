@@ -71,7 +71,7 @@ from pydis.calforce.calforce_disnet import CalForce as PyCalForce
 from framework.disnet_manager import DisNetManager
 from framework.simulation_setup import check_cutoff_maxseg
 from framework.testing import (load_force_ref, report, report_close,
-                               quiet_native_output, kokkos_summary)
+                               quiet_native_output, kokkos_summary, tier_tol)
 from pydis.build_info import bitrepro_math, build_description
 from pydis.calforce.bitrepro_math import ENABLED as numpy_bitrepro_math
 
@@ -109,8 +109,13 @@ atol = 1.0e-6
 # pydis.calforce.bitrepro_math) -- so its own exactness depends on that
 # separate, Python-side flag instead. ExaDiS is built against its own
 # platform libm regardless, and keeps atol for both.
-atol_lt     = 0.0 if numpy_bitrepro_math else atol
-atol_elast  = 0.0 if bitrepro_math()      else atol
+#
+# The zeros here and the 1e-12 below are the strict tier (framework.testing);
+# the user tier holds all four to atol, which another machine's round-off
+# needs: a build that fuses multiply-adds misses the reference by 4.8e-07 on
+# elasticity, in pydis and ExaDiS alike.
+atol_lt     = tier_tol(0.0, atol) if numpy_bitrepro_math else atol
+atol_elast  = tier_tol(0.0, atol) if bitrepro_math()      else atol
 
 # ExaDiS is held to zero on the line tension and close to it on the elasticity.
 #
@@ -128,8 +133,8 @@ atol_elast  = 0.0 if bitrepro_math()      else atol
 # accumulation shape, which was measured and rejected: see the note on
 # OMP_NUM_THREADS above for why the thread count has to be pinned for even this
 # number to be stable. 1e-12 is the observed value with about 70x margin.
-atol_exadis_lt    = 0.0 if numpy_bitrepro_math else atol
-atol_exadis_elast = 1.0e-12
+atol_exadis_lt    = tier_tol(0.0, atol) if numpy_bitrepro_math else atol
+atol_exadis_elast = tier_tol(1.0e-12, atol)
 
 
 def load_config(rn_file=RN_FILE, links_file=LINKS_FILE):
