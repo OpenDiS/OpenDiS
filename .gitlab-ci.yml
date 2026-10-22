@@ -39,6 +39,11 @@ default:
 
 build:
   stage: build
+  variables:
+    # always a fresh clone, so that nothing left in the builds directory can
+    # break the runner's own source step, which runs before any script here;
+    # the test jobs keep the default, since they use the tree built here
+    GIT_STRATEGY: clone
   script:
     - rm -rf build; ./configure.sh -DSYS=mc3_cpu_repro
     - cmake --build build -j 8
