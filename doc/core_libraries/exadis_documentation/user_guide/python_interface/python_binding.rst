@@ -227,6 +227,11 @@ General Classes
 
       Copy constructor.
 
+   .. py:method:: set_pbc(pbcs)
+      :noindex:
+
+      Set the cell pbc flags along the 3 dimensions.
+
    .. py:attribute:: h
       :type: array
       :noindex:
@@ -248,6 +253,16 @@ General Classes
       :noindex:
 
       Returns the closest image of an array of positions from another reference.
+
+   .. py:method:: real_position(S)
+      :noindex:
+
+      Returns the real position of a scaled coordinate S.
+
+   .. py:method:: scaled_position(R)
+      :noindex:
+
+      Returns the scaled coordinate of a real position R.
 
    .. py:method:: pbc_fold(R)
       :noindex:
@@ -680,6 +695,11 @@ General Classes
       Checks if the network is sane (valid connectivity, no corrupt data).
 
       :rtype: bool
+
+   .. py:method:: set_cell(cell)
+      :noindex:
+
+      Set the cell containing the network.
 
    .. py:method:: get_cell()
       :noindex:
@@ -1167,6 +1187,11 @@ Mobility Binder
       :noindex:
 
       Get mobility name.
+
+   .. py:method:: non_linear()
+      :noindex:
+
+      Get mobility non-linear flag.
 
    .. py:method:: compute(system)
       :noindex:
