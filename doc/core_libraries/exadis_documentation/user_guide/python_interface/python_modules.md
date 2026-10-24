@@ -57,7 +57,7 @@ Available force modes are:
     - `Ngrid` (required): size of the FFT grid along each dimension.
     - `cell` (required): simulation cell object.
     - `Ec` (optional): core energy factor in Pa. If not provided or negative, it defaults to the standard value Ec=mu/4/pi*ln(a/0.1).
-    - `Ecore_junc_fact` (optional): ratio of the core energy of junction to native Burgers vectors. Default: 1.0.
+    - `Ec_junc_fact` (optional): ratio of the core energy of junction to native Burgers vectors. Default: 1.0.
 
 
 * `force_mode='SUBCYCLING_MODEL'`: Force mode required to be used when using  subcycling time-integration. It uses the DDD-FFT model described above. Specific mode parameters are:
@@ -65,18 +65,18 @@ Available force modes are:
     - `cell` (required): simulation cell object.
     - `drift` (optional): toggle to use the drift subcycling scheme. If drift=0 the original subcycling scheme is used, which is not compatible with non-linear mobilities. Default: 1.
     - `Ec` (optional): core energy factor in Pa. If not provided or negative, it defaults to the standard value Ec=mu/4/pi*ln(a/0.1).
-    - `Ecore_junc_fact` (optional): ratio of the core energy of junction to native Burgers vectors. Default: 1.0.
+    - `Ec_junc_fact` (optional): ratio of the core energy of junction to native Burgers vectors. Default: 1.0.
 
 
 * `force_mode='CUTOFF_MODEL'`: Cutoff model where forces are computed by summing (i) external PK forces from the applied stress, (ii) core forces, and (iii) short-range elastic interactions up to a given cutoff distance between segment pairs, computed with the non-singular model. Specific mode parameters are:
     - `cutoff` (required): cutoff for segment pair interaction distance.
     - `Ec` (optional): core energy factor in Pa. If not provided or negative, it defaults to the standard value Ec=mu/4/pi*ln(a/0.1).
-    - `Ecore_junc_fact` (optional): ratio of the core energy of junction to native Burgers vectors. Default: 1.0.
+    - `Ec_junc_fact` (optional): ratio of the core energy of junction to native Burgers vectors. Default: 1.0.
 
 
 * `force_mode='LINE_TENSION_MODEL'` or `force_mode='LineTension'`: line-tension model where forces are computed from (i) the external PK force from the applied stress and (ii) the line energy (core force), and no pairwise elastic interaction is accounted for. Specific mode parameters are:
     - `Ec` (optional): core energy factor in Pa. If not provided or negative, it defaults to the standard value Ec=mu/4/pi*ln(a/0.1).
-    - `Ecore_junc_fact` (optional): ratio of the core energy of junction to native Burgers vectors. Default: 1.0.
+    - `Ec_junc_fact` (optional): ratio of the core energy of junction to native Burgers vectors. Default: 1.0.
 
 
 * `force_mode='GLOBAL_MODEL'`: global force model where a list of individual force contributions is provided by the user. Specific mode parameters are:
@@ -93,8 +93,8 @@ Available force modes are:
     Below is the list of currently available force contributions with their parameters:
     ```python
     # Base force contributions
-    'FORCE_LINE_TENSION': {'Ec': Ec, 'Ecore_junc_fact': Ecore_junc_fact} # core + applied PK forces
-    'FORCE_CORE_SELF_PKEXT': {'Ec': Ec, 'Ecore_junc_fact': Ecore_junc_fact} # core + self + applied PK forces
+    'FORCE_LINE_TENSION': {'Ec': Ec, 'Ec_junc_fact': Ec_junc_fact} # core + applied PK forces
+    'FORCE_CORE_SELF_PKEXT': {'Ec': Ec, 'Ec_junc_fact': Ec_junc_fact} # core + self + applied PK forces
     'FORCE_COREMD_SELF_PKEXT': {'rc': rc, 'porder0': porder0, 'pcoeffs0': pcoeffs0, 'porder1': porder1, 'pcoeffs1': pcoeffs1} # spline core + self + applied PK forces
     'FORCE_SEGSEG_ISO': {'cutoff': cutoff} # short-range forces
     'FORCE_SEGSEG_ISO_FFT': {'cutoff': cutoff} # short-range forces with FFT correction
@@ -102,10 +102,10 @@ Available force modes are:
     'FORCE_LONG_FFT_SHORT_ISO': {'Ngrid': Ngrid} # short-range forces with FFT correction + long-range FFT force
     'FORCE_N2_ISO': {} # brute-force N2 force
     # Composite force models
-    'LINE_TENSION_MODEL': {'Ec': Ec, 'Ecore_junc_fact': Ecore_junc_fact} # core + applied PK forces, same as FORCE_LINE_TENSION
-    'CUTOFF_MODEL': {'cutoff': cutoff, 'Ec': Ec, 'Ecore_junc_fact': Ecore_junc_fact} # core + self + applied PK + short-range forces, same as FORCE_CORE_SELF_PKEXT + FORCE_SEGSEG_ISO
-    'DDD_FFT_MODEL': {'Ngrid': Ngrid, 'Ec': Ec, 'Ecore_junc_fact': Ecore_junc_fact} # core + self + applied PK + short-range FFT + longe-range FFT forces, same as FORCE_CORE_SELF_PKEXT + FORCE_LONG_FFT_SHORT_ISO
-    'SUBCYCLING_MODEL': {'Ngrid': Ngrid, 'Ec': Ec, 'Ecore_junc_fact': Ecore_junc_fact} # core + self + applied PK + short-range FFT + longe-range FFT forces
+    'LINE_TENSION_MODEL': {'Ec': Ec, 'Ec_junc_fact': Ec_junc_fact} # core + applied PK forces, same as FORCE_LINE_TENSION
+    'CUTOFF_MODEL': {'cutoff': cutoff, 'Ec': Ec, 'Ec_junc_fact': Ec_junc_fact} # core + self + applied PK + short-range forces, same as FORCE_CORE_SELF_PKEXT + FORCE_SEGSEG_ISO
+    'DDD_FFT_MODEL': {'Ngrid': Ngrid, 'Ec': Ec, 'Ec_junc_fact': Ec_junc_fact} # core + self + applied PK + short-range FFT + longe-range FFT forces, same as FORCE_CORE_SELF_PKEXT + FORCE_LONG_FFT_SHORT_ISO
+    'SUBCYCLING_MODEL': {'Ngrid': Ngrid, 'Ec': Ec, 'Ec_junc_fact': Ec_junc_fact} # core + self + applied PK + short-range FFT + longe-range FFT forces
     ```
 
 
