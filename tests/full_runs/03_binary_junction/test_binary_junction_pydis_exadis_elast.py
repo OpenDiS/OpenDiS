@@ -21,7 +21,7 @@ order right before remesh is the one piece iteration order that does
 matter, because it is the one thing Remesh_LengthBased reads
 (list(G.all_segments_tags())) that pydis holds no order of its own to
 match ExaDiS' with. Node counts agree at all 300 steps and positions agree
-to round-off (worst 4.6022e-06 against a 5.0e-06 tolerance).
+to round-off (worst 4.6022e-06, against the strict tier's 1.0e-05).
 
 WITHOUT it. The two examples run as independent subprocesses (as this file
 always did before order import was added) and are compared at the midpoint
@@ -160,11 +160,14 @@ N_JUNCTION_ENDS = 2
 # a sign of a remaining bug. Still tight enough to catch independent()'s own
 # failures, which run 1e-2 to 1e-1.
 #
-# That is the strict tier (framework.testing), only 9% above the floor where it
-# was measured. The user tier allows 1.0e-4, for another machine's round-off: a
-# build that fuses multiply-adds passes 5e-06 at step 53, and its worst over the
-# 300 steps is 8.4e-06.
-TOL = tier_tol(5.0e-6, 1.0e-4)
+# The strict tier (framework.testing) allows 1.0e-5. It was 5.0e-6, just above
+# that floor: on an Apple M3, with contraction off as in every _repro build,
+# the two codes agree within 5.0e-6 through step 271 and reach 5.65e-6 at step
+# 272, on the same trajectory as on x86_64. 1.0e-5 leaves both machines room
+# and still catches independent()'s failures. The user tier allows 1.0e-4, for
+# any other machine's round-off: a build that fuses multiply-adds passes 5e-06
+# at step 53, and its worst over the 300 steps is 8.4e-06.
+TOL = tier_tol(1.0e-5, 1.0e-4)
 
 # The final configuration is checked against a stored reference rather than
 # only against pydis and exadis agreeing with each other. Agreeing with each
