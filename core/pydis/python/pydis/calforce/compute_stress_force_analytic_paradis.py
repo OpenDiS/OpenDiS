@@ -1,5 +1,5 @@
 import numpy as np
-from ctypes import c_double
+from ctypes import c_double, POINTER
 real8 = c_double
 
 try:
@@ -103,7 +103,24 @@ def compute_segseg_force(p1, p2, p3, p4, b1, b2, mu, nu, a, seg12local=1, seg34l
     """
     dislocation segment from p1 to p2 with Burgers vector b1
     dislocation segment from p3 to p4 with Burgers vector b2
+
+    RULE CHANGE: a segment shorter than sqrt(MIN_SEG_LEN2) contributes no
+    force at all -- matching ExaDiS's SegSegIso::segseg_force
+    (core/exadis/src/force_types/force_iso.h:50,57,60:
+    `if (l1 >= 1.e-20 && l2 >= 1.e-20) { ... }`, same threshold). The
+    underlying SegSegForce routine (a direct port of ParaDiS's own) is
+    singular for a genuinely zero-length segment -- confirmed directly:
+    nan on that segment's own two endpoints, zero (unaffected) on the
+    other segment's. This matters for a topology trial split: the new
+    segment connecting two still-coincident trial nodes, before either is
+    moved anywhere, has exactly zero length. ExaDiS never calls this
+    routine on such a segment in the first place, via this same guard.
     """
+    MIN_SEG_LEN2 = 1.0e-20
+    l1, l2 = p2 - p1, p4 - p3
+    if np.dot(l1, l1) < MIN_SEG_LEN2 or np.dot(l2, l2) < MIN_SEG_LEN2:
+        z = np.zeros(3)
+        return z, z.copy(), z.copy(), z.copy()
 
     f1x, f1y, f1z = real8(), real8(), real8()
     f2x, f2y, f2z = real8(), real8(), real8()
@@ -132,26 +149,38 @@ def compute_segseg_force(p1, p2, p3, p4, b1, b2, mu, nu, a, seg12local=1, seg34l
     return f1, f2, f3, f4
 
 
-# a vectorized version of the above function compute_segseg_force
-def compute_segseg_force_vec(
-    p1_list, p2_list, p3_list, p4_list, b1_list, b2_list, mu, nu, a
-):
-    f1_list = np.empty_like(p1_list)
-    f2_list = np.empty_like(p2_list)
-    f3_list = np.empty_like(p3_list)
-    f4_list = np.empty_like(p4_list)
+def compute_segseg_force_batch(p1, p2, p3, p4, b1, b2, mu, nu, a,
+                               seg12local=1, seg34local=1):
+    """Batched segment-segment force: one ctypes call for the whole array.
 
-    for ii, (p1, p2, p3, p4, b1, b2) in enumerate(
-        zip(p1_list, p2_list, p3_list, p4_list, b1_list, b2_list)
-    ):
-        f1_list[ii], f2_list[ii], f3_list[ii], f4_list[ii] = compute_segseg_force(
-            p1, p2, p3, p4, b1, b2, mu, nu, a
-        )
+    Same numbers as compute_segseg_force applied pair by pair, but the loop runs inside
+    the compiled library (SegSegForceList) rather than in python, so the ctypes marshalling
+    cost is paid once per batch instead of once per pair.
 
-    return f1_list, f2_list, f3_list, f4_list
+    p1..p4, b1, b2 are (N,3); returns f1..f4 each (N,3).
+    """
+    p1, p2, p3, p4, b1, b2 = (np.ascontiguousarray(x, dtype=np.float64)
+                              for x in (p1, p2, p3, p4, b1, b2))
+    n = p1.shape[0]
+    f1 = np.empty((n, 3), dtype=np.float64)
+    f2 = np.empty((n, 3), dtype=np.float64)
+    f3 = np.empty((n, 3), dtype=np.float64)
+    f4 = np.empty((n, 3), dtype=np.float64)
+    dp = lambda x: x.ctypes.data_as(POINTER(c_double))
+    pydis_lib.SegSegForceList(n, dp(p1), dp(p2), dp(p3), dp(p4), dp(b1), dp(b2),
+                              a, mu, nu, seg12local, seg34local,
+                              dp(f1), dp(f2), dp(f3), dp(f4))
+    return f1, f2, f3, f4
 
-
-def compute_segseg_force_vec(
+# Array-in, array-out wrapper around the scalar compute_segseg_force.
+#
+# NOT vectorized: it loops in python and calls the compiled scalar routine once
+# per pair, so it costs the same as calling compute_segseg_force directly in a
+# loop. It was previously named compute_segseg_force_vec, which promised a
+# speed-up it does not deliver. For a genuinely vectorized kernel use
+# python_segseg_force_vec in compute_stress_force_analytic_python.py, which
+# operates on whole batches with numpy.
+def compute_segseg_force_list(
     p1_list,
     p2_list,
     p3_list,
@@ -177,3 +206,32 @@ def compute_segseg_force_vec(
         )
 
     return f1, f2, f3, f4
+
+
+def compute_selfforce_list(burg_list, p1_list, p2_list, mu, nu, a, Ec,
+                           core_only=0):
+    """self force on each segment, through the compiled SelfForceList
+
+    ParaDiS SelfForce, one C call for the whole list rather than one per
+    segment. Returns (f1, f2), the force on each segment's first and second
+    node, f1 == -f2.
+
+    Prefer this over the numpy version in
+    compute_stress_force_analytic_python: on a _repro build its log() is the
+    portable one, so the result matches ExaDiS' kernel, which the numpy
+    version can only do by calling pydis_log itself.
+    """
+    burg = np.ascontiguousarray(burg_list, dtype=np.float64)
+    p1 = np.ascontiguousarray(p1_list, dtype=np.float64)
+    p2 = np.ascontiguousarray(p2_list, dtype=np.float64)
+    nseg = burg.shape[0]
+    fseg = np.zeros((nseg, 6), dtype=np.float64)
+
+    pydis_lib.SelfForceList(
+        int(core_only), real8(mu), real8(nu), real8(a), real8(Ec), int(nseg),
+        burg.ctypes.data_as(POINTER(real8)),
+        p1.ctypes.data_as(POINTER(real8)),
+        p2.ctypes.data_as(POINTER(real8)),
+        fseg.ctypes.data_as(POINTER(real8)))
+
+    return fseg[:, 0:3], fseg[:, 3:6]

@@ -118,8 +118,16 @@ class DisNetManager:
             raise ValueError("read_json: version not supported")
         data['cell']['h'] = np.array(data['cell']['h'])
         data['cell']['origin'] = np.array(data['cell']['origin'])
-        data['nodes'] = np.array(data['nodes'])
-        data['segs']  = np.array(data['segs'])
+        # write_json stores nodes and segs as dictionaries of arrays
+        # ({tags, positions, constraints} and {nodeids, burgers,
+        # planes}), which is the layout import_data expects on both the
+        # pydis and the exadis side. Converting the dictionary itself
+        # with np.array() would produce a 0-d object array instead.
+        int_fields = ['tags', 'constraints', 'nodeids']
+        for group in ['nodes', 'segs']:
+            for key in data[group]:
+                dtype = int if key in int_fields else float
+                data[group][key] = np.array(data[group][key], dtype=dtype)
         self.import_data(data)
 
     @property

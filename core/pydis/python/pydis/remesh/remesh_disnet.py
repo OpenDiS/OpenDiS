@@ -1,12 +1,57 @@
 """@package docstring
 Remesh_DisNet: class for defining Remesh functions
 
-Provide remesh functions given a DisNet object
+Provide remesh functions given a DisNet object. Each rule lives in its own
+module and is a plain function of (network, params), so a rule can be called
+and tested without constructing a Remesh.
 """
 
-import numpy as np
-from ..disnet import DisNet, DisNode
+from ..disnet import DisNet
 from framework.disnet_manager import DisNetManager
+from .remesh_lengthbased import Remesh_LengthBased
+
+
+class RemeshParams:
+    """RemeshParams: the lengths the remesh rules work to, and one rule flag"""
+
+    def __init__(self, state: dict) -> None:
+        self.maxseg = state.get("maxseg", None)
+        self.minseg = state.get("minseg", None)
+        # Which coarsening algorithm, matching exadis RemeshSerial::Params.
+        #   0 (default here): segment-centric. Walk segments; merge the two
+        #     endpoints of one shorter than minseg, survivor at the mid-point.
+        #   1 (default in exadis' python wrapper and in ParaDiS): node-centric.
+        #     Walk 2-arm unconstrained nodes; merge one whose shorter arm is
+        #     under minseg into its nearer neighbour, which does not move.
+        # The two are different algorithms, not settings of one, and they
+        # coarsen different configurations. See Remesh_LengthBased.
+        #
+        # 0 is the default here only because it is what pydis implemented
+        # first, so every existing caller already expects it; exadis' own
+        # python default is 1.
+        self.coarsen_mode = state.get("coarsen_mode", 0)
+        if self.coarsen_mode not in (0, 1):
+            raise ValueError("RemeshParams: coarsen_mode must be 0 or 1, got %r"
+                             % (self.coarsen_mode,))
+        # One interleaved pass over the segments (True, matches exadis) or
+        # coarsening and then refinement as two passes (False, matches ParaDiS).
+        # See Remesh_LengthBased: this is the pass structure, and it decides
+        # whether a segment an earlier merge lengthened is bisected in the same
+        # pass. Measured to matter on tests/full_runs/02_frank_read_src.
+        self.interleave_coarsen_refine = state.get("interleave_coarsen_refine",
+                                                   True)
+        # Only consulted when interleave_coarsen_refine is False.
+        # Where refinement takes its candidate segments from. Refinement runs
+        # after coarsening either way, and reads every length live; the flag
+        # only decides which segments it looks at.
+        #   False (default, matches exadis): the snapshot taken before
+        #     coarsening, so a segment coarsening created by merging a node
+        #     away is not a candidate until the next remesh call.
+        #   True (matches ParaDiS): a fresh scan of the coarsened network, so
+        #     such a segment is refined in the same call.
+        # See Remesh_LengthBased for which cases each agrees with.
+        self.refine_from_fresh_scan = state.get("refine_from_fresh_scan", False)
+
 
 class Remesh:
     """Remesh: class for remeshing dislocation network
@@ -14,71 +59,27 @@ class Remesh:
     """
     def __init__(self, state: dict={}, remesh_rule: str='LengthBased') -> None:
         self.remesh_rule = remesh_rule
-        self.maxseg = state.get("maxseg", None)
-        self.minseg = state.get("minseg", None)
+        self.params = RemeshParams(state)
 
         self.Remesh_Functions = {
-            'LengthBased': self.Remesh_LengthBased,
-            'RemeshRule_2_ParaDiS': self.RemeshRule_2_ParaDiS }
-        
+            'LengthBased': Remesh_LengthBased }
+
+        if remesh_rule not in self.Remesh_Functions:
+            raise ValueError("Remesh: unknown remesh_rule '%s', expected one of %s"
+                             % (remesh_rule, sorted(self.Remesh_Functions)))
+
+    # kept so callers that read them still work
+    @property
+    def maxseg(self):
+        return self.params.maxseg
+
+    @property
+    def minseg(self):
+        return self.params.minseg
+
     def Remesh(self, DM: DisNetManager, state: dict) -> None:
         """Remesh: remesh dislocation network according to remesh_rule
         """
         G = DM.get_disnet(DisNet)
-        self.Remesh_Functions[self.remesh_rule](G)
+        self.Remesh_Functions[self.remesh_rule](G, self.params)
         return state
-
-    def Remesh_LengthBased(self, G: DisNet) -> None:
-        """Remesh_LengthBased: remesh dislocation network according to segment length
-        """
-        # mesh coarsen
-        nodes_to_remove = []
-        segs_data_with_positions = G.get_segs_data_with_positions()
-        Nseg = segs_data_with_positions["nodeids"].shape[0]
-        source_tags = segs_data_with_positions["tag1"]
-        target_tags = segs_data_with_positions["tag2"]
-        R1 = segs_data_with_positions["R1"]
-        R2 = segs_data_with_positions["R2"]
-        for i in range(Nseg):
-            tag1, tag2 = tuple(source_tags[i]), tuple(target_tags[i])
-            node1, node2 = G.nodes(tag1), G.nodes(tag2)
-            #R1, R2 = node1.R, node2.R
-            r1, r2 = R1[i,:].copy(), R2[i,:].copy()
-            # apply PBC
-            r2 = G.cell.closest_image(Rref=r1, R=r2)
-            L = np.linalg.norm(r2-r1)
-            if (L < self.minseg):
-                if G.out_degree(tag1) == 2 and node1.constraint != DisNode.Constraints.PINNED_NODE:
-                    nodes_to_remove.append(tag1)
-                elif G.out_degree(tag2) == 2 and node2.constraint != DisNode.Constraints.PINNED_NODE:
-                    nodes_to_remove.append(tag2)
-        for tag in set(nodes_to_remove):
-            if G.has_node(tag):
-                G.remove_two_arm_node(tag)
-
-        if not G.is_sane():
-            raise ValueError("Remesh_LengthBased: sanity check failed 1")
-
-        # mesh refine
-        all_segments_list = list(G.all_segments_tags())
-        for tag1, tag2 in all_segments_list:
-            node1, node2 = G.nodes(tag1), G.nodes(tag2)
-            r1, r2 = node1.R.copy(), node2.R.copy()
-            # apply PBC
-            r2 = G.cell.closest_image(Rref=r1, R=r2)
-            L = np.linalg.norm(r2-r1)
-            if (L > self.maxseg) and ((node1.constraint != DisNode.Constraints.PINNED_NODE) or (node2.constraint != DisNode.Constraints.PINNED_NODE)):
-                # insert new node on segment
-                new_tag = G.get_new_tag()
-                r = (r1 + r2)/2.0
-                G.insert_node_between(tag1, tag2, new_tag, r)
-                if not G.is_sane():
-                    raise ValueError("Remesh_LengthBased: sanity check failed 1a")
-
-        if not G.is_sane():
-            raise ValueError("Remesh_LengthBased: sanity check failed 2")
-
-    def RemeshRule_2_ParaDiS(self, G: DisNet) -> None:
-        """RemeshRule_2_ParaDiS: using RemeshRule_2 of ParaDiS
-        """
-        raise NotImplementedError("RemeshRule_2_ParaDiS: not implemented yet")
