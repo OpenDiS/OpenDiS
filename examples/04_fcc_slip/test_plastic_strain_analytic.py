@@ -28,6 +28,7 @@ from scipy.spatial.transform import Rotation
 from framework.testing import report, report_close, verdict
 from pydis import DisNode, DisNet, Cell
 import plast_strain_util as psu
+import fcc_frank_read_util as fr
 import disl_analysis_on_dict_util as mlmat
 
 FREE = DisNode.Constraints.UNCONSTRAINED
@@ -142,26 +143,11 @@ def mlmat_increment(G, old, new):
     return p.d_pl_strain_sum, W, np.array([-W[1, 2], W[0, 2], -W[0, 1]])
 
 
-def random_loop(rng, nnode=10):
-    """random_loop: a polygon around (900, 500, 500) that crosses the x face
-
-    Nodes are jittered about even spacing so every segment stays well under
-    half the box; a longer one has no unique minimum image.
-    """
-    cell = Cell(h=LBOX*np.eye(3), is_periodic=[True, True, True])
-    t = (np.arange(nnode) + rng.uniform(-0.3, 0.3, nnode)) * (2*np.pi / nnode)
-    u, v = np.linalg.qr(rng.normal(size=(3, 3)))[0][:, :2].T
-    pos = cell.fold(np.array([900.0, 500.0, 500.0])
-                    + 300.0*(np.outer(np.cos(t), u) + np.outer(np.sin(t), v)))
-    b = rng.normal(size=3)
-    return network(cell, pos, b / np.linalg.norm(b))
-
-
 def check_against_mlmat():
     rng = np.random.default_rng(11)
     err_E = err_W = err_phi = 0.0
     for _ in range(20):
-        G = random_loop(rng)
+        G = fr.random_loop(rng)
         old = snapshot(G)
         move(G, rng.normal(scale=40.0, size=(G.num_nodes(), 3)))
         dEp, dWp = psu.plastic_strain_increment(G, old)

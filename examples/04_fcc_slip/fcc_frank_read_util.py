@@ -142,3 +142,18 @@ def closed_loop(cell, pos, burg, constraints=None):
         constraints = np.full(N, FREE)
     rn = np.column_stack((pos, constraints))
     return DisNet(cell=cell, rn=rn, links=loop_links(cell, pos, burg))
+
+
+def random_loop(rng, nnode=10, box_length=1000.0):
+    """random_loop: a polygon around (900, 500, 500) that crosses the x face, random b
+
+    Nodes are jittered about even spacing so every segment stays well under
+    half the box; a longer one has no unique minimum image.
+    """
+    cell = Cell(h=box_length*np.eye(3), is_periodic=[True, True, True])
+    t = (np.arange(nnode) + rng.uniform(-0.3, 0.3, nnode)) * (2*np.pi / nnode)
+    u, v = np.linalg.qr(rng.normal(size=(3, 3)))[0][:, :2].T
+    pos = cell.fold(np.array([900.0, 500.0, 500.0])
+                    + 300.0*(np.outer(np.cos(t), u) + np.outer(np.sin(t), v)))
+    b = rng.normal(size=3)
+    return closed_loop(cell, pos, b / np.linalg.norm(b))

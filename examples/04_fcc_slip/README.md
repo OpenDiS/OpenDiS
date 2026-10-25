@@ -12,9 +12,15 @@ and the density, to `stress_strain_dens.dat` when `print_freq` is set.
 `sim_uniaxial.py` only adds the per-step history the tests read.
 
 ```
-make PYTHON=/path/to/python3     # every test but the slow one, about 3 minutes
-make leak                        # test_leak_measurement.py, about 10 minutes
+make PYTHON=/path/to/python3     # every test but the slow one, about a minute
+make leak                        # test_leak_measurement.py, about 8 minutes
 ```
+
+The three tests named `test_*_pydis_exadis.py` need `pyexadis`, built with
+the rest of OpenDiS; the other tests need pydis only. Two of them,
+`test_merge_plastic_strain_pydis_exadis.py` and
+`test_split_plastic_strain_pydis_exadis.py`, show defects of ExaDiS `99b17ca`
+and fail until they are fixed, so `make` reports them as failed.
 
 ## Tests
 
@@ -24,6 +30,10 @@ make leak                        # test_leak_measurement.py, about 10 minutes
 | `test_frank_read_src_A3_pydis.py` | the source at a constant 400 MPa: it operates, and every moving segment stays on A3 |
 | `test_plastic_strain_analytic.py` | the swept-area formula against a closed form, across box faces, under sign reversal, and against MLmat's own implementation; the loading-axis rotation |
 | `test_uniaxial_A3_pydis.py` | constant strain rate, 1e3 /s: sigma = E (eps - eps_p) every step, each step's dEp a pure A3 glide increment, the ExaDiS output format |
+| `test_loading_modes_pydis.py` | `SimulateNetwork`'s `'stress'` and `'stress_rate'` modes, `max_strain`, and `stress_strain_dens.dat`, on the source with every node pinned |
+| `test_plastic_strain_pydis_exadis.py` | against ExaDiS: one prescribed step through PyDiS, ExaDiS' python and C++ plastic strain; the A3 strain-rate run through both drivers, step by step, with the loading axis fixed and turned |
+| `test_merge_plastic_strain_pydis_exadis.py` | a merge of two connected nodes at a point off their segment's line, by ExaDiS' own collision: ExaDiS counts that segment's swept area twice, PyDiS once. It fails until ExaDiS counts it once |
+| `test_split_plastic_strain_pydis_exadis.py` | a split that creates a segment, its two products moved apart off one line, replayed through ExaDiS' own `execute_split`: ExaDiS leaves out the area that segment sweeps, PyDiS counts it. It fails until ExaDiS counts it |
 | `test_topological_plastic_strain.py` | plastic strain swept by node insertion, removal, merge, and split; a loop annihilated by remesh sweeps its whole area |
 | `test_leak_measurement.py` | the A3 run with the topological accounting on and off |
 
