@@ -4,6 +4,13 @@ A Frank-Read source on slip system A3 = (-1,1,1)[101]/2 under uniaxial
 loading along [001], with the plastic strain that dislocation motion produces
 and the constant-strain-rate stress update that consumes it.
 
+pydis `SimulateNetwork` computes both, with the arguments of ExaDiS'
+driver: `loading_mode='strain_rate'` with `erate` and `edir`, or `'stress'`
+and `'stress_rate'` (`srate`), and `rotation`, `max_strain` and `burgmag`.
+The plastic strain is computed in every mode and written, with the stress
+and the density, to `stress_strain_dens.dat` when `print_freq` is set.
+`sim_uniaxial.py` only adds the per-step history the tests read.
+
 ```
 make PYTHON=/path/to/python3     # every test but the slow one, about 3 minutes
 make leak                        # test_leak_measurement.py, about 10 minutes
@@ -38,11 +45,12 @@ make leak                        # test_leak_measurement.py, about 10 minutes
 
 Collision, topology, and remesh move and remove nodes outside time
 integration. Without accounting for that, the area those moves sweep is lost.
-`SimulateNetworkUniaxial` keeps a `pydis.util.plastic_strain.PlasticStrainAccum`
+`SimulateNetwork` keeps a `pydis.util.plastic_strain.PlasticStrainAccum`
 in `state["plast_acc"]`, and the `DisNet` operations add to it:
 `move_node`, `insert_node_between`, `remove_two_arm_node`, `merge_node`, and
 `split_node` all take `plast_acc`. Left `None`, the default, they behave
-exactly as before.
+exactly as before. Collision, topology, or remesh done by ExaDiS components
+inside the pydis driver are not accounted.
 
 An operation that moves several nodes is accounted as one move, each segment
 counted once with both ends moving. That departs from ExaDiS in three places:
