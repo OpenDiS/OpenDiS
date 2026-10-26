@@ -1,7 +1,13 @@
 cmake_minimum_required(VERSION 3.14)
 
 set(CALFORCE_HEADER_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../c/calforce)
-set(CALFORCE_HEADER_FILES SegSegForce.h SegmentStress.h StressDueToSeg.h SegSegForce_SBN1.h SegSegForce_SBN1_SBA.h)
+# portable_math.h is here so that pydis_log/pydis_atan reach python. The
+# elasticity self force has a closed form with a log in it, and matching ExaDiS'
+# value of that log is what lets the two agree bitwise; numpy's log would not.
+# SelfForce.h exposes ParaDiS' SelfForce/SelfForceIsotropic. portable_math.h
+# exposes pydis_log/pydis_atan, which the numpy fallback for that self force
+# uses so that an uncompiled run and a compiled one round the log the same way.
+set(CALFORCE_HEADER_FILES SegSegForce.h SegmentStress.h StressDueToSeg.h SegSegForce_SBN1.h SegSegForce_SBN1_SBA.h SelfForce.h portable_math.h)
 list(TRANSFORM CALFORCE_HEADER_FILES PREPEND ${CALFORCE_HEADER_PATH}/)
 
 set(INCLUDE_HEADER_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../c/include)

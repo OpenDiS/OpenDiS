@@ -74,14 +74,35 @@ class MobilityLaw(MobilityLaw_Base):
         return vel
         
     @staticmethod
-    def ortho_vel_glide_planes(vel: np.ndarray, normals: np.ndarray, eps_normal=1.0e-10) -> np.ndarray:
+    def ortho_vel_glide_planes(vel: np.ndarray, normals: np.ndarray, eps_normal=0.05) -> np.ndarray:
         """ortho_vel_glide_planes: project velocity onto glide planes
+
+        RULE CHANGE: eps_normal used to be 1e-10, compared against the raw
+        norm -- effectively "discard only if exactly zero". ParaDiS instead
+        uses FFACTOR_ORTH=0.05 (external/paradis/include/Constants.h:65),
+        compared against the *squared* norm after Gram-Schmidt, in every
+        mobility law that does this projection (MobilityLaw_FCC_0.c,
+        MobilityLaw_BCC_glide_0.c, MobilityLaw_Relax.c, ...); exadis
+        (core/exadis/src/mobility_types/mobility_glide.h, glide_constraints)
+        carries the same 0.05 cutoff forward. 0.05 is a physical judgment
+        call -- a glide plane whose normal is mostly cancelled by earlier
+        ones is treated as redundant (not a real independent constraint)
+        rather than kept and renormalized to unit length. pydis's tight
+        1e-10 kept such near-redundant normals as full constraints, which
+        over-restricts velocity at multi-arm junction nodes; found via a
+        cross-code trajectory divergence in tests/full_runs/03_binary_junction,
+        where a junction node's third glide-plane normal had squared norm
+        0.046875 -- below 0.05 (discarded by paradis/exadis) but far above
+        1e-10 (kept by pydis).
+        eps_normal is named for a norm but compared against normals[i]'s
+        squared value, matching FFACTOR_ORTH's own convention, not renamed
+        to avoid disturbing existing callers that pass it positionally.
         """
         # first orthogonalize glide plane normals among themselves
         for i in range(normals.shape[0]):
             for j in range(i):
                 normals[i] -= np.dot(normals[i], normals[j]) * normals[j]
-            if np.linalg.norm(normals[i]) < eps_normal:
+            if np.dot(normals[i], normals[i]) < eps_normal:
                 normals[i] = np.array([0.0, 0.0, 0.0])
             else:
                 normals[i] /= np.linalg.norm(normals[i])
@@ -106,7 +127,14 @@ class MobilityLaw(MobilityLaw_Base):
                 # apply PBC
                 R2 = G.cell.closest_image(Rref=R1, R=R2)
                 Lsum += np.linalg.norm(R2-R1)
-            vel = f / (Lsum/2.0) * self.mob
+            # reciprocal-then-multiply, not divide-then-multiply: ExaDiS'
+            # MobilityGlide::node_velocity (mobility_types/mobility_glide.h)
+            # computes vi = P*(1.0/LtimesB * fi), and a/b is not always
+            # bit-identical to (1.0/b)*a in IEEE754. Measured directly
+            # against ExaDiS' own OneNodeMobility for
+            # test5_topology_mode's step 194: this form, not f/(Lsum/2)*mob,
+            # is what closes the gap (plan_topology_mode.md section 10).
+            vel = (1.0/(Lsum/2.0)) * f * self.mob
             normals = np.array([edge.plane_normal for edge in G.neighbor_segments_dict(tag).values()])
             #print("Mobility_SimpleGlide: tag = %s, vel = %s, normals = %s"%(tag, str(vel), str(normals)))
             vel = self.ortho_vel_glide_planes(vel, normals)

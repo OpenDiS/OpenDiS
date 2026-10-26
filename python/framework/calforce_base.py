@@ -30,7 +30,11 @@ class CalForce_Base(ABC):
         pass
 
     @abstractmethod
-    def OneNodeForce(self, N: DisNetManager, state: dict, tag: Tag, update_state: bool=True) -> np.array:
+    def OneNodeForce(self, N: DisNetManager, state: dict, tag: Tag, update_state: bool=True,
+                     match_global: bool=False) -> np.array:
         """OneNodeForce: compute and return the force on one node specified by its tag
+
+        match_global=True asks for the node's NodeForce entry to rounding. The
+        default may select pairs differently, as ExaDiS' default node_force does.
         """
         pass
