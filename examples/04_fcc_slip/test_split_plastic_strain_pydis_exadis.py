@@ -1,4 +1,4 @@
-"""Shows the bug in ExaDiS' node split, and fails until it is fixed (see bug_report/bug_report.md)."""
+"""Checks that ExaDiS and PyDiS count the area swept by the segment a split creates."""
 
 import sys, os
 from pathlib import Path
@@ -126,15 +126,9 @@ def main():
     scale = np.abs(swept).max()
     ok &= report_close("PyDiS' strain for the same split against the area swept, relative",
                        dEp_pydis / scale, swept / scale, atol=SWEPT_TOL)
+    # ExaDiS before 32082bb left out the triangle S swept by the new segment c-new
     ok &= report_close("ExaDiS' strain for the split against the area swept, relative",
                        added / scale, swept / scale, atol=SWEPT_TOL)
-
-    # the new segment, c -> new with b1 + b2, swept S; both of ExaDiS' calls see it at zero length
-    missing = sym(np.outer(S, B1 + B2)) / LBOX**3
-    print("    ExaDiS minus the area swept: %.3e in strain, %.1f%% of this split; the"
-          % (np.abs(added - swept).max(), 100 * np.abs(added - swept).max() / scale))
-    print("    new segment's triangle: %.3e; the two differ by %.1e"
-          % (np.abs(missing).max(), np.abs(added - swept + missing).max()))
     return ok
 
 

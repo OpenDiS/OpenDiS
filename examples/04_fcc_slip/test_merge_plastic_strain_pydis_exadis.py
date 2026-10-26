@@ -1,4 +1,4 @@
-"""Shows the bug in ExaDiS' node merge, and fails until it is fixed (see bug_report/bug_report.md)."""
+"""Checks that ExaDiS and PyDiS count the area swept in a merge of two connected nodes once."""
 
 import sys
 from pathlib import Path
@@ -103,16 +103,9 @@ def main():
     scale = np.abs(swept).max()
     ok &= report_close("PyDiS' strain for the same merge against the area swept, relative",
                        dEp_pydis / scale, swept / scale, atol=SWEPT_TOL)
+    # ExaDiS before 32082bb counted the triangle swept by the segment s-m twice
     ok &= report_close("ExaDiS' strain for the merge against the area swept, relative",
                        added / scale, swept / scale, atol=SWEPT_TOL)
-
-    # ExaDiS' second call sees the joining segment s -> m with the first node unmoved
-    T = 0.5 * np.cross(before["m"] - before["s"], merged - before["m"])
-    extra = sym(np.outer(T, B)) / LBOX**3
-    print("    ExaDiS minus the area swept: %.3e in strain, %.1f%% of this merge; one extra"
-          % (np.abs(added - swept).max(), 100 * np.abs(added - swept).max() / scale))
-    print("    copy of the segment s-m's triangle: %.3e; the two differ by %.1e"
-          % (np.abs(extra).max(), np.abs(added - swept - extra).max()))
     return ok
 
 

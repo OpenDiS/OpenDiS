@@ -9,8 +9,9 @@ remove nodes. Prescribed moves, no force or mobility model:
 2. Removing a two-arm node gives the same area whichever neighbour it
    collapses onto.
 3. A merge of two connected nodes counts the segment between them once; a
-   split counts the segment it creates between its products. ExaDiS gets
-   the first twice and the second not at all; both are measured here.
+   split counts the segment it creates between its products. ExaDiS before
+   32082bb got the first twice and the second not at all; both are measured
+   here.
 4. A loop shrunk across a box face until remesh annihilates it sweeps its
    whole area, A b / V (Orowan), and F(before) - F(after) holds at every
    step, F the network's area functional. Without the topological
@@ -131,22 +132,22 @@ def check_route_independence():
 
 
 def merge_hand_values(G, dead, target, pos):
-    """merge_hand_values: (correct, exadis) P for merging dead and target at pos"""
+    """merge_hand_values: (correct, ExaDiS before 32082bb) P for merging dead and target at pos"""
     def r(t):
         return G.nodes(t).R.copy()
-    correct, exadis = np.zeros((3, 3)), np.zeros((3, 3))
+    correct, exadis_old = np.zeros((3, 3)), np.zeros((3, 3))
     for (t1, t2), e in G.all_segments_dict().items():
         if not {t1, t2} & {dead, target}:
             continue
         b = e.burg_vec_from(t1)
         new = {t: (pos if t in (dead, target) else r(t)) for t in (t1, t2)}
         correct += quad_dyad(new[t1], new[t2], r(t1), r(t2), b)
-        # exadis: each moved end against the other end's position before the merge
+        # ExaDiS before 32082bb: each moved end against the other end's position before the merge
         for mover in {t1, t2} & {dead, target}:
             other = t2 if mover == t1 else t1
             moved = {mover: pos, other: r(other)}
-            exadis += quad_dyad(moved[t1], moved[t2], r(t1), r(t2), b)
-    return correct, exadis
+            exadis_old += quad_dyad(moved[t1], moved[t2], r(t1), r(t2), b)
+    return correct, exadis_old
 
 
 def check_merge():
@@ -155,16 +156,16 @@ def check_merge():
     tags = list(G.all_nodes_tags())
     dead, target = tags[2], tags[3]
     pos = 0.5*(G.nodes(dead).R + G.nodes(target).R) + np.array([0.0, 0.0, 6.0])
-    correct, exadis = merge_hand_values(G, dead, target, pos)
+    correct, exadis_old = merge_hand_values(G, dead, target, pos)
     acc = PlasticStrainAccum()
     G.merge_node(dead, target, position=pos, plast_acc=acc)
     scale = np.abs(correct).max()
     ok = report_close("test 3a: merge matches the hand sum, relative",
                       P_of(acc) / scale, correct / scale, atol=1e-14)
-    excess = np.abs(exadis - correct).max() / scale
-    print("    ExaDiS-style accounting differs from it by %.3f of its magnitude"
+    excess = np.abs(exadis_old - correct).max() / scale
+    print("    the accounting of ExaDiS before 32082bb differs from it by %.3f of its magnitude"
           % excess)
-    return ok & report("test 3a: ExaDiS-style accounting double-counts the collapsing segment",
+    return ok & report("test 3a: ExaDiS before 32082bb double-counts the collapsing segment",
                        excess > 1e-3)
 
 
@@ -202,7 +203,7 @@ def check_split():
     scale = np.abs(arms + conn).max()
     ok = report_close("test 3b: split matches the hand sum with the new segment, relative",
                       P_of(acc) / scale, (arms + conn) / scale, atol=1e-14)
-    print("    the new segment is %.3f of the total; ExaDiS' execute_split omits it"
+    print("    the new segment is %.3f of the total; ExaDiS before 32082bb omitted it"
           % (np.abs(conn).max() / scale))
     return ok & report("test 3b: the connecting segment's share is not negligible",
                        np.abs(conn).max() / scale > 1e-3)

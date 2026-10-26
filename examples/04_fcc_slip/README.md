@@ -17,10 +17,9 @@ make leak                        # test_leak_measurement.py, about 8 minutes
 ```
 
 The three tests named `test_*_pydis_exadis.py` need `pyexadis`, built with
-the rest of OpenDiS; the other tests need pydis only. Two of them,
-`test_merge_plastic_strain_pydis_exadis.py` and
-`test_split_plastic_strain_pydis_exadis.py`, show defects of ExaDiS `99b17ca`
-and fail until they are fixed, so `make` reports them as failed.
+the rest of OpenDiS. The other tests need pydis only. The merge and split
+tests among them need ExaDiS `32082bb` or later. An older ExaDiS miscounts
+the plastic strain they check.
 
 ## Tests
 
@@ -32,8 +31,8 @@ and fail until they are fixed, so `make` reports them as failed.
 | `test_uniaxial_A3_pydis.py` | constant strain rate, 1e3 /s: sigma = E (eps - eps_p) every step, each step's dEp a pure A3 glide increment, the ExaDiS output format |
 | `test_loading_modes_pydis.py` | `SimulateNetwork`'s `'stress'` and `'stress_rate'` modes, `max_strain`, and `stress_strain_dens.dat`, on the source with every node pinned |
 | `test_plastic_strain_pydis_exadis.py` | against ExaDiS: one prescribed step through PyDiS, ExaDiS' python and C++ plastic strain; the A3 strain-rate run through both drivers, step by step, with the loading axis fixed and turned |
-| `test_merge_plastic_strain_pydis_exadis.py` | a merge of two connected nodes at a point off their segment's line, by ExaDiS' own collision: ExaDiS counts that segment's swept area twice, PyDiS once. It fails until ExaDiS counts it once |
-| `test_split_plastic_strain_pydis_exadis.py` | a split that creates a segment, its two products moved apart off one line, replayed through ExaDiS' own `execute_split`: ExaDiS leaves out the area that segment sweeps, PyDiS counts it. It fails until ExaDiS counts it |
+| `test_merge_plastic_strain_pydis_exadis.py` | a merge of two connected nodes at a point off their segment's line, by ExaDiS' own collision. ExaDiS and PyDiS both count that segment's swept area once. ExaDiS before `32082bb` counted it twice |
+| `test_split_plastic_strain_pydis_exadis.py` | a split that creates a segment, its two products moved apart off one line, replayed through ExaDiS' own `execute_split`. ExaDiS and PyDiS both count the area that segment sweeps. ExaDiS before `32082bb` left it out |
 | `test_topological_plastic_strain.py` | plastic strain swept by node insertion, removal, merge, and split; a loop annihilated by remesh sweeps its whole area |
 | `test_leak_measurement.py` | the A3 run with the topological accounting on and off |
 
@@ -63,13 +62,11 @@ exactly as before. Collision, topology, or remesh done by ExaDiS components
 inside the pydis driver are not accounted.
 
 An operation that moves several nodes is accounted as one move, each segment
-counted once with both ends moving. That departs from ExaDiS in three places:
-
-- A merge of two connected nodes at a point off their segment: ExaDiS'
-  `merge_nodes_position` counts the collapsing segment twice.
-- A split that creates a segment between its two products: ExaDiS'
-  `execute_split` counts that segment as zero.
-- ExaDiS accounts no plastic spin for topological operations; this does.
+counted once with both ends moving. ExaDiS accounts the move of each node in
+turn. Since `32082bb` it gives the same plastic strain. Before that, it
+counted the collapsing segment of a merge twice. It also left out the new
+segment of a split. ExaDiS accounts no plastic spin for topological
+operations. PyDiS does.
 
 The check that nothing leaks is the identity `sum P = F(start) - F(now)`,
 where `F = sum over segments of outer(0.5 r1 x r2, b) / V` is the network's
