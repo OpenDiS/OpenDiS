@@ -1,0 +1,5 @@
+streamlit>=1.35
+plotly>=5.20
+numpy
+matplotlib
+watchdog
