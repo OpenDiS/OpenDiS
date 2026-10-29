@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<!-- The 3-D window of the OpenDiS app, a Streamlit component: see network3d.js. -->
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  html, body { margin: 0; padding: 0; background: transparent; }
+  body { font-family: "Source Sans Pro", "Helvetica Neue", Arial, sans-serif; color: #1a2332; }
+  /* The controls keep their space when hidden (one network), so the frame's height stays the same */
+  #controls { display: flex; visibility: hidden; align-items: center; gap: 0.6rem;
+              padding: 0.35rem 0.25rem 0.1rem; }
+  #controls.on { visibility: visible; }
+  #play {
+    min-width: 6.2rem; padding: 0.3rem 0.75rem; font: inherit; font-size: 0.95rem;
+    background: #ffffff; color: #1a2332; border: 1px solid rgba(49, 51, 63, 0.2);
+    border-radius: 0.5rem; cursor: pointer;
+  }
+  #play:hover { border-color: #1f4fd1; color: #1f4fd1; }
+  #slider { flex: 1; accent-color: #1f4fd1; }
+  #label { min-width: 5.5rem; text-align: right; font-size: 0.95rem; }
+</style>
+</head>
+<body>
+<div id="plot"></div>
+<div id="controls">
+  <button id="play" type="button">&#9654; play</button>
+  <input id="slider" type="range" min="0" max="0" step="1" value="0">
+  <span id="label"></span>
+</div>
+<script src="plotly.min.js"></script>
+<script src="network3d.js"></script>
+</body>
+</html>

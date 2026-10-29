@@ -1,0 +1,9 @@
+# One folder per run of the app: the script, its log and its output/ (see README.md)
+runs/
+recordings/
+__pycache__/
+# The Plotly package's plotly.js, which common/network3d.py writes for the 3-D window
+components/network3d/plotly.min.js
+# The app's own files, which the repository's .gitignore (output*, *.png) would leave out
+!common/output_panel.py
+!assets/*.png
