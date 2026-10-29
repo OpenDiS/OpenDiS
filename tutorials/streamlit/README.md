@@ -1,9 +1,17 @@
 # OpenDiS — Streamlit app
 
-A local web app that sets up, runs and shows the PyDiS simulations of the
+A web app that sets up, runs and shows the PyDiS simulations of the
 [OpenDiS tutorials](https://opendis.github.io/OpenDiS/tutorials/index.html), step by step.
-**Run** runs the tutorial's script, with your values, as a separate PyDiS job: its screen
+**Run** runs the tutorial's script, with your values, as a separate PyDiS job. Its screen
 output shows as it runs, and its dislocation network in 3-D.
+
+There are two ways to use the app:
+
+1. **In the browser, at https://opendis.streamlit.app.** No installation is needed. How the
+   app runs there is in [On Streamlit Community Cloud](#on-streamlit-community-cloud), at the
+   end.
+2. **On your own computer.** The sections from [Installation](#installation) to
+   [Tests](#tests) describe this way.
 
 ## Installation
 
@@ -16,12 +24,20 @@ conda activate opendis-vis
 pip install -r requirements.txt
 ```
 
-The root `requirements.txt` holds numpy, matplotlib, Streamlit, Plotly and watchdog. Streamlit
-Community Cloud installs the same packages (see below). The app is tested with Streamlit 1.61
-and 1.66, and with Plotly 6.9 and 7.1. PyDiS is pure Python and needs no build; if
-`lib/libpydis.so` has been built, the scripts use it, as the tutorials do. PyDiS needs its git
-submodule `core/pydis/python/pydis/graph`. If a clone lacks it, the app fetches it when it
-starts.
+Another environment with Python 3.12 works too, for example a venv:
+
+```
+python3.12 -m venv ~/venvs/opendis
+source ~/venvs/opendis/bin/activate
+pip install -r requirements.txt
+```
+
+The root [`requirements.txt`](../../requirements.txt) holds numpy, matplotlib, Streamlit,
+Plotly and watchdog. Streamlit Community Cloud installs the same packages. The app is tested
+with Streamlit 1.61 and 1.66, and with Plotly 6.9 and 7.1. PyDiS is pure Python and needs no
+build; if `lib/libpydis.so` has been built, the scripts use it, as the tutorials do. PyDiS
+needs its git submodule `core/pydis/python/pydis/graph`. If a clone lacks it, the app fetches
+it when it starts.
 
 ## Launch
 
@@ -31,9 +47,11 @@ cd tutorials/streamlit
 ```
 
 The app is served at http://localhost:8505, or at the next free port if another program uses
-that one, and no browser window opens: open the address that the script prints. The ports
-from 8501, Streamlit's default, are left to other Streamlit apps. `launch_app.sh` finds the environment's
-Python, so the environment need not be activated.
+that one. No browser window opens: open the address that the script prints. The ports from
+8501, Streamlit's default, are left to other Streamlit apps. `launch_app.sh` finds the Python
+of `opendis-vis` by itself, so that environment need not be activated. For another
+environment, set `OPENDIS_PYTHON` to its Python, as in
+`OPENDIS_PYTHON=~/venvs/opendis/bin/python ./launch_app.sh`.
 
 ## The page
 
@@ -134,19 +152,6 @@ runs folder, and `OPENDIS_DIR` at another OpenDiS repository.
 - **The 3-D window needs WebGL.** If it says "WebGL is not supported", turn on hardware
   acceleration in the browser.
 
-## On Streamlit Community Cloud
-
-The app runs at https://opendis.streamlit.app, from the `main` branch of
-[OpenDiS/OpenDiS](https://github.com/OpenDiS/OpenDiS), with `tutorials/streamlit/app.py` as its
-entry point.
-
-- The Cloud installs the packages of the root `requirements.txt`, with uv. It looks for a
-  dependency file next to `app.py` first, and an `environment.yml` there would make it use
-  conda. So the app's folder has none.
-- The Cloud clones the repository without its git submodules. So the app fetches PyDiS's
-  `graph` submodule when it starts, with `git submodule update --init` (`fetch_graph()` in
-  `common/paths.py`).
-
 ## Tests
 
 Run each test from `tutorials/streamlit/`, with the environment's Python:
@@ -187,3 +192,16 @@ Each test prints `PASS` or `FAIL` for every check, and exits with a non-zero cod
   Plotly reports after a drag is the one every later network of the example is drawn with, in
   its next view too, while another example, or a return to the first, starts in the first view;
   play, the slider, a hold while the mouse button is down, the end, and new networks.
+
+## On Streamlit Community Cloud
+
+The app runs at https://opendis.streamlit.app, from the `main` branch of
+[OpenDiS/OpenDiS](https://github.com/OpenDiS/OpenDiS), with `tutorials/streamlit/app.py` as its
+entry point.
+
+- The Cloud installs the packages of the root `requirements.txt`, with uv. It looks for a
+  dependency file next to `app.py` first, and an `environment.yml` there would make it use
+  conda. So the app's folder has none.
+- The Cloud clones the repository without its git submodules. So the app fetches PyDiS's
+  `graph` submodule when it starts, with `git submodule update --init` (`fetch_graph()` in
+  `common/paths.py`).
