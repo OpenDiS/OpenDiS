@@ -7,6 +7,9 @@ the 3-D window and the code panel in the centre; and the simulation's screen out
 right. Run launches the PyDiS job (``common/job.py``) as the last thing in a script run, so that
 Stop, or any other click, interrupts it and kills the job.
 """
+
+import init_submodules  # This handles the download and patches the sys.path first!
+
 import functools
 from pathlib import Path
 from typing import Any
