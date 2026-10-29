@@ -1,0 +1,3 @@
+[server]
+# This injects the path directly into the OS environment so all subprocesses can see it!
+env = { PYTHONPATH = "/mount/src/opendis/core/pydis/python" }
