@@ -11,12 +11,11 @@
 name: opendis-vis
 channels:
   - conda-forge
-  - nodefaults
 dependencies:
   - python=3.12
   - numpy
   - matplotlib
-  - streamlit=1.61
-  - plotly=6.9
-  - watchdog  # lets Streamlit see edited files without polling
+  - streamlit>=1.35  # Or omit version entirely: - streamlit
+  - plotly>=5.20     # Or omit version entirely: - plotly
+  - watchdog
   - pip
