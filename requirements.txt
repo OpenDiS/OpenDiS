@@ -3,3 +3,4 @@ plotly>=5.20
 numpy
 matplotlib
 watchdog
+-e core/pydis/python
