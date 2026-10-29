@@ -7,15 +7,21 @@ output shows as it runs, and its dislocation network in 3-D.
 
 ## Installation
 
-Create the conda environment `opendis-vis` once, from the root of the OpenDiS repository:
+Create the conda environment `opendis-vis` once, and install the app's packages into it, from
+the root of the OpenDiS repository:
 
 ```
-conda env create -f tutorials/streamlit/environment.yml
+conda create -n opendis-vis python=3.12
+conda activate opendis-vis
+pip install -r requirements.txt
 ```
 
-It holds Python 3.12, numpy, matplotlib, Streamlit 1.61 and Plotly 6.9, from conda-forge.
-PyDiS is pure Python and needs no build; if `lib/libpydis.so` has been built, the scripts use
-it, as the tutorials do.
+The root `requirements.txt` holds numpy, matplotlib, Streamlit, Plotly and watchdog. Streamlit
+Community Cloud installs the same packages (see below). The app is tested with Streamlit 1.61
+and 1.66, and with Plotly 6.9 and 7.1. PyDiS is pure Python and needs no build; if
+`lib/libpydis.so` has been built, the scripts use it, as the tutorials do. PyDiS needs its git
+submodule `core/pydis/python/pydis/graph`. If a clone lacks it, the app fetches it when it
+starts.
 
 ## Launch
 
@@ -106,7 +112,7 @@ matplotlib draws off screen, and the app shows its own 3-D view.
 | `assets/opendis_favicon.png` | the browser tab's icon, the website's favicon, scaled from `doc/_static/favicon_node.ico` | committed |
 | `components/network3d/` | the 3-D window's component: its page and `network3d.js` | committed |
 | `components/network3d/plotly.min.js` | plotly.js, which the app copies there from the Plotly package when it starts | ignored |
-| `environment.yml`, `launch_app.sh` | the environment, and the launcher | committed |
+| `launch_app.sh` | the launcher | committed |
 | `tests/` | the tests, and `record_demo.py`, which records `recordings/app_demo.mp4`, a demo video of the app | committed |
 | `runs/<example>/<run_id>/` | one folder per run: the script, `spec.json`, `log.txt`, and `output/`, with a snapshot of the network every write_freq steps (`disnet_<step>.json`), the final network, and any other file that the script writes there | ignored |
 
@@ -127,6 +133,19 @@ runs folder, and `OPENDIS_DIR` at another OpenDiS repository.
   is not enough.
 - **The 3-D window needs WebGL.** If it says "WebGL is not supported", turn on hardware
   acceleration in the browser.
+
+## On Streamlit Community Cloud
+
+The app runs at https://opendis.streamlit.app, from the `main` branch of
+[OpenDiS/OpenDiS](https://github.com/OpenDiS/OpenDiS), with `tutorials/streamlit/app.py` as its
+entry point.
+
+- The Cloud installs the packages of the root `requirements.txt`, with uv. It looks for a
+  dependency file next to `app.py` first, and an `environment.yml` there would make it use
+  conda. So the app's folder has none.
+- The Cloud clones the repository without its git submodules. So the app fetches PyDiS's
+  `graph` submodule when it starts, with `git submodule update --init` (`fetch_graph()` in
+  `common/paths.py`).
 
 ## Tests
 

@@ -6,7 +6,7 @@ cd "$(dirname "$0")"
 
 ADDR="${STREAMLIT_SERVER_ADDRESS:-localhost}"
 
-# The app's env, opendis-vis (environment.yml). The Python is, in this order: OPENDIS_PYTHON;
+# The app's env, opendis-vis (see README.md). The Python is, in this order: OPENDIS_PYTHON;
 # the env at /opt/anaconda3; the env that conda knows by that name, wherever it is, so that a
 # new terminal needs no activation; python3 on the PATH.
 PY="${OPENDIS_PYTHON:-/opt/anaconda3/envs/opendis-vis/bin/python}"

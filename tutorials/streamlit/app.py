@@ -7,9 +7,6 @@ the 3-D window and the code panel in the centre; and the simulation's screen out
 right. Run launches the PyDiS job (``common/job.py``) as the last thing in a script run, so that
 Stop, or any other click, interrupts it and kills the job.
 """
-
-import init_submodules  # This handles the download and patches the sys.path first!
-
 import functools
 from pathlib import Path
 from typing import Any
@@ -21,7 +18,7 @@ from streamlit.delta_generator import DeltaGenerator
 from common import (catalog, code_panel, codegen, job, network, network3d, output_panel, picker,
                     results, steps, style, views)
 from common.catalog import Example
-from common.paths import ASSETS
+from common.paths import ASSETS, fetch_graph
 from common.picker import RUN_STEP, Step
 from common.spec import Spec
 
@@ -327,6 +324,7 @@ def main() -> None:
                        initial_sidebar_state=SIDEBAR_WIDTH_PX)
     st.markdown(style.css(), unsafe_allow_html=True)
     st.markdown(style.banner_html(style.BANNER_TITLE, LOGO), unsafe_allow_html=True)
+    fetch_graph()
     examples, broken = catalog.scan()
     if _show_problems(examples, broken):
         return
