@@ -7,6 +7,7 @@ from dataclasses import replace
 from pathlib import Path
 
 from common import catalog, codegen, console, job
+from common.paths import OPENDIS_DIR
 from common.testing import check, summary
 
 SECRET = "OPENDIS_TEST_SECRET"  # in the app's environment, not in the console's
@@ -56,6 +57,28 @@ def main() -> int:  # pylint: disable=too-many-locals
         )}
         in_copy = (session.workdir / "output" / "mine.txt").exists()
         in_run = (folder.output / "mine.txt").exists()
+
+        # the guard rails: what looking into the objects does not need is refused
+        outside, gitconfig = folder.output / "evil.txt", Path(OPENDIS_DIR) / ".git" / "config"
+        refused = {name: session.execute(source) for name, source in (
+            ("a shell command", "import os; os.system('echo hi')"),
+            ("subprocess", "import subprocess; subprocess.run(['echo', 'hi'])"),
+            ("subprocess's fork_exec", "import subprocess; subprocess._fork_exec()"),
+            ("a socket", "import socket; socket.socket()"),
+            ("a thread", "import threading; threading.Thread(target=print).start()"),
+            ("a signal to the app", "import os; os.kill(os.getppid(), 0)"),
+            ("a native library", "import ctypes; ctypes.CDLL(None)"),
+            ("a write outside", f"open({str(outside)!r}, 'w')"),
+            ("removing the run's folder", f"import shutil; shutil.rmtree({str(folder.path)!r})"),
+            ("reading the repository's git files", f"open({str(gitconfig)!r})"),
+        )}
+        allowed = {name: session.execute(source) for name, source in (
+            ("force", "type(sim.calforce.NodeForce(net, state)).__name__"),
+            ("inside", "open('output/mine2.txt', 'w').write('ok')"),
+        )}
+        patched = session.execute(  # last: it changes os.path in the session
+            f"import os.path; os.path.abspath = lambda p: os.getcwd() + '/x'; "
+            f"open({str(outside)!r}, 'w')")
         limit, console.MAX_LIVE = console.MAX_LIVE, console.live_sessions()
         try:
             console.Console(folder).close()
@@ -86,6 +109,19 @@ def main() -> int:  # pylint: disable=too-many-locals
                   replies["env"].output),
             check("input() reads nothing", "EOFError" in replies["input"].output,
                   replies["input"].output),
+        ]
+        results += [check(f"guard rails: {name} is refused", reply.alive
+                          and "PermissionError: The console does not allow" in reply.output,
+                          reply.output[-300:]) for name, reply in refused.items()]
+        results += [
+            check("guard rails: the run's folder keeps its files, and nothing is written there",
+                  folder.results.exists() and not outside.exists()),
+            check("guard rails: PyDiS still computes, and the session writes in its own folder",
+                  allowed["force"].output == "'dict'\n" and allowed["inside"].output == "2\n",
+                  [r.output[-200:] for r in allowed.values()]),
+            check("guard rails: replacing os.path.abspath does not open a way out",
+                  "PermissionError: The console does not allow" in patched.output
+                  and not outside.exists(), patched.output[-300:]),
             check("no more than MAX_LIVE sessions start", busy),
             check("a command that runs too long ends the session",
                   not slow.alive and "longer than 2 s" in slow.output and not session.alive(),

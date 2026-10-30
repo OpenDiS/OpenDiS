@@ -10,7 +10,6 @@ Streamlit nor the app's modules: ``python -I`` runs it.
 Usage: console_child.py <command fd> <reply fd> <idle seconds> <final network> <script>
 """
 import ast
-import atexit
 import contextlib
 import io
 import json
@@ -18,7 +17,6 @@ import os
 import re
 import resource
 import select
-import shutil
 import sys
 import traceback
 
@@ -26,7 +24,36 @@ OUTPUT_CHARS = 20_000   # the most of one reply
 LIMITS = {resource.RLIMIT_CPU: 600,           # seconds of CPU, in all
           resource.RLIMIT_FSIZE: 64 * 2**20,  # bytes in one file it writes
           resource.RLIMIT_NOFILE: 256}        # files open at once
-PREFIX = "opendis_console_"  # the session's folder, which it removes at its end
+MEMORY_ROOM = 512 * 2**20  # bytes for the commands, beyond what loading took (Linux)
+
+# The guard rails, which an audit hook enforces once the run's objects are loaded. They refuse
+# what looking into the objects does not need: other programs, threads and signals, the
+# network, native libraries, the limits, a search of all objects (which would reach the hook)
+BLOCKED = frozenset({
+    "os.system", "os.exec", "os.spawn", "os.posix_spawn", "os.fork", "os.forkpty",
+    "subprocess.Popen", "os.kill", "os.killpg", "signal.pthread_kill", "webbrowser.open",
+    "_thread.start_new_thread",
+    "socket.__new__", "socket.connect", "socket.bind", "socket.getaddrinfo",
+    "socket.gethostbyname", "socket.gethostbyaddr", "socket.sendto", "socket.sendmsg",
+    "ctypes.dlopen", "ctypes.dlsym", "ctypes.dlsym/handle", "ctypes.cdata",
+    "ctypes.string_at", "ctypes.wstring_at",
+    "resource.setrlimit", "resource.prlimit",
+    "gc.get_objects", "gc.get_referrers", "gc.get_referents",
+})
+# ... changes to files outside the session's folder: each event's places of paths, and of
+# dir_fd arguments, which make a path relative to a folder that the hook cannot see
+CHANGES = {
+    "os.remove": ((0,), (1,)), "os.rmdir": ((0,), (1,)), "os.mkdir": ((0,), (2,)),
+    "os.rename": ((0, 1), (2, 3)), "os.replace": ((0, 1), (2, 3)), "os.link": ((0, 1), (2, 3)),
+    "os.symlink": ((0, 1), (2,)), "os.chmod": ((0,), (2,)), "os.chown": ((0,), (3,)),
+    "os.truncate": ((0,), ()), "os.utime": ((0,), (3,)), "os.mkfifo": ((0,), (2,)),
+    "os.mknod": ((0,), (3,)), "os.chflags": ((0,), ()), "os.lchflags": ((0,), ()),
+    "shutil.rmtree": ((0,), (1,)), "shutil.copyfile": ((1,), ()), "shutil.copymode": ((1,), ()),
+    "shutil.copystat": ((1,), ()), "shutil.copytree": ((1,), ()), "shutil.chown": ((0,), ()),
+    "shutil.make_archive": ((0,), ()), "shutil.unpack_archive": ((1,), ()),
+}
+SECRETS = (".streamlit", ".ssh", ".git", "secrets.toml")  # ... and reading these, or /proc
+WRITE_FLAGS = os.O_WRONLY | os.O_RDWR | os.O_APPEND | os.O_CREAT | os.O_TRUNC
 
 
 def _limit() -> None:
@@ -38,6 +65,87 @@ def _limit() -> None:
             value, top = min(value, hard), min(top, hard)
         with contextlib.suppress(ValueError, OSError):
             resource.setrlimit(kind, (value, top))
+
+
+def _limit_memory() -> None:
+    """On Linux, bound the memory to what loading took, plus MEMORY_ROOM for the commands."""
+    with contextlib.suppress(OSError, StopIteration, ValueError):
+        with open("/proc/self/status", encoding="ascii") as status:
+            size = next(int(line.split()[1]) * 1024 for line in status
+                        if line.startswith("VmSize:"))
+        resource.setrlimit(resource.RLIMIT_AS, (size + MEMORY_ROOM, size + MEMORY_ROOM))
+
+
+def _guard(workdir: str) -> None:  # pylint: disable=too-many-locals
+    """Install the guard rails: from now on the session refuses BLOCKED, CHANGES and SECRETS.
+
+    The hook keeps its own references to what it calls, so that a command that replaces a
+    function of a module changes nothing here. It is a guard against misuse, not a sandbox:
+    Python's audit hooks cannot stop a determined expert.
+    """
+    import pathlib  # pylint: disable=import-outside-toplevel
+    import posix  # pylint: disable=import-outside-toplevel,import-error
+    import subprocess  # pylint: disable=import-outside-toplevel
+    normpath = getattr(posix, "_path_normpath", None) or os.path.normpath
+    getcwd, blocked, changes, secrets, write_flags = (posix.getcwd, BLOCKED, CHANGES, SECRETS,
+                                                     WRITE_FLAGS)
+    pure, is_a, size, refused = pathlib.PurePath, isinstance, len, PermissionError
+    inside = normpath(workdir) + "/"
+
+    def text(path) -> str | None:
+        """The path as text, or None if it is not a plain path (which is refused)."""
+        if is_a(path, str):
+            return path
+        if is_a(path, bytes):
+            return path.decode("utf-8", "surrogateescape")
+        if (is_a(path, pure) and type(path).__fspath__ is pure.__fspath__
+                and type(path).__str__ is pure.__str__):
+            return pure.__str__(path)
+        return None
+
+    def full(path: str) -> str:
+        return normpath(path if path.startswith("/") else getcwd() + "/" + path)
+
+    def refuse(what: str) -> None:
+        raise refused(f"The console does not allow {what}: it is for looking into the "
+                      "run's objects.")
+
+    def check_change(event: str, args: tuple) -> None:
+        paths, dir_fds = changes[event]
+        if any(i < size(args) and args[i] is not None for i in dir_fds):
+            refuse(f"{event} with dir_fd")
+        for i in paths:
+            if i < size(args) and not is_a(args[i], int):
+                path = text(args[i])
+                if path is None or not (full(path) + "/").startswith(inside):
+                    refuse(f"{event} outside the session's folder")
+
+    def hook(event: str, args: tuple) -> None:
+        if event in blocked:
+            refuse(event)
+        elif event == "open" and not is_a(args[0], int):
+            path = text(args[0])
+            if path is None:
+                refuse("opening a path of this kind")
+            where = full(path)
+            writing = (args[2] or 0) & write_flags or any(c in (args[1] or "") for c in "wax+")
+            if writing and not (where + "/").startswith(inside):
+                refuse(f"writing to {where}")
+            if (any(part in secrets for part in where.split("/"))
+                    or (where.startswith("/proc/") and not where.startswith("/proc/self/"))):
+                refuse(f"reading {where}")
+        elif event in changes:
+            check_change(event, args)
+
+    def no_fork_exec(*args, **kwargs):  # pylint: disable=unused-argument
+        refuse("subprocess")
+
+    # subprocess's own fork_exec reports no audit event, so it is replaced first
+    subprocess._fork_exec = no_fork_exec  # pylint: disable=protected-access
+    with contextlib.suppress(ImportError):
+        import _posixsubprocess  # pylint: disable=import-outside-toplevel,import-error
+        _posixsubprocess.fork_exec = no_fork_exec
+    sys.addaudithook(hook)
 
 
 def _snapshot(step: int):
@@ -113,9 +221,6 @@ def main() -> int:
     """Load the run's objects and say so, then answer each command, until the end."""
     commands_fd, replies_fd = int(sys.argv[1]), int(sys.argv[2])
     idle_s, final_json, script = float(sys.argv[3]), sys.argv[4], sys.argv[5]
-    workdir = os.getcwd()
-    if os.path.basename(workdir).startswith(PREFIX):
-        atexit.register(shutil.rmtree, workdir, True)
     _limit()
     sys.stdin = io.StringIO("")  # input() reads nothing: the commands come on their own pipe
     with os.fdopen(commands_fd, encoding="utf-8") as commands, \
@@ -127,6 +232,9 @@ def main() -> int:
             except BaseException:  # pylint: disable=broad-exception-caught
                 traceback.print_exc()
                 namespace, ok = {}, False
+        if ok:
+            _limit_memory()
+            _guard(os.getcwd())  # the session's folder, which the app removes at its end
         _reply(replies, startup.getvalue(), ok)
         while ok and select.select([commands], [], [], idle_s)[0]:
             line = commands.readline()
