@@ -20,9 +20,11 @@ INTRO = ("Your own Python session, to look into this run's objects and build und
          "`net`, `sim`, `state` and `G` are as after `python -i` on the full script, and "
          "`snapshot(step)` loads one of the run's snapshots (`snapshot_steps` lists them). The "
          "session runs in a process of its own, on a copy of the run's results: what you do "
-         "here changes neither the runs nor the other panels, and nobody else sees it. A "
-         f"command stops after {console.COMMAND_S:g} s, and the session ends after "
-         f"{console.IDLE_S / 60:g} min without one.")
+         "here changes neither the runs nor the other panels, and nobody else sees it. It "
+         "refuses what looking into the objects does not need: other programs, the network, "
+         "and changes to files outside its own folder. A command stops after "
+         f"{console.COMMAND_S:g} s, and the session ends after {console.IDLE_S / 60:g} min "
+         "without one.")
 
 
 def show(mode: str, example: Example, spec: Spec, step: Step, folder: RunFolder | None) -> None:

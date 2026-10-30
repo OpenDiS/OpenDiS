@@ -18,7 +18,7 @@ from streamlit.delta_generator import DeltaGenerator
 from common import (catalog, code_panel, codegen, job, network, network3d, output_panel, picker,
                     results, steps, style, views)
 from common.catalog import Example
-from common.paths import ASSETS, fetch_graph
+from common.paths import ASSETS, build_pydis_library_once, fetch_graph
 from common.picker import RUN_STEP, Step
 from common.spec import Spec
 
@@ -377,6 +377,7 @@ def main() -> None:
     st.markdown(style.css(), unsafe_allow_html=True)
     st.markdown(style.banner_html(style.BANNER_TITLE, LOGO), unsafe_allow_html=True)
     fetch_graph()
+    build_pydis_library_once()
     examples, broken = catalog.scan()
     if _show_problems(examples, broken):
         return

@@ -202,10 +202,11 @@ def execute(source: str, namespace: dict) -> str:
         except SystemExit:
             print("exit() does not end this session: ↺ restart starts a new one.")
         except BaseException as exc:  # pylint: disable=broad-exception-caught
-            tb = None if isinstance(exc, SyntaxError) else exc.__traceback__
-            while tb is not None and tb.tb_frame.f_code.co_filename == __file__:
-                tb = tb.tb_next  # this module's frames are not the user's
-            traceback.print_exception(type(exc), exc, tb, file=buffer)
+            shown = traceback.TracebackException(type(exc), exc, None if isinstance(
+                exc, SyntaxError) else exc.__traceback__)
+            shown.stack = traceback.StackSummary.from_list(  # this module's frames, the guard's
+                [frame for frame in shown.stack if frame.filename != __file__])  # included
+            buffer.write("".join(shown.format()))
     text = buffer.getvalue()
     if len(text) > OUTPUT_CHARS:
         text = text[:OUTPUT_CHARS] + f"\n... ({len(text) - OUTPUT_CHARS} more characters)"

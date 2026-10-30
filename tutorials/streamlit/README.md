@@ -34,10 +34,19 @@ pip install -r requirements.txt
 
 The root [`requirements.txt`](../../requirements.txt) holds numpy, matplotlib, Streamlit,
 Plotly and watchdog. Streamlit Community Cloud installs the same packages. The app is tested
-with Streamlit 1.61 and 1.66, and with Plotly 6.9 and 7.1. PyDiS is pure Python and needs no
-build; if `lib/libpydis.so` has been built, the scripts use it, as the tutorials do. PyDiS
-needs its git submodule `core/pydis/python/pydis/graph`. If a clone lacks it, the app fetches
-it when it starts.
+with Streamlit 1.61 and 1.66, and with Plotly 6.9 and 7.1. PyDiS needs its git submodule
+`core/pydis/python/pydis/graph`. If a clone lacks it, the app fetches it when it starts.
+
+PyDiS runs in pure Python, but its C library, `lib/libpydis.so`, makes it faster, and the
+scripts use it if it is there, as the tutorials do. If a clone lacks it, the app builds it
+when it starts, once, in the background (`build_pydis_library()` in `common/paths.py`). It
+builds it as CMake's `_repro` builds do, without CMake: gcc compiles the sources that
+`core/pydis/c`'s `CMakeLists.txt` files list, with `-O3 -fPIC -ffp-contract=off` and the
+portable log/atan shim. Then ctypesgen writes `lib/pydis_lib.py`; ctypesgen is the git
+submodule `core/pydis/python/ctypesgen`, which the app fetches first if need be. Its runs then
+agree byte for byte with those of a `_repro` build made with CMake. Until the library is
+there, and if gcc is missing, PyDiS uses its Python versions, and its output starts with
+"pydis_lib not found".
 
 ## Launch
 
@@ -84,8 +93,10 @@ environment, set `OPENDIS_PYTHON` to its Python, as in
     them). The session runs the run's script in a process of its own, with
     `SimulateNetwork.run` replaced by a load of the run's final network, so nothing is
     simulated again. It works on a copy of the run's results, so it changes neither the runs
-    nor the other panels. A command stops after 30 s, and the session ends after 15 min
-    without one (`common/console.py`, `common/console_child.py`).
+    nor the other panels. Guard rails refuse what looking into the objects does not need:
+    other programs, threads, the network, native libraries, and changes to files outside the
+    session's folder. A command stops after 30 s, and the session ends after 15 min without
+    one (`common/console.py`, `common/console_child.py`).
 - **Right:** the simulation output: what the script prints, as it runs, and after a run its
   `log.txt`, which ends with a line on how the job ended. Below it, **🗑 clear all results**
   deletes the results of all past runs, after a confirmation: those of every example, for
@@ -175,6 +186,7 @@ python -m tests.test_job              # the job runner: a run, a stop, a time li
 python -m tests.test_views            # networks from PyDiS's JSON, and the figures
 python -m tests.test_app_smoke        # the whole page, and a 20-step run of the binary junction
 python -m tests.test_console          # the Python console, on 20-step runs of both examples
+python -m tests.test_build            # PyDiS's C library, built as the app builds it
 node tests/test_network3d.js          # the 3-D window's script (needs Node.js)
 ```
 
@@ -204,8 +216,14 @@ Each test prints `PASS` or `FAIL` for every check, and exits with a non-zero cod
 - **`test_console`**: for each example, a 20-step run, then a session whose `G`, `sim` and
   `net` are the run's; then, in one session: `state`, code of several lines, `print`, an
   error's traceback, names that stay, `snapshot()`, a file written to the session's own copy,
-  the app's environment kept out, `input()`, the limit on sessions, and a command that runs
-  too long, which ends the session and removes its folder.
+  the app's environment kept out, `input()`, the guard rails (shell commands, subprocess,
+  sockets, threads, signals, native libraries, writes and removals outside, the repository's
+  git files, and a replaced `os.path.abspath`), PyDiS's own computations, the limit on
+  sessions, and a command that runs too long, which ends the session and removes its folder.
+- **`test_build`**: PyDiS's C library, built as the app builds it, into a copy of the
+  repository's Python code; a 20-step run of the binary junction with it; and, if the
+  repository has its own library, the same run with that one, which must agree byte for byte
+  (as it does when that library is a `_repro` build).
 - **`test_network3d.js`**: the component's script in Node.js, with stand-ins for Plotly, the
   page and the browser: a run starts on its final network in the first view; the camera that
   Plotly reports after a drag is the one every later network of the example is drawn with, in
@@ -226,10 +244,13 @@ entry point.
   `common/paths.py`).
 - All visitors share the app's `runs/` folder. So a run's results show for everyone who picks
   the same selections, until **🗑 clear all results** or a reboot of the app.
-- The Cloud has no compiled `lib/libpydis.so`, so PyDiS uses its Python version of the
-  functions that the library holds. Its output starts with "pydis_lib not found".
+- The Cloud's clone has no `lib/libpydis.so`, so the app builds it when it starts. The Cloud
+  has gcc and make, though not CMake, and the build takes some seconds. Runs that start before
+  it is done use PyDiS's Python versions. The app's log, under Manage app, says when the
+  library was built, or why not. The Cloud runs Python 3.14.
 - The Python console works there too, for every visitor. It is meant for looking into a
   run's objects. Each session has its own process, its own copy of the results and an
-  environment without the app's variables, with limits on time, CPU, file size and open
-  files, and at most 4 sessions at once. It is not a sandbox against deliberate misuse: code
-  typed there runs on the app's machine.
+  environment without the app's variables. It has the guard rails above, limits on time,
+  CPU, memory, file size and open files, and at most 4 sessions run at once. It is not a
+  sandbox against a determined expert: Python's audit hooks cannot be one, and code typed
+  there runs on the app's machine.
