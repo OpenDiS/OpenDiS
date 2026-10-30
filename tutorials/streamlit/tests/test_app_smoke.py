@@ -128,13 +128,43 @@ def main() -> int:  # pylint: disable=too-many-locals,too-many-statements
         check("no job is left running", not job.running()),
     ]
 
-    # 🗑 clear all results, after the run
-    at.button(key="clear_results").click().run()
+    # the Python console, on the run's objects; ↺ restart ends its session
+    next(r for r in at.radio if r.label == "Code panel").set_value("Python console").run()
+    at.text_area(key="console_source").input("G.num_nodes(), sim.max_step")  # sent on submit
+    next(b for b in at.button if b.label == "▶ execute").click().run()
+    final = next(Path(os.environ["OPENDIS_APP_RUNS"]).glob("binary_junction/*/output/*final.json"))
+    nodes = len(json.loads(final.read_text())["nodes"]["tags"])
+    transcript = "\n".join(c.value for c in at.code)
+    session = at.session_state["console"]
+    click(at, "↺ restart")
+    restarted = [c.value for c in at.code if ">>>" in c.value]
+    results += [
+        check("the console runs a command on the run's objects",
+              f">>> G.num_nodes(), sim.max_step\n({nodes}, 20)" in transcript, transcript[-300:]),
+        check("↺ restart ends the session and clears its commands",
+              not session.alive() and not restarted, restarted),
+    ]
+
+    # 🗑 clear all results, after the run: a confirmation in place, which Cancel closes, and
+    # Delete too
+    click(at, "🗑 clear all results")
+    asked = [b.label for b in at.button if b.key in ("clear_results", "clear_cancel")]
+    click(at, "Cancel")
+    kept = [p for p in Path(os.environ["OPENDIS_APP_RUNS"]).glob("*/*") if p.is_dir()]
+    cancelled = [b.label for b in at.button if b.key in ("clear_results", "clear_cancel")]
+    click(at, "🗑 clear all results")
+    click(at, "Delete")
     left = [p for p in Path(os.environ["OPENDIS_APP_RUNS"]).glob("*/*") if p.is_dir()]
     toasts = [t.value for t in at.toast]
     output = "\n".join(c.value for c in at.code)
+    after = [b.label for b in at.button if b.key in ("clear_results", "clear_cancel", "clear_ask")]
     results += [
-        check("🗑 clear all results deletes the run's folder", not left, left),
+        check("🗑 clear all results asks first: Delete, or Cancel",
+              asked == ["Delete", "Cancel"], asked),
+        check("Cancel closes the question and deletes nothing", not cancelled and len(kept) == 1,
+              (cancelled, kept)),
+        check("Delete deletes the run's folder, and closes the question",
+              not left and after == ["🗑 clear all results"], (left, after)),
         check("it says so, and the output column shows no run",
               toasts == ["Deleted the results of 1 run(s)."] and "No run yet" in output,
               (toasts, output[-200:])),

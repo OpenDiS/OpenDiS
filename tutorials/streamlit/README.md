@@ -78,6 +78,14 @@ environment, set `OPENDIS_PYTHON` to its Python, as in
   - The networks are drawn by a small component of the app's own, `components/network3d/`,
     since Streamlit's own Plotly chart puts the camera back whenever it draws a new figure.
   - The code panel shows this step's code, or the full script, with a download button.
+  - Its third mode, **Python console**, is the browser tab's own Python session, to look into
+    the run's objects. `net`, `sim`, `state` and `G` are as after `python -i` on the full
+    script, and `snapshot(step)` loads one of the run's snapshots (`snapshot_steps` lists
+    them). The session runs the run's script in a process of its own, with
+    `SimulateNetwork.run` replaced by a load of the run's final network, so nothing is
+    simulated again. It works on a copy of the run's results, so it changes neither the runs
+    nor the other panels. A command stops after 30 s, and the session ends after 15 min
+    without one (`common/console.py`, `common/console_child.py`).
 - **Right:** the simulation output: what the script prints, as it runs, and after a run its
   `log.txt`, which ends with a line on how the job ended. Below it, **🗑 clear all results**
   deletes the results of all past runs, after a confirmation: those of every example, for
@@ -135,6 +143,7 @@ matplotlib draws off screen, and the app shows its own 3-D view.
 | `launch_app.sh` | the launcher | committed |
 | `tests/` | the tests, and `record_demo.py`, which records `recordings/app_demo.mp4`, a demo video of the app | committed |
 | `runs/<example>/<run_id>/` | one folder per run: the script, `spec.json`, `log.txt`, and `output/`, with a snapshot of the network every write_freq steps (`disnet_<step>.json`), the final network, and any other file that the script writes there | ignored |
+| `$TMPDIR/opendis_console_*/` | a Python console's session: its copy of the run's script and `output/`, removed when the session ends | outside the repository |
 
 `run_id` is a hash of the script, so the same selections reuse their results without running
 again. To run them again, delete their run folder, or press **🗑 clear all results**.
@@ -165,6 +174,7 @@ python -m tests.test_codegen --full   # ... at the tutorials' full length (about
 python -m tests.test_job              # the job runner: a run, a stop, a time limit, leftovers
 python -m tests.test_views            # networks from PyDiS's JSON, and the figures
 python -m tests.test_app_smoke        # the whole page, and a 20-step run of the binary junction
+python -m tests.test_console          # the Python console, on 20-step runs of both examples
 node tests/test_network3d.js          # the 3-D window's script (needs Node.js)
 ```
 
@@ -189,8 +199,13 @@ Each test prints `PASS` or `FAIL` for every check, and exits with a non-zero cod
 - **`test_app_smoke`**: the banner, the one drop-down menu, no chat, every step of both
   examples, a change and a reset, and a 20-step run of the binary junction: its output, status
   and downloads, and the networks that the 3-D window's component gets (AppTest does not run
-  the component's script); then **🗑 clear all results**. Its runs go to a temporary folder
-  (`OPENDIS_APP_RUNS`).
+  the component's script); then the Python console, and **🗑 clear all results**. Its runs go
+  to a temporary folder (`OPENDIS_APP_RUNS`).
+- **`test_console`**: for each example, a 20-step run, then a session whose `G`, `sim` and
+  `net` are the run's; then, in one session: `state`, code of several lines, `print`, an
+  error's traceback, names that stay, `snapshot()`, a file written to the session's own copy,
+  the app's environment kept out, `input()`, the limit on sessions, and a command that runs
+  too long, which ends the session and removes its folder.
 - **`test_network3d.js`**: the component's script in Node.js, with stand-ins for Plotly, the
   page and the browser: a run starts on its final network in the first view; the camera that
   Plotly reports after a drag is the one every later network of the example is drawn with, in
@@ -213,3 +228,8 @@ entry point.
   the same selections, until **🗑 clear all results** or a reboot of the app.
 - The Cloud has no compiled `lib/libpydis.so`, so PyDiS uses its Python version of the
   functions that the library holds. Its output starts with "pydis_lib not found".
+- The Python console works there too, for every visitor. It is meant for looking into a
+  run's objects. Each session has its own process, its own copy of the results and an
+  environment without the app's variables, with limits on time, CPU, file size and open
+  files, and at most 4 sessions at once. It is not a sandbox against deliberate misuse: code
+  typed there runs on the app's machine.
