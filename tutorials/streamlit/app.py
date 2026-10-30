@@ -32,6 +32,7 @@ FRAME_MS = 300  # the replay's time per snapshot
 VIEW_PX = 620
 PLOTLY_CONFIG = {"displaylogo": False, "responsive": True}
 SELECTIONS_OPEN = "selections_open"  # session key: whether the 2nd left column is shown
+CLEARED = "results_cleared"  # session key: the note on the last clear of all results, shown once
 COLUMNS_OPEN, COLUMNS_SHUT = [0.95, 1.7, 0.95], [1.7, 0.95]
 
 
@@ -245,6 +246,28 @@ def _run_controls(example: Example, folder: job.RunFolder | None) -> DeltaGenera
     return slot
 
 
+def _clear_results() -> None:
+    """Delete the results of all runs but those that run (a button callback)."""
+    deleted, kept = job.clear_runs()
+    for key in [k for k in st.session_state if str(k).startswith("status/")]:
+        del st.session_state[key]  # this session's last runs are gone too
+    st.session_state[CLEARED] = (f"Deleted the results of {deleted} run(s)."
+                                 + (f" {kept} run(s) in progress are kept." if kept else ""))
+
+
+def _clear_button(example: Example) -> None:
+    """The button that deletes the results of all past runs, after a confirmation."""
+    note = st.session_state.pop(CLEARED, None)
+    if note:
+        st.toast(note)
+    with st.popover("🗑 clear all results", width="stretch",
+                    disabled=bool(st.session_state.get(_key(example, "run")))):
+        st.markdown("This deletes the results of all past runs: those of every example, for "
+                    "everyone who uses this app. A run in progress is kept.")
+        st.button("Delete all results", key="clear_results", type="primary", width="stretch",
+                  on_click=_clear_results)
+
+
 def _show_selections(show: bool) -> None:
     """Hide or show the 2nd left column (a button callback)."""
     st.session_state[SELECTIONS_OPEN] = show
@@ -359,6 +382,7 @@ def main() -> None:
     with right:
         _panel_title("Simulation output")
         output_slot = output_panel.panel(example, folder, status)
+        _clear_button(example)
     if st.session_state.get(_key(example, "run")):
         _run(example, spec, folder, (progress_slot, output_slot, view_slot))
 

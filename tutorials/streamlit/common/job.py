@@ -10,6 +10,8 @@ filtered out, so the job's output is what PyDiS prints. The kill is a safety net
 - the app shutting down;
 - jobs left by an earlier app session.
 
+``clear_runs`` deletes the run folders, but those whose job runs.
+
 This module imports neither Streamlit nor PyDiS.
 """
 import atexit
@@ -17,6 +19,7 @@ import hashlib
 import os
 import queue
 import re
+import shutil
 import signal
 import subprocess
 import sys
@@ -319,6 +322,30 @@ def kill_leftovers(runs: Path = RUNS) -> list[int]:
             killed.append(pid)
         pid_file.unlink(missing_ok=True)
     return killed
+
+
+def _job_alive(path: Path) -> bool:
+    """True while the run folder's job runs: its ``job.pid`` names a live process of its script."""
+    try:
+        pid_text, script = (path / PID).read_text(encoding="utf-8").split("\n")[:2]
+        return bool(script) and script in command_line(int(pid_text))
+    except (OSError, ValueError):
+        return False
+
+
+def clear_runs(runs: Path = RUNS) -> tuple[int, int]:
+    """Delete the run folders of every example; returns how many were deleted and kept.
+
+    A folder whose job runs, in this app process or in another one, is kept.
+    """
+    deleted = kept = 0
+    for path in sorted(p for p in runs.glob("*/*") if p.is_dir()):
+        if _job_alive(path):
+            kept += 1
+        else:
+            shutil.rmtree(path, ignore_errors=True)
+            deleted += 1
+    return deleted, kept
 
 
 def running() -> bool:

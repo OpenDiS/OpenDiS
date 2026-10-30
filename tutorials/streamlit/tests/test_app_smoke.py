@@ -127,6 +127,18 @@ def main() -> int:  # pylint: disable=too-many-locals,too-many-statements
               downloads),
         check("no job is left running", not job.running()),
     ]
+
+    # 🗑 clear all results, after the run
+    at.button(key="clear_results").click().run()
+    left = [p for p in Path(os.environ["OPENDIS_APP_RUNS"]).glob("*/*") if p.is_dir()]
+    toasts = [t.value for t in at.toast]
+    output = "\n".join(c.value for c in at.code)
+    results += [
+        check("🗑 clear all results deletes the run's folder", not left, left),
+        check("it says so, and the output column shows no run",
+              toasts == ["Deleted the results of 1 run(s)."] and "No run yet" in output,
+              (toasts, output[-200:])),
+    ]
     return summary(results)
 
 

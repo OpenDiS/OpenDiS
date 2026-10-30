@@ -68,8 +68,8 @@ def GetMinDist2_python(p1, v1, p2, v2, p3, v3, p4, v4, eps0 = 1.0e-12, epsM = 1e
         pos = np.argmin(dist)
         dist2 = dist[pos]
 
-        L1 = np.floor(pos/2.1)
-        L2 = float(1 - pos%2)
+        L1 = float(pos // 2)  # pos = 0, 1, 2, 3: (p1,p3), (p1,p4), (p2,p3), (p2,p4)
+        L2 = float(pos % 2)
         didDist2 = True
 
     else: # solve the general case

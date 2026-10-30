@@ -108,6 +108,21 @@ def main() -> int:  # pylint: disable=too-many-locals
             check("prepare() clears the output of an earlier run",
                   not list(a.output.glob("*"))),
         ]
+
+        # clear_runs(): every run folder goes, but the one whose job runs
+        busy = prepared(runs, "busy", SLOW)
+        proc = subprocess.Popen([sys.executable, str(busy.script)],  # pylint: disable=consider-using-with
+                                cwd=busy.path, stdout=subprocess.DEVNULL, start_new_session=True)
+        (busy.path / job.PID).write_text(f"{proc.pid}\n{busy.script}\n", encoding="utf-8")
+        deleted, kept = job.clear_runs(runs)
+        left = [p.parent.name for p in runs.glob("*/*") if p.is_dir()]
+        proc.kill()
+        proc.wait(timeout=5)
+        results += [
+            check("clear_runs() deletes the run folders of every example",
+                  deleted >= 7 and left == ["busy"], (deleted, left)),
+            check("it keeps the folder whose job runs", kept == 1 and busy.script.exists(), kept),
+        ]
     return summary(results)
 
 

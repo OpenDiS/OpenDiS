@@ -79,7 +79,9 @@ environment, set `OPENDIS_PYTHON` to its Python, as in
     since Streamlit's own Plotly chart puts the camera back whenever it draws a new figure.
   - The code panel shows this step's code, or the full script, with a download button.
 - **Right:** the simulation output: what the script prints, as it runs, and after a run its
-  `log.txt`, which ends with a line on how the job ended.
+  `log.txt`, which ends with a line on how the job ended. Below it, **🗑 clear all results**
+  deletes the results of all past runs, after a confirmation: those of every example, for
+  everyone who uses the app. A run in progress is kept.
 - **Run (step 7)** runs the full script as a separate job, in its run folder. The app stops it
   only if you press **Stop** or change any selection during the run, if it prints nothing for
   5 min, or if it runs for an hour. After a run, step 7 offers its results for download.
@@ -135,7 +137,8 @@ matplotlib draws off screen, and the app shows its own 3-D view.
 | `runs/<example>/<run_id>/` | one folder per run: the script, `spec.json`, `log.txt`, and `output/`, with a snapshot of the network every write_freq steps (`disnet_<step>.json`), the final network, and any other file that the script writes there | ignored |
 
 `run_id` is a hash of the script, so the same selections reuse their results without running
-again. To run them again, delete their run folder. `OPENDIS_APP_RUNS` points the app at another
+again. To run them again, delete their run folder, or press **🗑 clear all results**.
+`OPENDIS_APP_RUNS` points the app at another
 runs folder, and `OPENDIS_DIR` at another OpenDiS repository.
 
 ## Launch details
@@ -176,8 +179,8 @@ Each test prints `PASS` or `FAIL` for every check, and exits with a non-zero cod
   must be refused (a zero time step, minseg over half of maxseg, a NaN stress, ...).
 - **`test_job`**: a run that ends well, one that fails, one that writes no final network, a
   stop from the caller (as Streamlit stops a script run), a time limit, a job left by an
-  earlier session, and the run folders; each with a small stand-in script in a temporary
-  folder, and none left running at the end.
+  earlier session, the run folders, and their deletion, which keeps a folder whose job runs;
+  each with a small stand-in script in a temporary folder, and none left running at the end.
 - **`test_views`**: the initial configurations, as PyDiS builds them; a network written by
   `DisNetManager.write_json` and read back without PyDiS, across a periodic boundary; the
   periodic images, against PyDiS's own `Cell.closest_image`; the figures (their traces, the
@@ -186,7 +189,8 @@ Each test prints `PASS` or `FAIL` for every check, and exits with a non-zero cod
 - **`test_app_smoke`**: the banner, the one drop-down menu, no chat, every step of both
   examples, a change and a reset, and a 20-step run of the binary junction: its output, status
   and downloads, and the networks that the 3-D window's component gets (AppTest does not run
-  the component's script). Its runs go to a temporary folder (`OPENDIS_APP_RUNS`).
+  the component's script); then **🗑 clear all results**. Its runs go to a temporary folder
+  (`OPENDIS_APP_RUNS`).
 - **`test_network3d.js`**: the component's script in Node.js, with stand-ins for Plotly, the
   page and the browser: a run starts on its final network in the first view; the camera that
   Plotly reports after a drag is the one every later network of the example is drawn with, in
@@ -205,3 +209,7 @@ entry point.
 - The Cloud clones the repository without its git submodules. So the app fetches PyDiS's
   `graph` submodule when it starts, with `git submodule update --init` (`fetch_graph()` in
   `common/paths.py`).
+- All visitors share the app's `runs/` folder. So a run's results show for everyone who picks
+  the same selections, until **🗑 clear all results** or a reboot of the app.
+- The Cloud has no compiled `lib/libpydis.so`, so PyDiS uses its Python version of the
+  functions that the library holds. Its output starts with "pydis_lib not found".
