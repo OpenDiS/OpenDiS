@@ -20,7 +20,8 @@ from common.network import Network
 
 FOLDER = Path(__file__).resolve().parents[1] / "components" / "network3d"
 PLOTLY_JS = FOLDER / "plotly.min.js"
-CONFIG = {"displaylogo": False, "responsive": True}
+# No "Share chart..." button, which plotly.js 4 adds (it uploads the figure to Plotly Cloud)
+CONFIG = {"displaylogo": False, "responsive": True, "showSendToCloud": False}
 
 
 @dataclass(frozen=True)
