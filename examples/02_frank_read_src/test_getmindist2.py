@@ -35,6 +35,8 @@ if test_random_cases:
     for icase in range(Ntests):
         p1, p2 = np.random.rand(3), np.random.rand(3)
         p3, p4 = np.random.rand(3), np.random.rand(3)
+        if icase % 2 == 1:  # parallel segments, which take a branch of their own
+            p4 = p3 + (p2 - p1) * np.random.uniform(-2, 2)
         v1, v2 = np.random.rand(3), np.random.rand(3)
         v3, v4 = np.random.rand(3), np.random.rand(3)
     
