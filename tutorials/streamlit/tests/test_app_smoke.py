@@ -139,6 +139,20 @@ def main() -> int:  # pylint: disable=too-many-locals,too-many-statements
               toasts == ["Deleted the results of 1 run(s)."] and "No run yet" in output,
               (toasts, output[-200:])),
     ]
+
+    # a changed source file makes Streamlit load the app's modules again, with new classes:
+    # the session's spec, of the old ones, must still work (last, as job.running() is the old
+    # module's then)
+    at = page()
+    next(n for n in at.number_input if n.label == "Arm length / Lbox").set_value(0.2).run()
+    for name in [m for m in sys.modules if m == "common" or m.startswith("common.")]:
+        del sys.modules[name]
+    at.run()
+    arms = [n.value for n in at.number_input if n.label == "Arm length / Lbox"]
+    results += [
+        check("after the app's modules are loaded again, the page draws, with the changed value",
+              not at.exception and arms == [0.2], ([e.value for e in at.exception], arms)),
+    ]
     return summary(results)
 
 

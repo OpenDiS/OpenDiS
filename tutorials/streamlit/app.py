@@ -51,6 +51,21 @@ def _spec(example: Example) -> Spec:
     return st.session_state[key]
 
 
+def _renew_specs() -> None:
+    """Rebuild the session's specs after Streamlit loaded the app's modules again.
+
+    A changed source file (an edit, or an update of the app on the Cloud) makes Streamlit load
+    every module of the app again, with new classes. A spec that the session kept is then of
+    the old classes, and fails the code's ``isinstance`` tests; its JSON gives the new ones.
+    """
+    for key, value in list(st.session_state.items()):
+        if str(key).startswith("spec/") and not isinstance(value, Spec):
+            try:
+                st.session_state[key] = Spec.from_json(value.to_json())
+            except Exception:  # pylint: disable=broad-exception-caught
+                del st.session_state[key]  # the example's own values, then
+
+
 def _replace_spec(example: Example, spec: Spec) -> None:
     """Code replaces the spec (a reset): the widgets start again."""
     st.session_state[_key(example, "spec")] = spec
@@ -345,6 +360,7 @@ def main() -> None:
     """Build the page: config, CSS, banner, sidebar, the three columns, then any run."""
     st.set_page_config(page_title=style.BANNER_TITLE, page_icon=str(FAVICON), layout="wide",
                        initial_sidebar_state=SIDEBAR_WIDTH_PX)
+    _renew_specs()
     st.markdown(style.css(), unsafe_allow_html=True)
     st.markdown(style.banner_html(style.BANNER_TITLE, LOGO), unsafe_allow_html=True)
     fetch_graph()
