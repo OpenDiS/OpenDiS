@@ -3,6 +3,8 @@ import json
 import os
 import sys
 import tempfile
+import threading
+import time
 
 os.environ["OPENDIS_APP_RUNS"] = tempfile.mkdtemp(prefix="opendis_app_runs_")  # before the app
 
@@ -216,8 +218,13 @@ def main() -> int:  # pylint: disable=too-many-locals,too-many-statements
         check("no job is left running after ExaDiS's", not job.running()),
     ]
 
-    # until ExaDiS is built for this Python, its examples cannot run
+    # until ExaDiS is built for this Python, its examples cannot run; while the app builds it,
+    # a bar shows how far it is (a stand-in for the build: a thread of its name and progress)
     built, paths.EXADIS_MODULE = paths.EXADIS_MODULE, "pyexadis.not-built.so"
+    done = threading.Event()
+    builder = threading.Thread(target=done.wait, name=paths.BUILD_THREAD, daemon=True)
+    builder.exadis = {"phase": "compiling", "percent": 45, "file": "exadis_pybind.cpp",
+                      "start": time.monotonic() - 90}
     try:
         at = page()
         choose(at, "Frank-Read src", "ExaDiS")
@@ -226,7 +233,12 @@ def main() -> int:  # pylint: disable=too-many-locals,too-many-statements
         run = next(b for b in at.button if b.label == "▶ Run")
         warnings = [w.value for w in at.warning]
         bar = [c.value for c in at.caption if c.value.startswith("ExaDiS is")]
+        builder.start()
+        at.run()
+        building = [(p.value, p.proto.text) for p in at.get("progress")]
+        run_building = next(b for b in at.button if b.label == "▶ Run").disabled
     finally:
+        done.set()
         paths.EXADIS_MODULE = built
     results += [
         check("without ExaDiS, its Run is off, and the Run step says why",
@@ -234,6 +246,9 @@ def main() -> int:  # pylint: disable=too-many-locals,too-many-statements
               (run.disabled, warnings)),
         check("... and so does the status below 🗑 clear all results",
               any("not built" in c for c in bar), bar),
+        check("while ExaDiS builds, a bar shows its phase, percent, file and time, and Run is off",
+              building == [(45, "Building ExaDiS: compiling, 45 %, exadis_pybind.cpp · 1.5 min "
+                                "so far")] and run_building, (building, run_building)),
     ]
 
     # a changed source file makes Streamlit load the app's modules again, with new classes:

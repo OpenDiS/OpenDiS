@@ -7,7 +7,7 @@ script_name = "frank_read_src_exadis.py"
 final_json = "frank_read_src_exadis_final.json"
 tutorial_script = "examples/02_frank_read_src/test_frank_read_src_exadis.py"
 tutorial_url = "https://opendis.github.io/OpenDiS/tutorials/frank_read_src/frank_read_src_by_pyexadis.html"
-run_hint = "The tutorial's 300 steps take about 10 s."
+run_hint = "The tutorial's 300 steps take about 5 s."
 
 [config]
 kind = "frank_read_src_loop"

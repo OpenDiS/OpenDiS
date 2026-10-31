@@ -1,9 +1,9 @@
 # OpenDiS — Streamlit app
 
-A web app that sets up, runs and shows the PyDiS simulations of the
+A web app that sets up, runs and shows the PyDiS and ExaDiS simulations of the
 [OpenDiS tutorials](https://opendis.github.io/OpenDiS/tutorials/index.html), step by step.
-**Run** runs the tutorial's script, with your values, as a separate PyDiS job. Its screen
-output shows as it runs, and its dislocation network in 3-D.
+**Run** runs the tutorial's script, with your values, as a separate job. Its screen output
+shows as it runs, and its dislocation network in 3-D.
 
 There are two ways to use the app:
 
@@ -49,17 +49,18 @@ agree byte for byte with those of a `_repro` build made with CMake. Until the li
 there, and if gcc is missing, PyDiS uses its Python versions, and its output starts with
 "pydis_lib not found".
 
-The app's examples run PyDiS. ExaDiS's Python module, `pyexadis`, serves the console and
-scripts that import it. On Linux, if a clone lacks it for the app's Python, the app builds it
-after PyDiS's library, in the background (`build_exadis()` in `common/paths.py`). It uses
+The Frank-Read source also runs with ExaDiS, through its Python module `pyexadis`. On Linux,
+if a clone lacks the module for the app's Python, the app builds it after PyDiS's library, in
+the background (`build_exadis()` in `common/paths.py`). It uses
 OpenDiS's CMake project with its `ubuntu` preset, `-DSYS=ubuntu`. Two options differ from a
 usual build. `-DEXADIS_FFT=Off` leaves out ExaDiS's FFT force, since the Cloud has no FFTW.
 `-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF` turns off link-time optimization, whose last step
 would compile all the files at once. The build compiles one file at a time, to fit in the
 Cloud's memory, and takes some minutes. ExaDiS is the git submodule `core/exadis`, with Kokkos
 and pybind11 as submodules of its own. The app fetches them first if need be, without their
-history. The module goes to `core/exadis/python/`, where the scripts look for it. On macOS,
-build ExaDiS with CMake, as for the tutorials.
+history. The module goes to `core/exadis/python/`, where the scripts look for it. Until it is
+there, an example run by ExaDiS cannot run: its Run is off. On macOS, build ExaDiS with CMake,
+as for the tutorials.
 
 ## Launch
 
@@ -77,14 +78,15 @@ environment, set `OPENDIS_PYTHON` to its Python, as in
 
 ## The page
 
-- **Banner:** "OpenDiS" with the logo of the OpenDiS website, pinned at the top, and on its
-  right the example, in one drop-down menu.
-- **Sidebar:** the steps, where a • marks a step whose values differ from the example's, and
-  ‹ prev and next › buttons.
+- **Banner:** "OpenDiS" with the logo of the OpenDiS website, pinned at the top.
+- **Sidebar:** the example, in a drop-down menu, and below it a second one, **Code**: PyDiS or
+  ExaDiS. For now only the Frank-Read source has both. Then the steps, where a • marks a step
+  whose values differ from the example's, and ‹ prev and next › buttons.
 - **2nd left column:** the chosen step's selections. « hides it, » shows it again, and
   choosing a step shows it too.
-- **Center:** the 3-D window and the PyDiS code.
-  - The 3-D window shows the initial configuration, as PyDiS builds it from your values; the
+- **Center:** the 3-D window and the code, PyDiS's or ExaDiS's.
+  - The 3-D window shows the initial configuration, as PyDiS builds it from your values
+    whichever code runs the example; the
     simulation, which during a run is its newest snapshot, and after it a replay of all its
     snapshots, with ▶ play and a slider (it starts on the final network); and the history, the
     number of nodes and the dislocation density of each snapshot against the time step.
@@ -113,18 +115,21 @@ environment, set `OPENDIS_PYTHON` to its Python, as in
 - **Right:** the simulation output: what the script prints, as it runs, and after a run its
   `log.txt`, which ends with a line on how the job ended. Below it, **🗑 clear all results**
   deletes the results of all past runs, after a confirmation: those of every example, for
-  everyone who uses the app. A run in progress is kept.
-- **Run (step 7)** runs the full script as a separate job, in its run folder. The app stops it
+  everyone who uses the app. A run in progress is kept. Below it is ExaDiS's status: ready,
+  or a bar while the app builds it, which refreshes itself every 5 s.
+- **Run (step 7)** runs the full script as a separate job, in its run folder. With ExaDiS, it
+  is off until ExaDiS is built, and the step says why. The app stops a run
   only if you press **Stop** or change any selection during the run, if it prints nothing for
   5 min, or if it runs for an hour. After a run, step 7 offers its results for download.
 
 ## Examples
 
-An example is one Markdown file, `examples/<name>.md`; the drop-down menu offers one entry per
-file. The file has two parts:
+An example, run by one code, is one Markdown file, `examples/<name>.md`. The Example menu offers
+one entry per `label`, and the Code menu one per file of that label. The file has two parts:
 
 - **Front matter**, between two lines of `+++`, in TOML: the `label` that the menu shows, the
-  `title`, the script's file name (`script_name`) and that of its final network
+  code that runs it (`engine`: `pydis`, the default, or `exadis`), the `title`, the script's
+  file name (`script_name`) and that of its final network
   (`final_json`), the tutorial's script and page (`tutorial_script`, `tutorial_url`), a
   `run_hint`, and one table of values for each step: `[config]`, `[material]`, `[forces]`,
   `[timeint]`, `[topology]`, `[loading]` and `[run]` (see `common/spec.py`).
@@ -133,22 +138,26 @@ file. The file has two parts:
 | Example | Tutorial's script | Initial configuration |
 | --- | --- | --- |
 | `examples/frank_read_src.md` | `examples/02_frank_read_src/test_frank_read_src_pydis.py` | `frank_read_src_loop` |
+| `examples/frank_read_src_exadis.md` | `examples/02_frank_read_src/test_frank_read_src_exadis.py` | `frank_read_src_loop` |
 | `examples/binary_junction.md` | `examples/03_binary_junction/test_binary_junction_pydis.py` | `two_disl_lines` |
 
 Another example of a known initial configuration is another file, and the app's code does not
 change; a new or edited file shows after you reload the page. A new kind of initial
-configuration needs its function in `common/codegen.py` (`INIT_FUNCTIONS`) and its values in
-`common/spec.py` (`CONFIGS`). A file with problems is not offered: the app lists what is wrong
+configuration needs its function in `common/codegen.py` (`INIT_FUNCTIONS`, one for each code)
+and its values in `common/spec.py` (`CONFIGS`, `ENGINE_KINDS`). Each code offers its own
+choices in the steps (`CHOICES`). ExaDiS has a topology mode where PyDiS has a split mode, and
+no cell list. A file with problems is not offered: the app lists what is wrong
 with it, under **Input files with problems**.
 
 ## The generated script
 
 The full script is the tutorial's script with your values. For an example's own values, it
 runs the same simulation as the tutorial's script, to the last bit (`tests/test_codegen.py`).
-It differs from that script in three ways: it finds PyDiS from `$OPENDIS_DIR`, else from the
-repository that the app runs in, so that it runs from any folder; each step's code is one
-block, so a few lines come in another order; and an optional value (Ec, mob, a Burgers vector)
-appears only when it is not the default.
+It differs from that script in four ways. It finds PyDiS and ExaDiS from `$OPENDIS_DIR`, else
+from the repository that the app runs in, so that it runs from any folder. Each step's code is
+one block, so a few lines come in another order. An optional value (Ec, mob, a Burgers vector)
+appears only when it is not the default. And ExaDiS's script also writes its snapshots as
+PyDiS's does, `output/disnet_<step>.json`, for the app's views (`SimulateNetworkJSON`).
 
 You can download it and run it outside the app, with `python <script name>`: it plots with
 matplotlib, as the tutorials do, and writes `output/` in the current folder. In the app,
@@ -166,7 +175,7 @@ matplotlib draws off screen, and the app shows its own 3-D view.
 | `components/network3d/plotly.min.js` | plotly.js, which the app copies there from the Plotly package when it starts | ignored |
 | `launch_app.sh` | the launcher | committed |
 | `tests/` | the tests, and `record_demo.py`, which records `recordings/app_demo.mp4`, a demo video of the app | committed |
-| `runs/<example>/<run_id>/` | one folder per run: the script, `spec.json`, `log.txt`, and `output/`, with a snapshot of the network every write_freq steps (`disnet_<step>.json`), the final network, and any other file that the script writes there | ignored |
+| `runs/<example>/<run_id>/` | one folder per run: the script, `spec.json`, `log.txt`, and `output/`, with a snapshot of the network every write_freq steps (`disnet_<step>.json`, and ExaDiS's `config.<step>.data`), the final network, and any other file that the script writes there | ignored |
 | `$TMPDIR/opendis_console_*/` | a Python console's session: its copy of the run's script and `output/`, removed when the session ends | outside the repository |
 
 `run_id` is a hash of the script, so the same selections reuse their results without running
@@ -197,7 +206,7 @@ python -m tests.test_codegen          # the generated scripts against the tutori
 python -m tests.test_codegen --full   # ... at the tutorials' full length (about a minute)
 python -m tests.test_job              # the job runner: a run, a stop, a time limit, leftovers
 python -m tests.test_views            # networks from PyDiS's JSON, and the figures
-python -m tests.test_app_smoke        # the whole page, and a 20-step run of the binary junction
+python -m tests.test_app_smoke        # the whole page, and 20-step runs with PyDiS and ExaDiS
 python -m tests.test_console          # the Python console, on 20-step runs of both examples
 python -m tests.test_build            # PyDiS's library and ExaDiS's module (some minutes)
 node tests/test_network3d.js          # the 3-D window's script (needs Node.js)
@@ -208,10 +217,12 @@ Each test prints `PASS` or `FAIL` for every check, and exits with a non-zero cod
 - **`test_codegen`**: for each example, the script that the app writes for the example's own
   values must run the same simulation as the tutorial's script: every snapshot of the network,
   and the final one, equal to the last bit, and the same printed lines but for the wall time.
-  The tutorial's script runs from a copy whose only change is that its PyDiS paths are
-  absolute (they are relative to its own folder). Also checked: the numbers in the scripts,
-  each step's code inside the full script, the spec's JSON round trip, and selections that
-  must be refused (a zero time step, minseg over half of maxseg, a NaN stress, ...).
+  For ExaDiS, the snapshots are its `config.<step>.data` files, and the app's script must also
+  write a JSON snapshot for each. The tutorial's script runs from a copy whose only change is
+  that its paths are absolute (they are relative to its own folder). Also checked: the numbers
+  in the scripts, each step's code inside the full script, the spec's JSON round trip, and
+  selections that must be refused (a zero time step, minseg over half of maxseg, a NaN stress,
+  ...).
 - **`test_job`**: a run that ends well, one that fails, one that writes no final network, a
   stop from the caller (as Streamlit stops a script run), a time limit, a job left by an
   earlier session, the run folders, and their deletion, which keeps a folder whose job runs;
@@ -221,12 +232,14 @@ Each test prints `PASS` or `FAIL` for every check, and exits with a non-zero cod
   periodic images, against PyDiS's own `Cell.closest_image`; the figures (their traces, the
   first view, the camera kept); and a run's results (300 snapshots played as 120, the history,
   the zip).
-- **`test_app_smoke`**: the banner, the one drop-down menu, no chat, every step of both
-  examples, a change and a reset, and a 20-step run of the binary junction: its output, status
-  and downloads, and the networks that the 3-D window's component gets (AppTest does not run
-  the component's script); then the Python console, and **🗑 clear all results**. Its runs go
-  to a temporary folder (`OPENDIS_APP_RUNS`).
-- **`test_console`**: for each example, a 20-step run, then a session whose `G`, `sim` and
+- **`test_app_smoke`**: the banner, the two menus in the sidebar, no chat, ExaDiS's status,
+  every step of both examples with each of their codes, a change and a reset, and a 20-step
+  run of the binary junction: its output, status and downloads, and the networks that the 3-D
+  window's component gets (AppTest does not run the component's script); then the Python
+  console, and **🗑 clear all results**. Then a 20-step run of the Frank-Read source with
+  ExaDiS, and its Run off while ExaDiS is not built. Its runs go to a temporary folder
+  (`OPENDIS_APP_RUNS`).
+- **`test_console`**: for each example and code, a 20-step run, then a session whose `G`, `sim` and
   `net` are the run's; then, in one session: `state`, code of several lines, `print`, an
   error's traceback, names that stay, `snapshot()`, a file written to the session's own copy,
   the app's environment kept out, `input()`, the guard rails (shell commands, subprocess,
@@ -263,8 +276,9 @@ entry point.
 - The Cloud's clone has no `lib/libpydis.so`, so the app builds it when it starts. The Cloud
   has gcc, g++ and make, and CMake only from pip. PyDiS's library takes some seconds. Runs
   that start before it is done use PyDiS's Python versions. ExaDiS's module comes next, in
-  some minutes. Until then, `import pyexadis` fails. The app's log, under Manage app, says
-  when each was built, or why not. The Cloud runs Python 3.14.
+  some minutes, one file at a time. Until then, ExaDiS's Run is off, and the status bar below
+  **🗑 clear all results** shows the build. The app's log, under Manage app, says when each
+  was built, or why not. The Cloud runs Python 3.14.
 - A push updates the app in place, and keeps what the app built. After a change to PyDiS's C
   code or to ExaDiS, reboot the app, so that it builds them anew.
 - The Python console works there too, for every visitor. It is meant for looking into a
