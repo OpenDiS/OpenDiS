@@ -4,6 +4,9 @@ Welcome To OpenDiS!
 Please see `OpenDiS Documentation <https://opendis.github.io/OpenDiS>`_
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+Try out the `interactive app <https://opendis.streamlit.app>`_
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 
 OpenDiS Manifesto
 -----------------
