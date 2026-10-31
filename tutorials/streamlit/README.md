@@ -105,10 +105,12 @@ environment, set `OPENDIS_PYTHON` to its Python, as in
     example starts in the first view, which is the same for every example, and so does an
     example that you come back to. Plotly's "Reset camera to default" goes back to the first
     view. A replay holds while the
-    mouse button is down, so that you can turn the view as it plays. (During a run, its newest
-    snapshot starts again in the first view.)
+    mouse button is down, so that you can turn the view as it plays. So does a run: its newest
+    snapshot keeps the view you turned to, and waits until the mouse button is up.
   - The networks are drawn by a small component of the app's own, `components/network3d/`,
     since Streamlit's own Plotly chart puts the camera back whenever it draws a new figure.
+    During a run, the app writes the newest snapshot into the component's `live/` folder, and
+    the component fetches it there every 0.5 s, so that one figure lasts the whole run.
   - The code panel shows this step's code, or the full script, with a download button.
   - Its third mode, **Python console**, is the browser tab's own Python session, to look into
     the run's objects. `net`, `sim`, `state` and `G` are as after `python -i` on the full
@@ -249,6 +251,7 @@ matplotlib draws off screen, and the app shows its own 3-D view.
 | `assets/opendis_favicon.png` | the browser tab's icon, the website's favicon, scaled from `doc/_static/favicon_node.ico` | committed |
 | `components/network3d/` | the 3-D window's component: its page and `network3d.js` | committed |
 | `components/network3d/plotly.min.js` | plotly.js, which the app copies there from the Plotly package when it starts | ignored |
+| `components/network3d/live/` | a running job's newest snapshot, `<run_id>.json`, for the 3-D window; removed when the run ends | ignored |
 | `launch_app.sh` | the launcher | committed |
 | `tests/` | the tests, and `record_demo.py`, which records `recordings/app_demo.mp4`, a demo video of the app | committed |
 | `runs/<example>/<run_id>/` | one folder per run: the script, `spec.json`, `log.txt`, and `output/`, with a snapshot of the network every write_freq steps (`disnet_<step>.json`, and ExaDiS's `config.<step>.data`), the final network, and any other file that the script writes there | ignored |
@@ -340,7 +343,9 @@ Each test prints `PASS` or `FAIL` for every check, and exits with a non-zero cod
   page and the browser: a run starts on its final network in the first view; the camera that
   Plotly reports after a drag is the one every later network of the example is drawn with, in
   its next view too, while another example, or a return to the first, starts in the first view;
-  play, the slider, a hold while the mouse button is down, the end, and new networks.
+  play, the slider, a hold while the mouse button is down, the end, and new networks; and
+  during a run, the newest snapshot fetched and drawn with the user's camera, held during a
+  drag, and the fetching stopped when the replay comes.
 
 ## On Streamlit Community Cloud
 

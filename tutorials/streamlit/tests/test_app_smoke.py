@@ -13,7 +13,7 @@ from pathlib import Path
 
 from streamlit.testing.v1 import AppTest
 
-from common import job, paths
+from common import job, network3d, paths
 from common.picker import STEP_LIST
 from common.testing import check, summary
 
@@ -154,7 +154,14 @@ def main() -> int:  # pylint: disable=too-many-locals,too-many-statements
     for _ in STEP_LIST[1:]:
         click(at, "next ›")
     next(n for n in at.number_input if n.label.startswith("max_step")).set_value(20).run()
-    click(at, "▶ Run")
+    written, write_live = [], network3d.write_live  # the snapshots that the 3-D window fetches
+    network3d.write_live = lambda run_id, label, net: (written.append(label),
+                                                       write_live(run_id, label, net))
+    try:
+        click(at, "▶ Run")
+    finally:
+        network3d.write_live = write_live
+    left = sorted(p.name for p in network3d.LIVE.glob("*")) if network3d.LIVE.exists() else []
     run_error = list(at.exception)
     output = "\n".join(c.value for c in at.code)
     successes = [s.value for s in at.success]
@@ -168,6 +175,9 @@ def main() -> int:  # pylint: disable=too-many-locals,too-many-statements
               len(replay) == 1 and [f["label"] for f in replay[0]["frames"]] ==
               ["step 0", "step 10", "final"] and replay[0]["start"] == "last",
               [[f["label"] for f in r["frames"]] for r in replay]),
+        check("during the run, its newest snapshots are written for the 3-D window to fetch",
+              written and set(written) <= {"step 0", "step 10"}, written),
+        check("the newest snapshot's file is removed when the run ends", not left, left),
         check("the run ends without an exception", not run_error, run_error),
         check("the output column shows PyDiS's lines",
               "init_two_disl_lines: z0 = 1.000000" in output and "step = 10" in output,

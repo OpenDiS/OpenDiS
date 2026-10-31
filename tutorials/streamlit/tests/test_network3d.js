@@ -19,6 +19,8 @@ function instance() {
   const draws = [];          // Plotly.react calls: the camera and the title
   const relayouts = [];
   const timers = {next: 1, live: new Map()};
+  const files = new Map();   // what the page can fetch, by URL
+  const fetched = [];
   function element(id) {
     const listeners = {};
     return elements[id] = {
@@ -55,10 +57,18 @@ function instance() {
     document: {getElementById: (id) => elements[id], body: {scrollHeight: 600}},
     setInterval(fn) { const id = timers.next++; timers.live.set(id, fn); return id; },
     clearInterval(id) { timers.live.delete(id); },
+    setTimeout(fn) { setImmediate(fn); },
+    Date,
+    fetch(url) {
+      fetched.push(url);
+      const body = files.get(url.split("?")[0]);
+      return Promise.resolve(body === undefined ? {ok: false}
+                             : {ok: true, json: () => Promise.resolve(JSON.parse(body))});
+    },
   };
   vm.runInNewContext(source, context);
   return {
-    posted, draws, relayouts, elements, plot, timers,
+    posted, draws, relayouts, elements, plot, timers, files, fetched,
     render(args) { (handlers.message || []).forEach((fn) => fn({data: {type: "streamlit:render", args}})); },
     tick() { [...timers.live.values()].forEach((fn) => fn()); },
     pointer(type) { (type === "down" ? plot : {fire: (t) => (handlers[t] || []).forEach((fn) => fn({}))}).fire(type === "down" ? "pointerdown" : "pointerup"); },
@@ -135,6 +145,55 @@ function args(labels, id, extra) {
   await settle(); await settle();
   check("back to the first example: the first view again", same(d.draws[0].camera, CAMERA)
         && d.relayouts.length === 0, d.relayouts);
+
+  // during a run: the job's newest snapshot, which the app writes into live/
+  const settled = async () => { for (let i = 0; i < 6; i++) await settle(); };
+  const snapshot = (label, id) => JSON.stringify({frames: frames([label]), data_id: id,
+                                                  layout: {scene: {camera: CAMERA}, title: {}}});
+  const DRAG = {eye: {x: -1.5, y: 0.3, z: 1.2}};
+  const e = instance();
+  e.render({live: "live/r1.json", live_ms: 500, config: {}, scope: "binary_junction"});
+  await settled();
+  check("during a run, nothing is drawn before the first snapshot, and the page fetches again",
+        e.draws.length === 0 && e.timers.live.size === 1 && e.fetched[0].startsWith("live/r1.json?t="),
+        [e.draws, e.fetched]);
+  e.files.set("live/r1.json", snapshot("step 0", "s0"));
+  e.tick();
+  await settled();
+  check("a run's first snapshot is drawn in the app's first view, without controls",
+        e.draws.length === 1 && e.draws[0].title === "step 0" && same(e.draws[0].camera, CAMERA)
+        && e.elements.controls.className === "", e.draws);
+  e.plot.handlers.plotly_relayout.forEach((fn) => fn({"scene.camera": USER}));
+  e.files.set("live/r1.json", snapshot("step 10", "s10"));
+  e.tick();
+  await settled();
+  check("the run's next snapshot keeps the user's camera",
+        e.draws.at(-1).title === "step 10" && e.draws.at(-1).camera === USER, e.draws.at(-1));
+  e.tick();
+  await settled();
+  check("the same snapshot is not drawn again", e.draws.length === 2, e.draws.length);
+  e.pointer("down");
+  e.plot.handlers.plotly_relayouting.forEach((fn) => fn({"scene.camera": DRAG}));
+  e.files.set("live/r1.json", snapshot("step 20", "s20"));
+  e.tick();
+  await settled();
+  check("a new snapshot waits while the mouse button is down", e.draws.length === 2, e.draws.length);
+  e.pointer("up");
+  await settled();
+  check("then it is drawn, with the camera that the drag got to",
+        e.draws.at(-1).title === "step 20" && e.draws.at(-1).camera === DRAG, e.draws.at(-1));
+  e.render(args(["step 0", "step 10", "final"], "run3", {scope: "binary_junction"}));
+  await settled();
+  const count = e.fetched.length;
+  e.tick();
+  check("the replay stops the fetching, and keeps the camera",
+        e.timers.live.size === 0 && e.fetched.length === count && e.draws.at(-1).title === "final"
+        && e.draws.at(-1).camera === DRAG, [e.timers.live.size, e.draws.at(-1)]);
+  const f = instance();  // the replay's own frame, after the run
+  f.render(args(["step 0", "final"], "run3", {scope: "binary_junction"}));
+  await settled();
+  check("the replay's frame takes the camera that the run's view had",
+        f.relayouts.length === 1 && same(f.relayouts[0]["scene.camera"], DRAG), f.relayouts);
   console.log(failures ? `\n${failures} FAILED` : "\nALL PASSED");
   process.exit(failures ? 1 : 0);
 })();

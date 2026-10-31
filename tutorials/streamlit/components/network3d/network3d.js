@@ -4,7 +4,9 @@
 // drawn with it, in this view and the next of the same example (the browser tab keeps it, with
 // the example's name, its "scope"); another example starts in the app's first view. A run's
 // replay plays here, in the browser; a snapshot is not drawn while the mouse button is down, so a
-// drag goes on undisturbed. Plotly's "Reset camera to default" goes back to the app's first view.
+// drag goes on undisturbed. During a run, the job's newest snapshot, which the app writes next to
+// this page, is fetched and drawn the same way. Plotly's "Reset camera to default" goes back to
+// the app's first view.
 (function () {
   "use strict";
   var STORE = "opendis-app-camera";  // {scope, camera}, kept for the browser tab (sessionStorage)
@@ -15,7 +17,8 @@
   var label = document.getElementById("label");
   var state = {
     dataId: null, scope: null, frames: [], layout: null, config: {}, index: 0, frameMs: 300,
-    camera: null, timer: null, dragging: false, started: false
+    camera: null, timer: null, dragging: false, started: false,
+    live: null, liveArgs: null, liveTimer: null, held: null
   };
 
   function send(type, data) {
@@ -61,12 +64,14 @@
   function firstDraw() {
     state.started = true;
     return draw().then(function () {
-      plot.on("plotly_relayout", function (update) {
+      var turned = function (update) {  // during a drag too, which may end outside the plot
         if (update && update["scene.camera"]) {
           state.camera = update["scene.camera"];
           saveCamera();
         }
-      });
+      };
+      plot.on("plotly_relayout", turned);
+      plot.on("plotly_relayouting", turned);
     });
   }
 
@@ -98,14 +103,62 @@
     state.index = Number(slider.value);
     draw();
   });
+  function released() {
+    state.dragging = false;
+    setTimeout(showHeld, 0);  // after Plotly has reported the drag's last camera
+  }
   plot.addEventListener("pointerdown", function () { state.dragging = true; });
-  window.addEventListener("pointerup", function () { state.dragging = false; });
-  window.addEventListener("pointercancel", function () { state.dragging = false; });
+  window.addEventListener("pointerup", released);
+  window.addEventListener("pointercancel", released);
+
+  // During a run: the job's newest snapshot, from the file that the app writes; a new one is
+  // drawn at once, or when the mouse button is up again
+  function poll() {
+    var url = state.live;
+    fetch(url + "?t=" + Date.now(), {cache: "no-store"}).then(function (response) {
+      return response.ok ? response.json() : null;
+    }).then(function (snapshot) {
+      if (!snapshot || url !== state.live || snapshot.data_id === state.dataId) { return; }
+      state.held = Object.assign({}, state.liveArgs, snapshot);
+      showHeld();
+    }).catch(function () { /* not written yet, or the run has ended */ });
+  }
+
+  function showHeld() {
+    if (state.held && !state.dragging) {
+      var args = state.held;
+      state.held = null;
+      show(args);
+    }
+  }
+
+  function startLive(args) {
+    stopLive();
+    state.live = args.live;
+    state.liveArgs = {config: args.config, scope: args.scope, start: "last"};
+    poll();
+    state.liveTimer = setInterval(poll, args.live_ms || 500);
+  }
+
+  function stopLive() {
+    if (state.liveTimer !== null) { clearInterval(state.liveTimer); state.liveTimer = null; }
+    state.live = null;
+    state.held = null;
+  }
 
   // Streamlit sends the arguments on every rerun; only new networks are drawn again, and another
-  // example's in the app's first view
+  // example's in the app's first view. During a run, they name the file to fetch (live)
   function onRender(args) {
+    if (args.live) {
+      if (args.live !== state.live) { startLive(args); }
+      return;
+    }
+    stopLive();
     if (!args.frames || (args.data_id === state.dataId && args.scope === state.scope)) { return; }
+    show(args);
+  }
+
+  function show(args) {
     stop();
     var kept = null;  // a camera to apply after the draw, which Plotly reports like a drag
     if (args.scope !== state.scope) {

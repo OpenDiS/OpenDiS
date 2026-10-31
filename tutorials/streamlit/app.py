@@ -149,8 +149,8 @@ def _mode_radio(label: str, options: tuple[str, ...], key: str) -> str:
 
 
 def _chart(target: Any, fig: go.Figure, key: str | None = None) -> None:
-    """Show a figure in the column (or slot), at the column's width (a run's newest snapshot,
-    the history); the networks of the 3-D window are otherwise ``network3d``'s."""
+    """Show a figure in the column (or slot), at the column's width (the history); the networks
+    of the 3-D window are ``network3d``'s."""
     target.plotly_chart(fig, width="stretch", theme=None, config=PLOTLY_CONFIG, key=key)
 
 
@@ -416,11 +416,17 @@ def _run(example: Example, spec: Spec, folder: job.RunFolder | None,
                     net = network.read_json(path)
                 except ValueError:  # still being written
                     return
+                network3d.write_live(folder.run_id, f"step {step}", net)
+                if drawn["step"] is None:  # the 3-D window then fetches each new snapshot
+                    with view_slot.container(height=VIEW_PX, border=False):
+                        network3d.show_live(folder.run_id, f"net3d/live/{example.name}",
+                                            example.name)
                 drawn["step"] = step
-                with view_slot.container(height=VIEW_PX, border=False):
-                    _chart(st, views.network_figure(net, f"step {step} · {views.describe(net)}"))
 
-        status = job.run(folder, update)
+        try:
+            status = job.run(folder, update)
+        finally:
+            network3d.end_live(folder.run_id)
         st.session_state[_key(example, "status")] = (folder.run_id, status)
     st.rerun()
 
