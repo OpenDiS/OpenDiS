@@ -216,6 +216,8 @@ def _view_panel(example: Example, spec: Spec,
 def _selections(example: Example, step: Step, spec: Spec) -> Spec:
     """The step's widgets; the user's changes become the example's spec."""
     ctx = steps.StepContext(key=_widget_prefix(example), example=example)
+    if step.key == "config":
+        picker.variant_picker(example, catalog.examples())
     if step.key == "run" and spec.run is None:
         st.caption(f"This script builds a network and runs no simulation. Run runs it with "
                    f"{ENGINE_NAMES[example.engine]}.")

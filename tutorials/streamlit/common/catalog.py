@@ -4,7 +4,9 @@ An input file has a front matter in TOML, between two lines of ``+++``, and a bo
 which step 1 shows. The front matter gives the example's label (the text of the drop-down menu),
 the code that runs it (``engine``, PyDiS by default), its title, its script's file names, and
 the values of every step (``common/spec.py``). Files of the same label are one example run by
-two codes: the second drop-down menu picks the code. Adding an example of a known kind of
+two codes: the second drop-down menu picks the code. They may also be sub-examples, each with
+its ``variant`` (``BCC``), which a menu of step 1 picks, named by ``variant_label`` (``Crystal
+structure``). Adding an example of a known kind of
 initial configuration is adding a file: the app's code does not change. The folder is read on every call and a file again when it has changed, so an edited file
 shows when the page is reloaded. A file with problems is not offered; ``problems()`` says why.
 """
@@ -18,7 +20,8 @@ from common.spec import PARTS, InputError, Spec
 FENCE = "+++"
 DEFAULT_ORDER = 100
 META_KEYS = ("label", "engine", "title", "order", "script_name", "final_json",
-             "tutorial_script", "tutorial_title", "tutorial_url", "run_hint")
+             "tutorial_script", "tutorial_title", "tutorial_url", "run_hint", "variant",
+             "variant_label")
 REQUIRED = ("label", "title", "script_name", "final_json")
 
 
@@ -38,6 +41,8 @@ class Example:  # pylint: disable=too-many-instance-attributes
     tutorial_url: str
     run_hint: str            # what the Run step says before a run
     default: Spec            # the selections that the file gives
+    variant: str = ""        # the sub-example, e.g. ``BCC``; "" when the label has none
+    variant_label: str = ""  # step 1's menu of the sub-examples, e.g. ``Crystal structure``
 
     @property
     def engine(self) -> str:
@@ -83,7 +88,8 @@ def load(path: Path) -> Example:
                    script_name=data["script_name"], final_json=data["final_json"],
                    tutorial_script=tutorial, tutorial_title=data.get("tutorial_title", ""),
                    tutorial_url=data.get("tutorial_url", ""),
-                   run_hint=data.get("run_hint", ""), default=spec)
+                   run_hint=data.get("run_hint", ""), default=spec,
+                   variant=data.get("variant", ""), variant_label=data.get("variant_label", ""))
 
 
 _LOADED: dict[tuple[str, float], Example | InputError] = {}  # by the file's path and mtime
@@ -109,11 +115,12 @@ def scan(root: Path = EXAMPLES) -> tuple[list[Example], dict[str, list[str]]]:
         loaded = _load_cached(path)
         if isinstance(loaded, InputError):
             problems[path.name] = loaded.problems
-        elif (loaded.label, loaded.engine) in seen:
-            problems[path.name] = [f"label and engine: {seen[loaded.label, loaded.engine]} has "
-                                   f"the same, {loaded.label!r} with {loaded.engine}"]
+        elif (loaded.label, loaded.variant, loaded.engine) in seen:
+            problems[path.name] = [
+                f"label, variant and engine: {seen[loaded.label, loaded.variant, loaded.engine]} "
+                f"has the same, {loaded.label!r} {loaded.variant!r} with {loaded.engine}"]
         else:
-            seen[loaded.label, loaded.engine] = path.name
+            seen[loaded.label, loaded.variant, loaded.engine] = path.name
             examples.append(loaded)
     return sorted(examples, key=lambda e: (e.order, e.name)), problems
 

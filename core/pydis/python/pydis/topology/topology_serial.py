@@ -57,6 +57,9 @@ class TopologyParams:
         # are left settable because those expressions carry ParaDiS units.
         self._epsvel = state.get("epsvel", None)
         self._vnoise = state.get("vnoise", None)
+        # ExaDiS scales vnoise by splitMultiNodeAlpha, 1e-3 from its Python
+        # Topology; 1.0 is ParaDiS' noise floor
+        self.alpha = state.get("splitMultiNodeAlpha", 1.0)
 
         # True (default): recompute the trial-split force fresh (ExaDiS's
         # behavior). False: reuse the per-arm forces already computed this
@@ -85,14 +88,15 @@ class TopologyParams:
 
     @property
     def vnoise(self) -> float:
-        """force noise floor subtracted in the power test, ParaDiS rTol/deltaTT
+        """force noise floor subtracted in the power test, ParaDiS rTol/deltaTT,
+        times splitMultiNodeAlpha
 
         Zero until the first time step has been taken, since dt is not known
         before then.
         """
         if self._vnoise is not None:
             return self._vnoise
-        return 0.0 if not self.dt else self.rtol/self.dt
+        return 0.0 if not self.dt else self.alpha*self.rtol/self.dt
 
     @property
     def epsvel(self) -> float:

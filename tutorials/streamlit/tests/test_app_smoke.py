@@ -32,12 +32,15 @@ def click(at: AppTest, label: str) -> None:
     next(b for b in at.button if b.label == label).click().run()
 
 
-def choose(at: AppTest, label: str, code: str = "PyDiS") -> None:
-    """Choose an example and its code in the sidebar's two menus, and run."""
+def choose(at: AppTest, label: str, code: str = "PyDiS", variant: str | None = None) -> None:
+    """Choose an example and its code in the sidebar's two menus, and its sub-example in step
+    1's menu, and run."""
     at.selectbox(key="picker_example").select(label).run()
     menu = at.selectbox(key=f"picker_core/{label}")
     if menu.value != code:  # a menu of one code is disabled
         menu.select(code).run()
+    if variant is not None:
+        at.selectbox(key=f"picker_variant_menu/{label}").select(variant).run()
 
 
 def shown(at: AppTest) -> list[dict]:
@@ -79,13 +82,16 @@ def main() -> int:  # pylint: disable=too-many-locals,too-many-statements
               initial[:1]),
     ]
 
-    # every step of each example and code, by next › (the binary junction last)
-    for example, code in (("Frank-Read src", "PyDiS"), ("Frank-Read src", "ExaDiS"),
-                          ("Uniaxial tension", "PyDiS"), ("Uniaxial tension", "ExaDiS"),
-                          ("Initial configurations", "PyDiS"),
-                          ("Initial configurations", "ExaDiS"), ("Binary junction", "PyDiS")):
+    # every step of each example, sub-example and code, by next › (the binary junction last)
+    for example, code, variant in (
+            ("Frank-Read src", "PyDiS", None), ("Frank-Read src", "ExaDiS", None),
+            ("Uniaxial tension", "PyDiS", None), ("Uniaxial tension", "ExaDiS", None),
+            ("Initial configurations", "PyDiS", None), ("Initial configurations", "ExaDiS", None),
+            ("Binary junction", "PyDiS", "FCC"), ("Binary junction", "ExaDiS", "FCC"),
+            ("Binary junction", "ExaDiS", None), ("Binary junction", "PyDiS", None)):
         at = page()
-        choose(at, example, code)
+        choose(at, example, code, variant)
+        example = f"{example} {variant}" if variant else example
         failures = []
         labels = next(r for r in at.radio if r.label == "Steps").options
         for label in labels:
@@ -102,8 +108,31 @@ def main() -> int:  # pylint: disable=too-many-locals,too-many-statements
                     check(f"{example} with {code}: the code panel is {code}'s",
                           f"{code} code" in titles, titles[-500:])]
     junction = [(s.options, s.disabled) for s in at.selectbox if s.label == "Core"]
-    results.append(check("the binary junction has one code, PyDiS", junction == [(["PyDiS"], True)],
-                         junction))
+    results.append(check("the binary junction has two codes, PyDiS and ExaDiS",
+                         junction == [(["PyDiS", "ExaDiS"], False)], junction))
+
+    # the binary junction's crystal structures, in a menu of step 1: FCC is a sub-example of its
+    # own, at its step 1, and the choice stays while step 1 is not shown
+    at = page()
+    choose(at, "Binary junction")
+    menu = at.selectbox(key="picker_variant_menu/Binary junction")
+    offered = (menu.label, menu.options, menu.value)
+    menu.select("FCC").run()
+    titles = "\n".join(m.value for m in at.markdown)
+    step = next(r for r in at.radio if r.label == "Steps").value
+    junction_types = [s.options for s in at.selectbox if s.label == "Junction type"]
+    click(at, "next ›")
+    click(at, "‹ prev")
+    kept = at.selectbox(key="picker_variant_menu/Binary junction").value
+    results += [
+        check("in step 1 of the binary junction, the Crystal structure menu: BCC, FCC",
+              offered == ("Crystal structure", ["BCC", "FCC"], "BCC"), offered),
+        check("FCC is a sub-example of its own: its title, at step 1, with its junction types",
+              "Binary junction · FCC · PyDiS" in titles and step == STEP_LIST[0].label
+              and junction_types == [["lomer", "glissile", "hirth", "colinear"]],
+              (step, junction_types)),
+        check("the choice stays when step 1 is left and shown again", kept == "FCC", kept),
+    ]
 
     # a changed selection marks its step; reset brings the example's values back
     at = page()

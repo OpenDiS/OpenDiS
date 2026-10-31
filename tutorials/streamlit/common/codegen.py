@@ -19,7 +19,7 @@ import textwrap
 from dataclasses import replace
 
 from common.paths import OPENDIS_DIR, PYDIS_PATHS
-from common.spec import (FrankReadSource, InfiniteLines, LoopSources, ParaDiSFile,
+from common.spec import (FCCJunction, FrankReadSource, InfiniteLines, LoopSources, ParaDiSFile,
                          SimpleSource, Spec, TwoLines)
 
 EXADIS_PATHS = PYDIS_PATHS + ("core/exadis/python",)  # as in the ExaDiS tutorials' scripts
@@ -154,6 +154,88 @@ def init_two_disl_lines(z0=1.0, box_length=8.0, b1=np.array([-1.0,1.0,1.0]), b2=
 
     return DisNetManager(DisNet(cell=cell, rn=rn, links=links))
 ''',
+    ("exadis", TwoLines.kind): '''\
+def init_two_disl_lines(z0=1.0, box_length=8.0, b1=np.array([-1.0,1.0,1.0]), b2=np.array([1.0,-1.0,1.0]), pbc=False):
+    \'\'\'Generate an initial configuration for two dislocation lines.
+    \'\'\'
+    print("init_two_disl_lines: z0 = %f" % (z0))
+    cell = pyexadis.Cell(h=box_length*np.eye(3), is_periodic=[pbc,pbc,pbc])
+    center = np.array(cell.center())
+
+    rn    = np.array([[0.0, -z0, -z0,  NodeConstraints.PINNED_NODE],
+                      [0.0,  0.0, 0.0, NodeConstraints.UNCONSTRAINED],
+                      [0.0,  z0,  z0,  NodeConstraints.PINNED_NODE],
+                      [-z0,  0.0,-z0,  NodeConstraints.PINNED_NODE],
+                      [0.0,  0.0, 0.0, NodeConstraints.UNCONSTRAINED],
+                      [ z0,  0.0, z0,  NodeConstraints.PINNED_NODE]])
+    rn[:,0:3] += center
+
+    xi1, xi2 = rn[2,:3] - rn[1,:3], rn[5,:3] - rn[4,:3]
+    n1, n2 = np.cross(b1, xi1), np.cross(b2, xi2)
+    n1, n2 = n1 / np.linalg.norm(n1), n2 / np.linalg.norm(n2)
+    links = np.zeros((4, 8))
+    links[0, :] = np.concatenate(([0, 1], b1, n1))
+    links[1, :] = np.concatenate(([1, 2], b1, n1))
+    links[2, :] = np.concatenate(([3, 4], b2, n2))
+    links[3, :] = np.concatenate(([4, 5], b2, n2))
+
+    return DisNetManager(ExaDisNet(cell, rn, links))
+''',
+}
+# The fcc junction's function, the same in both codes but for its cell and its network
+_FCC_JUNCTION = '''\
+def init_fcc_junction(junction_type, disloc_length, phi1, phi2):
+    \'\'\'Generate two Frank-Read sources on two fcc slip systems that cross at the box center
+    \'\'\'
+    Lbox = 1.0*disloc_length
+    cell = {cell}(h=Lbox*np.eye(3), is_periodic=[1,1,1])
+    nodes, segs = [], []
+
+    b1 = 1.0/np.sqrt(2.0)*np.array([0.0, 1.0, 1.0])
+    p1 = np.array([1.0, 1.0, -1.0])
+
+    if junction_type == 'lomer':
+        b2 = 1.0/np.sqrt(2.0)*np.array([1.0, 0.0,-1.0])
+        p2 = np.array([1.0, 1.0, 1.0])
+    elif junction_type == 'glissile':
+        b2 = 1.0/np.sqrt(2.0)*np.array([1.0, 0.0,-1.0])
+        p2 = np.array([1.0,-1.0, 1.0])
+    elif junction_type == 'hirth':
+        b2 = 1.0/np.sqrt(2.0)*np.array([0.0,-1.0, 1.0])
+        p2 = np.array([1.0, 1.0, 1.0])
+    elif junction_type == 'colinear':
+        b2 = 1.0/np.sqrt(2.0)*np.array([0.0,-1.0,-1.0])
+        p2 = np.array([1.0,-1.0, 1.0])
+    else:
+        raise ValueError('Unknown junction type %s'%junction_type)
+
+    linter = np.cross(p1, p2)
+    linter = linter / np.linalg.norm(linter)
+    y1 = np.cross(linter, p1)
+    y1 = y1 / np.linalg.norm(y1)
+    ldir1 = np.cos(phi1*np.pi/180.0)*linter+np.sin(phi1*np.pi/180.0)*y1
+    y2 = np.cross(linter, p2)
+    y2 = y2 / np.linalg.norm(y2)
+    ldir2 = np.cos(phi2*np.pi/180.0)*linter+np.sin(phi2*np.pi/180.0)*y2
+
+    center = 0.5*Lbox * np.ones(3)
+    delta = 0.01 * disloc_length * np.array([1.0, 1.0, 0.0])
+
+    nodes, segs = insert_frank_read_src(cell, nodes, segs, b1, p1, disloc_length, center+delta, linedir=ldir1)
+    nodes, segs = insert_frank_read_src(cell, nodes, segs, b2, p2, disloc_length, center-delta, linedir=ldir2)
+
+    return DisNetManager({network})
+'''
+INIT_FUNCTIONS.update({
+    ("pydis", FCCJunction.kind): _FCC_JUNCTION.format(
+        cell="Cell", network="DisNet(cell=cell, rn=np.array(nodes), links=np.array(segs))"),
+    ("exadis", FCCJunction.kind): _FCC_JUNCTION.format(
+        cell="pyexadis.Cell", network="ExaDisNet(cell, nodes, segs)"),
+})
+# What a kind's function imports besides the code's own modules
+KIND_IMPORTS = {
+    ("pydis", FCCJunction.kind): "from pydis.util.network_util import insert_frank_read_src\n",
+    ("exadis", FCCJunction.kind): "from pyexadis_utils import insert_frank_read_src\n",
 }
 # ExaDiS's SimulateNetwork writes its snapshots as config.<step>.data; this one also writes
 # them as PyDiS's does, for the app's views
@@ -199,6 +281,10 @@ def _config(spec: Spec) -> str:
                 f"                            {num(m.maxseg_ratio)}*Lbox, uniform={c.uniform}, "
                 f"seed={c.seed})\n"
                 f"net = DisNetManager(G)\n")
+    if isinstance(c, FCCJunction):  # the lines are as long as the box
+        return (f"Lbox = {num(c.box_length)}\n"
+                f"net = init_fcc_junction(junction_type={c.junction_type!r}, disloc_length=Lbox,\n"
+                f"                        phi1={num(c.phi1)}, phi2={num(c.phi2)})\n")
     return (f"Lbox = {num(c.box_length)}\n"
             f"z0 = {num(c.z0)}\n"
             f"net = init_two_disl_lines(z0=z0, box_length=Lbox, "
@@ -208,9 +294,11 @@ def _config(spec: Spec) -> str:
 def _material(spec: Spec) -> str:
     """Step 2: the state dictionary."""
     m = spec.material
-    extras = ", ".join(f'"{name}": {value!r}' if isinstance(value, str) else f'"{name}": {num(value)}'
-                       for name, value in (("crystal", m.crystal), ("rtol", m.rtol),
-                                           ("nextdt", m.nextdt)) if value is not None)
+    items = [f'"{name}": {value!r}' if isinstance(value, (str, bool)) else f'"{name}": {num(value)}'
+             for name, value in (("crystal", m.crystal), ("rtol", m.rtol), ("nextdt", m.nextdt),
+                                 ("maxdt", m.maxdt), ("use_glide_planes", m.use_glide_planes))
+             if value is not None]
+    extras = ",\n         ".join(", ".join(items[i:i + 3]) for i in range(0, len(items), 3))
     return (f'state = {{"burgmag": {num(m.burgmag)}, "mu": {num(m.mu)}, "nu": {num(m.nu)}, '
             f'"a": {num(m.a)},\n'
             f'         "maxseg": {num(m.maxseg_ratio)}*Lbox, "minseg": {num(m.minseg_ratio)}*Lbox, '
@@ -221,18 +309,21 @@ def _forces(spec: Spec) -> str:
     """Step 3: the force and the mobility modules."""
     f = spec.forces
     ec = "" if f.Ec is None else f", Ec={num(f.Ec)}"
-    if f.mobility_law == "BCC_0B":
+    cutoff = "" if f.cutoff is None else f", cutoff={num(f.cutoff)}"
+    calforce = f"calforce  = CalForce(force_mode={f.force_mode!r}, state=state{ec}{cutoff})\n"
+    if f.mobility_law in ("BCC_0B", "FCC_0"):
+        climb = f", Mclimb={num(f.Mclimb)}" if f.mobility_law == "BCC_0B" else ""
         vmax = "" if f.vmax is None else f", vmax={num(f.vmax)}"
-        return (f"calforce  = CalForce(force_mode={f.force_mode!r}, state=state{ec})\n"
-                f"mobility  = MobilityLaw(mobility_law='BCC_0B', state=state, Medge={num(f.Medge)},\n"
-                f"                        Mscrew={num(f.Mscrew)}, Mclimb={num(f.Mclimb)}{vmax})\n")
+        return (calforce +
+                f"mobility  = MobilityLaw(mobility_law={f.mobility_law!r}, state=state, "
+                f"Medge={num(f.Medge)},\n"
+                f"                        Mscrew={num(f.Mscrew)}{climb}{vmax})\n")
     if spec.engine == "exadis":  # ExaDiS's mobility takes mob as an argument
         mob = "" if f.mob is None else f", mob={num(f.mob)}"
-        return (f"calforce  = CalForce(force_mode={f.force_mode!r}, state=state{ec})\n"
+        return (calforce +
                 f"mobility  = MobilityLaw(mobility_law={f.mobility_law!r}, state=state{mob})\n")
     mob = "" if f.mob is None else f'state["mob"] = {num(f.mob)}\n'
-    return (f"calforce  = CalForce(force_mode={f.force_mode!r}, state=state{ec})\n"
-            f"{mob}"
+    return (calforce + mob +
             f"mobility  = MobilityLaw(mobility_law={f.mobility_law!r}, state=state)\n")
 
 
@@ -258,7 +349,11 @@ def _topology(spec: Spec) -> str:
                 f"topology  = {topology}"
                 f"remesh    = Remesh(remesh_rule={t.remesh_rule!r}, state=state)\n")
     n_div = ",".join(str(n) for n in t.n_div)
-    return (f"nbrlist   = CellList(cell=net.cell, n_div=[{n_div}])\n"
+    matched = "".join(f'state["{name}"] = {value}\n' for name, value in  # as ExaDiS's defaults
+                      (("splitMultiNodeAlpha", None if t.split_alpha is None else num(t.split_alpha)),
+                       ("coarsen_mode", t.coarsen_mode)) if value is not None)
+    return (matched +
+            f"nbrlist   = CellList(cell=net.cell, n_div=[{n_div}])\n"
             f"topology  = Topology(split_mode={t.split_mode!r}, state=state,\n"
             f"                     force=calforce, mobility=mobility)\n"
             f"collision = Collision(collision_mode={t.collision_mode!r}, state=state,\n"
@@ -424,7 +519,7 @@ def header(spec: Spec) -> str:
                    else ("pydis_paths", PYDIS_PATHS))
     imports = IMPORTS if spec.config.simulates else BUILD_IMPORTS
     return (_PATHS.format(opendis_dir=str(OPENDIS_DIR), name=name, paths=list(paths))
-            + imports[spec.engine])
+            + imports[spec.engine] + KIND_IMPORTS.get((spec.engine, spec.config.kind), ""))
 
 
 def init_function(spec: Spec) -> str:
@@ -484,5 +579,6 @@ def init_code(spec: Spec) -> str:
                 + _build_config(replace(spec, engine="pydis")))
     return ("import numpy as np\n"
             "from framework.disnet_manager import DisNetManager\n"
-            "from pydis import DisNode, DisNet, Cell\n\n"
+            "from pydis import DisNode, DisNet, Cell\n"
+            + KIND_IMPORTS.get(("pydis", spec.config.kind), "") + "\n"
             + INIT_FUNCTIONS["pydis", spec.config.kind] + "\n" + _config(replace(spec, engine="pydis")))

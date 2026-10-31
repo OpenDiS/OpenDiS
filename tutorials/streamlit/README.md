@@ -81,13 +81,14 @@ environment, set `OPENDIS_PYTHON` to its Python, as in
 
 - **Banner:** "OpenDiS" with the logo of the OpenDiS website, pinned at the top.
 - **Sidebar:** the example, in a drop-down menu, and below it a second one, **Core**: PyDiS or
-  ExaDiS. For now the Frank-Read source, the uniaxial tension and the initial configurations
-  have both. Then the
+  ExaDiS. Every example has both. Then the
   steps, where a • marks a step whose values differ from the example's, and ‹ prev and next ›
   buttons. A simulation has seven steps; the initial configurations, which run no simulation,
   have two.
 - **2nd left column:** the chosen step's selections. « hides it, » shows it again, and
-  choosing a step shows it too.
+  choosing a step shows it too. The binary junction's step 1 starts with a third menu,
+  **Crystal structure**: BCC or FCC. Each is a sub-example, with its own values in every step,
+  and choosing one goes to its step 1.
 - **Center:** the 3-D window and the code, PyDiS's or ExaDiS's.
   - The 3-D window shows the initial configuration, as PyDiS builds it from your values
     whichever code runs the example; the
@@ -132,11 +133,14 @@ environment, set `OPENDIS_PYTHON` to its Python, as in
 ## Examples
 
 An example, run by one code, is one Markdown file, `examples/<name>.md`. The Example menu offers
-one entry per `label`, and the Core menu one per file of that label. The file has two parts:
+one entry per `label`, and the Core menu one per file of that label. The files of a label may
+also be sub-examples, each with its `variant`; a menu at the top of step 1 picks one, and the
+Core menu then offers its files. The file has two parts:
 
 - **Front matter**, between two lines of `+++`, in TOML: the `label` that the menu shows, the
-  code that runs it (`engine`: `pydis`, the default, or `exadis`), the `title`, the script's
-  file name (`script_name`) and that of its final network
+  `variant` if any (`BCC`) and the name of step 1's menu (`variant_label`: `Crystal
+  structure`), the code that runs it (`engine`: `pydis`, the default, or `exadis`), the
+  `title`, the script's file name (`script_name`) and that of its final network
   (`final_json`), the tutorial's script and page (`tutorial_script`, `tutorial_url`, and the
   link's text `tutorial_title` if not the default), a `run_hint`, and one table of values for
   each step: `[config]`, `[material]`, `[forces]`, `[timeint]`, `[topology]`, `[loading]` and
@@ -149,10 +153,35 @@ one entry per `label`, and the Core menu one per file of that label. The file ha
 | `examples/frank_read_src.md` | `examples/02_frank_read_src/test_frank_read_src_pydis.py` | `frank_read_src_loop` |
 | `examples/frank_read_src_exadis.md` | `examples/02_frank_read_src/test_frank_read_src_exadis.py` | `frank_read_src_loop` |
 | `examples/binary_junction.md` | `examples/03_binary_junction/test_binary_junction_pydis.py` | `two_disl_lines` |
+| `examples/binary_junction_exadis.md` | `examples/03_binary_junction/test_binary_junction_exadis.py` | `two_disl_lines` |
+| `examples/binary_junction_fcc.md` | `examples/03_binary_junction/test_fcc_junctions_pydis.py` | `fcc_junction` |
+| `examples/binary_junction_fcc_exadis.md` | `examples/03_binary_junction/test_fcc_junctions_exadis.py` | `fcc_junction` |
 | `examples/uniaxial_tension.md` | `examples/05_uniaxial_tension/test_uniaxial_tension_pydis.py` | `loop_sources` |
 | `examples/uniaxial_tension_exadis.md` | `examples/05_uniaxial_tension/test_uniaxial_tension_exadis.py` | `loop_sources` |
 | `examples/initial_configurations.md` | `tutorials/01_initial_configurations/initial_configurations.py` | `simple_source` |
 | `examples/initial_configurations_exadis.md` | the same | `simple_source` |
+
+The binary junction has two crystal structures. BCC is the tutorial's two lines, now run by
+ExaDiS too. FCC follows ExaDiS's example `05_fcc_junctions`: two Frank-Read sources, each as
+long as a periodic box of 1000 b, on two slip systems that cross near its centre. Step 1 offers
+its four junction types (lomer, glissile, hirth and colinear) and the lines' two angles. Its two
+tutorials in `examples/03_binary_junction/` are new.
+
+ExaDiS's example uses `DDD_FFT_MODEL`. PyDiS lacks it, and the Cloud's ExaDiS, built without
+FFT, does too. So the segments interact within a cutoff of 300 b, with PyDiS's `Elasticity_SBA`
+or ExaDiS's `CUTOFF_MODEL`, which select the same segment pairs. PyDiS had no `FCC_0`. It is
+now in `core/pydis/python/pydis/mobility/mobility_disnet.py`, translated from ParaDiS's
+`MobilityLaw_FCC_0.c`, with ExaDiS's speed cap. PyDiS had no `insert_frank_read_src` either:
+`core/pydis/python/pydis/util/network_util.py` is a port of ExaDiS's.
+
+PyDiS's state takes three of ExaDiS's defaults, which the app offers in steps 2 and 5:
+`use_glide_planes`, `splitMultiNodeAlpha` and `coarsen_mode` = 1. `splitMultiNodeAlpha` = 1e-3
+is a factor that ExaDiS puts on the noise floor of its split test; PyDiS's `Serial` split now
+reads it too, and its default, 1, is ParaDiS's. With these, the lomer and glissile junctions
+agree with ExaDiS for all 200 steps, node for node. The hirth junction parts at step 149, and
+the colinear one at step 7: ExaDiS keeps a collision and a remesh to the glide planes, and
+PyDiS does not. PyDiS's 200 steps take about 30 s, and ExaDiS's about 3 s. ExaDiS warns that
+the Burgers vector is not conserved at 4 nodes: they are the lines' pinned ends.
 
 The uniaxial tension is the setup of `uniaxial_strain_rate.py`: four prismatic loops in a
 periodic bcc crystal, pulled along z at a constant strain rate. It follows ExaDiS's example
@@ -184,8 +213,9 @@ server.
 
 Another example of a known initial configuration is another file, and the app's code does not
 change; a new or edited file shows after you reload the page. A new kind of initial
-configuration needs its function in `common/codegen.py` (`INIT_FUNCTIONS`, one for each code)
-and its values in `common/spec.py` (`CONFIGS`, `ENGINE_KINDS`). Each code offers its own
+configuration needs its function in `common/codegen.py` (`INIT_FUNCTIONS`, one for each code,
+and `KIND_IMPORTS` for what it imports) and its values in `common/spec.py` (`CONFIGS`,
+`ENGINE_KINDS`). Each code offers its own
 choices in the steps (`CHOICES`). ExaDiS has a topology mode where PyDiS has a split mode, and
 no cell list. A file with problems is not offered: the app lists what is wrong
 with it, under **Input files with problems**.
@@ -283,8 +313,8 @@ Each test prints `PASS` or `FAIL` for every check, and exits with a non-zero cod
   first view, the camera kept, the stress against the strain of a strain-rate run); and a run's
   results (300 snapshots played as 120, the history, the zip).
 - **`test_app_smoke`**: the banner, the two menus in the sidebar, no chat, ExaDiS's status,
-  every step of the Frank-Read source, the binary junction and the uniaxial tension, with each
-  of their cores, a change and a reset, and a 20-step
+  every step of each example, sub-example and core, the binary junction's Crystal structure
+  menu, a change and a reset, and a 20-step
   run of the binary junction: its output, status and downloads, and the networks that the 3-D
   window's component gets (AppTest does not run the component's script); then the Python
   console, and **🗑 clear all results**. Then a 20-step run of the Frank-Read source with

@@ -3,7 +3,8 @@
 The picker is two drop-down menus, drawn inside the app's keyed container ``opendis_picker``:
 the examples' labels, then the core libraries that run the chosen one, PyDiS or ExaDiS (the
 keyed container ``opendis_core``). Each core of an example is an input file of its own
-(``common/catalog.py``). The steps and the prev / next buttons come below.
+(``common/catalog.py``). The steps and the prev / next buttons come below. An example with
+sub-examples, such as the binary junction's crystal structures, has a third menu, in step 1.
 """
 from collections.abc import Collection, Sequence
 from dataclasses import dataclass
@@ -15,6 +16,9 @@ from common.spec import ENGINE_NAMES, ENGINES, STEPS
 
 PICKER_KEY = "picker_example"
 CORE_KEY = "picker_core"  # one per label: "picker_core/<label>"
+# The chosen sub-example, one per label: "picker_variant/<label>". Not a widget's key, so that
+# it stays while step 1, which has the menu ("picker_variant_menu/<label>"), is not shown.
+VARIANT_KEY = "picker_variant"
 
 
 @dataclass(frozen=True)
@@ -50,14 +54,23 @@ def _ensure_valid(key: str, options: list[str]) -> None:
         st.session_state[key] = options[0]
 
 
+def _variants(examples: Sequence[Example], label: str) -> list[str]:
+    """The sub-examples of a label, in menu order; [""] when it has none."""
+    return list(dict.fromkeys(e.variant for e in examples if e.label == label))
+
+
 def example_picker(examples: Sequence[Example]) -> Example:
     """A label, a select box of the examples' labels, then one of the chosen example's cores;
-    returns the chosen example."""
+    returns the chosen example, of the label's chosen sub-example."""
     st.markdown("**Example**")  # bold like "Steps"
     labels = list(dict.fromkeys(example.label for example in examples))
     _ensure_valid(PICKER_KEY, labels)
     label = st.selectbox("Example", labels, key=PICKER_KEY, label_visibility="collapsed")
-    cores = sorted((e for e in examples if e.label == label), key=lambda e: ENGINES.index(e.engine))
+    variants = _variants(examples, label)
+    _ensure_valid(f"{VARIANT_KEY}/{label}", variants)
+    variant = st.session_state.get(f"{VARIANT_KEY}/{label}", variants[0])
+    cores = sorted((e for e in examples if e.label == label and e.variant == variant),
+                   key=lambda e: ENGINES.index(e.engine))
     names = [ENGINE_NAMES[example.engine] for example in cores]
     key = f"{CORE_KEY}/{label}"
     _ensure_valid(key, names)
@@ -66,6 +79,27 @@ def example_picker(examples: Sequence[Example]) -> Example:
                             help="The core library that runs the example's script: PyDiS, in "
                                  "Python, or ExaDiS, in C++ through its Python module pyexadis.")
     return cores[names.index(name)]
+
+
+def _choose_variant(label: str, menu: str, steps_keys: list[str]) -> None:
+    """The menu's choice becomes the label's sub-example, at its step 1 (an on_change callback)."""
+    st.session_state[f"{VARIANT_KEY}/{label}"] = st.session_state[menu]
+    for key in steps_keys:
+        st.session_state[key] = STEP_LIST[0].label
+
+
+def variant_picker(example: Example, examples: Sequence[Example]) -> None:
+    """Step 1's menu of the example's sub-examples, such as its crystal structures; nothing if
+    it has none."""
+    variants = _variants(examples, example.label)
+    if len(variants) < 2:
+        return
+    menu = f"{VARIANT_KEY}_menu/{example.label}"
+    steps_keys = [_steps_key(e) for e in examples if e.label == example.label]
+    st.selectbox(example.variant_label or "Variant", variants,
+                 index=variants.index(example.variant), key=menu, on_change=_choose_variant,
+                 args=(example.label, menu, steps_keys),
+                 help="Each is a sub-example, with its own values in every step.")
 
 
 def _steps_key(example: Example) -> str:

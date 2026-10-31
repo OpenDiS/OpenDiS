@@ -13,6 +13,16 @@ from common.testing import check, summary
 SECRET = "OPENDIS_TEST_SECRET"  # in the app's environment, not in the console's
 
 
+def pinned_end(data: dict) -> bool:
+    """Whether a network's JSON has a constrained node of one arm, which ExaDiS's is_sane()
+    counts as a node where the Burgers vector is not conserved."""
+    arms = [0] * len(data["nodes"]["tags"])
+    for pair in data["segs"]["nodeids"]:
+        for i in pair:
+            arms[i] += 1
+    return any(n == 1 and c[0] for n, c in zip(arms, data["nodes"]["constraints"]))
+
+
 def short_run(example: catalog.Example, runs: Path) -> job.RunFolder:
     """A 20-step run of the example's own values (a build as it is)."""
     spec = (example.default.with_part("run", replace(example.default.run, max_step=20))
@@ -34,13 +44,15 @@ def main() -> int:  # pylint: disable=too-many-locals
         for example in catalog.examples():
             folder = short_run(example, Path(tmp))
             runs.append((example, folder))
-            nodes = len(json.loads(folder.results.read_text())["nodes"]["tags"])
+            data = json.loads(folder.results.read_text())
+            nodes = len(data["nodes"]["tags"])
             session = console.Console(folder)
             builds = example.default.run is None  # no simulation: no sim
             got = session.execute("G.num_nodes(), type(net).__name__" if builds
                                   else "G.num_nodes(), sim.max_step, net.is_sane()")
             session.close()
-            want = f"({nodes}, 'DisNetManager')\n" if builds else f"({nodes}, 20, True)\n"
+            sane = example.engine != "exadis" or not pinned_end(data)  # the junctions' ends
+            want = f"({nodes}, 'DisNetManager')\n" if builds else f"({nodes}, 20, {sane})\n"
             results.append(check(f"{example.name}: G{'' if builds else ', sim'} and net are the "
                                  f"run's", session.banner.alive and got.output == want,
                                  (session.banner.output[-300:], got.output)))

@@ -25,6 +25,25 @@ def matrix33_inverse(A: np.ndarray) -> np.ndarray:
     return C.T / det
 
 
+def orthogonalize(a: np.ndarray, b: np.ndarray) -> np.ndarray:
+    """orthogonalize: a less its component along b, as ParaDiS' Orthogonalize (Util.c); a if b is zero
+    """
+    b2 = np.dot(b, b)
+    return a if b2 <= 0.0 else a - (np.dot(a, b) / b2) * b
+
+
+def independent(vectors: list, eps: float=0.05) -> list:
+    """independent: each vector orthogonalized against the ones before it, and zero when less than
+       eps of its square is left (ParaDiS' FFACTOR_ORTH)
+    """
+    found = []
+    for v in vectors:
+        for u in found:
+            v = orthogonalize(v, u)
+        found.append(v if np.dot(v, v) >= eps else np.zeros(3))
+    return found
+
+
 class MobilityLaw(MobilityLaw_Base):
     """MobilityLaw: class for mobility laws
     """
@@ -32,14 +51,22 @@ class MobilityLaw(MobilityLaw_Base):
                  Medge: float=None, Mscrew: float=None, Mclimb: float=None) -> None:
         self.mobility_law = mobility_law
         self.mob = state.get("mob", 1.0)
-        # vmax caps the speed: in b/s for SimpleGlide, in m/s, smoothly, for BCC_0B (as ExaDiS)
-        self.vmax = (-1.0 if mobility_law == 'BCC_0B' else 1e9) if vmax is None else vmax
+        # vmax caps the speed: in b/s for SimpleGlide, in m/s, smoothly, for BCC_0B and FCC_0 (as ExaDiS)
+        self.vmax = (-1.0 if mobility_law in ('BCC_0B', 'FCC_0') else 1e9) if vmax is None else vmax
+        self.burgmag = state.get("burgmag", 1.0)
 
         self.NodeMobility_Functions = {
             'Relax': self.NodeMobility_Relax,
             'SimpleGlide': self.NodeMobility_SimpleGlide,
-            'BCC_0B': self.NodeMobility_BCC_0B
+            'BCC_0B': self.NodeMobility_BCC_0B,
+            'FCC_0': self.NodeMobility_FCC_0
         }
+        if mobility_law == 'FCC_0':
+            if state.get("crystal", "fcc").lower() != "fcc":
+                raise ValueError("MobilityLaw FCC_0: the crystal must be fcc")
+            if not all(M is not None and M > 0.0 for M in (Medge, Mscrew)):
+                raise ValueError("MobilityLaw FCC_0: Medge and Mscrew must be positive")
+            self.Medge, self.Mscrew = Medge, Mscrew
         if mobility_law == 'BCC_0B':
             if state.get("crystal", "bcc").lower() != "bcc":
                 raise ValueError("MobilityLaw BCC_0B: the crystal must be bcc")
@@ -51,7 +78,6 @@ class MobilityLaw(MobilityLaw_Base):
             self.invBedge2 = 1.0/(self.Bedge*self.Bedge)
             self.Bline = 1.0e-2 * min(self.Bscrew, self.Bedge)
             self.BlmBsc, self.BlmBecl = self.Bline - self.Bscrew, self.Bline - self.Beclimb
-            self.burgmag = state.get("burgmag", 1.0)
             self.split3node = state.get("split3node", 1)
         
     def Mobility(self, DM: DisNetManager, state: dict) -> dict:
@@ -233,11 +259,65 @@ class MobilityLaw(MobilityLaw_Base):
         if num_nonzero == 0:
             return np.zeros(3)
 
-        vel = np.dot(matrix33_inverse(Btotal), f)
-        speed = np.linalg.norm(vel) * self.burgmag  # m/s
+        return self.speed_cap(np.dot(matrix33_inverse(Btotal), f))
+
+    def speed_cap(self, vel: np.ndarray) -> np.ndarray:
+        """speed_cap: the velocity with its speed (m/s) capped smoothly at vmax, as ExaDiS'
+           apply_velocity_cap (mobility.h); unchanged when vmax is not positive
+        """
+        speed = np.linalg.norm(vel) * self.burgmag
         if self.vmax > 0.0 and speed >= 1e-5:
             vel = vel * (1.0 / (1.0 + (speed/self.vmax)**10)**0.1)
         return vel
+
+    def NodeMobility_FCC_0(self, G: DisNet, tag: Tag, f: np.array) -> np.array:
+        """NodeMobility_FCC_0: the force over the arms' drag, from Medge to Mscrew by their
+           character, kept in their glide planes, and along an arm off the {111} planes, as
+           ParaDiS' Mobility_FCC_0 (MobilityLaw_FCC_0.c), with ExaDiS' velocity cap (mobility_fcc0.h)
+        """
+        node = G.nodes(tag)
+        if node.constraint == DisNode.Constraints.PINNED_NODE:
+            return np.zeros(3)
+        R1 = node.R
+        arms = [(G.cell.closest_image(Rref=R1, R=G.nodes(nbr_tag).R) - R1, edge.burg_vec_from(tag),
+                 np.array(edge.plane_normal, dtype=float))
+                for nbr_tag, edge in G.neighbor_segments_dict(tag).items()]
+        if all(np.dot(dr, dr) <= 1.0e-12 for dr, _, _ in arms):
+            return np.zeros(3)
+
+        normals, lines = [], []
+        for dr, _, n in arms:
+            off111 = abs(abs(n[0]) - abs(n[1])) > 1.0e-4 or abs(abs(n[1]) - abs(n[2])) > 1.0e-4
+            line = dr if off111 else np.zeros(3)
+            nmag, lmag = np.linalg.norm(n), np.linalg.norm(line)
+            normals.append(n / nmag if nmag > 0.0 else n)
+            lines.append(line / lmag if lmag > 0.0 else line)
+        planes = independent(normals)
+        lines = [line for line in independent(lines) if line.any()]
+
+        LtimesB = 0.0
+        for dr, b, _ in arms:
+            lr = np.linalg.norm(dr)
+            if lr == 0.0:
+                continue
+            dangle = abs(np.dot(b / np.linalg.norm(b), dr / lr))
+            LtimesB += lr / (self.Medge + (self.Mscrew - self.Medge) * dangle)
+        LtimesB /= 2.0
+
+        vel = f / LtimesB
+        if sum(n.any() for n in planes) >= 3:
+            return np.zeros(3)
+        for n in planes:
+            vel = orthogonalize(vel, n)
+        if len(lines) >= 2:
+            return np.zeros(3)
+        if len(lines) == 1:
+            # the arm off the {111} planes moves along itself, and only if it lies in every plane
+            lc = lines[0]
+            if any(abs(np.dot(n, lc)) > 0.05 for n in normals):
+                return np.zeros(3)
+            vel = np.dot(vel, lc) * lc
+        return self.speed_cap(vel)
 
     def NodeMobility_SimpleGlide(self, G: DisNet, tag: Tag, f: np.array) -> np.array:
         """NodeMobility_SimpleGlide: node velocity equal node force divided by sum of arm length / 2

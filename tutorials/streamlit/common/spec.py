@@ -35,9 +35,10 @@ ENGINES = ("pydis", "exadis")
 ENGINE_NAMES = {"pydis": "PyDiS", "exadis": "ExaDiS"}
 # The initial configurations that each code's scripts build
 BUILDS = ("simple_source", "paradis_file", "line_config", "prismatic_config")  # no simulation
-ENGINE_KINDS = {"pydis": ("frank_read_src_loop", "two_disl_lines", "loop_sources") + BUILDS,
-                "exadis": ("frank_read_src_loop", "loop_sources") + BUILDS}
+ENGINE_KINDS = {engine: ("frank_read_src_loop", "two_disl_lines", "fcc_junction",
+                         "loop_sources") + BUILDS for engine in ENGINES}
 CRYSTALS = ("fcc", "bcc")
+JUNCTION_TYPES = ("lomer", "glissile", "hirth", "colinear")  # of ExaDiS' 05_fcc_junctions
 PARADIS_FILES = ("examples/10_strain_hardening/180chains_16.10e.data",)  # of the repository
 MAX_BUILT = 500  # lines or loops in a generated network
 # The choices that each code's modules accept, as the app offers them, by the field they fill.
@@ -45,14 +46,14 @@ MAX_BUILT = 500  # lines or loops in a generated network
 # topology mode in PyDiS) is neither offered nor checked for it.
 CHOICES = {
     "pydis": {"force_mode": ("LineTension", "Elasticity_SBA"),
-              "mobility_law": ("SimpleGlide", "Relax", "BCC_0B"),
+              "mobility_law": ("SimpleGlide", "Relax", "BCC_0B", "FCC_0"),
               "integrator": ("EulerForward", "Trapezoid"),
               "split_mode": ("MaxDiss", "Serial"),
               "collision_mode": ("Proximity", "Retroactive"),
               "remesh_rule": ("LengthBased",),
               "loading_mode": ("stress", "strain_rate")},
-    "exadis": {"force_mode": ("LineTension",),
-               "mobility_law": ("SimpleGlide", "BCC_0B"),
+    "exadis": {"force_mode": ("LineTension", "CUTOFF_MODEL"),
+               "mobility_law": ("SimpleGlide", "BCC_0B", "FCC_0"),
                "integrator": ("EulerForward", "Trapezoid"),
                "topology_mode": ("None", "TopologySerial", "TopologyParallel"),
                "collision_mode": ("Retroactive", "Proximity"),
@@ -129,6 +130,24 @@ class TwoLines:
             errors.append("z0: must be in (0, box length / 2), so that the lines fit in the box")
         errors += _burgers_problems("b1", self.b1, {"first line": (0.0, 1.0, 1.0)})
         return errors + _burgers_problems("b2", self.b2, {"second line": (1.0, 0.0, 1.0)})
+
+
+@dataclass(frozen=True)
+class FCCJunction:
+    """Step 1 of an fcc binary junction: two Frank-Read sources, as long as the periodic box, on
+    two slip systems, that cross near its centre, as in ExaDiS' example 05_fcc_junctions."""
+
+    kind: ClassVar[str] = "fcc_junction"
+    simulates: ClassVar[bool] = True
+    box_length: float             # the box's edge, and the lines' length
+    junction_type: str = "lomer"  # which second slip system
+    phi1: float = 30.0            # the lines' angles with the planes' intersection (degrees)
+    phi2: float = 30.0
+
+    def problems(self) -> list[str]:
+        """What is wrong with these values."""
+        return ([] if self.junction_type in JUNCTION_TYPES
+                else [f"junction type: must be one of {', '.join(JUNCTION_TYPES)}"])
 
 
 @dataclass(frozen=True)
@@ -261,9 +280,9 @@ class PrismaticLoops:
 
 
 BUILT = (SimpleSource, ParaDiSFile, InfiniteLines, PrismaticLoops)  # the menu of step 1
-CONFIGS = {cls.kind: cls for cls in (FrankReadSource, TwoLines, LoopSources) + BUILT}
-Config = Union[FrankReadSource, TwoLines, LoopSources, SimpleSource, ParaDiSFile, InfiniteLines,
-               PrismaticLoops]
+CONFIGS = {cls.kind: cls for cls in (FrankReadSource, TwoLines, FCCJunction, LoopSources) + BUILT}
+Config = Union[FrankReadSource, TwoLines, FCCJunction, LoopSources, SimpleSource, ParaDiSFile,
+               InfiniteLines, PrismaticLoops]
 
 
 @dataclass(frozen=True)
@@ -277,9 +296,11 @@ class Material:
     maxseg_ratio: float  # maxseg = maxseg_ratio * Lbox
     minseg_ratio: float  # minseg = minseg_ratio * Lbox
     rann: float          # annihilation distance, in b
-    crystal: str | None = None   # state["crystal"], which BCC_0B and loop_sources need
+    crystal: str | None = None   # state["crystal"], which BCC_0B, FCC_0 and loop_sources need
     rtol: float | None = None    # the Trapezoid's error tolerance (b); None is 0.25 a
     nextdt: float | None = None  # its first time step (s); None is 1e-12
+    maxdt: float | None = None   # its largest (s); None is 1e-7
+    use_glide_planes: bool | None = None  # the glide planes of splits and collisions
 
 
 @dataclass(frozen=True)
@@ -288,11 +309,12 @@ class Forces:
 
     force_mode: str = "LineTension"
     Ec: float | None = None   # core energy; None is the default, mu/(4 pi) ln(a/0.1)
+    cutoff: float | None = None  # b: farther segments do not interact; None is all of them
     mobility_law: str = "SimpleGlide"
     mob: float | None = None  # mobility; None is the default, 1.0
-    Medge: float | None = None   # BCC_0B's mobilities (1/(Pa s)) and speed cap (m/s)
+    Medge: float | None = None   # BCC_0B's and FCC_0's mobilities (1/(Pa s)) and speed cap (m/s)
     Mscrew: float | None = None
-    Mclimb: float | None = None
+    Mclimb: float | None = None  # BCC_0B's
     vmax: float | None = None
 
 
@@ -314,6 +336,8 @@ class Topology:
     remesh_rule: str = "LengthBased"
     n_div: tuple[int, int, int] = (8, 8, 8)
     topology_mode: str = "TopologySerial"  # ExaDiS's; "None" is no topology module
+    split_alpha: float | None = None  # PyDiS's state["splitMultiNodeAlpha"]; None is 1.0
+    coarsen_mode: int | None = None   # PyDiS's state["coarsen_mode"]; None is 0
 
 
 @dataclass(frozen=True)
@@ -412,16 +436,28 @@ class Spec:  # pylint: disable=too-many-instance-attributes
                 if name in choices and value not in choices[name]:
                     errors.append(f"{CHOICE_LABELS[name]}: must be one of "
                                   f"{', '.join(choices[name])}")
-        f = self.forces
-        for label, value in (("Ec", f.Ec), ("mob", f.mob), ("vmax", f.vmax), ("rtol", m.rtol),
-                             ("nextdt", m.nextdt)):
+        f, t = self.forces, self.topology
+        for label, value in (("Ec", f.Ec), ("cutoff", f.cutoff), ("mob", f.mob), ("vmax", f.vmax),
+                             ("rtol", m.rtol), ("nextdt", m.nextdt), ("maxdt", m.maxdt),
+                             ("split alpha", t.split_alpha)):
             if value is not None and value <= 0:
                 errors.append(f"{label}: must be positive")
+        if f.force_mode == "CUTOFF_MODEL" and f.cutoff is None:
+            errors.append("force CUTOFF_MODEL: needs a cutoff")
         if f.mobility_law == "BCC_0B":
             if m.crystal != "bcc":
                 errors.append("mobility law BCC_0B: needs the bcc crystal (step 2)")
             if not all(x is not None and x > 0 for x in (f.Medge, f.Mscrew, f.Mclimb)):
                 errors.append("mobility law BCC_0B: Medge, Mscrew and Mclimb must be positive")
+        if f.mobility_law == "FCC_0":
+            if m.crystal != "fcc":
+                errors.append("mobility law FCC_0: needs the fcc crystal (step 2)")
+            if not all(x is not None and x > 0 for x in (f.Medge, f.Mscrew)):
+                errors.append("mobility law FCC_0: Medge and Mscrew must be positive")
+            if self.engine == "exadis" and m.use_glide_planes is False:
+                errors.append("mobility law FCC_0: ExaDiS's needs the glide planes (step 2)")
+        if t.coarsen_mode not in (None, 0, 1):
+            errors.append("coarsen mode: must be 0 or 1")
         if isinstance(self.config, LoopSources) and m.crystal not in CRYSTALS:
             errors.append(f"crystal: the loops need one of {', '.join(CRYSTALS)} (step 2)")
         if self.timeint.dt <= 0:

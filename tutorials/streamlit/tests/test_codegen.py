@@ -143,8 +143,9 @@ def main() -> int:  # pylint: disable=too-many-locals
     looks = [codegen.num(v) for v in (50e9, 3e-10, 1e-8, -4e8, 1e6)]
     results = [
         check("the input files have no problems", not problems, problems),
-        check("seven examples, in order", [e.name for e in examples] ==
+        check("ten examples, in order", [e.name for e in examples] ==
               ["frank_read_src", "frank_read_src_exadis", "binary_junction",
+               "binary_junction_exadis", "binary_junction_fcc", "binary_junction_fcc_exadis",
                "uniaxial_tension", "uniaxial_tension_exadis",
                "initial_configurations", "initial_configurations_exadis"],
               [e.name for e in examples]),
@@ -184,6 +185,12 @@ def main() -> int:  # pylint: disable=too-many-locals
             if spec.config.kind == "frank_read_src_loop":
                 refused["b along the arms"] = ("config", replace(
                     spec.config, burg_vec=(0.0, 1.0, 0.0)), "parallel")
+            if spec.forces.mobility_law == "FCC_0":
+                refused["FCC_0 in bcc"] = ("material", replace(spec.material, crystal="bcc"),
+                                           "fcc")
+            if spec.forces.force_mode == "CUTOFF_MODEL":
+                refused["CUTOFF_MODEL without a cutoff"] = ("forces", replace(
+                    spec.forces, cutoff=None), "cutoff")
             for what, (part, value, word) in refused.items():
                 messages = spec.with_part(part, value).validate()
                 results.append(check(f"{name}: refuses {what}", has(messages, word), messages))
@@ -217,13 +224,15 @@ def main() -> int:  # pylint: disable=too-many-locals
             differ = sorted(n for n in theirs if ours.get(n) != theirs[n])
             played = [n for n in ours if n.startswith("disnet_")]  # what the app's views read
             written = [n for n in theirs if n.startswith(("disnet_", "config."))]
-            warnings = [line for line in status.lines if "Warning" in line]
+            # ExaDiS warns of the pinned ends of the fcc junction's lines, in the tutorial too
+            warnings = [line for line in status.lines if "Warning" in line and line not in lines]
             title = f"{name} ({spec.run.max_step} steps)"
             results += [
                 check(f"{title}: the app's job ends done", status.ok, status.summary()),
                 check(f"{title}: the tutorial's script exits with 0", ran.returncode == 0,
                       lines[-5:]),
-                check(f"{title}: the job's output has no warnings", not warnings, warnings[:2]),
+                check(f"{title}: the job's output has no warnings but the tutorial's",
+                      not warnings, warnings[:2]),
                 check(f"{title}: the same {len(theirs)} networks, snapshots and final",
                       len(theirs) > 2 and not differ, f"these differ: {differ[:5]}"),
                 check(f"{title}: a JSON snapshot for each of the tutorial's snapshots",

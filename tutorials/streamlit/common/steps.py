@@ -12,16 +12,19 @@ from typing import Any
 import streamlit as st
 
 from common.catalog import Example
-from common.spec import (BUILT, CHOICES, CRYSTALS, ENGINE_NAMES, MAX_BUILT, MAX_STEP,
-                         PARADIS_FILES, STRESS_LABELS, FrankReadSource, InfiniteLines,
-                         LoopSources, ParaDiSFile, PrismaticLoops, Run, SimpleSource, Spec)
+from common.spec import (BUILT, CHOICES, CRYSTALS, ENGINE_NAMES, JUNCTION_TYPES, MAX_BUILT,
+                         MAX_STEP, PARADIS_FILES, STRESS_LABELS, FCCJunction, FrankReadSource,
+                         InfiniteLines, LoopSources, ParaDiSFile, PrismaticLoops, Run,
+                         SimpleSource, Spec)
 
 STRESS_STEP = 1.0e7  # Pa, the +/- of an applied stress component
 TUTORIAL_BY = {"pydis": "by pure Python", "exadis": "by Python calling ExaDiS"}  # the pages' titles
 # What each choice does, for the help of its select box
 HELP = {
     "LineTension": "each segment pulls its nodes along the line, as in the tutorials",
-    "Elasticity_SBA": "the elastic interaction of all the segments (slower)",
+    "Elasticity_SBA": "the elastic interaction of all the segments, or of those closer than a "
+                      "cutoff (slower)",
+    "CUTOFF_MODEL": "the elastic interaction of the segments closer than the cutoff",
     "SimpleGlide": "the nodes move in their glide planes",
     "Relax": "they move along their forces",
     "None": "no topology module, as in ExaDiS's tutorial",
@@ -32,6 +35,8 @@ HELP = {
     "TopologySerial": "splits each multi-node the way that dissipates the most energy",
     "TopologyParallel": "the same, in parallel",
     "BCC_0B": "bcc's edge, screw and climb mobilities, and a smooth speed cap",
+    "FCC_0": "fcc's edge and screw mobilities, in the {111} glide planes; a junction off them "
+             "moves along its line; a smooth speed cap",
     "EulerForward": "a fixed time step",
     "Trapezoid": "a time step that adapts, from nextdt, to keep the error below rtol (step 2)",
     "stress": "a constant applied stress",
@@ -122,6 +127,19 @@ def _config(spec: Spec, ctx: StepContext) -> Spec:
                                    "at random.")
         return spec.with_part("config", replace(c, box_length=box, num_loops=count,
                                                 radius_ratio=radius, seed=seed, uniform=uniform))
+    if isinstance(c, FCCJunction):
+        st.caption("The box is periodic in all three directions. Each line is as long as the "
+                   "box, pinned at its two ends.")
+        junction = _select("Junction type", JUNCTION_TYPES, c.junction_type, f"{k}/junction_type",
+                           "The second line's slip system; the first is b1 along [0 1 1], on "
+                           "(1 1 -1). lomer: [1 0 -1] on (1 1 1). glissile: [1 0 -1] on (1 -1 1). "
+                           "hirth: [0 -1 1] on (1 1 1). colinear: [0 -1 -1] on (1 -1 1).")
+        phi1 = _number("phi1, the first line's angle (degrees)", c.phi1, f"{k}/phi1",
+                       "From the intersection of the two glide planes, in the line's own plane.",
+                       5.0)
+        phi2 = _number("phi2, the second line's angle (degrees)", c.phi2, f"{k}/phi2", step=5.0)
+        return spec.with_part("config", replace(c, box_length=box, junction_type=junction,
+                                                phi1=phi1, phi2=phi2))
     pbc = st.checkbox("Periodic boundary conditions", c.pbc, key=f"{k}/pbc")
     if isinstance(c, FrankReadSource):
         arm = _number("Arm length / Lbox", c.arm_ratio, f"{k}/arm_ratio",
@@ -205,8 +223,13 @@ def _material(spec: Spec, ctx: StepContext) -> Spec:
     extra = {}
     if m.crystal is not None:
         extra["crystal"] = _select("Crystal", CRYSTALS, m.crystal, f"{k}/crystal",
-                                   "state[\"crystal\"], which BCC_0B and the loops need.")
-    if m.rtol is not None or m.nextdt is not None:
+                                   "state[\"crystal\"], which BCC_0B, FCC_0 and the loops need.")
+    if m.use_glide_planes is not None:
+        extra["use_glide_planes"] = st.checkbox(
+            "Use glide planes", m.use_glide_planes, key=f"{k}/use_glide_planes",
+            help="state[\"use_glide_planes\"]: the new segment of a split, and the nodes of a "
+                 "collision, keep to the glide planes. ExaDiS does so by default for fcc.")
+    if m.rtol is not None or m.nextdt is not None or m.maxdt is not None:
         st.markdown("**Time step control** (Trapezoid)")
     if m.rtol is not None:
         extra["rtol"] = _number("rtol, the error tolerance (b)", m.rtol, f"{k}/rtol",
@@ -214,6 +237,8 @@ def _material(spec: Spec, ctx: StepContext) -> Spec:
                                 "positions' error is below rtol.")
     if m.nextdt is not None:
         extra["nextdt"] = _number("nextdt, the first time step (s)", m.nextdt, f"{k}/nextdt")
+    if m.maxdt is not None:
+        extra["maxdt"] = _number("maxdt, the largest time step (s)", m.maxdt, f"{k}/maxdt")
     return spec.with_part("material", replace(m, burgmag=burgmag, mu=mu, nu=nu, a=a,
                                               maxseg_ratio=maxseg, minseg_ratio=minseg,
                                               rann=rann, **extra))
@@ -225,6 +250,17 @@ def _forces(spec: Spec, ctx: StepContext) -> Spec:
     choices, name = CHOICES[spec.engine], ENGINE_NAMES[spec.engine]
     mode = _select("Force", choices["force_mode"], f.force_mode, f"{k}/force_mode",
                    _help(choices["force_mode"]))
+    cutoff, default_cutoff = None, f.cutoff or 0.3 * spec.config.box_length
+    if mode == "CUTOFF_MODEL":
+        cutoff = _number("cutoff (b)", default_cutoff, f"{k}/cutoff",
+                         "Segments farther apart do not interact.")
+    elif mode == "Elasticity_SBA":
+        if st.checkbox("Set a cutoff", f.cutoff is not None, key=f"{k}/own_cutoff"):
+            cutoff = _number("cutoff (b)", default_cutoff, f"{k}/cutoff",
+                             "Segments farther apart do not interact, as in ExaDiS's "
+                             "CUTOFF_MODEL.")
+        else:
+            st.caption("All the segments interact.")
     default_ec = m.mu / (4.0 * math.pi) * math.log(m.a / 0.1)
     if st.checkbox("Set the core energy Ec", f.Ec is not None, key=f"{k}/own_ec"):
         ec = _number("Ec (Pa)", f.Ec if f.Ec is not None else default_ec or 1.0, f"{k}/Ec")
@@ -234,24 +270,26 @@ def _forces(spec: Spec, ctx: StepContext) -> Spec:
                    + ("; it is not positive, so set Ec" if default_ec <= 0 else ""))
     law = _select("Mobility law", choices["mobility_law"], f.mobility_law, f"{k}/mobility_law",
                   _help(choices["mobility_law"]))
-    if law == "BCC_0B":
-        medge = _number("Medge, the edge mobility (1/(Pa s))", f.Medge or 2600.0, f"{k}/Medge")
-        mscrew = _number("Mscrew, the screw mobility (1/(Pa s))", f.Mscrew or 2600.0,
-                         f"{k}/Mscrew")
-        mclimb = _number("Mclimb, the climb mobility (1/(Pa s))", f.Mclimb or 1e-4,
-                         f"{k}/Mclimb")
-        vmax = _number("vmax, the speed cap (m/s)", f.vmax or 3400.0, f"{k}/vmax",
-                       "The speed tends to vmax smoothly as the force grows.")
-        return spec.with_part("forces", replace(f, force_mode=mode, Ec=ec, mobility_law=law,
-                                                Medge=medge, Mscrew=mscrew, Mclimb=mclimb,
-                                                vmax=vmax))
+    if law in ("BCC_0B", "FCC_0"):
+        bcc = law == "BCC_0B"  # the defaults of the uniaxial tension's and ExaDiS' fcc junctions
+        medge = _number("Medge, the edge mobility (1/(Pa s))",
+                        f.Medge or (2600.0 if bcc else 64103.0), f"{k}/Medge")
+        mscrew = _number("Mscrew, the screw mobility (1/(Pa s))",
+                         f.Mscrew or (2600.0 if bcc else 64103.0), f"{k}/Mscrew")
+        mclimb = (_number("Mclimb, the climb mobility (1/(Pa s))", f.Mclimb or 1e-4,
+                          f"{k}/Mclimb") if bcc else None)
+        vmax = _number("vmax, the speed cap (m/s)", f.vmax or (3400.0 if bcc else 4000.0),
+                       f"{k}/vmax", "The speed tends to vmax smoothly as the force grows.")
+        return spec.with_part("forces", replace(f, force_mode=mode, Ec=ec, cutoff=cutoff,
+                                                mobility_law=law, Medge=medge, Mscrew=mscrew,
+                                                Mclimb=mclimb, vmax=vmax))
     if st.checkbox("Set the mobility mob", f.mob is not None, key=f"{k}/own_mob"):
         mob = _number("mob", f.mob if f.mob is not None else 1.0, f"{k}/mob")
     else:
         mob = None
         st.caption(f"mob = 1.0, {name}'s default")
-    return spec.with_part("forces", replace(f, force_mode=mode, Ec=ec, mobility_law=law,
-                                            mob=mob))
+    return spec.with_part("forces", replace(f, force_mode=mode, Ec=ec, cutoff=cutoff,
+                                            mobility_law=law, mob=mob))
 
 
 def _timeint(spec: Spec, ctx: StepContext) -> Spec:
@@ -293,8 +331,22 @@ def _topology(spec: Spec, ctx: StepContext) -> Spec:
     n_div = _vector("Cell list divisions, n_div", t.n_div, f"{k}/n_div", kind=int,
                     help_text="The cell list's cells along x, y and z, for finding the "
                               "segments that may collide.")
+    extra = {}
+    if t.split_alpha is not None or t.coarsen_mode is not None:
+        st.markdown("**As ExaDiS's defaults**")
+    if t.split_alpha is not None:
+        extra["split_alpha"] = _number(
+            "splitMultiNodeAlpha", t.split_alpha, f"{k}/split_alpha",
+            "state[\"splitMultiNodeAlpha\"] scales the split test's noise floor, rtol/dt. 1 is "
+            "ParaDiS's; ExaDiS's Python takes 1e-3.")
+    if t.coarsen_mode is not None:
+        extra["coarsen_mode"] = int(_select(
+            "Coarsen mode", ("0", "1"), str(t.coarsen_mode), f"{k}/coarsen_mode",
+            "state[\"coarsen_mode\"]. 0: a segment shorter than minseg shrinks to a node at its "
+            "midpoint. 1: a node with an arm shorter than minseg goes into its nearer "
+            "neighbour, as in ExaDiS."))
     return spec.with_part("topology", replace(t, split_mode=split, collision_mode=collision,
-                                              remesh_rule=remesh, n_div=n_div))
+                                              remesh_rule=remesh, n_div=n_div, **extra))
 
 
 def _loading(spec: Spec, ctx: StepContext) -> Spec:
