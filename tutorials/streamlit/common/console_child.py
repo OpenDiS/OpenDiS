@@ -19,6 +19,7 @@ import resource
 import select
 import sys
 import traceback
+import warnings
 
 OUTPUT_CHARS = 20_000   # the most of one reply
 LIMITS = {resource.RLIMIT_CPU: 600,           # seconds of CPU, in all
@@ -178,6 +179,8 @@ def load(script: str, final_json: str) -> dict:
         import pyexadis_base  # pylint: disable=import-outside-toplevel,import-error
         pyexadis_base.SimulateNetwork.run = load_final
         pyexadis.finalize = lambda: None  # must not end ExaDiS: the session uses its objects
+    # the jobs' filter (common/job.py), which python -I does not read from the environment
+    warnings.filterwarnings("ignore", message="FigureCanvasAgg is non-interactive")
     namespace = {"__name__": "__main__", "__file__": script}
     exec(compile(source, script, "exec"), namespace)  # pylint: disable=exec-used
     namespace["snapshot"] = _snapshot

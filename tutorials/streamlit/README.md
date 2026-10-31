@@ -1,9 +1,10 @@
 # OpenDiS — Streamlit app
 
 A web app that sets up, runs and shows the PyDiS and ExaDiS simulations of the
-[OpenDiS tutorials](https://opendis.github.io/OpenDiS/tutorials/index.html), step by step.
-**Run** runs the tutorial's script, with your values, as a separate job. Its screen output
-shows as it runs, and its dislocation network in 3-D.
+[OpenDiS tutorials](https://opendis.github.io/OpenDiS/tutorials/index.html), step by step, and
+the networks that their initial configurations build. **Run** runs the tutorial's script,
+with your values, as a separate job. Its screen output shows as it runs, and its dislocation
+network in 3-D.
 
 There are two ways to use the app:
 
@@ -80,8 +81,10 @@ environment, set `OPENDIS_PYTHON` to its Python, as in
 
 - **Banner:** "OpenDiS" with the logo of the OpenDiS website, pinned at the top.
 - **Sidebar:** the example, in a drop-down menu, and below it a second one, **Core**: PyDiS or
-  ExaDiS. For now only the Frank-Read source has both. Then the steps, where a • marks a step
-  whose values differ from the example's, and ‹ prev and next › buttons.
+  ExaDiS. For now the Frank-Read source and the initial configurations have both. Then the
+  steps, where a • marks a step whose values differ from the example's, and ‹ prev and next ›
+  buttons. A simulation has seven steps; the initial configurations, which run no simulation,
+  have two.
 - **2nd left column:** the chosen step's selections. « hides it, » shows it again, and
   choosing a step shows it too.
 - **Center:** the 3-D window and the code, PyDiS's or ExaDiS's.
@@ -89,7 +92,9 @@ environment, set `OPENDIS_PYTHON` to its Python, as in
     whichever code runs the example; the
     simulation, which during a run is its newest snapshot, and after it a replay of all its
     snapshots, with ▶ play and a slider (it starts on the final network); and the history, the
-    number of nodes and the dislocation density of each snapshot against the time step.
+    number of nodes and the dislocation density of each snapshot against the time step. For
+    the initial configurations, the second view, **run**, shows the network that the run built,
+    and there is no history.
   - The cube first shows its x axis along its front-left edge and its y axis along its
     front-right edge, seen a little from the side rather than along its diagonal. Turn it
     with the mouse: the view you turn to stays when another network of the same example is
@@ -117,10 +122,10 @@ environment, set `OPENDIS_PYTHON` to its Python, as in
   deletes the results of all past runs, after a confirmation: those of every example, for
   everyone who uses the app. A run in progress is kept. Below it is ExaDiS's status: ready,
   or a bar while the app builds it, which refreshes itself every 5 s.
-- **Run (step 7)** runs the full script as a separate job, in its run folder. With ExaDiS, it
-  is off until ExaDiS is built, and the step says why. The app stops a run
-  only if you press **Stop** or change any selection during the run, if it prints nothing for
-  5 min, or if it runs for an hour. After a run, step 7 offers its results for download.
+- **Run (the last step)** runs the full script as a separate job, in its run folder. With
+  ExaDiS, it is off until ExaDiS is built, and the step says why. The app stops a run only if
+  you press **Stop** or change any selection during the run, if it prints nothing for 5 min,
+  or if it runs for an hour. After a run, the step offers its results for download.
 
 ## Examples
 
@@ -130,9 +135,11 @@ one entry per `label`, and the Core menu one per file of that label. The file ha
 - **Front matter**, between two lines of `+++`, in TOML: the `label` that the menu shows, the
   code that runs it (`engine`: `pydis`, the default, or `exadis`), the `title`, the script's
   file name (`script_name`) and that of its final network
-  (`final_json`), the tutorial's script and page (`tutorial_script`, `tutorial_url`), a
-  `run_hint`, and one table of values for each step: `[config]`, `[material]`, `[forces]`,
-  `[timeint]`, `[topology]`, `[loading]` and `[run]` (see `common/spec.py`).
+  (`final_json`), the tutorial's script and page (`tutorial_script`, `tutorial_url`, and the
+  link's text `tutorial_title` if not the default), a `run_hint`, and one table of values for
+  each step: `[config]`, `[material]`, `[forces]`, `[timeint]`, `[topology]`, `[loading]` and
+  `[run]` (see `common/spec.py`). A file that builds a network and runs no simulation has
+  `[config]` only.
 - **Body**, in Markdown: the example in words, which step 1 shows.
 
 | Example | Tutorial's script | Initial configuration |
@@ -140,6 +147,20 @@ one entry per `label`, and the Core menu one per file of that label. The file ha
 | `examples/frank_read_src.md` | `examples/02_frank_read_src/test_frank_read_src_pydis.py` | `frank_read_src_loop` |
 | `examples/frank_read_src_exadis.md` | `examples/02_frank_read_src/test_frank_read_src_exadis.py` | `frank_read_src_loop` |
 | `examples/binary_junction.md` | `examples/03_binary_junction/test_binary_junction_pydis.py` | `two_disl_lines` |
+| `examples/initial_configurations.md` | `tutorials/01_initial_configurations/initial_configurations.py` | `simple_source` |
+| `examples/initial_configurations_exadis.md` | the same | `simple_source` |
+
+The initial configurations follow the tutorial's script, which builds a network in one of five
+ways and plots it. Its options 1 (PyDiS) and 2 (ExaDiS) are one network here, the simple
+dislocation source; the Core menu picks the code. Step 1's **Network** menu offers the four:
+`simple_source`, `paradis_file` (option 3), `line_config` (option 4) and `prismatic_config`
+(option 5). Another network starts from the tutorial's values. Each runs with either core:
+options 3 to 5 used ExaDiS only, so PyDiS's `DisNet` has ExaDisNet's `read_paradis`,
+`write_data`, `generate_line_config` and `generate_prismatic_config` too, and `write_vtk`
+(`core/pydis/python/pydis/disnet.py`). They are ports of ExaDiS's code, with the same random
+numbers: for the same values they give ExaDiS's network, and the same `.data` and `.vtk`
+files. The ParaDiS file is one of the repository's, from a fixed list, not any path on the
+server.
 
 Another example of a known initial configuration is another file, and the app's code does not
 change; a new or edited file shows after you reload the page. A new kind of initial
@@ -158,6 +179,11 @@ from the repository that the app runs in, so that it runs from any folder. Each 
 one block, so a few lines come in another order. An optional value (Ec, mob, a Burgers vector)
 appears only when it is not the default. And ExaDiS's script also writes its snapshots as
 PyDiS's does, `output/disnet_<step>.json`, for the app's views (`SimulateNetworkJSON`).
+
+The script of the initial configurations is the tutorial's option for that network and core.
+It builds the network, plots it and writes it as its final network; its other files go into
+`output/`. The simple source's Burgers vector is a direction, which the script makes of unit
+length: `[1, 1, 0]` gives the tutorial's `1/sqrt(2)*[1,1,0]` to the last bit.
 
 You can download it and run it outside the app, with `python <script name>`: it plots with
 matplotlib, as the tutorials do, and writes `output/` in the current folder. In the app,
@@ -207,7 +233,7 @@ python -m tests.test_codegen --full   # ... at the tutorials' full length (about
 python -m tests.test_job              # the job runner: a run, a stop, a time limit, leftovers
 python -m tests.test_views            # networks from PyDiS's JSON, and the figures
 python -m tests.test_app_smoke        # the whole page, and 20-step runs with PyDiS and ExaDiS
-python -m tests.test_console          # the Python console, on 20-step runs of both examples
+python -m tests.test_console          # the Python console, on a run of each example
 python -m tests.test_build            # PyDiS's library and ExaDiS's module (some minutes)
 node tests/test_network3d.js          # the 3-D window's script (needs Node.js)
 ```
@@ -222,7 +248,11 @@ Each test prints `PASS` or `FAIL` for every check, and exits with a non-zero cod
   that its paths are absolute (they are relative to its own folder). Also checked: the numbers
   in the scripts, each step's code inside the full script, the spec's JSON round trip, and
   selections that must be refused (a zero time step, minseg over half of maxseg, a NaN stress,
-  ...).
+  ...). For the initial configurations, each of the four networks with each core: the app's
+  job and the tutorial's option for it give the same network, the 3-D window's own build is
+  that network, and the infinite lines' `.data` and `.vtk` files are the tutorial's. The
+  tutorial's plot is replaced by a write of its network. Its options 3 to 5 run ExaDiS, so
+  PyDiS's network is checked against ExaDiS's.
 - **`test_job`**: a run that ends well, one that fails, one that writes no final network, a
   stop from the caller (as Streamlit stops a script run), a time limit, a job left by an
   earlier session, the run folders, and their deletion, which keeps a folder whose job runs;
@@ -237,11 +267,13 @@ Each test prints `PASS` or `FAIL` for every check, and exits with a non-zero cod
   run of the binary junction: its output, status and downloads, and the networks that the 3-D
   window's component gets (AppTest does not run the component's script); then the Python
   console, and **🗑 clear all results**. Then a 20-step run of the Frank-Read source with
-  ExaDiS, and its Run off while ExaDiS is not built. Its runs go to a temporary folder
-  (`OPENDIS_APP_RUNS`).
-- **`test_console`**: for each example and code, a 20-step run, then a session whose `G`, `sim` and
-  `net` are the run's; then, in one session: `state`, code of several lines, `print`, an
-  error's traceback, names that stay, `snapshot()`, a file written to the session's own copy,
+  ExaDiS, its Run off while ExaDiS is not built, and the build's status bar. Then the initial
+  configurations: their two steps, each network drawn in step 1, and a run that builds the
+  prismatic loops with ExaDiS. Its runs go to a temporary folder (`OPENDIS_APP_RUNS`).
+- **`test_console`**: for each example and code, a 20-step run (the initial configurations
+  build their network), then a session whose `G`, `sim` and `net` are the run's (no `sim`
+  for a build); then, in one session on the binary junction's run: `state`, code of several
+  lines, `print`, an error's traceback, names that stay, `snapshot()`, a file written to the session's own copy,
   the app's environment kept out, `input()`, the guard rails (shell commands, subprocess,
   sockets, threads, signals, native libraries, writes and removals outside, the repository's
   git files, and a replaced `os.path.abspath`), PyDiS's own computations, `import pyexadis`

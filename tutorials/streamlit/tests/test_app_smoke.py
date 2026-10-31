@@ -234,7 +234,7 @@ def main() -> int:  # pylint: disable=too-many-locals,too-many-statements
         frames = shown(at)
         drawn[label] = (not at.exception and len(frames) == 1
                         and [f["label"] for f in frames[0]["frames"]] == ["initial configuration"])
-    two = [o for r in at.radio if r.label == "Steps" for o in r.options]
+    two = [o.removesuffix(" •") for r in at.radio if r.label == "Steps" for o in r.options]
     click(at, "next ›")
     click(at, "▶ Run")
     output = "\n".join(c.value for c in at.code)

@@ -37,10 +37,10 @@ def main() -> int:  # pylint: disable=too-many-locals
             nodes = len(json.loads(folder.results.read_text())["nodes"]["tags"])
             session = console.Console(folder)
             builds = example.default.run is None  # no simulation: no sim
-            got = session.execute("G.num_nodes(), net.is_sane()" if builds
+            got = session.execute("G.num_nodes(), type(net).__name__" if builds
                                   else "G.num_nodes(), sim.max_step, net.is_sane()")
             session.close()
-            want = f"({nodes}, True)\n" if builds else f"({nodes}, 20, True)\n"
+            want = f"({nodes}, 'DisNetManager')\n" if builds else f"({nodes}, 20, True)\n"
             results.append(check(f"{example.name}: G{'' if builds else ', sim'} and net are the "
                                  f"run's", session.banner.alive and got.output == want,
                                  (session.banner.output[-300:], got.output)))
