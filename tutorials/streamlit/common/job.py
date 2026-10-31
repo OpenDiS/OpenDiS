@@ -1,9 +1,11 @@
-"""common.job: run a generated script as a separate PyDiS job, with progress, time limits and a kill.
+"""common.job: run a generated script as a separate job, with progress, time limits and a kill.
 
 The job runs in its own process group, in its run folder, so that the script's ``output/`` goes
 there. Matplotlib draws off screen (``MPLBACKEND=Agg``), so the script that runs is the one the
 code panel shows, plots included, and no window opens; the one warning that this gives is
-filtered out, so the job's output is what PyDiS prints. The kill is a safety net, used only for:
+filtered out, so the job's output is what PyDiS or ExaDiS prints. ExaDiS runs on one OpenMP
+thread, as its runs are then the same from one to the next, and the Cloud's cores are shared.
+The kill is a safety net, used only for:
 
 - a job that runs too long, or prints nothing for too long;
 - a job the app stops (Stop, a rerun, a closed tab);
@@ -38,7 +40,8 @@ POLL_S = 0.5       # the run loop wakes at least this often
 _STEP = re.compile(r"\s*step\s*=\s*(\d+)\b")  # SimulateNetwork's print_freq line
 _RUNNING: set[subprocess.Popen] = set()  # this app process's jobs, for the kill at shutdown
 JOB_ENV = {"MPLBACKEND": "Agg",
-           "PYTHONWARNINGS": "ignore:FigureCanvasAgg is non-interactive"}
+           "PYTHONWARNINGS": "ignore:FigureCanvasAgg is non-interactive",
+           "OMP_NUM_THREADS": "1", "OMP_PROC_BIND": "false"}  # Kokkos warns if it is not set
 
 
 @dataclass(frozen=True)
@@ -119,8 +122,8 @@ class Status:
 
     @property
     def step(self) -> int | None:
-        """The time step of the last ``step = k ...`` line, if there is one: PyDiS prints
-        ``step = k, nodes = n, ...`` or, before it printed the nodes, ``step = k dt = ...``."""
+        """The time step of the last ``step = k ...`` line, if there is one: PyDiS and ExaDiS
+        print ``step = k, nodes = n, ...`` or, before PyDiS printed the nodes, ``step = k dt``."""
         for line in reversed(self.lines):
             match = _STEP.match(line)
             if match:

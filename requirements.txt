@@ -3,3 +3,5 @@ plotly>=5.20
 numpy
 matplotlib
 watchdog
+# for the Streamlit app to build ExaDiS on Linux, as on Streamlit Community Cloud
+cmake>=3.16; sys_platform == "linux"

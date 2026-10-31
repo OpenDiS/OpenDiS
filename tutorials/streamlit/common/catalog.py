@@ -2,9 +2,10 @@
 
 An input file has a front matter in TOML, between two lines of ``+++``, and a body in Markdown,
 which step 1 shows. The front matter gives the example's label (the text of the drop-down menu),
-its title, its script's file names, and the values of every step (``common/spec.py``). Adding an
-example of a known kind of initial configuration is adding a file: the app's code does not
-change. The folder is read on every call and a file again when it has changed, so an edited file
+the code that runs it (``engine``, PyDiS by default), its title, its script's file names, and
+the values of every step (``common/spec.py``). Files of the same label are one example run by
+two codes: the second drop-down menu picks the code. Adding an example of a known kind of
+initial configuration is adding a file: the app's code does not change. The folder is read on every call and a file again when it has changed, so an edited file
 shows when the page is reloaded. A file with problems is not offered; ``problems()`` says why.
 """
 import tomllib
@@ -16,8 +17,8 @@ from common.spec import PARTS, InputError, Spec
 
 FENCE = "+++"
 DEFAULT_ORDER = 100
-META_KEYS = ("label", "title", "order", "script_name", "final_json", "tutorial_script",
-             "tutorial_url", "run_hint")
+META_KEYS = ("label", "engine", "title", "order", "script_name", "final_json",
+             "tutorial_script", "tutorial_url", "run_hint")
 REQUIRED = ("label", "title", "script_name", "final_json")
 
 
@@ -36,6 +37,11 @@ class Example:  # pylint: disable=too-many-instance-attributes
     tutorial_url: str
     run_hint: str            # what the Run step says before a run
     default: Spec            # the selections that the file gives
+
+    @property
+    def engine(self) -> str:
+        """The code that runs the example's script, ``pydis`` or ``exadis``."""
+        return self.default.engine
 
 
 def _split(text: str, name: str) -> tuple[str, str]:
@@ -94,14 +100,18 @@ def _load_cached(path: Path) -> Example | InputError:
 
 def scan(root: Path = EXAMPLES) -> tuple[list[Example], dict[str, list[str]]]:
     """The examples in menu order (``order``, then name), and the problems of the other files."""
-    examples, problems = [], {}
+    examples, problems, seen = [], {}, {}
     for path in sorted(root.glob("*.md")):
         if path.stem.startswith("_") or path.stem == "README":
             continue
         loaded = _load_cached(path)
         if isinstance(loaded, InputError):
             problems[path.name] = loaded.problems
+        elif (loaded.label, loaded.engine) in seen:
+            problems[path.name] = [f"label and engine: {seen[loaded.label, loaded.engine]} has "
+                                   f"the same, {loaded.label!r} with {loaded.engine}"]
         else:
+            seen[loaded.label, loaded.engine] = path.name
             examples.append(loaded)
     return sorted(examples, key=lambda e: (e.order, e.name)), problems
 

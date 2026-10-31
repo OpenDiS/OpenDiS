@@ -7,7 +7,7 @@ from dataclasses import replace
 from pathlib import Path
 
 from common import catalog, codegen, console, job
-from common.paths import OPENDIS_DIR
+from common.paths import EXADIS, EXADIS_MODULE, OPENDIS_DIR
 from common.testing import check, summary
 
 SECRET = "OPENDIS_TEST_SECRET"  # in the app's environment, not in the console's
@@ -75,7 +75,9 @@ def main() -> int:  # pylint: disable=too-many-locals
         allowed = {name: session.execute(source) for name, source in (
             ("force", "type(sim.calforce.NodeForce(net, state)).__name__"),
             ("inside", "open('output/mine2.txt', 'w').write('ok')"),
+            ("exadis", "import pyexadis; pyexadis.__name__"),
         )}
+        exadis = (OPENDIS_DIR / EXADIS / "python" / EXADIS_MODULE).is_file()  # for this Python
         patched = session.execute(  # last: it changes os.path in the session
             f"import os.path; os.path.abspath = lambda p: os.getcwd() + '/x'; "
             f"open({str(outside)!r}, 'w')")
@@ -119,6 +121,10 @@ def main() -> int:  # pylint: disable=too-many-locals
             check("guard rails: PyDiS still computes, and the session writes in its own folder",
                   allowed["force"].output == "'dict'\n" and allowed["inside"].output == "2\n",
                   [r.output[-200:] for r in allowed.values()]),
+            check("ExaDiS's module imports, where it is built for this Python",
+                  allowed["exadis"].output == "'pyexadis'\n" if exadis
+                  else "ModuleNotFoundError" in allowed["exadis"].output,
+                  (exadis, allowed["exadis"].output[-300:])),
             check("guard rails: replacing os.path.abspath does not open a way out",
                   "PermissionError: The console does not allow" in patched.output
                   and not outside.exists(), patched.output[-300:]),

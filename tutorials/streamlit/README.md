@@ -33,9 +33,10 @@ pip install -r requirements.txt
 ```
 
 The root [`requirements.txt`](../../requirements.txt) holds numpy, matplotlib, Streamlit,
-Plotly and watchdog. Streamlit Community Cloud installs the same packages. The app is tested
-with Streamlit 1.61 and 1.66, and with Plotly 6.9 and 7.1. PyDiS needs its git submodule
-`core/pydis/python/pydis/graph`. If a clone lacks it, the app fetches it when it starts.
+Plotly and watchdog, and CMake on Linux. Streamlit Community Cloud installs the same
+packages. The app is tested with Streamlit 1.61 and 1.66, and with Plotly 6.9 and 7.1. PyDiS
+needs its git submodule `core/pydis/python/pydis/graph`. If a clone lacks it, the app fetches
+it when it starts.
 
 PyDiS runs in pure Python, but its C library, `lib/libpydis.so`, makes it faster, and the
 scripts use it if it is there, as the tutorials do. If a clone lacks it, the app builds it
@@ -47,6 +48,18 @@ submodule `core/pydis/python/ctypesgen`, which the app fetches first if need be.
 agree byte for byte with those of a `_repro` build made with CMake. Until the library is
 there, and if gcc is missing, PyDiS uses its Python versions, and its output starts with
 "pydis_lib not found".
+
+The app's examples run PyDiS. ExaDiS's Python module, `pyexadis`, serves the console and
+scripts that import it. On Linux, if a clone lacks it for the app's Python, the app builds it
+after PyDiS's library, in the background (`build_exadis()` in `common/paths.py`). It uses
+OpenDiS's CMake project with its `ubuntu` preset, `-DSYS=ubuntu`. Two options differ from a
+usual build. `-DEXADIS_FFT=Off` leaves out ExaDiS's FFT force, since the Cloud has no FFTW.
+`-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF` turns off link-time optimization, whose last step
+would compile all the files at once. The build compiles one file at a time, to fit in the
+Cloud's memory, and takes some minutes. ExaDiS is the git submodule `core/exadis`, with Kokkos
+and pybind11 as submodules of its own. The app fetches them first if need be, without their
+history. The module goes to `core/exadis/python/`, where the scripts look for it. On macOS,
+build ExaDiS with CMake, as for the tutorials.
 
 ## Launch
 
@@ -186,7 +199,7 @@ python -m tests.test_job              # the job runner: a run, a stop, a time li
 python -m tests.test_views            # networks from PyDiS's JSON, and the figures
 python -m tests.test_app_smoke        # the whole page, and a 20-step run of the binary junction
 python -m tests.test_console          # the Python console, on 20-step runs of both examples
-python -m tests.test_build            # PyDiS's C library, built as the app builds it
+python -m tests.test_build            # PyDiS's library and ExaDiS's module (some minutes)
 node tests/test_network3d.js          # the 3-D window's script (needs Node.js)
 ```
 
@@ -218,12 +231,15 @@ Each test prints `PASS` or `FAIL` for every check, and exits with a non-zero cod
   error's traceback, names that stay, `snapshot()`, a file written to the session's own copy,
   the app's environment kept out, `input()`, the guard rails (shell commands, subprocess,
   sockets, threads, signals, native libraries, writes and removals outside, the repository's
-  git files, and a replaced `os.path.abspath`), PyDiS's own computations, the limit on
-  sessions, and a command that runs too long, which ends the session and removes its folder.
+  git files, and a replaced `os.path.abspath`), PyDiS's own computations, `import pyexadis`
+  where ExaDiS is built for this Python, the limit on sessions, and a command that runs too
+  long, which ends the session and removes its folder.
 - **`test_build`**: PyDiS's C library, built as the app builds it, into a copy of the
   repository's Python code; a 20-step run of the binary junction with it; and, if the
   repository has its own library, the same run with that one, which must agree byte for byte
-  (as it does when that library is a `_repro` build).
+  (as it does when that library is a `_repro` build). Then ExaDiS's module, built as the app
+  builds it, into a temporary folder; on macOS without OpenMP, which Apple's clang lacks. With
+  it, the binary junction's ExaDiS tutorial runs as it is, but for its plots.
 - **`test_network3d.js`**: the component's script in Node.js, with stand-ins for Plotly, the
   page and the browser: a run starts on its final network in the first view; the camera that
   Plotly reports after a drag is the one every later network of the example is drawn with, in
@@ -245,9 +261,12 @@ entry point.
 - All visitors share the app's `runs/` folder. So a run's results show for everyone who picks
   the same selections, until **🗑 clear all results** or a reboot of the app.
 - The Cloud's clone has no `lib/libpydis.so`, so the app builds it when it starts. The Cloud
-  has gcc and make, though not CMake, and the build takes some seconds. Runs that start before
-  it is done use PyDiS's Python versions. The app's log, under Manage app, says when the
-  library was built, or why not. The Cloud runs Python 3.14.
+  has gcc, g++ and make, and CMake only from pip. PyDiS's library takes some seconds. Runs
+  that start before it is done use PyDiS's Python versions. ExaDiS's module comes next, in
+  some minutes. Until then, `import pyexadis` fails. The app's log, under Manage app, says
+  when each was built, or why not. The Cloud runs Python 3.14.
+- A push updates the app in place, and keeps what the app built. After a change to PyDiS's C
+  code or to ExaDiS, reboot the app, so that it builds them anew.
 - The Python console works there too, for every visitor. It is meant for looking into a
   run's objects. Each session has its own process, its own copy of the results and an
   environment without the app's variables. It has the guard rails above, limits on time,

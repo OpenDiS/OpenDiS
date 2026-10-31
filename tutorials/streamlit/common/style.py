@@ -53,8 +53,8 @@ header[data-testid="stHeader"] {
   z-index: 2147483001 !important;
 }
 [data-testid="stToolbar"] { z-index: 2147483001 !important; }
-/* The header's empty band below the banner lets clicks through (e.g. to the example
-   picker's drop-down lists); only its buttons take clicks */
+/* The header's empty band below the banner lets clicks through; only its buttons take
+   clicks */
 header[data-testid="stHeader"],
 header[data-testid="stHeader"] [data-testid="stToolbar"] { pointer-events: none !important; }
 header[data-testid="stHeader"] button,
@@ -73,7 +73,7 @@ header[data-testid="stHeader"] [role="button"],
   color: #1a2332 !important;
 }
 [data-testid="stExpandSidebarButton"]::after {
-  content: "Steps"; color: #1a2332 !important; font-size: 1.05rem !important;
+  content: "Example · steps"; color: #1a2332 !important; font-size: 1.05rem !important;
   font-weight: 650 !important; margin-left: 0.15rem;
 }
 [data-testid="stExpandSidebarButton"] svg {
@@ -96,18 +96,6 @@ div[data-testid="stAppViewContainer"] > .main {
   padding-top: calc(var(--opendis-banner-h) + 0.65rem) !important;
 }
 .opendis-banner .opendis-logo { height: 2.3rem; width: auto; margin-right: 0.6rem; }
-/* The example picker, pinned into the banner on the right (the keyed container opendis_picker) */
-.st-key-opendis_picker {
-  position: fixed !important; z-index: 2147483001 !important;
-  top: calc((var(--opendis-banner-h) - 2.25rem) / 2) !important; right: 1rem !important;
-  width: 19rem !important; gap: 0.45rem !important; align-items: center !important;
-}
-/* Its "Example" label: no negative bottom margin (Streamlit's), so it is centred too */
-.st-key-opendis_picker [data-testid="stMarkdownContainer"] { margin-bottom: 0 !important; }
-.st-key-opendis_picker [data-testid="stMarkdownContainer"] p {  /* the size of "Steps" */
-  margin: 0 !important; padding-right: 0.7rem !important; white-space: nowrap !important;
-  font-size: 1.22rem !important; line-height: 1.2 !important;
-}
 /* In-sidebar collapse — native Material « double-arrow (soft gray, not black) */
 [data-testid="stSidebarCollapseButton"] {
   background: transparent !important;

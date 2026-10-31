@@ -1,4 +1,4 @@
-"""tests.test_build: PyDiS's C library, built as the app builds it (README.md, Tests)."""
+"""tests.test_build: PyDiS's library and ExaDiS's module, built as the app builds them."""
 import filecmp
 import os
 import shutil
@@ -12,6 +12,20 @@ from common import catalog, codegen, paths
 from common.job import JOB_ENV
 from common.testing import check, summary
 
+# The binary junction's ExaDiS tutorial, as it is but for its plots, with the module built here
+EXADIS_RUN = """\
+import sys
+sys.path[:0] = {paths!r}
+import pyexadis
+import pyexadis_base
+pyexadis_base.VisualizeNetwork = lambda: None
+import test_binary_junction_exadis as tutorial
+pyexadis.initialize()
+tutorial.main()
+print("module:", pyexadis.__file__)
+pyexadis.finalize()
+"""
+
 
 def short_run(example: catalog.Example, root: Path, folder: Path) -> str:
     """A 20-step run of the example's own values, with PyDiS from ``root``; returns its output."""
@@ -22,6 +36,31 @@ def short_run(example: catalog.Example, root: Path, folder: Path) -> str:
                           text=True, timeout=600, check=False,
                           env={**os.environ, **JOB_ENV, "OPENDIS_DIR": str(root)})
     return done.stdout + done.stderr
+
+
+def exadis_checks(tmp: Path) -> list:
+    """ExaDiS's module, built as the app builds it (on macOS, without OpenMP, which Apple's
+    clang lacks), into a temporary folder; then the binary junction's ExaDiS tutorial with it."""
+    target, repo = tmp / "pyexadis", paths.OPENDIS_DIR
+    options = paths.EXADIS_OPTIONS + (("-DKokkos_ENABLE_OPENMP=Off",)
+                                      if sys.platform == "darwin" else ())
+    try:
+        note = paths.build_exadis(repo, target, options, jobs=os.cpu_count() or 1)
+    except (OSError, subprocess.SubprocessError) as exc:
+        note = f"{exc}\n{(getattr(exc, 'stderr', None) or '')[-1000:]}"
+    script = EXADIS_RUN.format(paths=[str(target)] + [str(repo / part) for part in (
+        *paths.PYDIS_PATHS, "core/exadis/python", "examples/03_binary_junction")])
+    (tmp / "exadis_run").mkdir()
+    done = subprocess.run([sys.executable, "-c", script], cwd=tmp / "exadis_run",
+                          capture_output=True, text=True, timeout=600, check=False,
+                          env={**os.environ, **JOB_ENV, "OMP_NUM_THREADS": "1"})
+    output = done.stdout + done.stderr
+    return [
+        check("ExaDiS's module is built", (target / paths.EXADIS_MODULE).is_file(), note),
+        check("the binary junction's ExaDiS tutorial runs with it",
+              f"module: {target / paths.EXADIS_MODULE}" in output and "step = 200" in output,
+              output[-300:]),
+    ]
 
 
 def main() -> int:
@@ -50,6 +89,7 @@ def main() -> int:
                                  "byte for byte (if that is a _repro build)",
                                  outputs and same == outputs,
                                  f"{len(same)} of {len(outputs)} files, {own[-200:]}"))
+        results += exadis_checks(Path(tmp))
     return summary(results)
 
 

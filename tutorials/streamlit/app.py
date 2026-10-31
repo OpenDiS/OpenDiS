@@ -1,11 +1,11 @@
 """OpenDiS: the Streamlit app (entry point).
 
 Run it from this folder with ``./launch_app.sh``, or with
-``python -m streamlit run app.py``. The page has the pinned banner, with the example picker in
-it; the sidebar (the steps, prev / next); the chosen step's selections in the 2nd left column;
-the 3-D window and the code panel in the centre; and the simulation's screen output on the
-right. Run launches the PyDiS job (``common/job.py``) as the last thing in a script run, so that
-Stop, or any other click, interrupts it and kills the job.
+``python -m streamlit run app.py``. The page has the pinned banner; the sidebar (the example and
+its code, the steps, prev / next); the chosen step's selections in the 2nd left column; the 3-D
+window and the code panel in the centre; and on the right the simulation's screen output, then
+the status of ExaDiS's build. Run launches the PyDiS or ExaDiS job (``common/job.py``) as the
+last thing in a script run, so that Stop, or any other click, interrupts it and kills the job.
 """
 import functools
 from pathlib import Path
@@ -18,9 +18,9 @@ from streamlit.delta_generator import DeltaGenerator
 from common import (catalog, code_panel, codegen, job, network, network3d, output_panel, picker,
                     results, steps, style, views)
 from common.catalog import Example
-from common.paths import ASSETS, build_pydis_library_once, fetch_graph
+from common.paths import ASSETS, build_libraries_once, exadis_status, fetch_graph
 from common.picker import RUN_STEP, Step
-from common.spec import Spec
+from common.spec import ENGINE_NAMES, Spec
 
 LOGO = ASSETS / "opendis_logo.png"
 FAVICON = ASSETS / "opendis_favicon.png"  # the website's favicon
@@ -34,6 +34,15 @@ PLOTLY_CONFIG = {"displaylogo": False, "responsive": True}
 SELECTIONS_OPEN = "selections_open"  # session key: whether the 2nd left column is shown
 CLEARED = "results_cleared"  # session key: the note on the last clear of all results, shown once
 CONFIRM_CLEAR = "confirm_clear"  # session key: whether that clear's confirmation is shown
+EXADIS_STATE = "exadis_state"  # session key: the state of ExaDiS's build at the last page run
+BUILD_POLL_S = 5  # the build's status bar refreshes itself this often while ExaDiS builds
+# Why an ExaDiS example cannot run, by the state of ExaDiS's build
+NOT_READY = {
+    "building": "ExaDiS is being built on this server. Run turns on when it is ready: its status "
+                "bar is in the right column.",
+    "failed": "ExaDiS could not be built on this server: the right column says why.",
+    "missing": "ExaDiS is not built for this Python. Build it with CMake, as for the tutorials.",
+}
 COLUMNS_OPEN, COLUMNS_SHUT = [0.95, 1.7, 0.95], [1.7, 0.95]
 
 
@@ -244,16 +253,26 @@ def _downloads(example: Example, folder: job.RunFolder) -> None:
                "the script writes there.")
 
 
+def _not_ready(example: Example) -> str:
+    """Why the example's code cannot run yet, or "" when it can: ExaDiS before its build."""
+    return "" if example.engine != "exadis" else NOT_READY.get(exadis_status()["state"], "")
+
+
 def _run_controls(example: Example, folder: job.RunFolder | None) -> DeltaGenerator:
     """The Run step's buttons: Run, Stop, the status and reset; returns the slot for progress."""
     k = example.name
     requested = bool(st.session_state.get(_key(example, "run")))
+    not_ready = _not_ready(example)
     left, right = st.columns(2)
     left.button("▶ Run", key=f"{k}/run", type="primary", width="stretch",
-                disabled=folder is None or requested, on_click=_request_run, args=(example,))
+                disabled=folder is None or requested or bool(not_ready), on_click=_request_run,
+                args=(example,))
     right.button("■ Stop", key=f"{k}/stop", width="stretch", disabled=not requested)
     slot = st.empty()
-    _show_status(slot, example, folder)
+    if not_ready and not (folder is not None and folder.results.exists()):
+        slot.warning(not_ready)
+    else:
+        _show_status(slot, example, folder)
     if folder is not None and folder.results.exists() and not requested:
         _downloads(example, folder)
     st.button("↺ reset to the example's values", key=f"{k}/reset", width="stretch",
@@ -296,6 +315,27 @@ def _clear_button(example: Example) -> None:
                   args=(False,))
 
 
+def _exadis_bar() -> None:
+    """The status of ExaDiS's build, below 🗑 clear all results. It is a fragment, which
+    refreshes itself while ExaDiS builds; when the build ends, the whole page runs again, so
+    that the Run buttons follow."""
+    status = exadis_status()
+    if status["state"] != st.session_state.get(EXADIS_STATE, status["state"]):
+        st.rerun()
+    if status["state"] == "building":
+        file = f" {status['file']} ·" if status.get("file") else ""
+        st.progress(status["percent"] / 100,
+                    text=f"Building ExaDiS: {status['phase']}, {status['percent']} %,{file} "
+                         f"{status['elapsed_s'] / 60:.1f} min so far")
+    elif status["state"] == "ready":
+        st.caption(f"ExaDiS is ready ({status['module']}).")
+    elif status["state"] == "failed":
+        st.error(f"ExaDiS was not built: {status['error']}. The app's log says more.")
+    else:
+        st.caption("ExaDiS is not built for this Python. The app builds it on Linux, as on "
+                   "Streamlit Community Cloud. Elsewhere, build it with CMake.")
+
+
 def _show_selections(show: bool) -> None:
     """Hide or show the 2nd left column (a button callback)."""
     st.session_state[SELECTIONS_OPEN] = show
@@ -317,10 +357,10 @@ def _selections_column(example: Example, step: Step, spec: Spec
 
 # ── The run ──
 
-def _progress(slot: DeltaGenerator, status: job.Status, max_step: int) -> None:
+def _progress(slot: DeltaGenerator, status: job.Status, max_step: int, code: str) -> None:
     """The progress bar: the time step reached, and the elapsed time."""
     step = status.step
-    text = (f"step {step} of {max_step}" if step is not None else "starting PyDiS")
+    text = (f"step {step} of {max_step}" if step is not None else f"starting {code}")
     slot.progress(min((step or 0) / max_step, 1.0), text=f"{text} · {status.elapsed_s:.1f} s")
 
 
@@ -328,7 +368,7 @@ def _run(example: Example, spec: Spec, folder: job.RunFolder | None,
          slots: tuple[DeltaGenerator | None, DeltaGenerator, DeltaGenerator | None]) -> None:
     """Run the job for the spec (or reuse its results), then rerun to show the outcome."""
     st.session_state.pop(_key(example, "run"), None)
-    if folder is None:
+    if folder is None or _not_ready(example):
         return
     progress_slot, output_slot, view_slot = slots
     progress_slot = progress_slot or st.sidebar.empty()
@@ -339,7 +379,7 @@ def _run(example: Example, spec: Spec, folder: job.RunFolder | None,
 
         def update(status: job.Status) -> None:
             st.session_state[_key(example, "status")] = (folder.run_id, status)
-            _progress(progress_slot, status, spec.run.max_step)
+            _progress(progress_slot, status, spec.run.max_step, ENGINE_NAMES[example.engine])
             output_panel.show_output(output_slot, status.lines, output_panel.no_run())
             found = network.snapshots(folder.output)
             if view_slot is not None and found and found[-1][0] != drawn["step"]:
@@ -377,17 +417,17 @@ def main() -> None:
     st.markdown(style.css(), unsafe_allow_html=True)
     st.markdown(style.banner_html(style.BANNER_TITLE, LOGO), unsafe_allow_html=True)
     fetch_graph()
-    build_pydis_library_once()
+    build_libraries_once()
     examples, broken = catalog.scan()
     if _show_problems(examples, broken):
         return
-    with st.container(key="opendis_picker", horizontal=True, vertical_alignment="center"):
-        example = picker.example_picker(examples)  # pinned into the banner by the CSS
-    step = picker.current_step(example)
-    _follow_step(example, step)
     with st.sidebar:
+        with st.container(key="opendis_picker"):
+            example = picker.example_picker(examples)
         steps_box = st.container()  # the steps radio, drawn after the selections
         picker.prev_next(example)
+    step = picker.current_step(example)
+    _follow_step(example, step)
     spec, folder, progress_slot = _spec(example), None, None
     shown = st.session_state.get(SELECTIONS_OPEN, True)
     if shown:
@@ -406,13 +446,16 @@ def main() -> None:
                       on_click=_show_selections, args=(True,))
         _panel_title(example.title)
         view_slot = _view_panel(example, spec, folder)
-        _panel_title("PyDiS code")
+        _panel_title(f"{ENGINE_NAMES[example.engine]} code")
         mode = _mode_radio("Code panel", code_panel.MODES, f"code_{example.name}")
         code_panel.show(mode, example, spec, step, folder)
     with right:
         _panel_title("Simulation output")
         output_slot = output_panel.panel(example, folder, status)
         _clear_button(example)
+        state = exadis_status()["state"]
+        st.session_state[EXADIS_STATE] = state
+        st.fragment(_exadis_bar, run_every=BUILD_POLL_S if state == "building" else None)()
     if st.session_state.get(_key(example, "run")):
         _run(example, spec, folder, (progress_slot, output_slot, view_slot))
 

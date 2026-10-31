@@ -1,9 +1,9 @@
-"""common.spec: an example's selections, the spec, one part per step.
+"""common.spec: an example's selections, the spec, one part per step, and the code that runs it.
 
 A spec holds every value that the generated script takes, in one frozen dataclass per step,
-so that a step's widgets replace only their own part. ``validate`` lists what would make the
-script fail, or the run meaningless. The module imports neither Streamlit nor PyDiS, so the
-tests can use it.
+so that a step's widgets replace only their own part, and the code that runs the script,
+PyDiS or ExaDiS. ``validate`` lists what would make the script fail, or the run meaningless.
+The module imports neither Streamlit nor PyDiS, so the tests can use it.
 """
 import json
 import math
@@ -29,14 +29,35 @@ STEPS = (
 )
 PARTS = tuple(key for key, _ in STEPS)
 
-# The choices that PyDiS's modules accept, as the app offers them
-FORCE_MODES = ("LineTension", "Elasticity_SBA")
-MOBILITY_LAWS = ("SimpleGlide", "Relax")
-INTEGRATORS = ("EulerForward",)
-SPLIT_MODES = ("MaxDiss",)
-COLLISION_MODES = ("Proximity", "Retroactive")
-REMESH_RULES = ("LengthBased",)
-LOADING_MODES = ("stress",)
+# The codes that run the scripts (an input file's ``engine``), and their names
+ENGINES = ("pydis", "exadis")
+ENGINE_NAMES = {"pydis": "PyDiS", "exadis": "ExaDiS"}
+# The initial configurations that each code's scripts build
+ENGINE_KINDS = {"pydis": ("frank_read_src_loop", "two_disl_lines"),
+                "exadis": ("frank_read_src_loop",)}
+# The choices that each code's modules accept, as the app offers them, by the field they fill.
+# A field that a code does not use (PyDiS's split mode and cell list in ExaDiS, ExaDiS's
+# topology mode in PyDiS) is neither offered nor checked for it.
+CHOICES = {
+    "pydis": {"force_mode": ("LineTension", "Elasticity_SBA"),
+              "mobility_law": ("SimpleGlide", "Relax"),
+              "integrator": ("EulerForward",),
+              "split_mode": ("MaxDiss",),
+              "collision_mode": ("Proximity", "Retroactive"),
+              "remesh_rule": ("LengthBased",),
+              "loading_mode": ("stress",)},
+    "exadis": {"force_mode": ("LineTension",),
+               "mobility_law": ("SimpleGlide",),
+               "integrator": ("EulerForward",),
+               "topology_mode": ("None", "TopologySerial", "TopologyParallel"),
+               "collision_mode": ("Retroactive", "Proximity"),
+               "remesh_rule": ("LengthBased",),
+               "loading_mode": ("stress",)},
+}
+CHOICE_LABELS = {"force_mode": "force mode", "mobility_law": "mobility law",
+                 "integrator": "integrator", "split_mode": "split mode",
+                 "topology_mode": "topology mode", "collision_mode": "collision mode",
+                 "remesh_rule": "remesh rule", "loading_mode": "loading mode"}
 STRESS_LABELS = ("xx", "yy", "zz", "yz", "xz", "xy")  # PyDiS's Voigt order
 MAX_STEP = 100_000
 MAX_N_DIV = 64
@@ -125,9 +146,9 @@ class Forces:
     """Step 3: the force model and the mobility law."""
 
     force_mode: str = "LineTension"
-    Ec: float | None = None   # core energy; None is PyDiS's default, mu/(4 pi) ln(a/0.1)
+    Ec: float | None = None   # core energy; None is the default, mu/(4 pi) ln(a/0.1)
     mobility_law: str = "SimpleGlide"
-    mob: float | None = None  # mobility, state["mob"]; None is PyDiS's default, 1.0
+    mob: float | None = None  # mobility; None is the default, 1.0
 
 
 @dataclass(frozen=True)
@@ -146,6 +167,7 @@ class Topology:
     collision_mode: str = "Proximity"
     remesh_rule: str = "LengthBased"
     n_div: tuple[int, int, int] = (8, 8, 8)
+    topology_mode: str = "TopologySerial"  # ExaDiS's; "None" is no topology module
 
 
 @dataclass(frozen=True)
@@ -183,8 +205,8 @@ def _numbers(spec: "Spec") -> list[tuple[str, float]]:
 
 
 @dataclass(frozen=True)
-class Spec:
-    """Every selection of an example; each part is one step's."""
+class Spec:  # pylint: disable=too-many-instance-attributes
+    """Every selection of an example; each part is one step's, and ``engine`` runs them."""
 
     config: Config
     material: Material
@@ -193,6 +215,7 @@ class Spec:
     topology: Topology
     loading: Loading
     run: Run
+    engine: str = "pydis"
 
     def with_part(self, part: str, value: Any) -> "Spec":
         """The spec with one step's part replaced."""
@@ -204,10 +227,15 @@ class Spec:
 
     def validate(self) -> list[str]:  # pylint: disable=too-many-branches
         """The problems with the spec; an empty list means it can run."""
+        if self.engine not in ENGINES:
+            return [f"engine: must be one of {', '.join(ENGINES)}"]
         bad = [name for name, value in _numbers(self) if not math.isfinite(value)]
         if bad:
             return [f"{name}: must be a finite number" for name in bad]
         errors = []
+        if self.config.kind not in ENGINE_KINDS[self.engine]:
+            errors.append(f"config.kind: {ENGINE_NAMES[self.engine]} has no script for "
+                          f"{self.config.kind} yet")
         if self.config.box_length <= 0:
             errors.append("box length: must be positive")
         errors += self.config.problems()
@@ -222,28 +250,20 @@ class Spec:
             errors.append("segment lengths: need 0 < minseg < maxseg < box length")
         elif m.minseg_ratio >= 0.5 * m.maxseg_ratio:
             errors.append("minseg: must be less than half of maxseg, or remeshing undoes itself")
+        choices = CHOICES[self.engine]
+        for part in (self.forces, self.timeint, self.topology, self.loading):
+            for name, value in asdict(part).items():
+                if name in choices and value not in choices[name]:
+                    errors.append(f"{CHOICE_LABELS[name]}: must be one of "
+                                  f"{', '.join(choices[name])}")
         f = self.forces
-        if f.force_mode not in FORCE_MODES:
-            errors.append(f"force mode: must be one of {', '.join(FORCE_MODES)}")
-        if f.mobility_law not in MOBILITY_LAWS:
-            errors.append(f"mobility law: must be one of {', '.join(MOBILITY_LAWS)}")
         for label, value in (("Ec", f.Ec), ("mob", f.mob)):
             if value is not None and value <= 0:
                 errors.append(f"{label}: must be positive")
-        if self.timeint.integrator not in INTEGRATORS:
-            errors.append(f"integrator: must be one of {', '.join(INTEGRATORS)}")
         if self.timeint.dt <= 0:
             errors.append("dt: must be positive")
-        t = self.topology
-        for label, value, choices in (("split mode", t.split_mode, SPLIT_MODES),
-                                      ("collision mode", t.collision_mode, COLLISION_MODES),
-                                      ("remesh rule", t.remesh_rule, REMESH_RULES)):
-            if value not in choices:
-                errors.append(f"{label}: must be one of {', '.join(choices)}")
-        if not all(1 <= n <= MAX_N_DIV for n in t.n_div):
+        if self.engine == "pydis" and not all(1 <= n <= MAX_N_DIV for n in self.topology.n_div):
             errors.append(f"cell list divisions: each must be in [1, {MAX_N_DIV}]")
-        if self.loading.loading_mode not in LOADING_MODES:
-            errors.append(f"loading mode: must be one of {', '.join(LOADING_MODES)}")
         r = self.run
         if not 1 <= r.max_step <= MAX_STEP:
             errors.append(f"max_step: must be in [1, {MAX_STEP}]")
@@ -259,6 +279,7 @@ class Spec:
         """The spec as JSON, for the run folder."""
         data = {part: asdict(getattr(self, part)) for part in PARTS}
         data["config"] = {"kind": self.config.kind, **data["config"]}
+        data["engine"] = self.engine
         return json.dumps(data, indent=1)
 
     @classmethod
@@ -279,9 +300,12 @@ class Spec:
             parts["config"] = _build(CONFIGS[kind], config_table, "config", problems)
         for part, part_class in PART_CLASSES.items():
             parts[part] = _build(part_class, data.get(part, {}), part, problems)
+        engine = data.get("engine", "pydis")
+        if engine not in ENGINES:
+            problems.append(f"engine: must be one of {', '.join(ENGINES)}")
         if problems:
             raise InputError(problems)
-        return cls(**parts)
+        return cls(**parts, engine=engine)
 
 
 def _convert(value: Any, kind: Any, where: str) -> Any:

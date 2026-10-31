@@ -159,7 +159,8 @@ def _snapshot(step: int):
 
 def load(script: str, final_json: str) -> dict:
     """The names of the run's script, once it ran with the final network in place of the run."""
-    for path in ("python", "lib", "core/pydis/python"):  # as the scripts add them
+    # as the scripts add them, ExaDiS's included
+    for path in ("python", "lib", "core/pydis/python", "core/exadis/python"):
         full = os.path.abspath(os.path.join(os.environ["OPENDIS_DIR"], path))
         if full not in sys.path:
             sys.path.append(full)
@@ -170,9 +171,15 @@ def load(script: str, final_json: str) -> dict:
         DM.read_json(os.path.join("output", final_json))
 
     pydis.SimulateNetwork.run = load_final
-    namespace = {"__name__": "__main__", "__file__": script}
     with open(script, encoding="utf-8") as file:
-        exec(compile(file.read(), script, "exec"), namespace)  # pylint: disable=exec-used
+        source = file.read()
+    if "import pyexadis" in source:  # an ExaDiS script: its run is replaced too, and its end
+        import pyexadis  # pylint: disable=import-outside-toplevel,import-error
+        import pyexadis_base  # pylint: disable=import-outside-toplevel,import-error
+        pyexadis_base.SimulateNetwork.run = load_final
+        pyexadis.finalize = lambda: None  # must not end ExaDiS: the session uses its objects
+    namespace = {"__name__": "__main__", "__file__": script}
+    exec(compile(source, script, "exec"), namespace)  # pylint: disable=exec-used
     namespace["snapshot"] = _snapshot
     namespace["snapshot_steps"] = sorted(
         int(match.group(1)) for match in (re.fullmatch(r"disnet_(\d+)\.json", name)

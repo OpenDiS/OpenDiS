@@ -11,7 +11,7 @@ from pathlib import Path
 
 from streamlit.testing.v1 import AppTest
 
-from common import job
+from common import job, paths
 from common.picker import STEP_LIST
 from common.testing import check, summary
 
@@ -30,6 +30,12 @@ def click(at: AppTest, label: str) -> None:
     next(b for b in at.button if b.label == label).click().run()
 
 
+def choose(at: AppTest, label: str, code: str = "PyDiS") -> None:
+    """Choose an example and its code in the sidebar's two menus, and run."""
+    at.selectbox(key="picker_example").select(label).run()
+    at.selectbox(key=f"picker_code/{label}").select(code).run()
+
+
 def shown(at: AppTest) -> list[dict]:
     """What the 3-D window's component draws: its arguments."""
     return [json.loads(c.proto.json_args) for c in at.get("component_instance")
@@ -39,7 +45,8 @@ def shown(at: AppTest) -> list[dict]:
 def main() -> int:  # pylint: disable=too-many-locals,too-many-statements
     """Run every check."""
     at = page()
-    picker = [s for s in at.selectbox if s.label == "Example"]
+    picker = [s for s in at.sidebar.selectbox if s.label == "Example"]
+    codes = [(s.options, s.value, s.disabled) for s in at.sidebar.selectbox if s.label == "Code"]
     text = "\n".join(m.value for m in at.markdown)
     outputs = [c.value for c in at.code if "No run yet" in c.value]
     initial = shown(at)
@@ -47,9 +54,16 @@ def main() -> int:  # pylint: disable=too-many-locals,too-many-statements
         check("the page loads without an exception", not at.exception, at.exception),
         check("the banner says OpenDiS, with the logo", "<h1>OpenDiS</h1>" in text
               and "data:image/png;base64," in text),
-        check("one drop-down menu: Frank-Read src, Binary junction",
+        check("in the sidebar, the Example menu: Frank-Read src, Binary junction",
               len(picker) == 1 and picker[0].options == ["Frank-Read src", "Binary junction"],
               [s.options for s in at.selectbox]),
+        check("below it, the Code menu of the Frank-Read source: PyDiS, ExaDiS",
+              codes == [(["PyDiS", "ExaDiS"], "PyDiS", False)], codes),
+        check("no menu in the page's main part", not list(at.main.selectbox),
+              [s.label for s in at.main.selectbox]),
+        check("below 🗑 clear all results, ExaDiS's status",
+              any(c.value.startswith("ExaDiS is") for c in at.caption),
+              [c.value for c in at.caption][-3:]),
         check("the right column is the simulation output, not a chat",
               "Simulation output" in text and "Chat" not in text and outputs, outputs),
         check("seven steps", [o for r in at.radio if r.label == "Steps" for o in r.options]
@@ -60,10 +74,11 @@ def main() -> int:  # pylint: disable=too-many-locals,too-many-statements
               initial[:1]),
     ]
 
-    # every step of each example, by next ›
-    for example in ("Frank-Read src", "Binary junction"):
+    # every step of each example and code, by next ›
+    for example, code in (("Frank-Read src", "PyDiS"), ("Frank-Read src", "ExaDiS"),
+                          ("Binary junction", "PyDiS")):
         at = page()
-        at.selectbox(key="picker_example").select(example).run()
+        choose(at, example, code)
         failures = []
         for step in STEP_LIST:
             if at.exception or at.warning:
@@ -71,9 +86,16 @@ def main() -> int:  # pylint: disable=too-many-locals,too-many-statements
                                  [w.value for w in at.warning]))
             if step != STEP_LIST[-1]:
                 click(at, "next ›")
-        results += [check(f"{example}: every step draws, cleanly", not failures, failures),
-                    check(f"{example}: next › reaches the Run step",
-                          any(b.label == "▶ Run" for b in at.button))]
+        titles = "\n".join(m.value for m in at.markdown)
+        results += [check(f"{example} with {code}: every step draws, cleanly", not failures,
+                          failures),
+                    check(f"{example} with {code}: next › reaches the Run step",
+                          any(b.label == "▶ Run" for b in at.button)),
+                    check(f"{example} with {code}: the code panel is {code}'s",
+                          f"{code} code" in titles, titles[-500:])]
+    junction = [(s.options, s.disabled) for s in at.selectbox if s.label == "Code"]
+    results.append(check("the binary junction has one code, PyDiS", junction == [(["PyDiS"], True)],
+                         junction))
 
     # a changed selection marks its step; reset brings the example's values back
     at = page()
@@ -91,7 +113,7 @@ def main() -> int:  # pylint: disable=too-many-locals,too-many-statements
     # the binary junction, 20 steps; its replay plays in the 3-D window's component, in the
     # browser (its behaviour is components/network3d/network3d.js's, checked with Node.js)
     at = page()
-    at.selectbox(key="picker_example").select("Binary junction").run()
+    choose(at, "Binary junction")
     for _ in STEP_LIST[1:]:
         click(at, "next ›")
     next(n for n in at.number_input if n.label.startswith("max_step")).set_value(20).run()
@@ -168,6 +190,50 @@ def main() -> int:  # pylint: disable=too-many-locals,too-many-statements
         check("it says so, and the output column shows no run",
               toasts == ["Deleted the results of 1 run(s)."] and "No run yet" in output,
               (toasts, output[-200:])),
+    ]
+
+    # the Frank-Read source with ExaDiS, 20 steps: its snapshots, as PyDiS's, play
+    at = page()
+    choose(at, "Frank-Read src", "ExaDiS")
+    for _ in STEP_LIST[1:]:
+        click(at, "next ›")
+    next(n for n in at.number_input if n.label.startswith("max_step")).set_value(20).run()
+    click(at, "▶ Run")
+    output = "\n".join(c.value for c in at.code)
+    replay = shown(at)
+    successes = [s.value for s in at.success]
+    results += [
+        check("ExaDiS: the run ends without an exception, and says Done", not at.exception
+              and any(s.startswith("Done after") for s in successes),
+              ([e.value for e in at.exception], successes)),
+        check("ExaDiS: the output column shows ExaDiS's lines",
+              "init_frank_read_src_loop: length = 125.000000" in output and "step = 20" in output
+              and "RUN TIME" in output, output[-300:]),
+        check("ExaDiS: the 3-D window replays its snapshots and the final network",
+              len(replay) == 1 and [f["label"] for f in replay[0]["frames"]] ==
+              ["step 0", "step 10", "step 20", "final"],
+              [[f["label"] for f in r["frames"]] for r in replay]),
+        check("no job is left running after ExaDiS's", not job.running()),
+    ]
+
+    # until ExaDiS is built for this Python, its examples cannot run
+    built, paths.EXADIS_MODULE = paths.EXADIS_MODULE, "pyexadis.not-built.so"
+    try:
+        at = page()
+        choose(at, "Frank-Read src", "ExaDiS")
+        for _ in STEP_LIST[1:]:
+            click(at, "next ›")
+        run = next(b for b in at.button if b.label == "▶ Run")
+        warnings = [w.value for w in at.warning]
+        bar = [c.value for c in at.caption if c.value.startswith("ExaDiS is")]
+    finally:
+        paths.EXADIS_MODULE = built
+    results += [
+        check("without ExaDiS, its Run is off, and the Run step says why",
+              run.disabled and any("ExaDiS is not built" in w for w in warnings),
+              (run.disabled, warnings)),
+        check("... and so does the status below 🗑 clear all results",
+              any("not built" in c for c in bar), bar),
     ]
 
     # a changed source file makes Streamlit load the app's modules again, with new classes:

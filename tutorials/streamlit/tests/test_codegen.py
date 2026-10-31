@@ -19,9 +19,13 @@ SHORT_STEPS = 60
 
 
 def outputs(folder: Path) -> dict[str, object]:
-    """The JSON files that a run wrote into ``output/``, by name."""
-    return {path.name: json.loads(path.read_text(encoding="utf-8"))
-            for path in sorted((folder / "output").glob("*.json"))}
+    """The networks that a run wrote into ``output/``, by name: the JSON files, and ExaDiS's
+    ``config.<step>.data`` files, as text."""
+    found: dict[str, object] = {path.name: json.loads(path.read_text(encoding="utf-8"))
+                                for path in sorted((folder / "output").glob("*.json"))}
+    found.update((path.name, path.read_text(encoding="utf-8"))
+                 for path in sorted((folder / "output").glob("*.data")))
+    return found
 
 
 def step_lines(lines: list[str]) -> list[str]:
@@ -41,8 +45,9 @@ def main() -> int:  # pylint: disable=too-many-locals
     looks = [codegen.num(v) for v in (50e9, 3e-10, 1e-8, -4e8, 1e6)]
     results = [
         check("the input files have no problems", not problems, problems),
-        check("two examples, in order", [e.name for e in examples] ==
-              ["frank_read_src", "binary_junction"], [e.name for e in examples]),
+        check("three examples, in order", [e.name for e in examples] ==
+              ["frank_read_src", "frank_read_src_exadis", "binary_junction"],
+              [e.name for e in examples]),
         check("num: every number comes back exactly", not inexact, inexact),
         check("num: 5.0e10, 3.0e-10, 1.0e-8, -4.0e8, 1.0e6",
               looks == ["5.0e10", "3.0e-10", "1.0e-8", "-4.0e8", "1.0e6"], looks),
@@ -55,7 +60,7 @@ def main() -> int:  # pylint: disable=too-many-locals
             missing = [step for step, _ in STEPS
                        if textwrap.indent(codegen.STEP_CODE[step](spec), "    ") not in script
                        or codegen.STEP_CODE[step](spec) not in codegen.step_code(spec, step, final)]
-            function = codegen.INIT_FUNCTIONS[spec.config.kind]
+            function = codegen.init_function(spec)
             results += [
                 check(f"{name}: the script compiles and holds each step's block", not missing,
                       missing),
@@ -89,10 +94,11 @@ def main() -> int:  # pylint: disable=too-many-locals
             folder.prepare(script, spec.to_json())
             status = job.run(folder)
             text = (OPENDIS_DIR / example.tutorial_script).read_text(encoding="utf-8")
-            relative = repr([f"../../{path}" for path in PYDIS_PATHS])
-            if relative not in text:
+            paths = codegen.EXADIS_PATHS if example.engine == "exadis" else PYDIS_PATHS
+            text, count = re.subn(r"'\.\./\.\./([\w/]+?)/?'",
+                                  lambda match: repr(str(OPENDIS_DIR / match.group(1))), text)
+            if count != len(paths):
                 raise AssertionError(f"the path line of {example.tutorial_script} has changed")
-            text = text.replace(relative, repr([str(OPENDIS_DIR / p) for p in PYDIS_PATHS]))
             if not full:
                 text, count = re.subn(r"max_step=\d+", f"max_step={SHORT_STEPS}", text)
                 if count != 1:
@@ -105,7 +111,9 @@ def main() -> int:  # pylint: disable=too-many-locals
                                  stderr=subprocess.STDOUT, text=True, check=False)
             lines = ran.stdout.splitlines()
             ours, theirs = outputs(folder.path), outputs(tutorial)
-            differ = sorted(n for n in ours.keys() | theirs.keys() if ours.get(n) != theirs.get(n))
+            differ = sorted(n for n in theirs if ours.get(n) != theirs[n])
+            played = [n for n in ours if n.startswith("disnet_")]  # what the app's views read
+            written = [n for n in theirs if n.startswith(("disnet_", "config."))]
             warnings = [line for line in status.lines if "Warning" in line]
             title = f"{name} ({spec.run.max_step} steps)"
             results += [
@@ -113,8 +121,10 @@ def main() -> int:  # pylint: disable=too-many-locals
                 check(f"{title}: the tutorial's script exits with 0", ran.returncode == 0,
                       lines[-5:]),
                 check(f"{title}: the job's output has no warnings", not warnings, warnings[:2]),
-                check(f"{title}: the same {len(ours)} networks, snapshots and final",
-                      len(ours) > 2 and not differ, f"these differ: {differ[:5]}"),
+                check(f"{title}: the same {len(theirs)} networks, snapshots and final",
+                      len(theirs) > 2 and not differ, f"these differ: {differ[:5]}"),
+                check(f"{title}: a JSON snapshot for each of the tutorial's snapshots",
+                      len(played) == len(written) > 2, (len(played), len(written))),
                 check(f"{title}: the same step lines", step_lines(status.lines) == step_lines(lines)
                       and bool(step_lines(lines)), (step_lines(status.lines)[:2],
                                                     step_lines(lines)[:2])),

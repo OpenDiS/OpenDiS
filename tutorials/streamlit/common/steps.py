@@ -2,7 +2,8 @@
 
 The widget keys start with the context's prefix, which changes whenever code replaces the spec
 (a reset), so that the widgets start again from the new values. The values are checked by
-``Spec.validate``, whose messages the app shows below the widgets.
+``Spec.validate``, whose messages the app shows below the widgets. The choices are those of the
+code that runs the example, PyDiS or ExaDiS (``CHOICES`` in ``common/spec.py``).
 """
 import math
 from dataclasses import dataclass, replace
@@ -11,11 +12,26 @@ from typing import Any
 import streamlit as st
 
 from common.catalog import Example
-from common.spec import (COLLISION_MODES, FORCE_MODES, INTEGRATORS, LOADING_MODES, MAX_STEP,
-                         MOBILITY_LAWS, REMESH_RULES, SPLIT_MODES, STRESS_LABELS, Forces,
-                         FrankReadSource, Loading, Material, Run, Spec, TimeInt, Topology)
+from common.spec import (CHOICES, ENGINE_NAMES, MAX_STEP, STRESS_LABELS, Forces,
+                         FrankReadSource, Loading, Material, Run, Spec, TimeInt)
 
 STRESS_STEP = 1.0e7  # Pa, the +/- of an applied stress component
+TUTORIAL_BY = {"pydis": "by pure Python", "exadis": "by Python calling ExaDiS"}  # the pages' titles
+# What each choice does, for the help of its select box
+HELP = {
+    "LineTension": "each segment pulls its nodes along the line, as in the tutorials",
+    "Elasticity_SBA": "the elastic interaction of all the segments (slower)",
+    "SimpleGlide": "the nodes move in their glide planes",
+    "Relax": "they move along their forces",
+    "None": "no topology module, as in ExaDiS's tutorial",
+    "TopologySerial": "splits each multi-node the way that dissipates the most energy",
+    "TopologyParallel": "the same, in parallel",
+}
+
+
+def _help(choices: tuple[str, ...]) -> str:
+    """The help of a select box: what each of its choices does."""
+    return " ".join(f"{choice}: {HELP[choice]}." for choice in choices)
 
 
 @dataclass(frozen=True)
@@ -75,7 +91,7 @@ def _config(spec: Spec, ctx: StepContext) -> Spec:
     with st.expander("About this example", expanded=True):
         st.markdown(example.body)
         if example.tutorial_url:
-            st.markdown(f"From the tutorial [{example.label} by pure Python]"
+            st.markdown(f"From the tutorial [{example.label} {TUTORIAL_BY[example.engine]}]"
                         f"({example.tutorial_url}).")
     box = _number("Box length, Lbox (b)", c.box_length, f"{k}/box_length",
                   "The edge of the cubic simulation cell, in units of the Burgers vector's length.")
@@ -118,57 +134,68 @@ def _material(spec: Spec, ctx: StepContext) -> Spec:
 def _forces(spec: Spec, ctx: StepContext) -> Spec:
     """Step 3: the force model and the mobility law, with their optional values."""
     f, m, k = spec.forces, spec.material, ctx.key
-    mode = _select("Force", FORCE_MODES, f.force_mode, f"{k}/force_mode",
-                   "LineTension: each segment pulls its nodes along the line, as in the "
-                   "tutorials. Elasticity_SBA: the elastic interaction of all the segments "
-                   "(slower).")
+    choices, name = CHOICES[spec.engine], ENGINE_NAMES[spec.engine]
+    mode = _select("Force", choices["force_mode"], f.force_mode, f"{k}/force_mode",
+                   _help(choices["force_mode"]))
     default_ec = m.mu / (4.0 * math.pi) * math.log(m.a / 0.1)
     if st.checkbox("Set the core energy Ec", f.Ec is not None, key=f"{k}/own_ec"):
         ec = _number("Ec (Pa)", f.Ec if f.Ec is not None else default_ec or 1.0, f"{k}/Ec")
     else:
         ec = None
-        st.caption(f"Ec = mu/(4π) ln(a/0.1) = {default_ec:.4g} Pa, PyDiS's default"
+        st.caption(f"Ec = mu/(4π) ln(a/0.1) = {default_ec:.4g} Pa, {name}'s default"
                    + ("; it is not positive, so set Ec" if default_ec <= 0 else ""))
-    law = _select("Mobility law", MOBILITY_LAWS, f.mobility_law, f"{k}/mobility_law",
-                  "SimpleGlide: the nodes move in their glide planes. Relax: they move along "
-                  "their forces.")
+    law = _select("Mobility law", choices["mobility_law"], f.mobility_law, f"{k}/mobility_law",
+                  _help(choices["mobility_law"]))
     if st.checkbox("Set the mobility mob", f.mob is not None, key=f"{k}/own_mob"):
         mob = _number("mob", f.mob if f.mob is not None else 1.0, f"{k}/mob")
     else:
         mob = None
-        st.caption("mob = 1.0, PyDiS's default")
+        st.caption(f"mob = 1.0, {name}'s default")
     return spec.with_part("forces", Forces(mode, ec, law, mob))
 
 
 def _timeint(spec: Spec, ctx: StepContext) -> Spec:
     """Step 4: the integrator and its time step."""
     t, k = spec.timeint, ctx.key
-    integrator = _select("Integrator", INTEGRATORS, t.integrator, f"{k}/integrator",
-                         "Forward Euler with a fixed time step, PyDiS's integrator.")
+    integrator = _select("Integrator", CHOICES[spec.engine]["integrator"], t.integrator,
+                         f"{k}/integrator", "Forward Euler with a fixed time step, "
+                         f"{ENGINE_NAMES[spec.engine]}'s integrator.")
     dt = _number("dt, the time step (s)", t.dt, f"{k}/dt")
     return spec.with_part("timeint", TimeInt(integrator, dt))
 
 
 def _topology(spec: Spec, ctx: StepContext) -> Spec:
     """Step 5: the topological operations, collisions, remeshing and the cell list."""
-    t, k = spec.topology, ctx.key
-    split = _select("Split mode", SPLIT_MODES, t.split_mode, f"{k}/split_mode",
+    t, k, choices = spec.topology, ctx.key, CHOICES[spec.engine]
+    if spec.engine == "exadis":
+        mode = _select("Topology", choices["topology_mode"], t.topology_mode,
+                       f"{k}/topology_mode", _help(choices["topology_mode"]))
+        collision = _select("Collision", choices["collision_mode"], t.collision_mode,
+                            f"{k}/collision_mode", "Retroactive: segments closer than rann "
+                            "collide, and those whose paths crossed during the step. In ExaDiS, "
+                            "Proximity is the same.")
+        remesh = _select("Remesh rule", choices["remesh_rule"], t.remesh_rule,
+                         f"{k}/remesh_rule")
+        return spec.with_part("topology", replace(t, topology_mode=mode,
+                                                  collision_mode=collision, remesh_rule=remesh))
+    split = _select("Split mode", choices["split_mode"], t.split_mode, f"{k}/split_mode",
                     "MaxDiss splits a multi-node the way that dissipates the most energy.")
-    collision = _select("Collision", COLLISION_MODES, t.collision_mode, f"{k}/collision_mode",
-                        "Proximity: segments closer than rann collide. Retroactive: also the "
-                        "segments whose paths crossed during the step.")
-    remesh = _select("Remesh rule", REMESH_RULES, t.remesh_rule, f"{k}/remesh_rule")
+    collision = _select("Collision", choices["collision_mode"], t.collision_mode,
+                        f"{k}/collision_mode", "Proximity: segments closer than rann collide. "
+                        "Retroactive: also the segments whose paths crossed during the step.")
+    remesh = _select("Remesh rule", choices["remesh_rule"], t.remesh_rule, f"{k}/remesh_rule")
     n_div = _vector("Cell list divisions, n_div", t.n_div, f"{k}/n_div", kind=int,
                     help_text="The cell list's cells along x, y and z, for finding the "
                               "segments that may collide.")
-    return spec.with_part("topology", Topology(split, collision, remesh, n_div))
+    return spec.with_part("topology", replace(t, split_mode=split, collision_mode=collision,
+                                              remesh_rule=remesh, n_div=n_div))
 
 
 def _loading(spec: Spec, ctx: StepContext) -> Spec:
     """Step 6: the applied stress."""
     loading, k = spec.loading, ctx.key
-    mode = _select("Loading", LOADING_MODES, loading.loading_mode, f"{k}/loading_mode",
-                   "A constant applied stress.")
+    mode = _select("Loading", CHOICES[spec.engine]["loading_mode"], loading.loading_mode,
+                   f"{k}/loading_mode", "A constant applied stress.")
     st.markdown("**Applied stress (Pa)**")
     stress = tuple(_number(f"σ_{label}", value, f"{k}/sigma_{label}", step=STRESS_STEP)
                    for label, value in zip(STRESS_LABELS, loading.applied_stress))

@@ -1,8 +1,9 @@
-"""common.picker: the navigation: the example picker (in the banner), the steps and prev / next.
+"""common.picker: the navigation, in the sidebar: the example and its code, the steps, prev / next.
 
-The picker, one drop-down menu of the examples' labels, is drawn inside the app's keyed container
-``opendis_picker``, which the CSS in ``common/style.py`` pins into the banner. The steps and the
-prev / next buttons are in the sidebar.
+The picker is two drop-down menus, drawn inside the app's keyed container ``opendis_picker``:
+the examples' labels, then the codes that run the chosen one, PyDiS or ExaDiS. Each code of an
+example is an input file of its own (``common/catalog.py``). The steps and the prev / next
+buttons come below.
 """
 from collections.abc import Collection, Sequence
 from dataclasses import dataclass
@@ -10,9 +11,10 @@ from dataclasses import dataclass
 import streamlit as st
 
 from common.catalog import Example
-from common.spec import STEPS
+from common.spec import ENGINE_NAMES, ENGINES, STEPS
 
 PICKER_KEY = "picker_example"
+CODE_KEY = "picker_code"  # one per label: "picker_code/<label>"
 
 
 @dataclass(frozen=True)
@@ -39,12 +41,20 @@ def _ensure_valid(key: str, options: list[str]) -> None:
 
 
 def example_picker(examples: Sequence[Example]) -> Example:
-    """A label and one select box of the examples; returns the chosen example."""
-    st.markdown("**Example**")  # bold like the sidebar's "Steps"
-    labels = [example.label for example in examples]
+    """A label, a select box of the examples' labels, then one of the chosen example's codes;
+    returns the chosen example."""
+    st.markdown("**Example**")  # bold like "Steps"
+    labels = list(dict.fromkeys(example.label for example in examples))
     _ensure_valid(PICKER_KEY, labels)
     label = st.selectbox("Example", labels, key=PICKER_KEY, label_visibility="collapsed")
-    return examples[labels.index(label)]
+    codes = sorted((e for e in examples if e.label == label), key=lambda e: ENGINES.index(e.engine))
+    names = [ENGINE_NAMES[example.engine] for example in codes]
+    key = f"{CODE_KEY}/{label}"
+    _ensure_valid(key, names)
+    name = st.selectbox("Code", names, key=key, disabled=len(names) == 1,
+                        help="The code that runs the example's script: PyDiS, in Python, or "
+                             "ExaDiS, in C++ through its Python module pyexadis.")
+    return codes[names.index(name)]
 
 
 def _steps_key(example: Example) -> str:
