@@ -1,5 +1,6 @@
 """tests.test_codegen: the app's scripts against the tutorials' own scripts (README.md, Tests)."""
 import argparse
+import filecmp
 import json
 import os
 import re
@@ -10,12 +11,37 @@ import textwrap
 from dataclasses import replace
 from pathlib import Path
 
-from common import catalog, codegen, job
+import numpy as np
+
+from common import catalog, codegen, job, network
 from common.paths import OPENDIS_DIR, PYDIS_PATHS
-from common.spec import STEPS, Spec
+from common.spec import BUILT, STEPS, InfiniteLines, Spec
 from common.testing import check, has, summary
 
 SHORT_STEPS = 60
+# The option of tutorials/01_initial_configurations/initial_configurations.py for each network
+# and code: its options 3 to 5 are ExaDiS's only, so PyDiS's network is checked against them
+OPTIONS = {("simple_source", "pydis"): "1", ("simple_source", "exadis"): "2",
+           "paradis_file": "3", "line_config": "4", "prismatic_config": "5"}
+# The tutorial, run with one option, and its plot replaced by a write of the network
+TUTORIAL_RUN = """\
+import os, runpy, sys
+sys.argv = ["initial_configurations.py", {option!r}]
+sys.path[:0] = {paths!r}
+
+
+def capture(self, N, *args, **kwargs):
+    os.makedirs("output", exist_ok=True)
+    N.write_json("output/tutorial.json")
+
+
+import pydis
+pydis.VisualizeNetwork.plot_disnet = capture
+if {exadis!r}:
+    import pyexadis_base
+    pyexadis_base.VisualizeNetwork.plot_disnet = capture
+runpy.run_path("tutorial.py", run_name="__main__")
+"""
 
 
 def outputs(folder: Path) -> dict[str, object]:
@@ -26,6 +52,78 @@ def outputs(folder: Path) -> dict[str, object]:
     found.update((path.name, path.read_text(encoding="utf-8"))
                  for path in sorted((folder / "output").glob("*.data")))
     return found
+
+
+def canon(data: dict) -> dict:
+    """A network's JSON, as arrays of one shape whatever the code: PyDiS writes the cell's
+    periodic flags as booleans, ExaDiS as numbers."""
+    cell, nodes, segs = data["cell"], data["nodes"], data["segs"]
+    found = {"h": cell["h"], "origin": cell["origin"],
+             "is_periodic": [bool(p) for p in cell["is_periodic"]]}
+    for group, size in ((nodes, len(nodes["tags"])), (segs, len(segs["nodeids"]))):
+        found.update((key, np.asarray(value).reshape(size, -1).tolist())
+                     for key, value in group.items())
+    return found
+
+
+def tutorial_paths(text: str) -> str:
+    """The tutorial's text with its paths, relative to its own folder, made absolute."""
+    return re.sub(r"'\.\./\.\./([\w/.\-]+?)/?'",
+                  lambda match: repr(str(OPENDIS_DIR / match.group(1))), text)
+
+
+def build_checks(example: catalog.Example, tmp: Path) -> list:
+    """A script that builds a network, for each of the tutorial's networks: the app's job, and
+    the tutorial's option of that network, give the same network and the same files; and the
+    3-D window's own build of it is that network too."""
+    results = []
+    for cls in BUILT:
+        spec = example.default.with_part("config", cls())
+        name, final = f"{example.name}: {cls.label}", example.final_json
+        script = codegen.full_script(spec, final)
+        compile(script, example.script_name, "exec")
+        folder = job.RunFolder.for_script(f"{example.name}_{cls.kind}", example.script_name,
+                                          final, script, runs=tmp / "app")
+        folder.prepare(script, spec.to_json())
+        status = job.run(folder)
+        option = OPTIONS.get((cls.kind, spec.engine)) or OPTIONS[cls.kind]
+        tutorial = tmp / "tutorial" / f"{example.name}_{cls.kind}"
+        tutorial.mkdir(parents=True)
+        text = (OPENDIS_DIR / example.tutorial_script).read_text(encoding="utf-8")
+        (tutorial / "tutorial.py").write_text(tutorial_paths(text), encoding="utf-8")
+        (tutorial / "run.py").write_text(TUTORIAL_RUN.format(
+            option=option, exadis=option != "1",
+            paths=[str(OPENDIS_DIR / p) for p in codegen.EXADIS_PATHS]), encoding="utf-8")
+        ran = subprocess.run([sys.executable, "-u", "run.py"], cwd=tutorial,
+                             env={**os.environ, **job.JOB_ENV}, stdout=subprocess.PIPE,
+                             stderr=subprocess.STDOUT, text=True, check=False)
+        theirs = tutorial / "output" / "tutorial.json"
+        ours = (canon(json.loads(folder.results.read_text(encoding="utf-8")))
+                if folder.results.exists() else None)
+        drawn = network.initial(spec)
+        first = codegen.BUILD_TITLES[cls.kind].format(
+            code="pyexadis" if spec.engine == "exadis" else "pydis")
+        results += [
+            check(f"{name}: the app's job ends done", status.ok, status.summary()),
+            check(f"{name}: the tutorial's option {option} exits with 0", ran.returncode == 0,
+                  ran.stdout[-300:]),
+            check(f"{name}: the same network as the tutorial's option {option}",
+                  ours is not None and theirs.exists()
+                  and ours == canon(json.loads(theirs.read_text(encoding="utf-8"))),
+                  (ours is not None, theirs.exists())),
+            check(f"{name}: the 3-D window's own build is that network",
+                  ours is not None and np.array_equal(drawn.positions, ours["positions"])
+                  and np.array_equal(drawn.segments, ours["nodeids"]), len(drawn.positions)),
+            check(f"{name}: the tutorial's first line", first in status.lines,
+                  status.lines[:2]),
+        ]
+        if cls is InfiniteLines:
+            same = [n for n in ("infinite_lines.data", "infinite_lines.vtk")
+                    if (folder.output / n).exists() and filecmp.cmp(
+                        folder.output / n, tutorial / n, shallow=False)]
+            results.append(check(f"{name}: the same .data and .vtk files as the tutorial's",
+                                 len(same) == 2, same))
+    return results
 
 
 def step_lines(lines: list[str]) -> list[str]:
@@ -45,8 +143,9 @@ def main() -> int:  # pylint: disable=too-many-locals
     looks = [codegen.num(v) for v in (50e9, 3e-10, 1e-8, -4e8, 1e6)]
     results = [
         check("the input files have no problems", not problems, problems),
-        check("three examples, in order", [e.name for e in examples] ==
-              ["frank_read_src", "frank_read_src_exadis", "binary_junction"],
+        check("five examples, in order", [e.name for e in examples] ==
+              ["frank_read_src", "frank_read_src_exadis", "binary_junction",
+               "initial_configurations", "initial_configurations_exadis"],
               [e.name for e in examples]),
         check("num: every number comes back exactly", not inexact, inexact),
         check("num: 5.0e10, 3.0e-10, 1.0e-8, -4.0e8, 1.0e6",
@@ -54,6 +153,9 @@ def main() -> int:  # pylint: disable=too-many-locals
     ]
     with tempfile.TemporaryDirectory() as tmp:
         for example in examples:
+            if not example.default.config.simulates:
+                results += build_checks(example, Path(tmp))
+                continue
             spec, final, name = example.default, example.final_json, example.name
             script = codegen.full_script(spec, final)
             compile(script, example.script_name, "exec")

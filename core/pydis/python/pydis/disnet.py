@@ -1090,3 +1090,517 @@ class DisNet(DisNet_Python):
         nodevel_dict = {(nodeveltags[i][0],nodeveltags[i][1]): nodevels[i] for i in range(len(nodeveltags))}
         state["vel_dict"] = nodevel_dict
         return state
+
+    # Reading, writing and generating networks, as ExaDisNet does
+    # (core/exadis/python/pyexadis_base.py), so that a script can build the same network with
+    # either code: the readers and writers are ports of exadis' C++ ones, and the generators of
+    # the Python functions of core/exadis/python/pyexadis_utils.py, with the same random numbers.
+
+    def _set_network(self, cell, nodes, segs) -> None:
+        """_set_network: replace the network by one of nodes [x,y,z,constraint] and segments
+           [node1,node2,burg,plane], as ExaDisNet(cell, nodes, segs) does, without a sanity check
+        """
+        self.clear_graph()
+        self.cell = cell
+        for i, node in enumerate(nodes):
+            self._add_node((0, i), DisNode(R=np.array(node[:3], dtype=float),
+                                           constraint=int(node[3])))
+        for seg in segs:
+            tag, nbr_tag = (0, int(seg[0])), (0, int(seg[1]))
+            self._add_edge(tag, nbr_tag, DisEdge(tag, nbr_tag, burg_vec=np.array(seg[2:5], dtype=float),
+                                                 plane_normal=np.array(seg[5:8], dtype=float)))
+
+    def read_paradis(self, datafile: str, verbose: bool=True):
+        """read_paradis: read the network of a ParaDiS data file, and return self
+
+        A port of exadis' read_paradis (core/exadis/src/generate.cpp). The cell spans the file's
+        minCoordinates to maxCoordinates, periodic in all three directions. The nodes keep the
+        file's order and constraints, with the tags (0, i). Each segment is the arm of its
+        lower-numbered node, in the file's order. As in exadis, a Burgers vector that is not
+        conserved at a node gives a warning, not an error.
+        """
+        if verbose: print("Reading ParaDiS configuration")
+        with open(datafile, encoding="utf-8") as f:
+            lines = f.read().splitlines()
+        if verbose: print(" Input file: %s" % datafile)
+
+        bounds, node_count, start = {}, -1, None
+        for i, line in enumerate(lines):
+            for name in ("minCoordinates", "maxCoordinates"):
+                if line.startswith(name + " = ["):
+                    words = " ".join(lines[i+1:i+5]).replace("]", " ").split()
+                    bounds[name] = np.array([float(w) for w in words[:3]])
+            if line.startswith("nodeCount"):
+                node_count = int(line.split("=")[1])
+            if line.startswith("nodalData ="):
+                start = i + 1
+                break
+        if len(bounds) < 2 or start is None or node_count < 0:
+            raise ValueError("read_paradis: invalid ParaDiS file %s" % datafile)
+
+        words = " ".join(line for line in lines[start:] if not line.startswith("#"))
+        words = words.replace(",", " ").split()
+        index, nodes, arms, k = {}, [], [], 0
+        while k + 7 <= len(words):
+            tag = (int(words[k]), int(words[k+1]))
+            pos = [float(w) for w in words[k+2:k+5]]
+            narms, flag = int(words[k+5]), int(words[k+6])
+            k += 7
+            if tag not in index:
+                index[tag] = len(nodes)
+                nodes.append(pos + [flag])
+            for _ in range(narms):
+                nbr = (int(words[k]), int(words[k+1]))
+                burg = np.array([float(w) for w in words[k+2:k+5]])
+                plane = np.array([float(w) for w in words[k+5:k+8]])
+                arms.append((tag, nbr, burg, plane))
+                k += 8
+        if node_count != len(nodes):
+            raise ValueError("read_paradis: node inconsistency found in ParaDiS file")
+
+        segs, first = [], {}
+        for i, (tag, nbr, burg, plane) in enumerate(arms):
+            if tag not in index or nbr not in index:
+                raise ValueError("read_paradis: invalid segment found in ParaDiS file")
+            first.setdefault((index[tag], index[nbr]), i)
+        for tag, nbr, burg, plane in arms:
+            n1, n2 = index[tag], index[nbr]
+            back = first.get((n2, n1))
+            if back is None or np.sum((burg + arms[back][2])**2) > 1e-5:
+                raise ValueError("read_paradis: segment inconsistency found in ParaDiS file")
+            if n1 < n2:
+                segs.append([n1, n2, *burg, *plane])
+
+        cell = Cell(h=np.diag(bounds["maxCoordinates"] - bounds["minCoordinates"]),
+                    origin=bounds["minCoordinates"], is_periodic=[True, True, True])
+        self._set_network(cell, nodes, segs)
+        if verbose: print(" nodes: %d, segments: %d" % (self.num_nodes(), self.num_segments()))
+
+        bsum = np.zeros((len(nodes), 3))
+        for n1, n2, *rest in segs:
+            bsum[int(n1)] += rest[:3]
+            bsum[int(n2)] -= rest[:3]
+        nb = int(np.sum(np.sum(bsum**2, axis=1) > 1e-5))
+        if nb > 0: print(" Warning: Burgers vector is not conserved for %d node(s)" % nb)
+        elif verbose: print(" Burgers vector is conserved for all nodes")
+        return self
+    read_data = read_paradis
+
+    def write_data(self, datafile: str, verbose: bool=True) -> None:
+        """write_data: write the network in ParaDiS format, version 4
+
+        A port of exadis' SerialDisNet::write_data (core/exadis/src/network.cpp), which gives
+        the same file for the same network: the nodes folded into the cell, each with its arms
+        in the order of the segments, the Burgers vector taken from the node.
+        """
+        if verbose:
+            print("Writing configuration in legacy data format")
+            print(" Output file: %s" % datafile)
+        if not self.cell.is_orthogonal():
+            raise ValueError("write_data: volume must be orthorombic")
+        data = self.export_data()
+        positions, constraints = data["nodes"]["positions"], data["nodes"]["constraints"]
+        nodeids, burgers, planes = (data["segs"]["nodeids"], data["segs"]["burgers"],
+                                    data["segs"]["planes"])
+        arms = [[] for _ in range(len(positions))]
+        for s, (n1, n2) in enumerate(nodeids):
+            arms[n1].append((n2, burgers[s], planes[s]))
+            arms[n2].append((n1, -burgers[s], planes[s]))
+        bmin = np.asarray(self.cell.origin, dtype=float)
+        bmax = bmin + np.diag(self.cell.h)
+        domain = 0
+        with open(datafile, "w", encoding="utf-8") as f:
+            f.write("dataFileVersion = %d\n" % 4)
+            f.write("numFileSegments = %d\n" % 1)
+            f.write("minCoordinates = [\n %f\n %f\n %f\n ]\n" % tuple(bmin))
+            f.write("maxCoordinates = [\n %f\n %f\n %f\n ]\n" % tuple(bmax))
+            f.write("nodeCount = %d\n" % len(positions))
+            f.write("dataDecompType = 2\n")
+            f.write("dataDecompGeometry = [\n 1\n 1\n 1\n ]\n\n")
+            f.write("#\n#  END OF DATA FILE PARAMETERS\n#\n\n")
+            f.write("domainDecomposition = \n")
+            f.write("# Dom_ID  Minimum XYZ bounds   Maximum XYZ bounds\n")
+            f.write("  %d  %f  %f  %f  %f  %f  %f\n" % (domain, *bmin, *bmax))
+            f.write("nodalData =\n")
+            f.write("# Primary lines: node_tag, x, y, z, num_arms, constraint\n")
+            f.write("# Secondary lines: arm_tag, burgx, burgy, burgz, nx, ny, nz\n")
+            for i, pos in enumerate(positions):
+                pos = self.cell.fold(np.array(pos))
+                f.write("%d, %4d %16.12f %16.12f %16.12f %4d %4d\n"
+                        % (domain, i, *pos, len(arms[i]), int(constraints[i][0])))
+                for k, b, p in arms[i]:
+                    f.write("%10d, %4d %16.12f %16.12f %16.12f\n" % (domain, k, *b))
+                    f.write("%33.12f %16.12f %16.12f\n" % tuple(p))
+
+    def write_vtk(self, vtkfile: str, segprops: dict={}, pbc_wrap: bool=True) -> None:
+        """write_vtk: write the network in vtk format
+
+        A port of write_vtk in core/exadis/python/pyexadis_utils.py: the cell's corners, then
+        each segment from its first node, its far end the nearest image; with pbc_wrap, a
+        segment that leaves the cell is cut at its faces.
+        """
+        data = self.export_data()
+        cell = self.cell
+        cell_origin, cell_center, h = (np.array(cell.origin, dtype=float), np.array(cell.center()),
+                                       np.array(cell.h, dtype=float))
+        c = cell_origin + np.array([np.zeros(3), h[0], h[1], h[2], h[0]+h[1],
+                                    h[0]+h[2], h[1]+h[2], h[0]+h[1]+h[2]])
+        rn = data["nodes"]["positions"]
+        segsnid = data["segs"]["nodeids"]
+        r1 = np.array(cell.closest_image(Rref=cell_center, R=rn[segsnid[:,0]]))
+        r2 = np.array(cell.closest_image(Rref=r1, R=rn[segsnid[:,1]]))
+        b = data["segs"]["burgers"]
+        p = data["segs"]["planes"]
+        segprops = dict(segprops)
+
+        is_periodic = np.array(cell.is_periodic)
+        if np.all(is_periodic == 0): pbc_wrap = False
+        if pbc_wrap:
+            eps = 1e-10
+            hinv = np.linalg.inv(h)
+
+            def outside_box(p):
+                s = np.matmul(hinv, p - cell_origin)
+                return np.any(((s < -eps)|(s > 1.0+eps))&(is_periodic))
+
+            def facet_intersection_position(r1, r2):
+                s1 = np.matmul(hinv, r1 - cell_origin)
+                s2 = np.matmul(hinv, r2 - cell_origin)
+                t = s2 - s1
+                t0 = -(s1 - 0.0) / (t + eps)
+                t1 = -(s1 - 1.0) / (t + eps)
+                s = np.hstack((t0, t1))
+                s[s < eps] = 1.0
+                facet = np.argmin(s)
+                if s[facet] < 1.0:
+                    pos = np.matmul(h, s1 + s[facet]*t) + cell_origin
+                else:
+                    facet = -1
+                    pos = r2
+                return pos, facet
+
+            segsid, rsegs = [], []
+            for i in range(segsnid.shape[0]):
+                n1, n2 = segsnid[i]
+                r1 = np.array(cell.closest_image(Rref=cell_center, R=rn[n1]))
+                r2 = np.array(cell.closest_image(Rref=r1, R=rn[n2]))
+                out = outside_box(r2)
+                while out:
+                    pos, facet = facet_intersection_position(r1, r2)
+                    if facet < 0: break
+                    segsid.append(i)
+                    rsegs.append([r1, pos])
+                    r1 = pos + (1-2*np.floor(facet/3)) * (1.0-2*eps)*h[:,facet%3]
+                    r2 = np.array(cell.closest_image(Rref=r1, R=rn[n2]))
+                    out = outside_box(r2)
+                segsid.append(i)
+                rsegs.append([r1, r2])
+            segsid = np.array(segsid).astype(int)
+            nsegs = segsid.shape[0]
+            rsegs = np.array(rsegs).reshape(-1,3)
+            b = b[segsid]
+            p = p[segsid]
+            for k, v in segprops.items():
+                segprops[k] = v[segsid]
+        else:
+            nsegs = segsnid.shape[0]
+            rsegs = np.hstack((r1, r2)).reshape(-1,3)
+
+        with open(vtkfile, 'w', encoding="utf-8") as f:
+            f.write("# vtk DataFile Version 3.0\n")
+            f.write("Configuration exported from OpenDiS\n")
+            f.write("ASCII\n")
+            f.write("DATASET UNSTRUCTURED_GRID\n")
+            f.write("POINTS %d FLOAT\n" % (c.shape[0]+2*nsegs))
+            np.savetxt(f, c, fmt='%f')
+            np.savetxt(f, rsegs, fmt='%f')
+            f.write("CELLS %d %d\n" % (1+nsegs, 9+3*nsegs))
+            f.write("8 0 1 4 2 3 5 7 6\n")
+            nid = np.hstack((2*np.ones((nsegs,1)), np.arange(2*nsegs).reshape(-1,2)+8))
+            np.savetxt(f, nid, fmt='%d')
+            f.write("CELL_TYPES %d\n" % (1+nsegs))
+            f.write("12\n")
+            np.savetxt(f, 4*np.ones(nsegs), fmt='%d')
+            f.write("CELL_DATA %d\n" % (1+nsegs))
+            f.write("VECTORS Burgers FLOAT\n")
+            f.write("%f %f %f\n" % tuple(np.zeros(3)))
+            np.savetxt(f, b, fmt='%f')
+            f.write("VECTORS Planes FLOAT\n")
+            f.write("%f %f %f\n" % tuple(np.zeros(3)))
+            np.savetxt(f, p, fmt='%f')
+            for k, v in segprops.items():
+                vals = np.atleast_2d(v.T).T
+                if vals.shape[0] != nsegs:
+                    raise ValueError('segprop value must the same size as the number of segments')
+                f.write("SCALARS %s FLOAT %d\n" % (str(k), vals.shape[1]))
+                f.write("LOOKUP_TABLE default\n")
+                np.savetxt(f, np.vstack((np.zeros(vals.shape[1]), vals)), fmt='%f')
+
+    def generate_line_config(self, crystal, Lbox, num_lines, theta=None, maxseg=-1, Rorient=None,
+                             seed=-1, verbose=True):
+        """generate_line_config: make the network a set of straight, infinite lines, and return self
+
+        A port of generate_line_config in core/exadis/python/pyexadis_utils.py, with the same
+        random numbers: for the same arguments it gives the network that ExaDisNet's gives.
+        The lines cycle through the 12 slip systems of the crystal, 'fcc' or 'bcc', with the
+        sign of their Burgers vectors alternating every 12 lines (dipoles). theta is the list of
+        character angles to pick from (degrees); None picks, for each slip system, the angle
+        that makes the lines' lengths closest across the systems. Lbox is the box's edge or a
+        Cell; seed > 0 seeds numpy's random numbers.
+        """
+        if verbose: print('generate_line_config()')
+
+        if crystal in ['BCC', 'bcc']:
+            # the 12 <111>{110} slip systems
+            b = np.array([
+                [-1.,1.,1.], [1.,1.,1.], [-1.,-1.,1.], [1.,-1.,1.],
+                [-1.,1.,1.], [1.,1.,1.], [-1.,-1.,1.], [1.,-1.,1.],
+                [-1.,1.,1.], [1.,1.,1.], [-1.,-1.,1.], [1.,-1.,1.]
+            ])
+            n = np.array([
+                [0.,-1.,1.], [0.,-1.,1.], [0.,1.,1.], [0.,1.,1.],
+                [1.,0.,1.], [-1.,0.,1.], [1.,0.,1.], [-1.,0.,1.],
+                [1.,1.,0.], [-1.,1.,0.], [-1.,1.,0.], [1.,1.,0.]
+            ])
+        elif crystal in ['FCC', 'fcc']:
+            # the 12 <110>{111} slip systems
+            b = np.array([
+                [0.,1.,-1.], [1.,0.,-1.], [1.,-1.,0.],
+                [0.,1.,-1.], [1.,0.,1.], [1.,1.,0.],
+                [0.,1.,1.], [1.,0.,-1.], [1.,1.,0.],
+                [0.,1.,1.], [1.,0.,1.], [1.,-1.,0.]
+            ])
+            n = np.array([
+                [1.,1.,1.], [1.,1.,1.], [1.,1.,1.],
+                [-1.,1.,1.], [-1.,1.,1.], [-1.,1.,1.],
+                [1.,-1.,1.], [1.,-1.,1.], [1.,-1.,1.],
+                [1.,1.,-1.], [1.,1.,-1.], [1.,1.,-1.]
+            ])
+        else:
+            raise ValueError('Error: unsupported crystal type = %s in generate_line_config()' % crystal)
+
+        nsys = b.shape[0]
+        b = b / np.linalg.norm(b, axis=1)[:,None]
+        n = n / np.linalg.norm(n, axis=1)[:,None]
+        if Rorient is not None:
+            Rorient = np.array(Rorient)
+            Rorient = Rorient / np.linalg.norm(Rorient, axis=1)[:,None]
+            b = np.matmul(b, Rorient.T)
+            n = np.matmul(n, Rorient.T)
+
+        cell = _periodic_cell(Lbox)
+        Lmax = np.max(np.linalg.norm(cell.h, axis=0))
+
+        if theta is None:
+            # the character angle of each slip system that makes its line length the closest
+            # to the longest of the shortest lines across the systems
+            ntheta = 19
+            theta = 90.0/(ntheta-1)*np.arange(ntheta)
+            theta_minlength = np.zeros((nsys, ntheta))
+            for isys in range(nsys):
+                burg, plane = b[isys], n[isys]
+                c = np.array(cell.center())
+                for t in range(ntheta):
+                    nodes, segs = [], []
+                    length = _insert_infinite_line(cell, nodes, segs, burg, plane, c,
+                                                   theta=theta[t], maxseg=maxseg, trial=True)
+                    theta_minlength[isys,t] = length
+            theta_minlength = np.ma.masked_less(theta_minlength, 0.0)
+            minlength = theta_minlength.min(axis=1).filled(-1.0)
+            maxlength = np.max(minlength)
+            if maxlength > 10*Lmax or np.min(minlength) < 0.0:
+                raise ValueError('Error: cannot find appropriate line to insert')
+            theta_sys = np.argmin(np.abs(theta_minlength-maxlength), axis=1)
+            theta_sys = theta[theta_sys][:,None]
+        else:
+            theta_sys = np.tile(np.array(theta), (nsys, 1))
+
+        if seed > 0: np.random.seed(seed)
+        pos = np.random.rand(num_lines, 3)
+        pos = np.array(cell.origin) + np.matmul(pos, np.array(cell.h).T)
+        ithe = np.random.randint(0, theta_sys.shape[1], num_lines)
+        nodes, segs = [], []
+        for i in range(num_lines):
+            isys = i % nsys
+            burg, plane = b[isys], n[isys]
+            idip = np.floor(i/nsys).astype(int) % 2  # alternate sign to create dipoles
+            lsign = 1-2*idip
+            edir = np.cross(plane, burg)
+            edir = edir / np.linalg.norm(edir)
+            theta = theta_sys[isys,ithe[i-idip*nsys]]
+            ldir = np.cos(theta*np.pi/180.0)*burg + np.sin(theta*np.pi/180.0)*edir
+            if verbose: print(' insert dislocation: b = %.3f %.3f %.3f, n = %.3f %.3f %.3f, theta = %.1f deg' % (*burg, *plane, theta))
+            nodes, segs = _insert_infinite_line(cell, nodes, segs, burg, plane, pos[i],
+                                                linedir=lsign*ldir, maxseg=maxseg)
+        self._set_network(cell, nodes, segs)
+        return self
+
+    def generate_prismatic_config(self, crystal, Lbox, num_loops, radius, maxseg=-1, Rorient=None,
+                                  seed=1234, uniform=False):
+        """generate_prismatic_config: make the network a set of prismatic loops, and return self
+
+        A port of generate_prismatic_config in core/exadis/python/pyexadis_utils.py, with the
+        same random numbers: for the same arguments it gives the network that ExaDisNet's gives.
+        The loops cycle through the crystal's Burgers vectors, the 6 1/2<110> of 'fcc' or the 4
+        1/2<111> of 'bcc'. radius is one radius, or [min, max]; uniform spreads the loops' centres
+        on a grid, shuffled and jittered; Lbox is the box's edge or a Cell; seed > 0 seeds
+        numpy's random numbers.
+        """
+        if crystal in ['BCC', 'bcc']:
+            b = np.array([[1.,1.,1.],[-1.,1.,1.],[1.,-1.,1.],[1.,1.,-1.]])
+        elif crystal in ['FCC', 'fcc']:
+            b = np.array([[1.,1.,0.],[-1.,1.,0.],[1.,0.,1.],[-1.,0.,1.],[0.,1.,1.],[0.,-1.,1.]])
+        else:
+            raise ValueError('Error: unsupported crystal type = %s in generate_prismatic_config()' % crystal)
+        nburg = b.shape[0]
+        b = b / np.linalg.norm(b, axis=1)[:,None]
+
+        cell = _periodic_cell(Lbox)
+        if seed > 0: np.random.seed(seed)
+        if uniform:
+            ngrid = np.ceil((1.0*num_loops)**(1.0/3.0))
+            H = 1.0/ngrid
+            x = 0.5*H + H*np.arange(ngrid)
+            x, y, z = np.meshgrid(x, x, x)
+            p = np.random.permutation(len(x.flatten()))
+            x, y, z = x.flatten()[p], y.flatten()[p], z.flatten()[p]
+            pos = np.vstack((x, y, z)).T + 0.5*H*(np.random.rand(len(x), 3)-0.5)
+        else:
+            pos = np.random.rand(num_loops, 3)
+        pos = np.array(cell.origin) + np.matmul(pos, np.array(cell.h).T)
+        if isinstance(radius, list):
+            R = np.random.uniform(radius[0], radius[1], size=(num_loops,))
+        else:
+            R = radius*np.ones(num_loops)
+
+        nodes, segs = [], []
+        for i in range(num_loops):
+            burg = b[i % nburg]
+            nodes, segs = _insert_prismatic_loop(crystal, cell, nodes, segs, burg,
+                                                 R[i], pos[i], maxseg, Rorient)
+        self._set_network(cell, nodes, segs)
+        return self
+
+
+def _periodic_cell(Lbox) -> Cell:
+    """The cell of generate_line_config and generate_prismatic_config: a Cell as it is, or a
+    periodic box from the origin, cubic for one number and orthorhombic for three, as
+    exadis' Cell(Lbox) is."""
+    if isinstance(Lbox, Cell):
+        return Lbox
+    edges = np.array(Lbox, dtype=float) * np.ones(3)
+    return Cell(h=np.diag(edges), origin=np.zeros(3), is_periodic=[True, True, True])
+
+
+def _insert_infinite_line(cell, nodes, segs, burg, plane, origin, theta=0.0, linedir=None,
+                          maxseg=-1, trial=False):
+    """Add an infinite line to the lists of nodes and segments, as insert_infinite_line in
+    core/exadis/python/pyexadis_utils.py does; with trial, only return its length."""
+    plane = plane / np.linalg.norm(plane)
+    if np.abs(np.dot(burg, plane)) >= 1e-5:
+        print('Warning: Burgers vector and plane normal are not orthogonal')
+    if not linedir is None:
+        ldir = np.array(linedir)
+        ldir = ldir / np.linalg.norm(ldir)
+    else:
+        b = burg / np.linalg.norm(burg)
+        y = np.cross(plane, b)
+        y = y / np.linalg.norm(y)
+        ldir = np.cos(theta*np.pi/180.0)*b+np.sin(theta*np.pi/180.0)*y
+
+    h = np.array(cell.h)
+    Lmin = np.min(np.linalg.norm(h, axis=0))
+    seglength = 0.15*Lmin
+    if maxseg > 0:
+        seglength = np.min([seglength, maxseg])
+
+    meet = 0
+    maxnodes = 1000
+    numnodes = 0
+    origin = np.array(origin)
+    p = 1.0*origin
+    originpbc = 1.0*origin
+    while ((~meet) & (numnodes < maxnodes)):
+        p += seglength*ldir
+        pp = np.asarray(cell.closest_image(Rref=origin, R=p))
+        dist = np.linalg.norm(pp-origin)
+        if ((numnodes > 0) & (dist < seglength)):
+            originpbc = np.asarray(cell.closest_image(Rref=p, R=origin))
+            meet = 1
+        numnodes += 1
+
+    if numnodes == maxnodes:
+        if trial:
+            return -1.0
+        print('Warning: infinite line is too long, aborting')
+        return nodes, segs
+    if trial:
+        return np.linalg.norm(originpbc-origin)
+    istart = len(nodes)
+    for i in range(numnodes):
+        p = origin + 1.0*i/numnodes*(originpbc-origin)
+        nodes.append(np.concatenate((p, [DisNode.Constraints.UNCONSTRAINED])))
+    for i in range(numnodes):
+        segs.append(np.concatenate(([istart+i, istart+(i+1)%numnodes], burg, plane)))
+    return nodes, segs
+
+
+def _insert_prismatic_loop(crystal, cell, nodes, segs, burg, radius, center, maxseg=-1,
+                           Rorient=None):
+    """Add a prismatic loop to the lists of nodes and segments, as insert_prismatic_loop in
+    core/exadis/python/pyexadis_utils.py does: a hexagon on {110} planes in bcc, a rhombus on
+    {111} planes in fcc."""
+    b = -1.0*burg
+    if crystal in ['BCC', 'bcc']:
+        b0 = 1.0/np.sqrt(3.0)*np.array([[1.,1.,1.],[-1.,1.,1.],[1.,-1.,1.],[1.,1.,-1.]])
+        bcol = np.abs(np.abs(np.dot(b0, b))-1.0)
+        ib = bcol.argmin()
+        if bcol[ib] > 1e-5:
+            raise ValueError('BCC Burgers vector must be of the 1/2<111> type in insert_prismatic_loop()')
+        Nsides = 6
+        e = np.array([[-2.0*b[0],b[1],b[2]],[-b[0],-b[1],2.0*b[2]],
+                      [b[0],-2.0*b[1],b[2]],[2.0*b[0],-b[1],-b[2]],
+                      [b[0],b[1],-2.0*b[2]],[-b[0],2.0*b[1],-b[2]]])
+        n = np.cross(b, e[(np.arange(6)+1)%6]-e[np.arange(6)])
+        e = e / np.linalg.norm(e, axis=1)[:,None]
+    elif crystal in ['FCC', 'fcc']:
+        Nsides = 4
+        b0 = 1.0/np.sqrt(2.0)*np.array([[0,1,1],[0,-1,1],[1,0,1],[-1,0,1],[1,1,0],[-1,1,0]])
+        n01 = np.array([[-1,-1,1],[-1,1,1],[-1,1,1],[1,1,1],[-1,1,1],[1,1,1]])
+        n02 = np.array([[1,-1,1],[1,1,1],[-1,-1,1],[1,-1,1],[-1,1,-1],[1,1,-1]])
+        bcol = np.abs(np.abs(np.dot(b0, b))-1.0)
+        ib = bcol.argmin()
+        if bcol[ib] > 1e-5:
+            raise ValueError('FCC Burgers vector must be of the 1/2<110> type in insert_prismatic_loop()')
+        p1 = n01[ib] / np.linalg.norm(n01[ib])
+        p2 = n02[ib] / np.linalg.norm(n02[ib])
+        l1 = np.cross(p1, b)
+        l1 = l1 / np.linalg.norm(l1)
+        l2 = np.cross(p2, b)
+        l2 = l2 / np.linalg.norm(l2)
+        e = np.array([-0.5*l1-0.5*l2, +0.5*l1-0.5*l2, +0.5*l1+0.5*l2, -0.5*l1+0.5*l2])
+        n = np.array([p1, p2, p1, p2])
+    else:
+        raise ValueError('Error: unsupported crystal type = %s in insert_prismatic_loop()' % crystal)
+
+    n = n / np.linalg.norm(n, axis=1)[:,None]
+    if Rorient is not None:
+        Rorient = np.array(Rorient)
+        Rorient = Rorient / np.linalg.norm(Rorient, axis=1)[:,None]
+        b = np.matmul(b, Rorient.T)
+        e = np.matmul(e, Rorient.T)
+        n = np.matmul(n, Rorient.T)
+
+    istart = len(nodes)
+    Nnodes = 0
+    for i in range(Nsides):
+        l = radius*(e[(i+1)%Nsides]-e[i])
+        Nseg = int(np.ceil(np.linalg.norm(l)/maxseg)) if maxseg > 0 else 1
+        for j in range(Nseg):
+            p = radius*e[i]+1.0*j/Nseg*l+center
+            nodes.append(np.concatenate((p, [DisNode.Constraints.UNCONSTRAINED])))
+            n1 = istart+Nnodes
+            n2 = istart if (i == Nsides-1 and j == Nseg-1) else n1+1
+            segs.append(np.concatenate(([n1, n2], b, n[i])))
+            Nnodes += 1
+    return nodes, segs

@@ -18,7 +18,7 @@ from common.spec import PARTS, InputError, Spec
 FENCE = "+++"
 DEFAULT_ORDER = 100
 META_KEYS = ("label", "engine", "title", "order", "script_name", "final_json",
-             "tutorial_script", "tutorial_url", "run_hint")
+             "tutorial_script", "tutorial_title", "tutorial_url", "run_hint")
 REQUIRED = ("label", "title", "script_name", "final_json")
 
 
@@ -34,6 +34,7 @@ class Example:  # pylint: disable=too-many-instance-attributes
     script_name: str         # the job script's file name
     final_json: str          # the final network, ``output/<final_json>``
     tutorial_script: str     # the tutorial's script, relative to the repository's root
+    tutorial_title: str      # the text of step 1's link to the tutorial, if not the default
     tutorial_url: str
     run_hint: str            # what the Run step says before a run
     default: Spec            # the selections that the file gives
@@ -80,7 +81,8 @@ def load(path: Path) -> Example:
     return Example(name=path.stem, label=data["label"], title=data["title"],
                    order=int(data.get("order", DEFAULT_ORDER)), body=body,
                    script_name=data["script_name"], final_json=data["final_json"],
-                   tutorial_script=tutorial, tutorial_url=data.get("tutorial_url", ""),
+                   tutorial_script=tutorial, tutorial_title=data.get("tutorial_title", ""),
+                   tutorial_url=data.get("tutorial_url", ""),
                    run_hint=data.get("run_hint", ""), default=spec)
 
 

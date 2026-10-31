@@ -2,7 +2,8 @@
 
 A spec holds every value that the generated script takes, in one frozen dataclass per step,
 so that a step's widgets replace only their own part, and the code that runs the script,
-PyDiS or ExaDiS. ``validate`` lists what would make the script fail, or the run meaningless.
+PyDiS or ExaDiS. A script that only builds a network (the initial configurations) has the
+first part only. ``validate`` lists what would make the script fail, or the run meaningless.
 The module imports neither Streamlit nor PyDiS, so the tests can use it.
 """
 import json
@@ -33,8 +34,12 @@ PARTS = tuple(key for key, _ in STEPS)
 ENGINES = ("pydis", "exadis")
 ENGINE_NAMES = {"pydis": "PyDiS", "exadis": "ExaDiS"}
 # The initial configurations that each code's scripts build
-ENGINE_KINDS = {"pydis": ("frank_read_src_loop", "two_disl_lines"),
-                "exadis": ("frank_read_src_loop",)}
+BUILDS = ("simple_source", "paradis_file", "line_config", "prismatic_config")  # no simulation
+ENGINE_KINDS = {"pydis": ("frank_read_src_loop", "two_disl_lines") + BUILDS,
+                "exadis": ("frank_read_src_loop",) + BUILDS}
+CRYSTALS = ("fcc", "bcc")
+PARADIS_FILES = ("examples/10_strain_hardening/180chains_16.10e.data",)  # of the repository
+MAX_BUILT = 500  # lines or loops in a generated network
 # The choices that each code's modules accept, as the app offers them, by the field they fill.
 # A field that a code does not use (PyDiS's split mode and cell list in ExaDiS, ExaDiS's
 # topology mode in PyDiS) is neither offered nor checked for it.
@@ -89,6 +94,7 @@ class FrankReadSource:
     """Step 1 of a Frank-Read source: a prismatic loop whose top arm has a free middle node."""
 
     kind: ClassVar[str] = "frank_read_src_loop"
+    simulates: ClassVar[bool] = True
     box_length: float
     pbc: bool
     arm_ratio: float                  # arm_length = arm_ratio * Lbox
@@ -109,6 +115,7 @@ class TwoLines:
     """Step 1 of a binary junction: two lines, pinned at their ends, that cross at the centre."""
 
     kind: ClassVar[str] = "two_disl_lines"
+    simulates: ClassVar[bool] = True
     box_length: float
     pbc: bool
     z0: float
@@ -124,8 +131,115 @@ class TwoLines:
         return errors + _burgers_problems("b2", self.b2, {"second line": (1.0, 0.0, 1.0)})
 
 
-CONFIGS = {cls.kind: cls for cls in (FrankReadSource, TwoLines)}
-Config = Union[FrankReadSource, TwoLines]
+# The initial configurations of the tutorial tutorials/01_initial_configurations: a script that
+# builds one of these networks, plots it and writes it, and runs no simulation
+
+
+@dataclass(frozen=True)
+class SimpleSource:
+    """A straight screw dislocation, along its Burgers vector, pinned at its two ends, with a
+    free node in its middle, in a periodic box of twice its length: the tutorial's options 1
+    (PyDiS) and 2 (ExaDiS)."""
+
+    kind: ClassVar[str] = "simple_source"
+    label: ClassVar[str] = "simple dislocation source"
+    simulates: ClassVar[bool] = False
+    Ldis: float = 100.0              # the dislocation's length (b)
+    burg: Vec3 = (1.0, 1.0, 0.0)     # the Burgers vector's direction; the script makes it unit
+    plane: Vec3 = (-1.0, 1.0, 1.0)
+
+    def problems(self) -> list[str]:
+        """What is wrong with these values."""
+        errors = [] if self.Ldis > 0 else ["Ldis: must be positive"]
+        if not any(self.burg) or not any(self.plane):
+            return errors + ["Burgers vector and plane normal: must not be zero"]
+        if abs(float(np.dot(self.burg, self.plane))) > 1e-9 * np.linalg.norm(self.burg) * \
+                np.linalg.norm(self.plane):
+            errors.append("plane normal: must be normal to the Burgers vector, along which the "
+                          "line lies")
+        return errors
+
+
+@dataclass(frozen=True)
+class ParaDiSFile:
+    """A network read from a ParaDiS data file of the repository: the tutorial's option 3."""
+
+    kind: ClassVar[str] = "paradis_file"
+    label: ClassVar[str] = "ParaDiS file"
+    simulates: ClassVar[bool] = False
+    datafile: str = PARADIS_FILES[0]  # from the repository's root
+
+    def problems(self) -> list[str]:
+        """What is wrong with these values."""
+        return ([] if self.datafile in PARADIS_FILES
+                else [f"data file: must be one of {', '.join(PARADIS_FILES)}"])
+
+
+def _generated_problems(crystal: str, box: float, count: int, maxseg: float,
+                        seed: int) -> list[str]:
+    """The problems that the generated networks share."""
+    errors = [] if crystal in CRYSTALS else [f"crystal: must be one of {', '.join(CRYSTALS)}"]
+    if box <= 0:
+        errors.append("Lbox: must be positive")
+    if not 1 <= count <= MAX_BUILT:
+        errors.append(f"number: must be in [1, {MAX_BUILT}]")
+    if maxseg <= 0:
+        errors.append("maxseg: must be positive")
+    if seed < 1:
+        errors.append("seed: must be at least 1, so that the network is the same every time")
+    return errors
+
+
+@dataclass(frozen=True)
+class InfiniteLines:
+    """Straight, infinite lines on the crystal's slip systems, through the periodic box: the
+    tutorial's option 4."""
+
+    kind: ClassVar[str] = "line_config"
+    label: ClassVar[str] = "infinite lines"
+    simulates: ClassVar[bool] = False
+    crystal: str = "fcc"
+    Lbox: float = 1000.0
+    num_lines: int = 12
+    theta: float = 90.0   # the lines' character angle (degrees)
+    maxseg: float = 100.0
+    seed: int = 1234
+
+    def problems(self) -> list[str]:
+        """What is wrong with these values."""
+        return _generated_problems(self.crystal, self.Lbox, self.num_lines, self.maxseg,
+                                   self.seed)
+
+
+@dataclass(frozen=True)
+class PrismaticLoops:
+    """Prismatic loops of the crystal's Burgers vectors, in a periodic box: the tutorial's
+    option 5."""
+
+    kind: ClassVar[str] = "prismatic_config"
+    label: ClassVar[str] = "prismatic loops"
+    simulates: ClassVar[bool] = False
+    crystal: str = "bcc"
+    Lbox: float = 1000.0
+    num_loops: int = 12
+    radius: float = 100.0
+    maxseg: float = 50.0
+    seed: int = 5678
+    uniform: bool = True  # the loops' centres on a grid, shuffled and jittered
+
+    def problems(self) -> list[str]:
+        """What is wrong with these values."""
+        errors = _generated_problems(self.crystal, self.Lbox, self.num_loops, self.maxseg,
+                                     self.seed)
+        if not 0 < self.radius < 0.5 * self.Lbox:
+            errors.append("radius: must be in (0, Lbox / 2)")
+        return errors
+
+
+BUILT = (SimpleSource, ParaDiSFile, InfiniteLines, PrismaticLoops)  # the menu of step 1
+CONFIGS = {cls.kind: cls for cls in (FrankReadSource, TwoLines) + BUILT}
+Config = Union[FrankReadSource, TwoLines, SimpleSource, ParaDiSFile, InfiniteLines,
+               PrismaticLoops]
 
 
 @dataclass(frozen=True)
@@ -196,7 +310,7 @@ PART_CLASSES = {"material": Material, "forces": Forces, "timeint": TimeInt,
 def _numbers(spec: "Spec") -> list[tuple[str, float]]:
     """Every number of the spec, named, for the finite check."""
     found = []
-    for part in PARTS:
+    for part in spec.parts:
         for key, value in asdict(getattr(spec, part)).items():
             items = value if isinstance(value, (tuple, list)) else [value]
             found += [(f"{part}.{key}", v) for v in items
@@ -206,16 +320,22 @@ def _numbers(spec: "Spec") -> list[tuple[str, float]]:
 
 @dataclass(frozen=True)
 class Spec:  # pylint: disable=too-many-instance-attributes
-    """Every selection of an example; each part is one step's, and ``engine`` runs them."""
+    """Every selection of an example; each part is one step's, and ``engine`` runs them. A
+    script that builds a network and runs no simulation has no part but ``config``."""
 
     config: Config
-    material: Material
-    forces: Forces
-    timeint: TimeInt
-    topology: Topology
-    loading: Loading
-    run: Run
+    material: Material | None
+    forces: Forces | None
+    timeint: TimeInt | None
+    topology: Topology | None
+    loading: Loading | None
+    run: Run | None
     engine: str = "pydis"
+
+    @property
+    def parts(self) -> tuple[str, ...]:
+        """The parts that the spec has: all of them, or only ``config`` for a build."""
+        return PARTS if self.config.simulates else ("config",)
 
     def with_part(self, part: str, value: Any) -> "Spec":
         """The spec with one step's part replaced."""
@@ -236,6 +356,8 @@ class Spec:  # pylint: disable=too-many-instance-attributes
         if self.config.kind not in ENGINE_KINDS[self.engine]:
             errors.append(f"config.kind: {ENGINE_NAMES[self.engine]} has no script for "
                           f"{self.config.kind} yet")
+        if not self.config.simulates:
+            return errors + self.config.problems()
         if self.config.box_length <= 0:
             errors.append("box length: must be positive")
         errors += self.config.problems()
@@ -277,7 +399,7 @@ class Spec:  # pylint: disable=too-many-instance-attributes
 
     def to_json(self) -> str:
         """The spec as JSON, for the run folder."""
-        data = {part: asdict(getattr(self, part)) for part in PARTS}
+        data = {part: asdict(getattr(self, part)) for part in self.parts}
         data["config"] = {"kind": self.config.kind, **data["config"]}
         data["engine"] = self.engine
         return json.dumps(data, indent=1)
@@ -298,8 +420,15 @@ class Spec:  # pylint: disable=too-many-instance-attributes
             problems.append(f"config.kind: must be one of {', '.join(CONFIGS)}")
         else:
             parts["config"] = _build(CONFIGS[kind], config_table, "config", problems)
+        builds = kind in CONFIGS and not CONFIGS[kind].simulates
         for part, part_class in PART_CLASSES.items():
-            parts[part] = _build(part_class, data.get(part, {}), part, problems)
+            if not builds:
+                parts[part] = _build(part_class, data.get(part, {}), part, problems)
+            elif data.get(part) is not None:
+                problems.append(f"{part}: {kind} builds a network and runs no simulation, so "
+                                f"it takes no [{part}]")
+            else:
+                parts[part] = None
         engine = data.get("engine", "pydis")
         if engine not in ENGINES:
             problems.append(f"engine: must be one of {', '.join(ENGINES)}")

@@ -12,8 +12,10 @@ from typing import Any
 import streamlit as st
 
 from common.catalog import Example
-from common.spec import (CHOICES, ENGINE_NAMES, MAX_STEP, STRESS_LABELS, Forces,
-                         FrankReadSource, Loading, Material, Run, Spec, TimeInt)
+from common.spec import (BUILT, CHOICES, CRYSTALS, ENGINE_NAMES, MAX_BUILT, MAX_STEP,
+                         PARADIS_FILES, STRESS_LABELS, Forces, FrankReadSource, InfiniteLines,
+                         Loading, Material, ParaDiSFile, PrismaticLoops, Run, SimpleSource,
+                         Spec, TimeInt)
 
 STRESS_STEP = 1.0e7  # Pa, the +/- of an applied stress component
 TUTORIAL_BY = {"pydis": "by pure Python", "exadis": "by Python calling ExaDiS"}  # the pages' titles
@@ -91,8 +93,10 @@ def _config(spec: Spec, ctx: StepContext) -> Spec:
     with st.expander("About this example", expanded=True):
         st.markdown(example.body)
         if example.tutorial_url:
-            st.markdown(f"From the tutorial [{example.label} {TUTORIAL_BY[example.engine]}]"
-                        f"({example.tutorial_url}).")
+            title = example.tutorial_title or f"{example.label} {TUTORIAL_BY[example.engine]}"
+            st.markdown(f"From the tutorial [{title}]({example.tutorial_url}).")
+    if not c.simulates:
+        return spec.with_part("config", _network(c, k))
     box = _number("Box length, Lbox (b)", c.box_length, f"{k}/box_length",
                   "The edge of the cubic simulation cell, in units of the Burgers vector's length.")
     pbc = st.checkbox("Periodic boundary conditions", c.pbc, key=f"{k}/pbc")
@@ -110,6 +114,53 @@ def _config(spec: Spec, ctx: StepContext) -> Spec:
     b1 = _vector("b1, the first line's Burgers vector", c.b1, f"{k}/b1")
     b2 = _vector("b2, the second line's Burgers vector", c.b2, f"{k}/b2")
     return spec.with_part("config", replace(c, box_length=box, pbc=pbc, z0=z0, b1=b1, b2=b2))
+
+
+def _network(c, k: str):
+    """Step 1 of a script that builds a network: which of the tutorial's networks, and its
+    values. Another network starts from the tutorial's values."""
+    labels = tuple(cls.label for cls in BUILT)
+    label = _select("Network", labels, c.label, f"{k}/network",
+                    "The tutorial's ways to build a network; each runs with PyDiS or ExaDiS.")
+    cls = BUILT[labels.index(label)]
+    c = c if isinstance(c, cls) else cls()
+    k = f"{k}/{c.kind}"  # the networks share names, not values
+    if isinstance(c, SimpleSource):
+        ldis = _number("Ldis, the dislocation's length (b)", c.Ldis, f"{k}/Ldis",
+                       "The box is a cube twice as long, periodic in all three directions.")
+        st.caption(f"Lbox = 2 Ldis = {2 * ldis:g} b")
+        burg = _vector("Burgers vector b, the line's direction", c.burg, f"{k}/burg",
+                       help_text="The script makes it of unit length. The dislocation lies "
+                                 "along it: a screw dislocation.")
+        plane = _vector("Plane normal n", c.plane, f"{k}/plane",
+                        help_text="Normal to b: the dislocation's glide plane.")
+        return SimpleSource(ldis, burg, plane)
+    if isinstance(c, ParaDiSFile):
+        datafile = _select("Data file", PARADIS_FILES, c.datafile, f"{k}/datafile",
+                           "The repository's ParaDiS data files, from its root.")
+        return ParaDiSFile(datafile)
+    crystal = _select("Crystal", CRYSTALS, c.crystal, f"{k}/crystal",
+                      "fcc: the 12 <110>{111} slip systems. bcc: the 12 <111>{110}.")
+    box = _number("Lbox, the box's edge (b)", c.Lbox, f"{k}/Lbox",
+                  "A cube, periodic in all three directions.")
+    if isinstance(c, InfiniteLines):
+        count = _integer("Number of lines", c.num_lines, f"{k}/num_lines",
+                         "They cycle through the slip systems, their signs alternating every "
+                         "12 lines (dipoles).", max_value=MAX_BUILT)
+        theta = _number("theta, the lines' character angle (degrees)", c.theta, f"{k}/theta",
+                        "0: screw. 90: edge.", step=5.0)
+        maxseg = _number("maxseg, the longest segment (b)", c.maxseg, f"{k}/maxseg")
+        seed = _integer("Seed of the random positions", c.seed, f"{k}/seed")
+        return InfiniteLines(crystal, box, count, theta, maxseg, seed)
+    count = _integer("Number of loops", c.num_loops, f"{k}/num_loops",
+                     "They cycle through the crystal's Burgers vectors.", max_value=MAX_BUILT)
+    radius = _number("Radius of the loops (b)", c.radius, f"{k}/radius")
+    maxseg = _number("maxseg, the longest segment (b)", c.maxseg, f"{k}/maxseg")
+    seed = _integer("Seed of the random positions", c.seed, f"{k}/seed")
+    uniform = st.checkbox("Spread the loops evenly", c.uniform, key=f"{k}/uniform",
+                          help="Their centres on a grid, shuffled and jittered, rather than "
+                               "at random.")
+    return PrismaticLoops(crystal, box, count, radius, maxseg, seed, uniform)
 
 
 def _material(spec: Spec, ctx: StepContext) -> Spec:

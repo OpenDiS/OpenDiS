@@ -14,8 +14,9 @@ SECRET = "OPENDIS_TEST_SECRET"  # in the app's environment, not in the console's
 
 
 def short_run(example: catalog.Example, runs: Path) -> job.RunFolder:
-    """A 20-step run of the example's own values."""
-    spec = example.default.with_part("run", replace(example.default.run, max_step=20))
+    """A 20-step run of the example's own values (a build as it is)."""
+    spec = (example.default.with_part("run", replace(example.default.run, max_step=20))
+            if example.default.run else example.default)
     script = codegen.full_script(spec, example.final_json)
     folder = job.RunFolder.for_script(example.name, example.script_name, example.final_json,
                                       script, runs=runs)
@@ -35,14 +36,17 @@ def main() -> int:  # pylint: disable=too-many-locals
             runs.append((example, folder))
             nodes = len(json.loads(folder.results.read_text())["nodes"]["tags"])
             session = console.Console(folder)
-            got = session.execute("G.num_nodes(), sim.max_step, net.is_sane()")
+            builds = example.default.run is None  # no simulation: no sim
+            got = session.execute("G.num_nodes(), net.is_sane()" if builds
+                                  else "G.num_nodes(), sim.max_step, net.is_sane()")
             session.close()
-            results.append(check(f"{example.label}: G, sim and net are the run's",
-                                 session.banner.alive and got.output == f"({nodes}, 20, True)\n",
+            want = f"({nodes}, True)\n" if builds else f"({nodes}, 20, True)\n"
+            results.append(check(f"{example.name}: G{'' if builds else ', sim'} and net are the "
+                                 f"run's", session.banner.alive and got.output == want,
                                  (session.banner.output[-300:], got.output)))
 
-        # the details, on the last example's run
-        example, folder = runs[-1]
+        # the details, on the binary junction's run
+        example, folder = next((e, f) for e, f in runs if e.name == "binary_junction")
         session = console.Console(folder)
         replies = {name: session.execute(source) for name, source in (
             ("state", 'state["mu"]'),

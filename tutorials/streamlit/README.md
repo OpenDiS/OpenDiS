@@ -79,7 +79,7 @@ environment, set `OPENDIS_PYTHON` to its Python, as in
 ## The page
 
 - **Banner:** "OpenDiS" with the logo of the OpenDiS website, pinned at the top.
-- **Sidebar:** the example, in a drop-down menu, and below it a second one, **Code**: PyDiS or
+- **Sidebar:** the example, in a drop-down menu, and below it a second one, **Core**: PyDiS or
   ExaDiS. For now only the Frank-Read source has both. Then the steps, where a • marks a step
   whose values differ from the example's, and ‹ prev and next › buttons.
 - **2nd left column:** the chosen step's selections. « hides it, » shows it again, and
@@ -125,7 +125,7 @@ environment, set `OPENDIS_PYTHON` to its Python, as in
 ## Examples
 
 An example, run by one code, is one Markdown file, `examples/<name>.md`. The Example menu offers
-one entry per `label`, and the Code menu one per file of that label. The file has two parts:
+one entry per `label`, and the Core menu one per file of that label. The file has two parts:
 
 - **Front matter**, between two lines of `+++`, in TOML: the `label` that the menu shows, the
   code that runs it (`engine`: `pydis`, the default, or `exadis`), the `title`, the script's

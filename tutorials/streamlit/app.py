@@ -19,13 +19,14 @@ from common import (catalog, code_panel, codegen, job, network, network3d, outpu
                     results, steps, style, views)
 from common.catalog import Example
 from common.paths import ASSETS, build_libraries_once, exadis_status, fetch_graph
-from common.picker import RUN_STEP, Step
+from common.picker import Step, run_step
 from common.spec import ENGINE_NAMES, Spec
 
 LOGO = ASSETS / "opendis_logo.png"
 FAVICON = ASSETS / "opendis_favicon.png"  # the website's favicon
 SIDEBAR_WIDTH_PX = 300  # initial width; Streamlit clamps it to 200-600
 VIEWS = ("initial configuration", "simulation", "history")
+BUILD_VIEWS = ("initial configuration", "run")  # a script that builds a network: no history
 FRAME_MS = 300  # the replay's time per snapshot
 # The 3-D window's height, whatever it shows (the figure and the replay's controls, a run's newest
 # snapshot, or a note), so that the page below it does not jump
@@ -101,6 +102,11 @@ def _folder(example: Example, spec: Spec) -> job.RunFolder | None:
                                     codegen.full_script(spec, example.final_json))
 
 
+def _views(example: Example) -> tuple[str, ...]:
+    """The 3-D window's views of the example: its second is the run's."""
+    return VIEWS if example.default.config.simulates else BUILD_VIEWS
+
+
 def _follow_step(example: Example, step: Step) -> None:
     """When the step changes, show its selections and its 3-D view.
 
@@ -110,8 +116,7 @@ def _follow_step(example: Example, step: Step) -> None:
     if st.session_state.get(last) != step.key:
         st.session_state[last] = step.key
         st.session_state[SELECTIONS_OPEN] = True  # a newly chosen step shows its selections
-        st.session_state[f"view_{example.name}"] = (
-            "simulation" if step.key == "run" else "initial configuration")
+        st.session_state[f"view_{example.name}"] = _views(example)[1 if step.key == "run" else 0]
 
 
 # ── Cached data: what the 3-D window draws ──
@@ -155,8 +160,10 @@ def _simulation_view(example: Example, slot: DeltaGenerator,
     files = results.frames(folder) if folder is not None else []
     with slot.container(height=VIEW_PX, border=False):
         if not files:
-            st.info(f"Press Run in step {RUN_STEP.label.split('.')[0]} to simulate these "
-                    "selections." if folder is not None
+            what = ("simulate these selections" if example.default.config.simulates
+                    else f"build this network with {ENGINE_NAMES[example.engine]}")
+            number = run_step(example).label.split(".")[0]
+            st.info(f"Press Run in step {number} to {what}." if folder is not None
                     else "Fix the selections first; the code panel lists the problems.")
             return
         if not folder.results.exists():
@@ -181,7 +188,7 @@ def _history_view(example: Example, spec: Spec, folder: job.RunFolder | None) ->
 def _view_panel(example: Example, spec: Spec,
                 folder: job.RunFolder | None) -> DeltaGenerator | None:
     """The 3-D window; returns the slot that a run draws into, in the simulation view."""
-    view = _mode_radio("3-D view", VIEWS, f"view_{example.name}")
+    view = _mode_radio("3-D view", _views(example), f"view_{example.name}")
     if view == "initial configuration":
         if spec.validate():
             st.info("Fix the selections first; the code panel lists the problems.")
@@ -207,8 +214,13 @@ def _view_panel(example: Example, spec: Spec,
 def _selections(example: Example, step: Step, spec: Spec) -> Spec:
     """The step's widgets; the user's changes become the example's spec."""
     ctx = steps.StepContext(key=_widget_prefix(example), example=example)
-    new = (steps.run_settings(spec, ctx) if step.key == "run"
-           else steps.render(step.key, spec, ctx))
+    if step.key == "run" and spec.run is None:
+        st.caption(f"This script builds a network and runs no simulation. Run runs it with "
+                   f"{ENGINE_NAMES[example.engine]}.")
+        new = spec
+    else:
+        new = (steps.run_settings(spec, ctx) if step.key == "run"
+               else steps.render(step.key, spec, ctx))
     if new != spec:
         st.session_state[_key(example, "spec")] = new
     errors = new.validate()
@@ -220,7 +232,7 @@ def _selections(example: Example, step: Step, spec: Spec) -> Spec:
 def _request_run(example: Example) -> None:
     """The Run button: run after this script run's widgets, and show the run meanwhile."""
     st.session_state[_key(example, "run")] = True
-    st.session_state[f"view_{example.name}"] = "simulation"
+    st.session_state[f"view_{example.name}"] = _views(example)[1]
 
 
 def _show_status(slot: DeltaGenerator, example: Example, folder: job.RunFolder | None) -> None:
@@ -247,10 +259,11 @@ def _downloads(example: Example, folder: job.RunFolder) -> None:
     st.download_button("⬇ the whole run (zip)", data=functools.partial(results.output_zip, folder),
                        file_name=f"{stem}.zip", mime="application/zip", on_click="ignore",
                        key=f"{example.name}/download_zip", width="stretch")
-    st.caption("The zip holds the script, its spec and log, and its output/ folder: a snapshot "
-               "of the network every write_freq steps (disnet_<step>.json, as "
-               "DisNetManager.write_json writes it), the final network, and any other file that "
-               "the script writes there.")
+    st.caption("The zip holds the script, its spec and log, and its output/ folder: "
+               + ("a snapshot of the network every write_freq steps (disnet_<step>.json, as "
+                  "DisNetManager.write_json writes it), the final network, "
+                  if example.default.config.simulates else "the network that it built, ")
+               + "and any other file that the script writes there.")
 
 
 def _not_ready(example: Example) -> str:
@@ -322,6 +335,12 @@ def _exadis_bar() -> None:
     status = exadis_status()
     if status["state"] != st.session_state.get(EXADIS_STATE, status["state"]):
         st.rerun()
+    with st.container(key="opendis_build_status"):  # its text is small (common/style.py)
+        _exadis_lines(status)
+
+
+def _exadis_lines(status: dict) -> None:
+    """The status bar's text, by the state of ExaDiS's build."""
     if status["state"] == "building":
         file = f" {status['file']} ·" if status.get("file") else ""
         st.progress(status["percent"] / 100,
@@ -357,9 +376,13 @@ def _selections_column(example: Example, step: Step, spec: Spec
 
 # ── The run ──
 
-def _progress(slot: DeltaGenerator, status: job.Status, max_step: int, code: str) -> None:
-    """The progress bar: the time step reached, and the elapsed time."""
+def _progress(slot: DeltaGenerator, status: job.Status, max_step: int | None,
+              code: str) -> None:
+    """The progress bar: the time step reached, and the elapsed time (a build has no steps)."""
     step = status.step
+    if max_step is None:
+        slot.progress(0.0, text=f"{code} builds the network · {status.elapsed_s:.1f} s")
+        return
     text = (f"step {step} of {max_step}" if step is not None else f"starting {code}")
     slot.progress(min((step or 0) / max_step, 1.0), text=f"{text} · {status.elapsed_s:.1f} s")
 
@@ -379,8 +402,9 @@ def _run(example: Example, spec: Spec, folder: job.RunFolder | None,
 
         def update(status: job.Status) -> None:
             st.session_state[_key(example, "status")] = (folder.run_id, status)
-            _progress(progress_slot, status, spec.run.max_step, ENGINE_NAMES[example.engine])
-            output_panel.show_output(output_slot, status.lines, output_panel.no_run())
+            _progress(progress_slot, status, spec.run.max_step if spec.run else None,
+                      ENGINE_NAMES[example.engine])
+            output_panel.show_output(output_slot, status.lines, output_panel.no_run(example))
             found = network.snapshots(folder.output)
             if view_slot is not None and found and found[-1][0] != drawn["step"]:
                 step, path = found[-1]

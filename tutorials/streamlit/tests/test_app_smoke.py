@@ -35,7 +35,7 @@ def click(at: AppTest, label: str) -> None:
 def choose(at: AppTest, label: str, code: str = "PyDiS") -> None:
     """Choose an example and its code in the sidebar's two menus, and run."""
     at.selectbox(key="picker_example").select(label).run()
-    menu = at.selectbox(key=f"picker_code/{label}")
+    menu = at.selectbox(key=f"picker_core/{label}")
     if menu.value != code:  # a menu of one code is disabled
         menu.select(code).run()
 
@@ -50,7 +50,7 @@ def main() -> int:  # pylint: disable=too-many-locals,too-many-statements
     """Run every check."""
     at = page()
     picker = [s for s in at.sidebar.selectbox if s.label == "Example"]
-    codes = [(s.options, s.value, s.disabled) for s in at.sidebar.selectbox if s.label == "Code"]
+    codes = [(s.options, s.value, s.disabled) for s in at.sidebar.selectbox if s.label == "Core"]
     text = "\n".join(m.value for m in at.markdown)
     outputs = [c.value for c in at.code if "No run yet" in c.value]
     initial = shown(at)
@@ -58,10 +58,11 @@ def main() -> int:  # pylint: disable=too-many-locals,too-many-statements
         check("the page loads without an exception", not at.exception, at.exception),
         check("the banner says OpenDiS, with the logo", "<h1>OpenDiS</h1>" in text
               and "data:image/png;base64," in text),
-        check("in the sidebar, the Example menu: Frank-Read src, Binary junction",
-              len(picker) == 1 and picker[0].options == ["Frank-Read src", "Binary junction"],
+        check("in the sidebar, the Example menu: Frank-Read src, Binary junction, Initial "
+              "configurations", len(picker) == 1 and picker[0].options ==
+              ["Frank-Read src", "Binary junction", "Initial configurations"],
               [s.options for s in at.selectbox]),
-        check("below it, the Code menu of the Frank-Read source: PyDiS, ExaDiS",
+        check("below it, the Core menu of the Frank-Read source: PyDiS, ExaDiS",
               codes == [(["PyDiS", "ExaDiS"], "PyDiS", False)], codes),
         check("no menu in the page's main part", not list(at.main.selectbox),
               [s.label for s in at.main.selectbox]),
@@ -78,17 +79,19 @@ def main() -> int:  # pylint: disable=too-many-locals,too-many-statements
               initial[:1]),
     ]
 
-    # every step of each example and code, by next ›
+    # every step of each example and code, by next › (the binary junction last)
     for example, code in (("Frank-Read src", "PyDiS"), ("Frank-Read src", "ExaDiS"),
-                          ("Binary junction", "PyDiS")):
+                          ("Initial configurations", "PyDiS"),
+                          ("Initial configurations", "ExaDiS"), ("Binary junction", "PyDiS")):
         at = page()
         choose(at, example, code)
         failures = []
-        for step in STEP_LIST:
+        labels = next(r for r in at.radio if r.label == "Steps").options
+        for label in labels:
             if at.exception or at.warning:
-                failures.append((step.label, [e.value for e in at.exception],
+                failures.append((label, [e.value for e in at.exception],
                                  [w.value for w in at.warning]))
-            if step != STEP_LIST[-1]:
+            if label != labels[-1]:
                 click(at, "next ›")
         titles = "\n".join(m.value for m in at.markdown)
         results += [check(f"{example} with {code}: every step draws, cleanly", not failures,
@@ -97,7 +100,7 @@ def main() -> int:  # pylint: disable=too-many-locals,too-many-statements
                           any(b.label == "▶ Run" for b in at.button)),
                     check(f"{example} with {code}: the code panel is {code}'s",
                           f"{code} code" in titles, titles[-500:])]
-    junction = [(s.options, s.disabled) for s in at.selectbox if s.label == "Code"]
+    junction = [(s.options, s.disabled) for s in at.selectbox if s.label == "Core"]
     results.append(check("the binary junction has one code, PyDiS", junction == [(["PyDiS"], True)],
                          junction))
 
@@ -218,6 +221,35 @@ def main() -> int:  # pylint: disable=too-many-locals,too-many-statements
               ["step 0", "step 10", "step 20", "final"],
               [[f["label"] for f in r["frames"]] for r in replay]),
         check("no job is left running after ExaDiS's", not job.running()),
+    ]
+
+    # the initial configurations: each of the tutorial's networks draws in step 1, and Run
+    # builds one with ExaDiS, which the run view shows
+    at = page()
+    choose(at, "Initial configurations", "ExaDiS")
+    drawn = {}
+    for label in ("simple dislocation source", "ParaDiS file", "infinite lines",
+                  "prismatic loops"):
+        next(s for s in at.selectbox if s.label == "Network").select(label).run()
+        frames = shown(at)
+        drawn[label] = (not at.exception and len(frames) == 1
+                        and [f["label"] for f in frames[0]["frames"]] == ["initial configuration"])
+    two = [o for r in at.radio if r.label == "Steps" for o in r.options]
+    click(at, "next ›")
+    click(at, "▶ Run")
+    output = "\n".join(c.value for c in at.code)
+    replay = shown(at)
+    results += [
+        check("initial configurations: two steps", two == ["1. Initial configuration", "2. Run"],
+              two),
+        check("initial configurations: each of the tutorial's networks draws in step 1",
+              all(drawn.values()), drawn),
+        check("initial configurations: Run builds the prismatic loops with ExaDiS",
+              "Create initial configuration of prismatic loops" in output
+              and any(s.value.startswith("Done after") for s in at.success), output[-300:]),
+        check("initial configurations: the run view shows the network that the run built",
+              len(replay) == 1 and [f["label"] for f in replay[0]["frames"]] == ["final"],
+              [[f["label"] for f in r["frames"]] for r in replay]),
     ]
 
     # until ExaDiS is built for this Python, its examples cannot run; while the app builds it,

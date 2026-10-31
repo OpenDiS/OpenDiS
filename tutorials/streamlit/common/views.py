@@ -13,6 +13,7 @@ from common.network import PINNED, Network
 
 SEGMENT_COLOR, NODE_COLOR, PINNED_COLOR, BOX_COLOR = "#1f4fd1", "#d62728", "#1a2332", "#9aa8b8"
 HEIGHT = 560
+HISTORY_HEIGHT = 500  # px: the history's two plots, with their labels, inside the panel
 # The first view: Plotly's default camera turned 90° to the right (clockwise seen from above),
 # so that the x axis runs along the cube's front-left edge and the y axis along its front-right
 # edge, both growing from left to right; then, as a small drag of the mouse up and to the right
@@ -101,6 +102,8 @@ def history_figure(steps: list[int], nodes: list[int], density: list[float]) -> 
     fig.add_trace(go.Scatter(x=steps, y=density, mode="lines+markers", name="density",
                              line={"color": NODE_COLOR}), row=2, col=1)
     fig.update_xaxes(title_text="time step", row=2, col=1)
-    fig.update_layout(height=HEIGHT, margin={"l": 10, "r": 10, "t": 40, "b": 10},
+    fig.update_xaxes(automargin=True)
+    fig.update_yaxes(automargin=True)  # the tick labels and the axis title stay in view
+    fig.update_layout(height=HISTORY_HEIGHT, margin={"l": 70, "r": 20, "t": 40, "b": 60},
                       showlegend=False, plot_bgcolor="#f7f9fc")
     return fig

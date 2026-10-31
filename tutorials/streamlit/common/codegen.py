@@ -9,11 +9,18 @@ that it runs from any folder; each step's code is one block, so a few lines come
 order; an optional value (Ec, mob, a Burgers vector) appears only when it is not the default;
 and ExaDiS's script also writes its snapshots as PyDiS's does, ``output/disnet_<step>.json``,
 which the app plays.
+
+A script that builds a network and runs no simulation is one option of
+``tutorials/01_initial_configurations/initial_configurations.py``, with either code: the
+network that it builds is the tutorial's, which ``tests/test_codegen.py`` checks too. It writes
+its files into ``output/``, the network as its final one.
 """
 import textwrap
+from dataclasses import replace
 
 from common.paths import OPENDIS_DIR, PYDIS_PATHS
-from common.spec import FrankReadSource, Spec, TwoLines
+from common.spec import (FrankReadSource, InfiniteLines, ParaDiSFile, SimpleSource, Spec,
+                         TwoLines)
 
 EXADIS_PATHS = PYDIS_PATHS + ("core/exadis/python",)  # as in the ExaDiS tutorials' scripts
 
@@ -275,6 +282,98 @@ STEP_CODE = {"config": _config, "material": _material, "forces": _forces, "timei
              "topology": _topology, "loading": _loading, "run": _run}
 
 
+# ── A script that builds a network and runs no simulation ──
+
+BUILD_IMPORTS = {
+    "pydis": '''\
+from framework.disnet_manager import DisNetManager
+from pydis import DisNode, DisNet, Cell, VisualizeNetwork
+''',
+    "exadis": '''\
+import pyexadis
+from framework.disnet_manager import DisNetManager
+from pyexadis_base import ExaDisNet, NodeConstraints, VisualizeNetwork
+''',
+}
+# The tutorial's first line for each network (its options 1 and 2 for the simple source)
+BUILD_TITLES = {"simple_source": "Create simple dislocation source using {code}",
+                "paradis_file": "Read initial configuration from ParaDiS file",
+                "line_config": "Create initial configuration of infinite lines",
+                "prismatic_config": "Create initial configuration of prismatic loops"}
+
+
+def _simple_source(c: SimpleSource, exadis: bool) -> str:
+    """The tutorial's option 1 (PyDiS) or 2 (ExaDiS), with the spec's values."""
+    if exadis:
+        cell, free, pinned, nodes, segs, net = (
+            "pyexadis.Cell", "NodeConstraints.UNCONSTRAINED", "NodeConstraints.PINNED_NODE",
+            "nodes", "segs", "ExaDisNet(cell, nodes, segs)")
+    else:
+        cell, free, pinned, nodes, segs, net = (
+            "Cell", "DisNode.Constraints.UNCONSTRAINED", "DisNode.Constraints.PINNED_NODE",
+            "rn", "links", "DisNet(cell=cell, rn=rn, links=links)")
+    pad = " " * len(f"{nodes} = np.array(")
+    return (f"Ldis = {num(c.Ldis)} # dislocation length\n"
+            f"Lbox = 2*Ldis # simulation box size\n"
+            f"burg = {array(c.burg)} # Burgers vector\n"
+            f"burg = burg/np.linalg.norm(burg) # of unit length, 1/sqrt(2)*[1,1,0] for [1,1,0]\n"
+            f"plane = {array(c.plane)} # plane normal\n"
+            f"\n"
+            f"# Simulation cell object\n"
+            f"cell = {cell}(h=Lbox*np.eye(3), is_periodic=[True,True,True])\n"
+            f"\n"
+            f"# List of nodes, nodes = [x,y,z,constraint]\n"
+            f"linevec = Ldis*burg # line vector\n"
+            f"{nodes} = np.array([[*(-0.5*linevec), {pinned}],\n"
+            f"{pad}[*( 0.0*linevec), {free}],\n"
+            f"{pad}[*( 0.5*linevec), {pinned}]])\n"
+            f"{nodes}[:,0:3] += cell.center() # translate line to the center of the box\n"
+            f"\n"
+            f"# List of segments, {segs} = [node1,node2,burg,plane]\n"
+            f"{segs} = np.array([[0, 1, *burg, *plane],\n"
+            f"{' ' * len(f'{segs} = np.array(')}[1, 2, *burg, *plane]])\n"
+            f"\n"
+            f"G = {net}\n")
+
+
+def _build_config(spec: Spec) -> str:
+    """Step 1 of a build: the network, made as the tutorial makes it."""
+    c, exadis = spec.config, spec.engine == "exadis"
+    net = "ExaDisNet" if exadis else "DisNet"
+    title = BUILD_TITLES[c.kind].format(code="pyexadis" if exadis else "pydis")
+    if isinstance(c, SimpleSource):
+        code = _simple_source(c, exadis)
+    elif isinstance(c, ParaDiSFile):
+        code = f"G = {net}().read_paradis(os.path.join(opendis_dir, {c.datafile!r}))\n"
+    elif isinstance(c, InfiniteLines):
+        code = (f"G = {net}().generate_line_config(\n"
+                f"    crystal={c.crystal!r}, Lbox={num(c.Lbox)}, num_lines={c.num_lines}, "
+                f"theta={num(c.theta)}, maxseg={num(c.maxseg)}, seed={c.seed}\n"
+                f")\n")
+    else:
+        code = (f"G = {net}().generate_prismatic_config(\n"
+                f"    crystal={c.crystal!r}, Lbox={num(c.Lbox)}, num_loops={c.num_loops}, "
+                f"radius={num(c.radius)}, maxseg={num(c.maxseg)}, seed={c.seed}, "
+                f"uniform={c.uniform}\n"
+                f")\n")
+    return f"print({title!r})\n\n{code}net = DisNetManager(G)\n"
+
+
+def _build_run(spec: Spec) -> str:
+    """Step 2 of a build: the plot, and the infinite lines' files, as the tutorial writes them."""
+    code = "VisualizeNetwork().plot_disnet(net, block=True)\n"
+    if isinstance(spec.config, InfiniteLines):
+        code += "\nos.makedirs('output', exist_ok=True)\n"
+        if spec.engine == "exadis":
+            code += ("from pyexadis_utils import write_data, write_vtk\n"
+                     "write_data(net, 'output/infinite_lines.data')\n"
+                     "write_vtk(net, 'output/infinite_lines.vtk')\n")
+        else:
+            code += ("G.write_data('output/infinite_lines.data')\n"
+                     "G.write_vtk('output/infinite_lines.vtk')\n")
+    return code
+
+
 def _main_guard(spec: Spec, final_json: str) -> str:
     """The end of the script: the run, then the final network written to ``output/``."""
     exadis = spec.engine == "exadis"
@@ -282,7 +381,8 @@ def _main_guard(spec: Spec, final_json: str) -> str:
             + ("    pyexadis.initialize()\n" if exadis else "")
             + "    main()\n"
             "\n"
-            "    # explore the network after simulation\n"
+            + ("    # explore the network after simulation\n" if spec.config.simulates
+               else "    # explore the network\n")
             + ("    G  = net.get_disnet(ExaDisNet)\n" if exadis else "    G  = net.get_disnet()\n")
             + "\n"
             "    os.makedirs('output', exist_ok=True)\n"
@@ -295,8 +395,9 @@ def header(spec: Spec) -> str:
     """The imports, with PyDiS (and ExaDiS) found from ``$OPENDIS_DIR``."""
     name, paths = (("pyexadis_paths", EXADIS_PATHS) if spec.engine == "exadis"
                    else ("pydis_paths", PYDIS_PATHS))
+    imports = IMPORTS if spec.config.simulates else BUILD_IMPORTS
     return (_PATHS.format(opendis_dir=str(OPENDIS_DIR), name=name, paths=list(paths))
-            + IMPORTS[spec.engine])
+            + imports[spec.engine])
 
 
 def init_function(spec: Spec) -> str:
@@ -306,6 +407,9 @@ def init_function(spec: Spec) -> str:
 
 def step_code(spec: Spec, step: str, final_json: str) -> str:
     """The code panel's "this step": the step's block, as it reads outside ``main()``."""
+    if not spec.config.simulates:
+        return (_build_config(spec) if step == "config"
+                else _build_run(spec) + "\n" + _main_guard(spec, final_json))
     code = STEP_CODE[step](spec)
     if step == "config":
         return init_function(spec) + "\n" + code
@@ -317,6 +421,15 @@ def step_code(spec: Spec, step: str, final_json: str) -> str:
 
 def full_script(spec: Spec, final_json: str) -> str:
     """The script the job runs, and that the code panel offers for download."""
+    if not spec.config.simulates:
+        blocks = "\n".join(textwrap.indent(code, "    ")
+                           for code in (_build_config(spec), _build_run(spec)))
+        return (header(spec) + "\n"
+                "def main():\n"
+                "    global net\n"
+                "\n"
+                f"{blocks}\n\n"
+                f"{_main_guard(spec, final_json)}")
     blocks = "\n".join(textwrap.indent(STEP_CODE[step](spec), "    ") for step in STEP_CODE)
     exadis = spec.engine == "exadis"
     return (header(spec) + "\n" + init_function(spec) + "\n"
@@ -336,6 +449,12 @@ def init_code(spec: Spec) -> str:
     PyDiS builds it whichever code runs the script: the same values give the same network.
     The app puts PyDiS on ``sys.path`` itself, so this has no path lines.
     """
+    if not spec.config.simulates:
+        return ("import os\n"
+                "import numpy as np\n"
+                + BUILD_IMPORTS["pydis"]
+                + f"opendis_dir = {str(OPENDIS_DIR)!r}\n\n"
+                + _build_config(replace(spec, engine="pydis")))
     return ("import numpy as np\n"
             "from framework.disnet_manager import DisNetManager\n"
             "from pydis import DisNode, DisNet, Cell\n\n"

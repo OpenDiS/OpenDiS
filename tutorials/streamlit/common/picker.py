@@ -1,9 +1,9 @@
 """common.picker: the navigation, in the sidebar: the example and its code, the steps, prev / next.
 
 The picker is two drop-down menus, drawn inside the app's keyed container ``opendis_picker``:
-the examples' labels, then the codes that run the chosen one, PyDiS or ExaDiS. Each code of an
-example is an input file of its own (``common/catalog.py``). The steps and the prev / next
-buttons come below.
+the examples' labels, then the core libraries that run the chosen one, PyDiS or ExaDiS (the
+keyed container ``opendis_core``). Each core of an example is an input file of its own
+(``common/catalog.py``). The steps and the prev / next buttons come below.
 """
 from collections.abc import Collection, Sequence
 from dataclasses import dataclass
@@ -14,7 +14,7 @@ from common.catalog import Example
 from common.spec import ENGINE_NAMES, ENGINES, STEPS
 
 PICKER_KEY = "picker_example"
-CODE_KEY = "picker_code"  # one per label: "picker_code/<label>"
+CORE_KEY = "picker_core"  # one per label: "picker_core/<label>"
 
 
 @dataclass(frozen=True)
@@ -26,8 +26,18 @@ class Step:
 
 
 STEP_LIST = tuple(Step(key, f"{number}. {title}")
-                  for number, (key, title) in enumerate(STEPS, start=1))
-RUN_STEP = next(step for step in STEP_LIST if step.key == "run")
+                  for number, (key, title) in enumerate(STEPS, start=1))  # a simulation's
+BUILD_STEPS = (STEP_LIST[0], Step("run", "2. Run"))  # a script that only builds a network
+
+
+def step_list(example: Example) -> tuple[Step, ...]:
+    """The example's steps: seven for a simulation, two for a script that builds a network."""
+    return STEP_LIST if example.default.config.simulates else BUILD_STEPS
+
+
+def run_step(example: Example) -> Step:
+    """The example's last step, Run."""
+    return step_list(example)[-1]
 
 
 def _ensure_valid(key: str, options: list[str]) -> None:
@@ -41,20 +51,21 @@ def _ensure_valid(key: str, options: list[str]) -> None:
 
 
 def example_picker(examples: Sequence[Example]) -> Example:
-    """A label, a select box of the examples' labels, then one of the chosen example's codes;
+    """A label, a select box of the examples' labels, then one of the chosen example's cores;
     returns the chosen example."""
     st.markdown("**Example**")  # bold like "Steps"
     labels = list(dict.fromkeys(example.label for example in examples))
     _ensure_valid(PICKER_KEY, labels)
     label = st.selectbox("Example", labels, key=PICKER_KEY, label_visibility="collapsed")
-    codes = sorted((e for e in examples if e.label == label), key=lambda e: ENGINES.index(e.engine))
-    names = [ENGINE_NAMES[example.engine] for example in codes]
-    key = f"{CODE_KEY}/{label}"
+    cores = sorted((e for e in examples if e.label == label), key=lambda e: ENGINES.index(e.engine))
+    names = [ENGINE_NAMES[example.engine] for example in cores]
+    key = f"{CORE_KEY}/{label}"
     _ensure_valid(key, names)
-    name = st.selectbox("Code", names, key=key, disabled=len(names) == 1,
-                        help="The code that runs the example's script: PyDiS, in Python, or "
-                             "ExaDiS, in C++ through its Python module pyexadis.")
-    return codes[names.index(name)]
+    with st.container(key="opendis_core"):  # its label is smaller (common/style.py)
+        name = st.selectbox("Core", names, key=key, disabled=len(names) == 1,
+                            help="The core library that runs the example's script: PyDiS, in "
+                                 "Python, or ExaDiS, in C++ through its Python module pyexadis.")
+    return cores[names.index(name)]
 
 
 def _steps_key(example: Example) -> str:
@@ -64,10 +75,11 @@ def _steps_key(example: Example) -> str:
 
 def current_step(example: Example) -> Step:
     """The chosen step, read before the steps radio is drawn (it is drawn later in the run)."""
-    labels = [step.label for step in STEP_LIST]
+    steps = step_list(example)
+    labels = [step.label for step in steps]
     key = _steps_key(example)
     _ensure_valid(key, labels)
-    return STEP_LIST[labels.index(st.session_state.get(key, labels[0]))]
+    return steps[labels.index(st.session_state.get(key, labels[0]))]
 
 
 def steps_radio(example: Example, marked: Collection[str] = ()) -> Step:
@@ -76,13 +88,14 @@ def steps_radio(example: Example, marked: Collection[str] = ()) -> Step:
     ``marked`` holds the keys of the steps whose selections differ from the example's.
     """
     st.markdown("**Steps**")
-    labels = [step.label for step in STEP_LIST]
-    marks = {step.label for step in STEP_LIST if step.key in marked}
+    steps = step_list(example)
+    labels = [step.label for step in steps]
+    marks = {step.label for step in steps if step.key in marked}
     key = _steps_key(example)
     _ensure_valid(key, labels)
     label = st.radio("Steps", labels, key=key, label_visibility="collapsed",
                      format_func=lambda text: f"{text} •" if text in marks else text)
-    return STEP_LIST[labels.index(label)]
+    return steps[labels.index(label)]
 
 
 def _step_by(key: str, labels: list[str], delta: int) -> None:
@@ -99,7 +112,7 @@ def go_to(example: Example, step: Step) -> None:
 
 def prev_next(example: Example) -> None:
     """The ‹ prev and next › buttons that walk through the steps."""
-    labels = [step.label for step in STEP_LIST]
+    labels = [step.label for step in step_list(example)]
     key = _steps_key(example)
     current = st.session_state.get(key, labels[0])
     previous, forward = st.columns(2)

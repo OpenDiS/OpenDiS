@@ -9,15 +9,16 @@ from streamlit.delta_generator import DeltaGenerator
 
 from common import job
 from common.catalog import Example
-from common.picker import RUN_STEP
+from common.picker import run_step
 
 TAIL = 80  # the lines shown; log.txt has them all
 FINAL = ("done", "failed", "timeout", "stopped")
 
 
-def no_run() -> str:
+def no_run(example: Example) -> str:
     """What the column says before a run of these selections."""
-    return f"No run yet for these selections: press Run in step {RUN_STEP.label.split('.')[0]}."
+    number = run_step(example).label.split(".")[0]
+    return f"No run yet for these selections: press Run in step {number}."
 
 
 def output_lines(folder: job.RunFolder | None, status: job.Status | None) -> list[str]:
@@ -45,7 +46,7 @@ def panel(example: Example, folder: job.RunFolder | None,
     """The output, and the log to download; returns the slot that a run writes into."""
     with st.container(key="opendis_output"):  # styled in common/style.py
         slot = st.empty()
-        show_output(slot, output_lines(folder, status), no_run())
+        show_output(slot, output_lines(folder, status), no_run(example))
         if (folder is not None and folder.log.exists()
                 and (status is None or status.state in FINAL)):
             st.download_button("⬇ log.txt", data=folder.log.read_bytes, mime="text/plain",

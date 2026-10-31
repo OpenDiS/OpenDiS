@@ -261,6 +261,15 @@ section[data-testid="stSidebar"] div[data-testid="stRadio"] div[role="radiogroup
   align-items: flex-start !important; justify-content: flex-start !important;
   gap: 0.2rem !important;
 }
+/* The Core menu's label, at the size of the steps (the keyed container opendis_core) */
+section[data-testid="stSidebar"] .st-key-opendis_core [data-testid="stWidgetLabel"] p {
+  font-size: 0.92rem !important;
+}
+/* The status of ExaDiS's build, at the size of the simulation output's text */
+.st-key-opendis_build_status div[data-testid="stMarkdownContainer"] p,
+.st-key-opendis_build_status [data-testid="stCaptionContainer"] p {
+  font-size: 0.74rem !important; line-height: 1.35 !important;
+}
 section[data-testid="stSidebar"] div[data-testid="stRadio"] label p,
 section[data-testid="stSidebar"] div[data-testid="stRadio"] label span {
   font-size: 0.92rem !important; white-space: nowrap !important;
