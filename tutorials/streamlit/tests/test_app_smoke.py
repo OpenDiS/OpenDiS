@@ -35,7 +35,9 @@ def click(at: AppTest, label: str) -> None:
 def choose(at: AppTest, label: str, code: str = "PyDiS") -> None:
     """Choose an example and its code in the sidebar's two menus, and run."""
     at.selectbox(key="picker_example").select(label).run()
-    at.selectbox(key=f"picker_code/{label}").select(code).run()
+    menu = at.selectbox(key=f"picker_code/{label}")
+    if menu.value != code:  # a menu of one code is disabled
+        menu.select(code).run()
 
 
 def shown(at: AppTest) -> list[dict]:
