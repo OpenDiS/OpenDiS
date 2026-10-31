@@ -14,6 +14,7 @@ from common.network import PINNED, Network
 SEGMENT_COLOR, NODE_COLOR, PINNED_COLOR, BOX_COLOR = "#1f4fd1", "#d62728", "#1a2332", "#9aa8b8"
 HEIGHT = 560
 HISTORY_HEIGHT = 500  # px: the history's two plots, with their labels, inside the panel
+CURVE_HEIGHT = 220    # px more for its third, the stress against the strain
 # The first view: Plotly's default camera turned 90° to the right (clockwise seen from above),
 # so that the x axis runs along the cube's front-left edge and the y axis along its front-right
 # edge, both growing from left to right; then, as a small drag of the mouse up and to the right
@@ -93,17 +94,31 @@ def network_figure(net: Network, title: str) -> go.Figure:
     return fig
 
 
-def history_figure(steps: list[int], nodes: list[int], density: list[float]) -> go.Figure:
-    """The number of nodes, and the dislocation density, against the time step."""
-    fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.08,
-                        subplot_titles=("nodes", "dislocation density (m⁻²)"))
+def history_figure(steps: list[int], nodes: list[int], density: list[float],
+                   curve: tuple | None = None) -> go.Figure:
+    """The number of nodes, and the dislocation density, against the time step; with a curve
+    (strain, stress in Pa), also the stress against the strain."""
+    if curve is None:
+        fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.08,
+                            subplot_titles=("nodes", "dislocation density (m⁻²)"))
+    else:
+        fig = make_subplots(rows=3, cols=1, vertical_spacing=0.15,
+                            subplot_titles=("nodes", "dislocation density (m⁻²)",
+                                            "stress (MPa) against strain"))
+        fig.update_xaxes(matches="x2", showticklabels=False, row=1, col=1)
     fig.add_trace(go.Scatter(x=steps, y=nodes, mode="lines+markers", name="nodes",
                              line={"color": SEGMENT_COLOR}), row=1, col=1)
     fig.add_trace(go.Scatter(x=steps, y=density, mode="lines+markers", name="density",
                              line={"color": NODE_COLOR}), row=2, col=1)
     fig.update_xaxes(title_text="time step", row=2, col=1)
+    if curve is not None:
+        strain, stress = curve
+        fig.add_trace(go.Scatter(x=list(strain), y=[s / 1e6 for s in stress], mode="lines",
+                                 name="stress", line={"color": "#1a2332"}), row=3, col=1)
+        fig.update_xaxes(title_text="strain", row=3, col=1)
     fig.update_xaxes(automargin=True)
     fig.update_yaxes(automargin=True)  # the tick labels and the axis title stay in view
-    fig.update_layout(height=HISTORY_HEIGHT, margin={"l": 70, "r": 20, "t": 40, "b": 60},
+    fig.update_layout(height=HISTORY_HEIGHT + (0 if curve is None else CURVE_HEIGHT),
+                      margin={"l": 70, "r": 20, "t": 40, "b": 60},
                       showlegend=False, plot_bgcolor="#f7f9fc")
     return fig

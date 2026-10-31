@@ -182,7 +182,9 @@ def _history_view(example: Example, spec: Spec, folder: job.RunFolder | None) ->
         st.info("The history appears with a run: the number of nodes and the density of each "
                 "snapshot of the network that it writes (output/disnet_<step>.json).")
         return
-    _chart(st, views.history_figure(steps, nodes, density), key=f"history/{example.name}")
+    curve = (results.stress_strain(folder) if spec.loading.loading_mode == "strain_rate"
+             else None)
+    _chart(st, views.history_figure(steps, nodes, density, curve), key=f"history/{example.name}")
 
 
 def _view_panel(example: Example, spec: Spec,

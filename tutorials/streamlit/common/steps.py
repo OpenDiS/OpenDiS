@@ -13,9 +13,8 @@ import streamlit as st
 
 from common.catalog import Example
 from common.spec import (BUILT, CHOICES, CRYSTALS, ENGINE_NAMES, MAX_BUILT, MAX_STEP,
-                         PARADIS_FILES, STRESS_LABELS, Forces, FrankReadSource, InfiniteLines,
-                         Loading, Material, ParaDiSFile, PrismaticLoops, Run, SimpleSource,
-                         Spec, TimeInt)
+                         PARADIS_FILES, STRESS_LABELS, FrankReadSource, InfiniteLines,
+                         LoopSources, ParaDiSFile, PrismaticLoops, Run, SimpleSource, Spec)
 
 STRESS_STEP = 1.0e7  # Pa, the +/- of an applied stress component
 TUTORIAL_BY = {"pydis": "by pure Python", "exadis": "by Python calling ExaDiS"}  # the pages' titles
@@ -26,8 +25,18 @@ HELP = {
     "SimpleGlide": "the nodes move in their glide planes",
     "Relax": "they move along their forces",
     "None": "no topology module, as in ExaDiS's tutorial",
+    "MaxDiss": "splits each multi-node the way that dissipates the most energy, the two new "
+               "nodes on top of each other",
+    "Serial": "the same, with the two new nodes moved apart, as in ParaDiS and ExaDiS's "
+              "TopologySerial",
     "TopologySerial": "splits each multi-node the way that dissipates the most energy",
     "TopologyParallel": "the same, in parallel",
+    "BCC_0B": "bcc's edge, screw and climb mobilities, and a smooth speed cap",
+    "EulerForward": "a fixed time step",
+    "Trapezoid": "a time step that adapts, from nextdt, to keep the error below rtol (step 2)",
+    "stress": "a constant applied stress",
+    "strain_rate": "uniaxial loading at a constant strain rate along edir; the stress follows "
+                   "from the plastic strain",
 }
 
 
@@ -99,6 +108,20 @@ def _config(spec: Spec, ctx: StepContext) -> Spec:
         return spec.with_part("config", _network(c, k))
     box = _number("Box length, Lbox (b)", c.box_length, f"{k}/box_length",
                   "The edge of the cubic simulation cell, in units of the Burgers vector's length.")
+    if isinstance(c, LoopSources):
+        st.caption("The box is periodic in all three directions.")
+        count = _integer("Number of loops", c.num_loops, f"{k}/num_loops",
+                         "They cycle through the crystal's Burgers vectors (step 2's crystal).",
+                         max_value=MAX_BUILT)
+        radius = _number("Radius / Lbox", c.radius_ratio, f"{k}/radius_ratio",
+                         "The loops' radius, as a fraction of the box.", 0.01)
+        st.caption(f"radius = {radius * box:g} b; the segments are at most step 2's maxseg")
+        seed = _integer("Seed of the random positions", c.seed, f"{k}/seed")
+        uniform = st.checkbox("Spread the loops evenly", c.uniform, key=f"{k}/uniform",
+                              help="Their centres on a grid, shuffled and jittered, rather than "
+                                   "at random.")
+        return spec.with_part("config", replace(c, box_length=box, num_loops=count,
+                                                radius_ratio=radius, seed=seed, uniform=uniform))
     pbc = st.checkbox("Periodic boundary conditions", c.pbc, key=f"{k}/pbc")
     if isinstance(c, FrankReadSource):
         arm = _number("Arm length / Lbox", c.arm_ratio, f"{k}/arm_ratio",
@@ -179,7 +202,21 @@ def _material(spec: Spec, ctx: StepContext) -> Spec:
     rann = _number("rann, the annihilation distance (b)", m.rann, f"{k}/rann",
                    "Segments closer than rann collide.")
     st.caption(f"maxseg = {maxseg * box:g} b, minseg = {minseg * box:g} b")
-    return spec.with_part("material", Material(burgmag, mu, nu, a, maxseg, minseg, rann))
+    extra = {}
+    if m.crystal is not None:
+        extra["crystal"] = _select("Crystal", CRYSTALS, m.crystal, f"{k}/crystal",
+                                   "state[\"crystal\"], which BCC_0B and the loops need.")
+    if m.rtol is not None or m.nextdt is not None:
+        st.markdown("**Time step control** (Trapezoid)")
+    if m.rtol is not None:
+        extra["rtol"] = _number("rtol, the error tolerance (b)", m.rtol, f"{k}/rtol",
+                                "The Trapezoid integrator halves the time step until the "
+                                "positions' error is below rtol.")
+    if m.nextdt is not None:
+        extra["nextdt"] = _number("nextdt, the first time step (s)", m.nextdt, f"{k}/nextdt")
+    return spec.with_part("material", replace(m, burgmag=burgmag, mu=mu, nu=nu, a=a,
+                                              maxseg_ratio=maxseg, minseg_ratio=minseg,
+                                              rann=rann, **extra))
 
 
 def _forces(spec: Spec, ctx: StepContext) -> Spec:
@@ -197,22 +234,40 @@ def _forces(spec: Spec, ctx: StepContext) -> Spec:
                    + ("; it is not positive, so set Ec" if default_ec <= 0 else ""))
     law = _select("Mobility law", choices["mobility_law"], f.mobility_law, f"{k}/mobility_law",
                   _help(choices["mobility_law"]))
+    if law == "BCC_0B":
+        medge = _number("Medge, the edge mobility (1/(Pa s))", f.Medge or 2600.0, f"{k}/Medge")
+        mscrew = _number("Mscrew, the screw mobility (1/(Pa s))", f.Mscrew or 2600.0,
+                         f"{k}/Mscrew")
+        mclimb = _number("Mclimb, the climb mobility (1/(Pa s))", f.Mclimb or 1e-4,
+                         f"{k}/Mclimb")
+        vmax = _number("vmax, the speed cap (m/s)", f.vmax or 3400.0, f"{k}/vmax",
+                       "The speed tends to vmax smoothly as the force grows.")
+        return spec.with_part("forces", replace(f, force_mode=mode, Ec=ec, mobility_law=law,
+                                                Medge=medge, Mscrew=mscrew, Mclimb=mclimb,
+                                                vmax=vmax))
     if st.checkbox("Set the mobility mob", f.mob is not None, key=f"{k}/own_mob"):
         mob = _number("mob", f.mob if f.mob is not None else 1.0, f"{k}/mob")
     else:
         mob = None
         st.caption(f"mob = 1.0, {name}'s default")
-    return spec.with_part("forces", Forces(mode, ec, law, mob))
+    return spec.with_part("forces", replace(f, force_mode=mode, Ec=ec, mobility_law=law,
+                                            mob=mob))
 
 
 def _timeint(spec: Spec, ctx: StepContext) -> Spec:
     """Step 4: the integrator and its time step."""
     t, k = spec.timeint, ctx.key
-    integrator = _select("Integrator", CHOICES[spec.engine]["integrator"], t.integrator,
-                         f"{k}/integrator", "Forward Euler with a fixed time step, "
-                         f"{ENGINE_NAMES[spec.engine]}'s integrator.")
+    choices = CHOICES[spec.engine]["integrator"]
+    integrator = _select("Integrator", choices, t.integrator, f"{k}/integrator", _help(choices))
+    if integrator == "Trapezoid":
+        multi = int(st.number_input("multi: Trapezoid steps in a row, up to maxdt", value=t.multi,
+                                    min_value=0, step=1, key=f"{k}/multi",
+                                    help="0 or 1: one step at a time."))
+        st.caption("The time step adapts: it starts from nextdt, and the error stays below "
+                   "rtol (both in step 2).")
+        return spec.with_part("timeint", replace(t, integrator=integrator, multi=multi))
     dt = _number("dt, the time step (s)", t.dt, f"{k}/dt")
-    return spec.with_part("timeint", TimeInt(integrator, dt))
+    return spec.with_part("timeint", replace(t, integrator=integrator, dt=dt))
 
 
 def _topology(spec: Spec, ctx: StepContext) -> Spec:
@@ -230,7 +285,7 @@ def _topology(spec: Spec, ctx: StepContext) -> Spec:
         return spec.with_part("topology", replace(t, topology_mode=mode,
                                                   collision_mode=collision, remesh_rule=remesh))
     split = _select("Split mode", choices["split_mode"], t.split_mode, f"{k}/split_mode",
-                    "MaxDiss splits a multi-node the way that dissipates the most energy.")
+                    _help(choices["split_mode"]))
     collision = _select("Collision", choices["collision_mode"], t.collision_mode,
                         f"{k}/collision_mode", "Proximity: segments closer than rann collide. "
                         "Retroactive: also the segments whose paths crossed during the step.")
@@ -245,12 +300,18 @@ def _topology(spec: Spec, ctx: StepContext) -> Spec:
 def _loading(spec: Spec, ctx: StepContext) -> Spec:
     """Step 6: the applied stress."""
     loading, k = spec.loading, ctx.key
-    mode = _select("Loading", CHOICES[spec.engine]["loading_mode"], loading.loading_mode,
-                   f"{k}/loading_mode", "A constant applied stress.")
+    choices = CHOICES[spec.engine]["loading_mode"]
+    mode = _select("Loading", choices, loading.loading_mode, f"{k}/loading_mode", _help(choices))
+    if mode == "strain_rate":
+        erate = _number("erate, the strain rate (1/s)", loading.erate or 1e3, f"{k}/erate")
+        edir = _vector("edir, the loading direction", loading.edir, f"{k}/edir",
+                       help_text="The script makes it of unit length.")
+        return spec.with_part("loading", replace(loading, loading_mode=mode, erate=erate,
+                                                 edir=edir))
     st.markdown("**Applied stress (Pa)**")
     stress = tuple(_number(f"σ_{label}", value, f"{k}/sigma_{label}", step=STRESS_STEP)
                    for label, value in zip(STRESS_LABELS, loading.applied_stress))
-    return spec.with_part("loading", Loading(mode, stress))
+    return spec.with_part("loading", replace(loading, loading_mode=mode, applied_stress=stress))
 
 
 def run_settings(spec: Spec, ctx: StepContext) -> Spec:

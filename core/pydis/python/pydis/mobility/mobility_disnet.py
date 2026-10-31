@@ -12,18 +12,47 @@ from framework.mobility_base import MobilityLaw_Base
 from typing import Tuple
 
 
+def matrix33_inverse(A: np.ndarray) -> np.ndarray:
+    """matrix33_inverse: the inverse of a 3x3 matrix, by its adjugate, as ParaDiS' Matrix33Invert
+       (Matrix.c)
+    """
+    C = np.array([[A[1,1]*A[2,2] - A[1,2]*A[2,1], A[1,2]*A[2,0] - A[1,0]*A[2,2], A[1,0]*A[2,1] - A[2,0]*A[1,1]],
+                  [A[2,1]*A[0,2] - A[0,1]*A[2,2], A[2,2]*A[0,0] - A[2,0]*A[0,2], A[2,0]*A[0,1] - A[2,1]*A[0,0]],
+                  [A[0,1]*A[1,2] - A[0,2]*A[1,1], A[0,2]*A[1,0] - A[1,2]*A[0,0], A[0,0]*A[1,1] - A[0,1]*A[1,0]]])
+    det = A[0,0]*C[0,0] + A[0,1]*C[0,1] + A[0,2]*C[0,2]
+    if abs(det) < 1e-20:
+        raise ValueError("matrix33_inverse: the matrix cannot be inverted")
+    return C.T / det
+
+
 class MobilityLaw(MobilityLaw_Base):
     """MobilityLaw: class for mobility laws
     """
-    def __init__(self, state: dict={}, mobility_law: str='Relax', vmax: float=1e9) -> None:
+    def __init__(self, state: dict={}, mobility_law: str='Relax', vmax: float=None,
+                 Medge: float=None, Mscrew: float=None, Mclimb: float=None) -> None:
         self.mobility_law = mobility_law
         self.mob = state.get("mob", 1.0)
-        self.vmax = vmax
+        # vmax caps the speed: in b/s for SimpleGlide, in m/s, smoothly, for BCC_0B (as ExaDiS)
+        self.vmax = (-1.0 if mobility_law == 'BCC_0B' else 1e9) if vmax is None else vmax
 
         self.NodeMobility_Functions = {
             'Relax': self.NodeMobility_Relax,
-            'SimpleGlide': self.NodeMobility_SimpleGlide
+            'SimpleGlide': self.NodeMobility_SimpleGlide,
+            'BCC_0B': self.NodeMobility_BCC_0B
         }
+        if mobility_law == 'BCC_0B':
+            if state.get("crystal", "bcc").lower() != "bcc":
+                raise ValueError("MobilityLaw BCC_0B: the crystal must be bcc")
+            if not all(M is not None and M > 0.0 for M in (Medge, Mscrew, Mclimb)):
+                raise ValueError("MobilityLaw BCC_0B: Medge, Mscrew and Mclimb must be positive")
+            self.Bedge, self.Bscrew, self.Beclimb = 1.0/Medge, 1.0/Mscrew, 1.0/Mclimb
+            self.Bscrew2, self.Beclimb2 = self.Bscrew*self.Bscrew, self.Beclimb*self.Beclimb
+            self.invBscrew2 = 1.0/(self.Bscrew*self.Bscrew)
+            self.invBedge2 = 1.0/(self.Bedge*self.Bedge)
+            self.Bline = 1.0e-2 * min(self.Bscrew, self.Bedge)
+            self.BlmBsc, self.BlmBecl = self.Bline - self.Bscrew, self.Bline - self.Beclimb
+            self.burgmag = state.get("burgmag", 1.0)
+            self.split3node = state.get("split3node", 1)
         
     def Mobility(self, DM: DisNetManager, state: dict) -> dict:
         """Mobility: calculate node velocity according to mobility law function
@@ -111,6 +140,105 @@ class MobilityLaw(MobilityLaw_Base):
         vel -= np.dot( np.dot(vel, normals.T), normals )
         return vel
     
+    @staticmethod
+    def bcc_binary_junction(G: DisNet, tag: Tag) -> tuple:
+        """bcc_binary_junction: the junction arm's direction at a binary junction node, and
+           whether the junction lies in its parent planes, as ExaDiS' BCC_binary_junction_node;
+           (None, False) for any other node
+        """
+        segs = G.neighbor_segments_dict(tag)
+        if len(segs) != 3:
+            return None, False
+        R1 = G.nodes(tag).R
+        tjunc, num_junc, num_glide, normals = None, 0, 0, []
+        for nbr_tag, edge in segs.items():
+            t = G.cell.closest_image(Rref=R1, R=G.nodes(nbr_tag).R) - R1
+            if np.dot(t, t) < 1e-12:
+                continue
+            t = t / np.linalg.norm(t)
+            b = edge.burg_vec_from(tag)
+            if np.linalg.norm(b) > 1.0 + 1e-12:
+                tjunc, num_junc = t, num_junc + 1
+            else:
+                n = np.cross(b, t)
+                if np.dot(n, n) > 1.0e-2:
+                    normals.append(n)
+                num_glide += 1
+        if num_junc != 1 or num_glide != 2:
+            return None, False
+        angletol = 5.0*np.pi/180.0
+        if len(normals) == 2:
+            tdir = np.cross(normals[0], normals[1])
+            cos_angle = np.dot(tdir, tjunc) / np.linalg.norm(tdir) / np.linalg.norm(tjunc)
+            planar = abs(abs(cos_angle) - 1.0) < 1.0 - np.cos(angletol)
+        elif len(normals) == 1:
+            planar = abs(np.dot(normals[0], tjunc)) < np.sin(angletol)
+        else:
+            planar = True  # both arms screw
+        return tjunc, planar
+
+    def NodeMobility_BCC_0B(self, G: DisNet, tag: Tag, f: np.array) -> np.array:
+        """NodeMobility_BCC_0B: velocity from the drag matrix of the arms' edge, screw and climb
+           mobilities, as ParaDiS' Mobility_BCC_0b (MobilityLaw_BCC_0b.c), with ExaDiS' handling
+           of binary junction nodes and its velocity cap (mobility_bcc0b.h)
+        """
+        node = G.nodes(tag)
+        segs = G.neighbor_segments_dict(tag)
+        if node.constraint == DisNode.Constraints.PINNED_NODE or len(segs) < 2:
+            return np.zeros(3)
+
+        linejunc, tjunc = False, None
+        if self.split3node:
+            tjunc, planar = self.bcc_binary_junction(G, tag)
+            # the node moves freely along a planar junction, or one that it unzips
+            linejunc = tjunc is not None and (planar or np.dot(f, tjunc) > 0.0)
+
+        eps = 1.0e-12
+        I = np.eye(3)
+        Btotal = np.zeros((3, 3))
+        num_nonzero = 0
+        R1 = node.R
+        for nbr_tag, edge in segs.items():
+            b = edge.burg_vec_from(tag)
+            dr = G.cell.closest_image(Rref=R1, R=G.nodes(nbr_tag).R) - R1
+            mag = np.linalg.norm(dr)
+            if mag < eps:
+                continue
+            num_nonzero += 1
+            dr = dr / mag
+            half = 0.5 * mag
+            if abs(b[0]*b[1]*b[2]) < eps:
+                # a [0 0 1] arm moves less readily
+                if linejunc:
+                    Btotal += half * self.Bline * I
+                elif len(segs) == 2:
+                    Btotal += half * self.Beclimb * I
+                else:
+                    Btotal += half * (self.BlmBecl * np.outer(dr, dr) + self.Beclimb * I)
+                continue
+            # the drag of a screw arm, then corrected for its edge part
+            Btotal += half * (self.BlmBsc * np.outer(dr, dr) + self.Bscrew * I)
+            bMag2 = np.dot(b, b)
+            costheta = np.dot(dr, b)
+            costheta2 = (costheta*costheta) * (1.0/bMag2)
+            if 1.0 - costheta2 > eps:
+                n = np.cross(b, dr) * (1.0/np.sqrt((1.0 - costheta2) * bMag2))
+                m = np.cross(n, dr)
+                if linejunc:
+                    n = n - np.dot(n, tjunc) * tjunc
+                    n = n / np.linalg.norm(n)
+                Bglide = 1.0 / np.sqrt(self.invBedge2 + (self.invBscrew2 - self.invBedge2) * costheta2)
+                Bclimb = np.sqrt(self.Beclimb2 + (self.Bscrew2 - self.Beclimb2) * costheta2)
+                Btotal += half * ((Bclimb - self.Bscrew) * np.outer(n, n) + (Bglide - self.Bscrew) * np.outer(m, m))
+        if num_nonzero == 0:
+            return np.zeros(3)
+
+        vel = np.dot(matrix33_inverse(Btotal), f)
+        speed = np.linalg.norm(vel) * self.burgmag  # m/s
+        if self.vmax > 0.0 and speed >= 1e-5:
+            vel = vel * (1.0 / (1.0 + (speed/self.vmax)**10)**0.1)
+        return vel
+
     def NodeMobility_SimpleGlide(self, G: DisNet, tag: Tag, f: np.array) -> np.array:
         """NodeMobility_SimpleGlide: node velocity equal node force divided by sum of arm length / 2
            To do: add glide constraints

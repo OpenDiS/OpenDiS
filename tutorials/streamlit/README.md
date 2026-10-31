@@ -81,7 +81,8 @@ environment, set `OPENDIS_PYTHON` to its Python, as in
 
 - **Banner:** "OpenDiS" with the logo of the OpenDiS website, pinned at the top.
 - **Sidebar:** the example, in a drop-down menu, and below it a second one, **Core**: PyDiS or
-  ExaDiS. For now the Frank-Read source and the initial configurations have both. Then the
+  ExaDiS. For now the Frank-Read source, the uniaxial tension and the initial configurations
+  have both. Then the
   steps, where a • marks a step whose values differ from the example's, and ‹ prev and next ›
   buttons. A simulation has seven steps; the initial configurations, which run no simulation,
   have two.
@@ -92,9 +93,10 @@ environment, set `OPENDIS_PYTHON` to its Python, as in
     whichever code runs the example; the
     simulation, which during a run is its newest snapshot, and after it a replay of all its
     snapshots, with ▶ play and a slider (it starts on the final network); and the history, the
-    number of nodes and the dislocation density of each snapshot against the time step. For
-    the initial configurations, the second view, **run**, shows the network that the run built,
-    and there is no history.
+    number of nodes and the dislocation density of each snapshot against the time step; for a
+    strain-rate run, also the stress against the strain, from the run's
+    `output/stress_strain_dens.dat`. For the initial configurations, the second view, **run**,
+    shows the network that the run built, and there is no history.
   - The cube first shows its x axis along its front-left edge and its y axis along its
     front-right edge, seen a little from the side rather than along its diagonal. Turn it
     with the mouse: the view you turn to stays when another network of the same example is
@@ -147,8 +149,26 @@ one entry per `label`, and the Core menu one per file of that label. The file ha
 | `examples/frank_read_src.md` | `examples/02_frank_read_src/test_frank_read_src_pydis.py` | `frank_read_src_loop` |
 | `examples/frank_read_src_exadis.md` | `examples/02_frank_read_src/test_frank_read_src_exadis.py` | `frank_read_src_loop` |
 | `examples/binary_junction.md` | `examples/03_binary_junction/test_binary_junction_pydis.py` | `two_disl_lines` |
+| `examples/uniaxial_tension.md` | `examples/05_uniaxial_tension/test_uniaxial_tension_pydis.py` | `loop_sources` |
+| `examples/uniaxial_tension_exadis.md` | `examples/05_uniaxial_tension/test_uniaxial_tension_exadis.py` | `loop_sources` |
 | `examples/initial_configurations.md` | `tutorials/01_initial_configurations/initial_configurations.py` | `simple_source` |
 | `examples/initial_configurations_exadis.md` | the same | `simple_source` |
+
+The uniaxial tension is the setup of `uniaxial_strain_rate.py`: four prismatic loops in a
+periodic bcc crystal, pulled along z at a constant strain rate. It follows ExaDiS's example
+`21_bcc_Ta_100nm_2e8`, with a larger box, fewer loops and a much lower strain rate. Its two
+tutorials in `examples/05_uniaxial_tension/` run it with each core. It takes options that the
+other examples do not: the crystal, `rtol` and `nextdt` in step 2; the mobility law `BCC_0B`,
+with `Medge`, `Mscrew`, `Mclimb` and `vmax`; the integrator `Trapezoid`, whose time step
+adapts, with `multi` steps in a row; and the loading `strain_rate`, with `erate` and `edir`. PyDiS had neither `BCC_0B` nor `Trapezoid`. They are
+now in `core/pydis/python/pydis/mobility/mobility_disnet.py` and `timeint/timeint_disnet.py`,
+translated from ParaDiS's `MobilityLaw_BCC_0b.c` and `TrapezoidIntegrator.c`. Compared with
+ExaDiS, they follow it where ExaDiS adds to ParaDiS: the junction nodes and the speed cap of
+`BCC_0B`, the prediction from the current velocities, and the steps in a row. PyDiS splits the
+multi-nodes in its `Serial` mode, which the app now offers next to `MaxDiss`. With `MaxDiss`,
+the two new nodes stay on top of each other, a junction node splits and merges again at every
+step, and the time step stalls near 1e-11 s. PyDiS runs 50 steps by default, in about 15 s;
+its 500 steps take about 20 minutes, ExaDiS's about 11 s.
 
 The initial configurations follow the tutorial's script, which builds a network in one of five
 ways and plots it. Its options 1 (PyDiS) and 2 (ExaDiS) are one network here, the simple
@@ -260,10 +280,11 @@ Each test prints `PASS` or `FAIL` for every check, and exits with a non-zero cod
 - **`test_views`**: the initial configurations, as PyDiS builds them; a network written by
   `DisNetManager.write_json` and read back without PyDiS, across a periodic boundary; the
   periodic images, against PyDiS's own `Cell.closest_image`; the figures (their traces, the
-  first view, the camera kept); and a run's results (300 snapshots played as 120, the history,
-  the zip).
+  first view, the camera kept, the stress against the strain of a strain-rate run); and a run's
+  results (300 snapshots played as 120, the history, the zip).
 - **`test_app_smoke`**: the banner, the two menus in the sidebar, no chat, ExaDiS's status,
-  every step of both examples with each of their codes, a change and a reset, and a 20-step
+  every step of the Frank-Read source, the binary junction and the uniaxial tension, with each
+  of their cores, a change and a reset, and a 20-step
   run of the binary junction: its output, status and downloads, and the networks that the 3-D
   window's component gets (AppTest does not run the component's script); then the Python
   console, and **🗑 clear all results**. Then a 20-step run of the Frank-Read source with
@@ -273,8 +294,8 @@ Each test prints `PASS` or `FAIL` for every check, and exits with a non-zero cod
 - **`test_console`**: for each example and code, a 20-step run (the initial configurations
   build their network), then a session whose `G`, `sim` and `net` are the run's (no `sim`
   for a build); then, in one session on the binary junction's run: `state`, code of several
-  lines, `print`, an error's traceback, names that stay, `snapshot()`, a file written to the session's own copy,
-  the app's environment kept out, `input()`, the guard rails (shell commands, subprocess,
+  lines, `print`, an error's traceback, names that stay, `snapshot()`, a file written to the
+  session's own copy, the app's environment kept out, `input()`, the guard rails (shell commands, subprocess,
   sockets, threads, signals, native libraries, writes and removals outside, the repository's
   git files, and a replaced `os.path.abspath`), PyDiS's own computations, `import pyexadis`
   where ExaDiS is built for this Python, the limit on sessions, and a command that runs too

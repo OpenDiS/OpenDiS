@@ -58,9 +58,9 @@ def main() -> int:  # pylint: disable=too-many-locals,too-many-statements
         check("the page loads without an exception", not at.exception, at.exception),
         check("the banner says OpenDiS, with the logo", "<h1>OpenDiS</h1>" in text
               and "data:image/png;base64," in text),
-        check("in the sidebar, the Example menu: Frank-Read src, Binary junction, Initial "
-              "configurations", len(picker) == 1 and picker[0].options ==
-              ["Frank-Read src", "Binary junction", "Initial configurations"],
+        check("in the sidebar, the Example menu: Frank-Read src, Binary junction, Uniaxial "
+              "tension, Initial configurations", len(picker) == 1 and picker[0].options ==
+              ["Frank-Read src", "Binary junction", "Uniaxial tension", "Initial configurations"],
               [s.options for s in at.selectbox]),
         check("below it, the Core menu of the Frank-Read source: PyDiS, ExaDiS",
               codes == [(["PyDiS", "ExaDiS"], "PyDiS", False)], codes),
@@ -81,6 +81,7 @@ def main() -> int:  # pylint: disable=too-many-locals,too-many-statements
 
     # every step of each example and code, by next › (the binary junction last)
     for example, code in (("Frank-Read src", "PyDiS"), ("Frank-Read src", "ExaDiS"),
+                          ("Uniaxial tension", "PyDiS"), ("Uniaxial tension", "ExaDiS"),
                           ("Initial configurations", "PyDiS"),
                           ("Initial configurations", "ExaDiS"), ("Binary junction", "PyDiS")):
         at = page()

@@ -19,8 +19,8 @@ import textwrap
 from dataclasses import replace
 
 from common.paths import OPENDIS_DIR, PYDIS_PATHS
-from common.spec import (FrankReadSource, InfiniteLines, ParaDiSFile, SimpleSource, Spec,
-                         TwoLines)
+from common.spec import (FrankReadSource, InfiniteLines, LoopSources, ParaDiSFile,
+                         SimpleSource, Spec, TwoLines)
 
 EXADIS_PATHS = PYDIS_PATHS + ("core/exadis/python",)  # as in the ExaDiS tutorials' scripts
 
@@ -172,6 +172,7 @@ class SimulateNetworkJSON(SimulateNetwork):
         if self.write_freq is not None and state["istep"] % self.write_freq == 0:
             N.write_json(os.path.join(self.write_dir, 'disnet_%d.json' % state["istep"]))
 '''
+INIT_FUNCTIONS.update({(engine, LoopSources.kind): "" for engine in ("pydis", "exadis")})
 DEFAULT_BURGERS = {"burg_vec": (1.0, 0.0, 0.0), "b1": (-1.0, 1.0, 1.0), "b2": (1.0, -1.0, 1.0)}
 
 
@@ -189,6 +190,15 @@ def _config(spec: Spec) -> str:
                 f"net = init_frank_read_src_loop(box_length=Lbox,\n"
                 f"                               arm_length={num(c.arm_ratio)}*Lbox, "
                 f"pbc={c.pbc}{_optional_burgers(c, ('burg_vec',))})\n")
+    if isinstance(c, LoopSources):  # with step 2's crystal and maxseg
+        m = spec.material
+        return (f"Lbox = {num(c.box_length)}\n"
+                f"G = {'ExaDisNet' if spec.engine == 'exadis' else 'DisNet'}()\n"
+                f"G.generate_prismatic_config({m.crystal!r}, Lbox, {c.num_loops}, "
+                f"{num(c.radius_ratio)}*Lbox,\n"
+                f"                            {num(m.maxseg_ratio)}*Lbox, uniform={c.uniform}, "
+                f"seed={c.seed})\n"
+                f"net = DisNetManager(G)\n")
     return (f"Lbox = {num(c.box_length)}\n"
             f"z0 = {num(c.z0)}\n"
             f"net = init_two_disl_lines(z0=z0, box_length=Lbox, "
@@ -198,16 +208,24 @@ def _config(spec: Spec) -> str:
 def _material(spec: Spec) -> str:
     """Step 2: the state dictionary."""
     m = spec.material
+    extras = ", ".join(f'"{name}": {value!r}' if isinstance(value, str) else f'"{name}": {num(value)}'
+                       for name, value in (("crystal", m.crystal), ("rtol", m.rtol),
+                                           ("nextdt", m.nextdt)) if value is not None)
     return (f'state = {{"burgmag": {num(m.burgmag)}, "mu": {num(m.mu)}, "nu": {num(m.nu)}, '
             f'"a": {num(m.a)},\n'
             f'         "maxseg": {num(m.maxseg_ratio)}*Lbox, "minseg": {num(m.minseg_ratio)}*Lbox, '
-            f'"rann": {num(m.rann)}}}\n')
+            f'"rann": {num(m.rann)}' + (f",\n         {extras}" if extras else "") + "}\n")
 
 
 def _forces(spec: Spec) -> str:
     """Step 3: the force and the mobility modules."""
     f = spec.forces
     ec = "" if f.Ec is None else f", Ec={num(f.Ec)}"
+    if f.mobility_law == "BCC_0B":
+        vmax = "" if f.vmax is None else f", vmax={num(f.vmax)}"
+        return (f"calforce  = CalForce(force_mode={f.force_mode!r}, state=state{ec})\n"
+                f"mobility  = MobilityLaw(mobility_law='BCC_0B', state=state, Medge={num(f.Medge)},\n"
+                f"                        Mscrew={num(f.Mscrew)}, Mclimb={num(f.Mclimb)}{vmax})\n")
     if spec.engine == "exadis":  # ExaDiS's mobility takes mob as an argument
         mob = "" if f.mob is None else f", mob={num(f.mob)}"
         return (f"calforce  = CalForce(force_mode={f.force_mode!r}, state=state{ec})\n"
@@ -221,6 +239,10 @@ def _forces(spec: Spec) -> str:
 def _timeint(spec: Spec) -> str:
     """Step 4: the time integrator."""
     t = spec.timeint
+    if t.integrator == "Trapezoid":  # its time step adapts, from state["nextdt"]
+        multi = f"multi={t.multi}, " if t.multi else ""
+        return (f"timeint   = TimeIntegration(integrator='Trapezoid', {multi}state=state,\n"
+                f"                            force=calforce, mobility=mobility)\n")
     return (f"timeint   = TimeIntegration(integrator={t.integrator!r}, dt={num(t.dt)},\n"
             f"                            state=state)\n")
 
@@ -245,13 +267,18 @@ def _topology(spec: Spec) -> str:
 
 
 def _loading(spec: Spec) -> str:
-    """Step 6: the applied stress."""
-    return f"applied_stress = {array(spec.loading.applied_stress)}\n"
+    """Step 6: the applied stress, or the strain rate and its direction."""
+    loading = spec.loading
+    if loading.loading_mode == "strain_rate":
+        return f"erate = {num(loading.erate)}\nedir = {array(loading.edir)}\n"
+    return f"applied_stress = {array(loading.applied_stress)}\n"
 
 
 def _run(spec: Spec) -> str:
     """Step 7: the simulation, and its run."""
     r, loading_mode = spec.run, spec.loading.loading_mode
+    load = ('erate=erate, edir=edir, burgmag=state["burgmag"],' if loading_mode == "strain_rate"
+            else "applied_stress=applied_stress,")
     if spec.engine == "exadis":
         return (f"vis = VisualizeNetwork()\n"
                 f"sim = SimulateNetworkJSON(calforce=calforce, mobility=mobility,\n"
@@ -259,7 +286,7 @@ def _run(spec: Spec) -> str:
                 f"                          topology=topology, remesh=remesh, vis=vis,\n"
                 f"                          state=state, max_step={r.max_step}, "
                 f"loading_mode={loading_mode!r},\n"
-                f"                          applied_stress=applied_stress,\n"
+                f"                          {load}\n"
                 f"                          print_freq={r.print_freq}, plot_freq={r.plot_freq}, "
                 f"plot_pause_seconds={num(r.plot_pause_seconds)},\n"
                 f"                          write_freq={r.write_freq}, write_dir='output')\n"
@@ -270,7 +297,7 @@ def _run(spec: Spec) -> str:
             f"                      collision=collision, remesh=remesh, vis=vis,\n"
             f"                      state=state, max_step={r.max_step}, "
             f"loading_mode={loading_mode!r},\n"
-            f"                      applied_stress=applied_stress,\n"
+            f"                      {load}\n"
             f"                      print_freq={r.print_freq}, plot_freq={r.plot_freq}, "
             f"plot_pause_seconds={num(r.plot_pause_seconds)},\n"
             f"                      write_freq={r.write_freq}, write_dir='output', "
@@ -458,4 +485,4 @@ def init_code(spec: Spec) -> str:
     return ("import numpy as np\n"
             "from framework.disnet_manager import DisNetManager\n"
             "from pydis import DisNode, DisNet, Cell\n\n"
-            + INIT_FUNCTIONS["pydis", spec.config.kind] + "\n" + _config(spec))
+            + INIT_FUNCTIONS["pydis", spec.config.kind] + "\n" + _config(replace(spec, engine="pydis")))

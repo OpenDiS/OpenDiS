@@ -66,6 +66,7 @@ def main() -> int:  # pylint: disable=too-many-locals
         azimuth = np.degrees(np.arctan2(eye.y, eye.x))
         elevation = np.degrees(np.arctan2(eye.z, np.hypot(eye.x, eye.y)))
         history = views.history_figure([0, 10], [7, 9], [5e12, 6e12])
+        tension = views.history_figure([0, 10], [7, 9], [5e12, 6e12], ([0.0, 1e-4], [0.0, 5e7]))
         payload = network3d.frames_payload([("step 0", fr), ("final", bj)])
         again = network3d.frames_payload([("step 0", fr), ("final", bj)])
         other = network3d.frames_payload([("step 0", fr)])
@@ -89,6 +90,9 @@ def main() -> int:  # pylint: disable=too-many-locals
                   and np.isclose(np.linalg.norm([eye.x, eye.y, eye.z]), 1.15 * 1.25 * np.sqrt(3),
                                  atol=1e-3), (azimuth, elevation)),
             check("the history: nodes and density", len(history.data) == 2),
+            check("a strain-rate run's history: also the stress (MPa) against the strain",
+                  len(tension.data) == 3 and list(tension.data[2].y) == [0.0, 50.0]
+                  and tension.layout.height > history.layout.height),
         ]
 
         # a run's results: 300 snapshots of the triangle, its final network, and one more

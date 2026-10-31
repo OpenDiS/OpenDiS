@@ -143,8 +143,9 @@ def main() -> int:  # pylint: disable=too-many-locals
     looks = [codegen.num(v) for v in (50e9, 3e-10, 1e-8, -4e8, 1e6)]
     results = [
         check("the input files have no problems", not problems, problems),
-        check("five examples, in order", [e.name for e in examples] ==
+        check("seven examples, in order", [e.name for e in examples] ==
               ["frank_read_src", "frank_read_src_exadis", "binary_junction",
+               "uniaxial_tension", "uniaxial_tension_exadis",
                "initial_configurations", "initial_configurations_exadis"],
               [e.name for e in examples]),
         check("num: every number comes back exactly", not inexact, inexact),

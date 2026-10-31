@@ -55,6 +55,19 @@ def _measure(path: Path, _mtime: float) -> tuple[int, float, float]:
             abs(float(np.linalg.det(net.h))))
 
 
+def stress_strain(folder: job.RunFolder) -> tuple[np.ndarray, np.ndarray] | None:
+    """The run's strain and stress (Pa), from output/stress_strain_dens.dat, which SimulateNetwork
+    writes in the same format with either code; None without the file, or while it is written."""
+    path = folder.output / "stress_strain_dens.dat"
+    try:
+        table = np.atleast_2d(np.loadtxt(path, comments="#"))
+    except (OSError, ValueError):
+        return None
+    if table.shape[0] == 0 or table.shape[1] < 3:
+        return None
+    return table[:, 1], table[:, 2]
+
+
 def output_zip(folder: job.RunFolder) -> bytes:
     """Everything in ``output/``, zipped, with the script, the spec and the log."""
     buffer = io.BytesIO()

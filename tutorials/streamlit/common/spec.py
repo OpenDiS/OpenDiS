@@ -35,8 +35,8 @@ ENGINES = ("pydis", "exadis")
 ENGINE_NAMES = {"pydis": "PyDiS", "exadis": "ExaDiS"}
 # The initial configurations that each code's scripts build
 BUILDS = ("simple_source", "paradis_file", "line_config", "prismatic_config")  # no simulation
-ENGINE_KINDS = {"pydis": ("frank_read_src_loop", "two_disl_lines") + BUILDS,
-                "exadis": ("frank_read_src_loop",) + BUILDS}
+ENGINE_KINDS = {"pydis": ("frank_read_src_loop", "two_disl_lines", "loop_sources") + BUILDS,
+                "exadis": ("frank_read_src_loop", "loop_sources") + BUILDS}
 CRYSTALS = ("fcc", "bcc")
 PARADIS_FILES = ("examples/10_strain_hardening/180chains_16.10e.data",)  # of the repository
 MAX_BUILT = 500  # lines or loops in a generated network
@@ -45,19 +45,19 @@ MAX_BUILT = 500  # lines or loops in a generated network
 # topology mode in PyDiS) is neither offered nor checked for it.
 CHOICES = {
     "pydis": {"force_mode": ("LineTension", "Elasticity_SBA"),
-              "mobility_law": ("SimpleGlide", "Relax"),
-              "integrator": ("EulerForward",),
-              "split_mode": ("MaxDiss",),
+              "mobility_law": ("SimpleGlide", "Relax", "BCC_0B"),
+              "integrator": ("EulerForward", "Trapezoid"),
+              "split_mode": ("MaxDiss", "Serial"),
               "collision_mode": ("Proximity", "Retroactive"),
               "remesh_rule": ("LengthBased",),
-              "loading_mode": ("stress",)},
+              "loading_mode": ("stress", "strain_rate")},
     "exadis": {"force_mode": ("LineTension",),
-               "mobility_law": ("SimpleGlide",),
-               "integrator": ("EulerForward",),
+               "mobility_law": ("SimpleGlide", "BCC_0B"),
+               "integrator": ("EulerForward", "Trapezoid"),
                "topology_mode": ("None", "TopologySerial", "TopologyParallel"),
                "collision_mode": ("Retroactive", "Proximity"),
                "remesh_rule": ("LengthBased",),
-               "loading_mode": ("stress",)},
+               "loading_mode": ("stress", "strain_rate")},
 }
 CHOICE_LABELS = {"force_mode": "force mode", "mobility_law": "mobility law",
                  "integrator": "integrator", "split_mode": "split mode",
@@ -129,6 +129,30 @@ class TwoLines:
             errors.append("z0: must be in (0, box length / 2), so that the lines fit in the box")
         errors += _burgers_problems("b1", self.b1, {"first line": (0.0, 1.0, 1.0)})
         return errors + _burgers_problems("b2", self.b2, {"second line": (1.0, 0.0, 1.0)})
+
+
+@dataclass(frozen=True)
+class LoopSources:
+    """Step 1 of the uniaxial tension: prismatic loops of the crystal's Burgers vectors in a
+    periodic box, as generate_prismatic_config makes them, the crystal and maxseg of step 2."""
+
+    kind: ClassVar[str] = "loop_sources"
+    simulates: ClassVar[bool] = True
+    box_length: float
+    num_loops: int = 4
+    radius_ratio: float = 0.21  # radius = radius_ratio * Lbox
+    seed: int = 123
+    uniform: bool = True
+
+    def problems(self) -> list[str]:
+        """What is wrong with these values."""
+        errors = [] if 1 <= self.num_loops <= MAX_BUILT else [
+            f"number of loops: must be in [1, {MAX_BUILT}]"]
+        if not 0.0 < self.radius_ratio < 0.5:
+            errors.append("radius / Lbox: must be in (0, 0.5)")
+        if self.seed < 1:
+            errors.append("seed: must be at least 1, so that the network is the same every time")
+        return errors
 
 
 # The initial configurations of the tutorial tutorials/01_initial_configurations: a script that
@@ -237,8 +261,8 @@ class PrismaticLoops:
 
 
 BUILT = (SimpleSource, ParaDiSFile, InfiniteLines, PrismaticLoops)  # the menu of step 1
-CONFIGS = {cls.kind: cls for cls in (FrankReadSource, TwoLines) + BUILT}
-Config = Union[FrankReadSource, TwoLines, SimpleSource, ParaDiSFile, InfiniteLines,
+CONFIGS = {cls.kind: cls for cls in (FrankReadSource, TwoLines, LoopSources) + BUILT}
+Config = Union[FrankReadSource, TwoLines, LoopSources, SimpleSource, ParaDiSFile, InfiniteLines,
                PrismaticLoops]
 
 
@@ -253,6 +277,9 @@ class Material:
     maxseg_ratio: float  # maxseg = maxseg_ratio * Lbox
     minseg_ratio: float  # minseg = minseg_ratio * Lbox
     rann: float          # annihilation distance, in b
+    crystal: str | None = None   # state["crystal"], which BCC_0B and loop_sources need
+    rtol: float | None = None    # the Trapezoid's error tolerance (b); None is 0.25 a
+    nextdt: float | None = None  # its first time step (s); None is 1e-12
 
 
 @dataclass(frozen=True)
@@ -263,6 +290,10 @@ class Forces:
     Ec: float | None = None   # core energy; None is the default, mu/(4 pi) ln(a/0.1)
     mobility_law: str = "SimpleGlide"
     mob: float | None = None  # mobility; None is the default, 1.0
+    Medge: float | None = None   # BCC_0B's mobilities (1/(Pa s)) and speed cap (m/s)
+    Mscrew: float | None = None
+    Mclimb: float | None = None
+    vmax: float | None = None
 
 
 @dataclass(frozen=True)
@@ -270,7 +301,8 @@ class TimeInt:
     """Step 4: the time integrator and its time step."""
 
     integrator: str = "EulerForward"
-    dt: float = 1.0e-8  # s
+    dt: float = 1.0e-8  # s, EulerForward's
+    multi: int = 0      # Trapezoid's steps in a row, up to maxdt
 
 
 @dataclass(frozen=True)
@@ -290,6 +322,8 @@ class Loading:
 
     loading_mode: str = "stress"
     applied_stress: Stress = (0.0, 0.0, 0.0, 0.0, 0.0, 0.0)  # Pa, Voigt order
+    erate: float = 0.0               # strain_rate's: the strain rate (1/s) along edir
+    edir: Vec3 = (0.0, 0.0, 1.0)
 
 
 @dataclass(frozen=True)
@@ -379,11 +413,26 @@ class Spec:  # pylint: disable=too-many-instance-attributes
                     errors.append(f"{CHOICE_LABELS[name]}: must be one of "
                                   f"{', '.join(choices[name])}")
         f = self.forces
-        for label, value in (("Ec", f.Ec), ("mob", f.mob)):
+        for label, value in (("Ec", f.Ec), ("mob", f.mob), ("vmax", f.vmax), ("rtol", m.rtol),
+                             ("nextdt", m.nextdt)):
             if value is not None and value <= 0:
                 errors.append(f"{label}: must be positive")
+        if f.mobility_law == "BCC_0B":
+            if m.crystal != "bcc":
+                errors.append("mobility law BCC_0B: needs the bcc crystal (step 2)")
+            if not all(x is not None and x > 0 for x in (f.Medge, f.Mscrew, f.Mclimb)):
+                errors.append("mobility law BCC_0B: Medge, Mscrew and Mclimb must be positive")
+        if isinstance(self.config, LoopSources) and m.crystal not in CRYSTALS:
+            errors.append(f"crystal: the loops need one of {', '.join(CRYSTALS)} (step 2)")
         if self.timeint.dt <= 0:
             errors.append("dt: must be positive")
+        if self.timeint.multi < 0:
+            errors.append("multi: must not be negative")
+        if self.loading.loading_mode == "strain_rate":
+            if self.loading.erate == 0.0:
+                errors.append("erate: must not be zero")
+            if not any(self.loading.edir):
+                errors.append("edir: must not be zero")
         if self.engine == "pydis" and not all(1 <= n <= MAX_N_DIV for n in self.topology.n_div):
             errors.append(f"cell list divisions: each must be in [1, {MAX_N_DIV}]")
         r = self.run
