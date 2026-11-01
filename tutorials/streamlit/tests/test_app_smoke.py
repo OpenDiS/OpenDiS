@@ -59,8 +59,9 @@ def main() -> int:  # pylint: disable=too-many-locals,too-many-statements
     initial = shown(at)
     results = [
         check("the page loads without an exception", not at.exception, at.exception),
-        check("the banner says OpenDiS, with the logo", "<h1>OpenDiS</h1>" in text
-              and "data:image/png;base64," in text),
+        check("the banner says OpenDiS, with the logo, which links to the website",
+              "<h1>OpenDiS</h1>" in text and "data:image/png;base64," in text
+              and 'href="https://opendis.github.io/OpenDiS/" target="_blank"' in text),
         check("in the sidebar, the Example menu: Frank-Read src, Binary junction, Uniaxial "
               "tension, User stress, Initial configurations", len(picker) == 1
               and picker[0].options == ["Frank-Read src", "Binary junction", "Uniaxial tension",

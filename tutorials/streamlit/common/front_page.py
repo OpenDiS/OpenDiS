@@ -38,32 +38,37 @@ STOP_S = 30 * 60  # ...until this long after the page opened; then a click refre
 OPENED = "front_page_opened"  # session key: when the table began to refresh itself
 GAUGE = re.compile(r"^active_sessions\s+(\d+)(?:\.0*)?\s*$", re.MULTILINE)
 CSS = """<style>
-p.opendis-guide { max-width: 46rem; margin: 0.6rem auto 1.2rem !important; text-align: center; }
-table.opendis-engines { margin: 0 auto; border-collapse: separate; border-spacing: 0.6rem 0.4rem; }
-.opendis-engines td { min-width: 10.5rem; padding: 0.45rem 0.8rem; border-radius: 0.4rem;
-  border: 1px solid #b8c5d4; color: #1a2332; white-space: nowrap; }
+table.opendis-engines { width: 100%; max-width: 59rem; margin: 0.2rem auto 0; table-layout: fixed;
+  border-collapse: separate; border-spacing: 0.45rem 0.35rem; font-size: 0.85rem; }
+.opendis-engines td { padding: 0.3rem 0.65rem; border-radius: 0.35rem; border: 1px solid #b8c5d4;
+  color: #1a2332; white-space: nowrap; overflow: hidden; line-height: 1.4; }
+.opendis-engines td a { font-size: 0.85rem !important; }
 .opendis-engines a { color: #1a2332 !important; font-weight: 600; text-decoration: none; }
 .opendis-engines a:hover { text-decoration: underline; }
-.opendis-engines .state { float: right; margin-left: 1rem; font-size: 0.9em; }
+.opendis-engines .state { float: right; margin-left: 0.5rem; font-size: 0.8rem !important; }
 .opendis-engines .free { background: #dff3e4; }
 .opendis-engines .busy { background: #fbe9c8; }
 .opendis-engines .asleep { background: #eceff3; color: #5f6b78; }
 .opendis-engines .missing { background: #f6f7f9; color: #9aa4b0; }
 .opendis-engines .missing a { color: #9aa4b0 !important; }
-.st-key-opendis_news { max-width: 59rem; margin: 0.8rem auto 0 !important;
-  padding: 0.7rem 1.1rem 0.95rem; background: #fff6dc; border: 1px solid #e9c46a;
-  border-left: 0.35rem solid #e0a800; border-radius: 0.4rem; }
-.st-key-opendis_news p { color: #1a2332; margin: 0 !important; }
+.st-key-opendis_news, .st-key-opendis_guide { max-width: 59rem; margin: 0.8rem auto 0 !important;
+  padding: 0.7rem 1.1rem 0.95rem; border-radius: 0.4rem; }
+.st-key-opendis_news { background: #fff6dc; border: 1px solid #e9c46a;
+  border-left: 0.35rem solid #e0a800; }
+.st-key-opendis_guide { background: #eef4fa; border: 1px solid #b8c5d4;
+  border-left: 0.35rem solid #5b7fa6; }
+.st-key-opendis_news p, .st-key-opendis_guide p { color: #1a2332; margin: 0 0 0.55rem !important; }
+.st-key-opendis_news p:last-child, .st-key-opendis_guide p:last-child { margin: 0 !important; }
 .st-key-opendis_note { max-width: 59rem; margin: 0.4rem auto 0 !important; }
 </style>"""
 _LOCK = threading.Lock()  # one round of reads at a time, for all sessions of this process
 _LAST = {"time": float("-inf"), "engines": []}  # the last round: when, and its engines
-GUIDE = ("<b>Pick a free engine.</b> Each engine runs the OpenDiS app on a server of its own, "
+GUIDE = ("**Pick a free engine.** Each engine runs the OpenDiS app on a server of its own, "
          "for one user. Its count is the number of browser tabs open on it now. An engine "
          "opens in a new tab. An asleep engine wakes up when you open it: press its button, "
-         "and wait a minute or two.<br><br>"
+         "and wait a minute or two.\n\n"
          "Everyone who opens the same engine shares it, which can be confusing. For example, "
-         "another user may press <i>clear all results</i>, which wipes out your results too. "
+         "another user may press *clear all results*, which wipes out your results too. "
          "When you close the engine's browser tab, you release the engine. If you do not use "
          f"it for {IDLE[1]:g} minutes, it signs you off, so that another user can have it.")
 SIGNED_OFF = re.compile(r"opendis-\d\d")  # the name in the address after a sign-off
@@ -167,13 +172,15 @@ def news() -> str:
 
 
 def _body(live: bool) -> None:
-    """The announcements, the guide and the table, which their fragment refreshes: a pushed
-    announcement shows without a reload. After STOP_S, a full run stops the refresh."""
+    """The announcements and the guide, each in its box, then the table, which their fragment
+    refreshes: a pushed announcement shows without a reload. After STOP_S, a full run stops
+    the refresh."""
     text = news()
     if text:
         with st.container(key="opendis_news"):
             st.markdown(text)
-    st.markdown(f'<p class="opendis-guide">{GUIDE}</p>', unsafe_allow_html=True)
+    with st.container(key="opendis_guide"):
+        st.markdown(GUIDE)
     st.markdown(table_html(recent()), unsafe_allow_html=True)
     if live and time.time() - st.session_state[OPENED] > STOP_S:
         st.rerun()

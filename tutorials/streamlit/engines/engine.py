@@ -2,9 +2,9 @@
 
 Streamlit Community Cloud deploys one app per entry file. So each engine,
 ``opendis-NN.streamlit.app``, has its own, ``opendis_NN.py``, which calls ``main()`` (README.md).
-The engine's banner shows its number, and its users at that moment. A session without a click
-for an hour is signed off: its tab goes back to the front page, which frees the engine. Use
-that stays in the browser, as a turn of the 3-D window, closes the warning that comes first.
+The right end of the engine's banner shows its number, and its users at that moment. A session
+without a click for an hour is signed off: its tab goes back to the front page, which frees the
+engine. Use that stays in the browser, as a turn of the 3-D window, closes the warning first.
 """
 import json
 import math
@@ -29,10 +29,12 @@ CSS = """<style>
 [data-testid="stLayoutWrapper"]:has(> .st-key-opendis_engine), .st-key-opendis_engine {
   position: fixed; top: 0; left: 0; width: 0; height: 0; z-index: 2147483002; }
 .opendis-users { position: fixed; top: 0; right: 1rem; height: var(--opendis-banner-h, 2.9rem);
-  display: flex; align-items: center; z-index: 2147483002; color: #1a2332; font-size: 0.95rem; }
-.opendis-users span { padding: 0.1rem 0.65rem; border-radius: 0.8rem; background: #f4f7fa;
-  border: 1px solid #b8c5d4; }
-.opendis-users span.shared { background: #fbe9c8; border-color: #e0a800; }
+  display: flex; align-items: center; gap: 0.3rem; z-index: 2147483002; color: #4a5a6e;
+  font-size: 0.85rem; }
+.opendis-users .num { font-family: "Source Code Pro", ui-monospace, Menlo, Consolas, monospace;
+  font-size: 1.05rem; font-weight: 600; color: #1a2332; padding: 0 0.3rem; border-radius: 0.3rem; }
+.opendis-users .num.shared { background: #fbe9c8; box-shadow: 0 0 0 1px #e0a800; }
+.opendis-users .sep { margin: 0 0.3rem; color: #8a96a3; }
 .st-key-opendis_idle { position: fixed; top: calc(var(--opendis-banner-h, 2.9rem) + 0.6rem);
   left: 50%; transform: translateX(-50%); width: min(36rem, 92vw); z-index: 2147483002;
   background: #ffffff; border-radius: 0.5rem; padding: 0.6rem 0.8rem 0.8rem;
@@ -147,13 +149,15 @@ def sessions() -> int | None:
         return None  # no runtime, as in a test, or another Streamlit
 
 
-def users_html(count: int | None) -> str:
-    """The banner's count of users, at its right end; amber when another tab shares the engine."""
-    if count is None:
-        return ""
-    label = f"{count} user" + ("" if count == 1 else "s")
-    return (f'<div class="opendis-users"><span class="{"shared" if count > 1 else ""}" '
-            f'title="Browser tabs open on this engine now">{label}</span></div>')
+def badge_html(nn: str, count: int | None) -> str:
+    """The banner's right end: "engine 00 · users 1", the numbers in the code font. The users
+    turn amber when another tab shares the engine. Without a count, the number alone."""
+    users = "" if count is None else (
+        '<span class="sep">·</span><span class="label">users</span>'
+        f'<span class="num{" shared" if count > 1 else ""}" '
+        f'title="Browser tabs open on this engine now">{count}</span>')
+    return (f'<div class="opendis-users"><span class="label">engine</span>'
+            f'<span class="num">{nn}</span>{users}</div>')
 
 
 def _touch() -> None:
@@ -161,8 +165,8 @@ def _touch() -> None:
 
 
 def _watch(name: str) -> None:
-    """The banner's count of users, then the idle check: a warning, then the sign-off."""
-    st.markdown(CSS + users_html(sessions()), unsafe_allow_html=True)
+    """The banner's number and users, then the idle check: a warning, then the sign-off."""
+    st.markdown(CSS + badge_html(name.rsplit("-", 1)[-1], sessions()), unsafe_allow_html=True)
     idle_min, warning_min = setting(*IDLE), setting(*WARNING)
     idle_s = time.time() - st.session_state.get(TOUCHED, time.time())
     state = idle_state(idle_s, idle_min, warning_min)
@@ -182,7 +186,7 @@ def _watch(name: str) -> None:
 
 def main() -> None:
     """Run the app's page as ``app.py`` does, after a reset if one is due, with the engine's
-    number in the banner, its users, and the idle check.
+    number and users in the banner, and the idle check.
 
     The app's folder goes first on sys.path, for the app's imports, and on PYTHONPATH:
     Streamlit reloads a changed module only if it lies in the entry file's folder or on
@@ -198,13 +202,13 @@ def main() -> None:
         st.cache_resource.clear()
         print(f"[OpenDiS engine] reset: deleted the results of {deleted} run(s), kept {kept}",
               file=sys.stderr, flush=True)
-    from common import style  # pylint: disable=import-outside-toplevel
     nn = number()
     if nn is not None:
-        style.BANNER_TITLE = f"OpenDiS {nn}"  # the banner and the tab, as app.py reads it
         _touch()  # every page run comes from a click, or from a push
         with st.container(key="opendis_engine"):  # out of the page's flow: no gap above the app
             st.html(TRACK, unsafe_allow_javascript=True)
             st.fragment(_watch, run_every=WATCH_S)(f"opendis-{nn}")
     import app  # pylint: disable=import-outside-toplevel
     app.main()
+    if nn is not None:
+        st.set_page_config(page_title=f"OpenDiS {nn}")  # the browser tab; the rest stays the app's

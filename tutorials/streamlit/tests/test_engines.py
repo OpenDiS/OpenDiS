@@ -151,10 +151,13 @@ def test_idle() -> list[bool]:
                   minutes == [2.5, 60.0, 60.0], minutes),
             check("number: 07 from opendis_07.py, none from app.py", numbers == ["07", None],
                   numbers),
-            check("users: none, 1 user, 3 users (shared)", engine.users_html(None) == ""
-                  and ">1 user<" in engine.users_html(1) and "shared" not in engine.users_html(1)
-                  and ">3 users<" in engine.users_html(3) and 'class="shared"'
-                  in engine.users_html(3)),
+            check("badge: engine 07 alone, with 1 user, with 3 (shared)",
+                  'class="num">07<' in engine.badge_html("07", None)
+                  and ">users<" not in engine.badge_html("07", None)
+                  and '>users</span><span class="num" ' in engine.badge_html("07", 1)
+                  and ">1</span>" in engine.badge_html("07", 1)
+                  and '<span class="num shared"' in engine.badge_html("07", 3)
+                  and ">3</span>" in engine.badge_html("07", 3)),
             check("idle: nothing in the first minutes", not runs[60].warning
                   and not scripts[60], scripts[60][:80]),
             check("idle: the warning at 56 minutes, and Stay", stay == "Stay signed in"
@@ -326,7 +329,9 @@ def test_pages() -> list[bool]:
                   and app.selectbox(key="picker_example").value is not None, app.exception),
             check("pages: the app from opendis_00.py", not one.exception
                   and one.selectbox(key="picker_example").value is not None, one.exception),
-            check("pages: the engine's banner, OpenDiS 00", "<h1>OpenDiS 00</h1>" in banner),
+            check("pages: the engine's banner, OpenDiS, with engine 00 at its right end",
+                  "<h1>OpenDiS</h1>" in banner and '>engine</span><span class="num">00<' in banner,
+                  banner[-300:]),
             check("pages: the engine notes use that stays in the browser", tracked)]
 
 

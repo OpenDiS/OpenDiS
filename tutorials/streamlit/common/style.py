@@ -10,6 +10,8 @@ import html
 from pathlib import Path
 
 BANNER_TITLE = "OpenDiS"
+# Where the banner's logo links, in a new tab: the OpenDiS website
+LOGO_LINK = "https://opendis.github.io/OpenDiS/"
 
 # A plain string, not an f-string, so that the CSS braces stay single. Two CSS
 # lines (the font URL and one selector) are longer than 99 characters.
@@ -95,7 +97,10 @@ div[data-testid="stAppViewContainer"] { padding-top: 0 !important; }
 div[data-testid="stAppViewContainer"] > .main {
   padding-top: calc(var(--opendis-banner-h) + 0.65rem) !important;
 }
-.opendis-banner .opendis-logo { height: 2.3rem; width: auto; margin-right: 0.6rem; }
+.opendis-banner .opendis-logo { height: 2.3rem; width: auto; border: 0; display: block; }
+/* The logo's link to the website: no border, and no underline below the picture */
+.opendis-banner .opendis-logo-link { display: inline-flex; margin-right: 0.6rem; border: 0;
+  text-decoration: none; line-height: 0; }
 /* In-sidebar collapse — native Material « double-arrow (soft gray, not black) */
 [data-testid="stSidebarCollapseButton"] {
   background: transparent !important;
@@ -295,10 +300,13 @@ def png_data_uri(path: Path) -> str:
 
 
 def banner_html(title: str, logo: Path) -> str:
-    """The pinned top banner: the logo, then the title, centred together."""
+    """The pinned top banner: the logo, which links to the website, then the title, centred
+    together. The link opens a new tab: on Streamlit Community Cloud the app is in a frame."""
     return (
         '<div class="opendis-banner">'
-        f'<img class="opendis-logo" src="{png_data_uri(logo)}" alt="OpenDiS logo">'
+        f'<a class="opendis-logo-link" href="{LOGO_LINK}" target="_blank" rel="noopener" '
+        'title="OpenDiS website">'
+        f'<img class="opendis-logo" src="{png_data_uri(logo)}" alt="OpenDiS logo"></a>'
         f"<h1>{html.escape(title)}</h1>"
         "</div>"
     )
