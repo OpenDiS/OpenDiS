@@ -63,15 +63,17 @@ table.opendis-engines { width: 100%; max-width: 59rem; margin: 0.2rem auto 0; ta
 .st-key-opendis_news p:last-child, .st-key-opendis_guide p:last-child { margin: 0 !important; }
 .st-key-opendis_guide ul { margin: 0 !important; padding-left: 1.3rem; }
 .st-key-opendis_guide li { color: #1a2332; margin: 0.1rem 0 !important; }
+.st-key-opendis_guide [data-testid="stMarkdownContainer"] p,
+.st-key-opendis_guide [data-testid="stMarkdownContainer"] li,
+.st-key-opendis_guide [data-testid="stMarkdownContainer"] p *,
+.st-key-opendis_guide [data-testid="stMarkdownContainer"] li * { font-size: 0.95rem !important; }
 .st-key-opendis_note { max-width: 59rem; margin: 0.4rem auto 0 !important; }
 </style>"""
 _LOCK = threading.Lock()  # one round of reads at a time, for all sessions of this process
 _LAST = {"time": float("-inf"), "engines": []}  # the last round: when, and its engines
-GUIDE = ("**Pick a free engine.** Each engine runs the OpenDiS app on a server of its own, "
-         "for one user. Its count is the number of browser tabs open on it now. An engine "
-         "opens in a new tab. An asleep engine wakes up when you open it: press its button, "
-         "and wait a minute or two.\n\n"
-         "**Policy**\n\n"
+GUIDE = ("**Pick a free engine** by clicking on one of the links below. Each engine runs the "
+         "OpenDiS app on a server of its own. "
+         "Its count is the number of browser tabs open on it now.\n\n"
          "- Every engine is shared with anyone who opens it. Another user may then press "
          "*clear all results*, which wipes out your results too.\n"
          "- Closing the browser tab releases the engine.\n"

@@ -1,6 +1,6 @@
 # engines/
 
-The 50 engines of the OpenDiS tutorial, `opendis-00.streamlit.app` to `opendis-49.streamlit.app`. Each engine runs the app of [`app.py`](../app.py) on a server of its own, for one user. So the users of a tutorial do not slow each other down, and do not share results. The front page, [opendis.streamlit.app](https://opendis.streamlit.app), links to the engines. It shows how many users each one has at that moment ([`common/front_page.py`](../common/front_page.py)).
+The 50 engines of the OpenDiS tutorial, `opendis-00.streamlit.app` to `opendis-49.streamlit.app`. Each engine runs the app of [`app.py`](../app.py) on a server of its own. Each user of a tutorial takes a free engine. So the users do not slow each other down, and do not share results. The front page, [opendis.streamlit.app](https://opendis.streamlit.app), links to the engines. It shows how many users each one has at that moment ([`common/front_page.py`](../common/front_page.py)).
 
 ## Files
 
