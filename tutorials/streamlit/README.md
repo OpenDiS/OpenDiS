@@ -211,16 +211,32 @@ frozen in place. The network is the ParaDiS restart rs0084. ExaDiS computed its 
 128³ grid of its periodic box, 58824 b. The line is straight and infinite at first, on the fcc
 slip system B4, through a random point of the box. A shear stress τ drives it, picked from a
 menu in step 6: 1, 3, 5, 7, 10 or 15 MPa, 5 MPa by default. Its force module,
-`CalForceUserStress`, adds the field's Peach-Koehler force to the line tension, as in
-`tutorials/05_user_stress/user_stress.py`.
-It integrates the stress along each segment, at three Gauss points. Step 3 can leave the field
-out, and the line then moves at the drag velocity M b τ. The script's driver,
+`CalForceUserStress`, adds the field's Peach-Koehler force to a base model's forces. That
+model is the elastic interaction of the segments within a cutoff of 5000 b: `Elasticity_SBA`
+with a cutoff in PyDiS, `CUTOFF_MODEL` in ExaDiS. With line tension alone, the line's pieces
+could pass through each other. A longer cutoff costs ExaDiS much more: at 0.3 Lbox, its first
+30 steps take 3.3 times as long. `CalForceUserStress` is the one
+of `tutorials/05_user_stress/user_stress.py`, which takes the stress at each segment's
+midpoint. Its `UserStress` interpolates the field linearly between the grid's points. The
+field's tutorials, `example_internal_stress_*.py` there, have the same code. The app's script
+also checks a visitor's file: its size, its columns and its grid. Step 3's menu picks the
+field. The default is this loaded one, frozen in time. The other is the stress of
+`user_stress.py` itself, which varies in space and time: Sxx = (1 + cos(2π z/Lz) +
+sin(t/1 ns)) × 50 MPa. The line starts the same with both. With none, the line moves at the
+drag velocity M b τ. The script's driver,
 `SimulateNetworkDisp`, writes `output/displacement.dat`: the area that the line has swept,
 from the plastic strain, over its initial length. The history plots it against time. Its
 velocity over the second half of the run is compared with M b τ.
 
-The 3-D window draws the field on the line's slip plane, as in the figure of the field's own
-tutorial, in 3-D. In the periodic cell, that (111) plane and its periodic images are three
+The 3-D window draws the field on the line's slip plane, as in the figure of the frozen field's
+own tutorial, in 3-D. The frozen field's plane stays as drawn. `user_stress.py`'s field
+changes in time, so each frame recolours its plane at the frame's time: during a run, the
+newest snapshot's, and in the replay, each frame's. The times come from the job's step lines
+(`results.frame_times`). That plane is on a coarser grid, 32 points across the cell, in whole
+MPa, so that the frames stay small. Its colours are clipped at ±60 MPa: its resolved shear
+stress runs from -61 to 20 MPa, and its time term shifts the whole plane by up to ±20 MPa,
+with a period of 2π ns. In the
+periodic cell, that (111) plane and its periodic images are three
 parallel polygons, and the line's pieces lie on them. Each polygon is a Plotly surface, on a
 grid of 96 points across the cell. Its colour is the field's resolved shear stress n·σ·b, red
 for positive and blue for negative, clipped at ±15 MPa; the applied stress τ adds to it. The
@@ -298,6 +314,7 @@ matplotlib draws off screen, and the app shows its own 3-D view.
 | Path | Role | Git |
 | --- | --- | --- |
 | `app.py`, `common/` | the app | committed |
+| `engines/` | the entry files of the 50 engines, `engine.py`, `RESET` and `manage.py` (`engines/README.md`) | committed |
 | `examples/<name>.md` | one example: its input file | committed |
 | `assets/opendis_logo.png` | the banner's logo, scaled from `doc/nodebox_logo.png` (the `document` branch) | committed |
 | `assets/opendis_favicon.png` | the browser tab's icon, the website's favicon, scaled from `doc/_static/favicon_node.ico` | committed |
@@ -341,6 +358,7 @@ python -m tests.test_views            # networks from PyDiS's JSON, and the figu
 python -m tests.test_app_smoke        # the whole page, and 20-step runs with PyDiS and ExaDiS
 python -m tests.test_console          # the Python console, on a run of each example
 python -m tests.test_build            # PyDiS's library and ExaDiS's module (some minutes)
+python -m tests.test_engines          # the engines' entry files, the front page and manage.py
 node tests/test_network3d.js          # the 3-D window's script (needs Node.js)
 ```
 
@@ -413,6 +431,11 @@ Each test prints `PASS` or `FAIL` for every check, and exits with a non-zero cod
   during a run, the newest snapshot fetched and drawn with the user's camera, held during a
   drag, and the fetching stopped when the replay comes. A background is drawn under every
   snapshot, the same traces each time, and during a run too.
+- **`test_engines`**: the 50 entry files of `engines/`, each the same three lines;
+  `engine.py`'s search path and `RESET`; the front page's reading of the engines' gauges, from
+  a stand-in server, in each state; its table, its switch, and `manage.py`'s table and links.
+  Then, with AppTest: the front page when it is switched on, the app when it is not, and the
+  app from an engine's entry file.
 
 ## On Streamlit Community Cloud
 
@@ -442,3 +465,9 @@ entry point.
   CPU, memory, file size and open files, and at most 4 sessions run at once. It is not a
   sandbox against a determined expert: Python's audit hooks cannot be one, and code typed
   there runs on the app's machine.
+- **The engines.** For a tutorial, 50 engines run the app, one for each user, at
+  `opendis-00.streamlit.app` to `opendis-49.streamlit.app`. Their entry files are in
+  `engines/`: the Cloud deploys one app per entry file. With the secret
+  `OPENDIS_FRONT_PAGE = true`, opendis.streamlit.app shows a front page in place of the app.
+  It links to the engines, and shows how many users each one has at that moment.
+  [`engines/README.md`](engines/README.md) says how to deploy and manage them.

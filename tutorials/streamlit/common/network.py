@@ -111,12 +111,22 @@ def initial(spec: Spec) -> Network:
 def user_field(url: str, box: float):
     """The user stress's field at the link, read as its script reads it: by the script's own
     reader, which downloads the file into its copy for the link first if it is not there, and
-    its StressField, on the periodic cell of the box's size centred on the origin."""
+    its UserStress, on the periodic cell of the box's size centred on the origin."""
     names = {"np": np, "os": os, "itertools": itertools, "urllib": urllib}
-    exec(codegen.USER_STRESS, names)  # pylint: disable=exec-used
-    data, ngrid = names["load_stress_field"](str(OPENDIS_DIR / codegen.stress_file(url)), url)
+    exec(codegen.STRESS_FIELD, names)  # pylint: disable=exec-used
+    names["ngrid"], names["stress_grid"] = names["load_stress_field"](
+        str(OPENDIS_DIR / codegen.stress_file(url)), url, box)
     cell = types.SimpleNamespace(h=box * np.eye(3), origin=-0.5 * box * np.ones(3))
-    return names["StressField"](data, ngrid, cell)
+    return lambda R: names["UserStress"](R, cell, None)
+
+
+def space_time_field(box: float, time: float = 0.0):
+    """user_stress.py's field at the time (s), as the user stress's script has it: its
+    UserStress, on the periodic cell of the box's size centred on the origin."""
+    names = {"np": np}
+    exec(codegen.SPACE_TIME_STRESS, names)  # pylint: disable=exec-used
+    cell = types.SimpleNamespace(h=box * np.eye(3), origin=-0.5 * box * np.ones(3))
+    return lambda R: names["UserStress"](R, cell, {"time": time})
 
 
 def snapshots(output: Path) -> list[tuple[int, Path]]:

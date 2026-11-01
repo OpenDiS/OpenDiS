@@ -271,12 +271,16 @@ KIND_IMPORTS = {
     ("exadis", UserStressLine.kind): "import hashlib, itertools, urllib.request\n"
                                      "from pyexadis_utils import insert_infinite_line\n",
 }
-# The user stress's field, and the force module that adds it to a base module's forces, as in
-# tutorials/05_user_stress/user_stress.py; after the lines that give its link and file
-USER_STRESS = '''\
-def load_stress_field(path, url, max_mb=300):
-    \'\'\'The rows x y z Sxx Syy Szz Syz Sxz Sxy of a stress field file, and its grid size;
-    the file, of at most max_mb, is downloaded first if it is not there
+# The user stress's field and force module, as in tutorials/05_user_stress/user_stress.py and
+# the field's two tutorials there. The reader of the field's file checks a visitor's file;
+# UserStress gives the stress at given points; CalForceUserStress adds its Peach-Koehler force
+# to a base module's forces. They follow the lines that give the field's link and file.
+STRESS_READER = '''\
+def load_stress_field(path, url, Lbox, max_mb=300):
+    \'\'\'The grid size, and the stress on the grid (Pa, xx yy zz yz xz xy), of the stress field
+    file at url, downloaded first if it is not there. The file is at most max_mb. Its points
+    are the centres of the cells of a grid of the periodic box Lbox, centred on the origin,
+    x slowest and z fastest
     \'\'\'
     if not os.path.exists(path):
         print('Downloading %s' % url)
@@ -290,89 +294,166 @@ def load_stress_field(path, url, max_mb=300):
         finally:
             if os.path.exists(part):
                 os.remove(part)
-    with np.load(path) as f:
-        if f['columns'].tolist() != ['x', 'y', 'z', 'Sxx', 'Syy', 'Szz', 'Syz', 'Sxz', 'Sxy']:
+    with np.load(path) as npz:
+        if npz['columns'].tolist() != ['x', 'y', 'z', 'Sxx', 'Syy', 'Szz', 'Syz', 'Sxz', 'Sxy']:
             raise ValueError('the columns of %s are not x y z Sxx Syy Szz Syz Sxz Sxy' % path)
-        return f['data'], f['ngrid']
+        data, ngrid = npz['data'], npz['ngrid']
+    # the grid's first points along z, y and x, and its last
+    h = Lbox/ngrid
+    ijk = np.array([[0, 0, 0], [0, 0, 1], [0, 1, 0], ngrid - 1])
+    if not np.allclose(data[ijk @ [ngrid[1]*ngrid[2], ngrid[2], 1], :3], (ijk + 0.5)*h - 0.5*Lbox,
+                       rtol=0.0, atol=0.01*h.min()):
+        raise ValueError('the stress field is not on the grid of the box, x slowest and '
+                         'z fastest: its first point is %s, its last %s' % (data[0,:3], data[-1,:3]))
+    return ngrid, data[:,3:9].reshape(*ngrid, 6)
+'''
+USER_STRESS_FUNCTION = '''\
+"""
+User-defined additional stress field for the simulation.
+Here it is the internal stress above, interpolated linearly
+between the grid points, at the centres of the grid's cells.
+The function must return an array of size (size(x),6), where R is
+the array of query positions, and the 6 stress components are in
+Voigt order (xx,yy,zz,yz,xz,xy).
+"""
+def UserStress(R, cell, state):
+    h = np.diag(np.array(cell.h))/ngrid # grid spacing
+    u = (np.atleast_2d(R) - np.array(cell.origin))/h - 0.5
+    i = np.floor(u).astype(int)
+    f = u - i
 
-class StressField:
-    \'\'\'A stress field given at the centres of a grid of the periodic cell, interpolated
-    linearly between them
-    \'\'\'
-    def __init__(self, data, ngrid, cell):
-        self.n = np.array(ngrid)
-        self.S = data[:,3:9].reshape(*ngrid, 6) # Sxx Syy Szz Syz Sxz Sxy, x slowest, z fastest
-        self.L = np.diag(np.array(cell.h))
-        self.h = self.L/self.n
-        self.origin = np.array(cell.origin)
-        # the grid's first points along z, y and x, and its last, at the centres of its cells
-        ijk = np.array([[0, 0, 0], [0, 0, 1], [0, 1, 0], self.n - 1])
-        rows = ijk @ [self.n[1]*self.n[2], self.n[2], 1]
-        if not np.allclose(data[rows,:3], self.origin + (ijk + 0.5)*self.h, rtol=0.0,
-                           atol=0.01*self.h.min()):
-            raise ValueError('the stress field is not on the grid of the cell, x slowest and '
-                             'z fastest: its first point is %s, its last %s'
-                             % (data[0,:3], data[-1,:3]))
-
-    def __call__(self, R):
-        \'\'\'The stress (Pa, xx yy zz yz xz xy) at positions R (b), in any periodic image\'\'\'
-        u = (np.atleast_2d(R) - self.origin)/self.h - 0.5
-        i = np.floor(u).astype(int)
-        f = u - i
-        S = np.zeros((u.shape[0], 6))
-        for corner in itertools.product((0, 1), repeat=3):
-            w = np.prod(np.where(corner, f, 1.0-f), axis=1)
-            j = (i + corner) % self.n
-            S += w[:,None]*self.S[j[:,0], j[:,1], j[:,2]]
-        return S
-
+    # weighted sum over the 8 grid points around each position
+    user_stress = np.zeros((u.shape[0],6)) # xx,yy,zz,yz,xz,xy in Pa
+    for corner in itertools.product((0, 1), repeat=3):
+        w = np.prod(np.where(corner, f, 1.0-f), axis=1)
+        j = (i + corner) % ngrid # periodic grid
+        user_stress += w[:,None]*stress_grid[j[:,0], j[:,1], j[:,2]]
+    return user_stress
+'''
+# The reader and UserStress, which the app also runs itself, for the 3-D window's slip plane
+STRESS_FIELD = STRESS_READER + "\n" + USER_STRESS_FUNCTION
+_USER_FORCE = '''\
+"""
+User-defined CalForce function to add a spatially varying
+user-defined stress contribution to a base CalForce model,
+as in user_stress.py.
+"""
 class CalForceUserStress:
-    \'\'\'The forces of a base force module, plus the Peach-Koehler force of a user stress
-    field, as in user_stress.py; the stress is integrated along each segment
-    \'\'\'
-    def __init__(self, calforce_base, user_stress, n_gauss=3):
+    def __init__(self, state: dict, calforce_base: CalForce, **kwargs) -> None:
         self.calforce_base = calforce_base
-        self.user_stress = user_stress
-        x, w = np.polynomial.legendre.leggauss(n_gauss)
-        self.s, self.w = 0.5*(x+1.0), 0.5*w # Gauss points and weights along a segment
+        self.add_user_stress = 1
 
-    def PreCompute(self, N, state):
+    def PreCompute(self, N: DisNetManager, state: dict) -> dict:
         self.calforce_base.PreCompute(N, state)
         return state
 
-    def NodeForce(self, N, state, pre_compute=True):
+    def NodeForce(self, N: DisNetManager, state: dict, pre_compute=True) -> dict:
+
+        # Compute base forces
         self.calforce_base.NodeForce(N, state, pre_compute)
-        data = N.export_data()
-        rn, tags = data["nodes"]["positions"], data["nodes"]["tags"]
-        nid, burg = data["segs"]["nodeids"], data["segs"]["burgers"]
-        L = self.user_stress.L
-        r1 = rn[nid[:,0]]
-        rij = rn[nid[:,1]] - r1
-        rij -= L*np.round(rij/L) # across the periodic boundaries
-        f = np.zeros_like(rn)
-        for s, w in zip(self.s, self.w):
-            S = self.user_stress(r1 + s*rij)
-            sigb = np.einsum('kij,kj->ki', S[:,[0,5,4,5,1,3,4,3,2]].reshape(-1,3,3), burg)
-            fpk = w*np.cross(sigb, rij)
-            np.add.at(f, nid[:,0], (1.0-s)*fpk) # shared by the two nodes linearly
-            np.add.at(f, nid[:,1], s*fpk)
-        rows = {tuple(tag): i for i, tag in enumerate(state["nodeforcetags"])}
-        nodeforces = np.array(state["nodeforces"], dtype=float)
-        nodeforces[[rows[tuple(tag)] for tag in tags]] += f
-        state["nodeforces"] = nodeforces
+
+        # Add user-defined stress contribution
+        if self.add_user_stress:
+            self.AddUserStress(N, state)
+
         return state
 
-    def OneNodeForce(self, N, state, tag, update_state=True):
-        # the user stress at the node, added to the applied stress for this node only
-        data = N.export_data()
-        tags = data["nodes"]["tags"]
-        i = np.where((tags[:,0] == tag[0]) & (tags[:,1] == tag[1]))[0]
-        applied_stress = state["applied_stress"]
-        state["applied_stress"] = applied_stress + self.user_stress(data["nodes"]["positions"][i])[0]
-        try:
-            return self.calforce_base.OneNodeForce(N, state, tag, update_state)
-        finally:
-            state["applied_stress"] = applied_stress
+    def AddUserStress(self, N: DisNetManager, state: dict) -> dict:
+
+        G = N.get_disnet({network})
+        cell = G.cell
+{node_data}
+        segsnid = segs["nodeids"] # segment connectivity to nodes
+
+        # segments end-nodes positions and Burgers vectors
+        r1 = np.array(cell.closest_image(Rref=np.array(cell.center()), R=rn[segsnid[:,0]]))
+        r2 = np.array(cell.closest_image(Rref=r1, R=rn[segsnid[:,1]]))
+        r_ij = r2-r1
+        b_ij = segs["burgers"]
+
+        # compute user stress at segment mid-positions
+        Rseg = 0.5*(r1+r2)
+        user_stress = UserStress(Rseg, cell, state)
+
+        # add PK force from user stress to current force
+        sig_user = user_stress[:,[0,5,4,5,1,3,4,3,2]].reshape(-1,3,3)
+        sigb = np.einsum('kij,kj->ki', sig_user, b_ij)
+        fpkuser = 0.5 * np.cross(sigb, r_ij)
+        f = state["nodeforces"] # current nodal forces, in the order of the nodes
+        np.add.at(f, segsnid[:,0], fpkuser)
+        np.add.at(f, segsnid[:,1], fpkuser)
+
+        # store new forces in state dictionary
+        state["nodeforces"] = f
+
+        return state
+
+    def OneNodeForce(self, N: DisNetManager, state: dict, tag, update_state=True) -> np.array:
+
+        if self.add_user_stress:
+            # here let's just hack the code by temporarily incrementing the global
+            # applied_stress by the user_stress value at the node position.
+            # this should be fine as we are only computing the force on that node
+
+            applied_stress0 = state["applied_stress"] # save applied_stress
+
+            # find node position from node tag
+            G = N.get_disnet({network})
+{node_position}
+
+            user_stress = UserStress(pos, G.cell, state)
+            state["applied_stress"] = applied_stress0 + user_stress.squeeze() # increment applied_stress by user_stress
+            f = self.calforce_base.OneNodeForce(N, state, tag, update_state) # compute node force
+
+            state["applied_stress"] = applied_stress0 # reset applied_stress
+
+        else:
+            f = self.calforce_base.OneNodeForce(N, state, tag, update_state) # compute node force
+
+        return f
+'''
+USER_FORCE = {
+    "pydis": _USER_FORCE.format(
+        network="DisNet",
+        node_data='        nodes, ntags = G.get_nodes_data()\n'
+                  '        rn = nodes["positions"]\n'
+                  '        segs = G.get_segs_data(ntags)',
+        node_position='            nodes, ntags = G.get_nodes_data()\n'
+                      '            pos = nodes["positions"][ntags[tuple(tag)]]'),
+    "exadis": _USER_FORCE.format(
+        network="ExaDisNet",
+        node_data='        rn = G.get_nodes_data()["positions"]\n'
+                  '        segs = G.get_segs_data()',
+        node_position='            tags = G.get_tags()\n'
+                      '            ind = np.where((tags[:,0]==tag[0])&(tags[:,1]==tag[1]))[0]\n'
+                      '            if ind.size != 1:\n'
+                      '                raise ValueError("Cannot find node tag (%d,%d) in '
+                      'OneNodeForce" % tuple(tag))\n'
+                      '            pos = G.get_positions()[ind]'),
+}
+# The other field of the user stress: UserStress of tutorials/05_user_stress/user_stress.py,
+# word for word, which varies in space and time
+SPACE_TIME_STRESS = '''\
+"""
+User-defined additional stress field for the simulation.
+As an example, here the stress component xx (in units of Pa) is
+defined as a toy function of the z-position and simulation time.
+The function must return an array of size (size(x),6), where R is
+the array of query positions, and the 6 stress components are in
+Voigt order (xx,yy,zz,yz,xz,xy).
+"""
+def UserStress(R, cell, state):
+    Lz = cell.h[2][2]
+    R = np.atleast_2d(R)
+    z = R[:,2] # z-coordinate
+    t = state["time"] if "time" in state else 0.0 # time
+
+    # toy function for the Sxx component as function of z and t
+    Sxx = (1.0 + np.cos(z/Lz*2.0*np.pi) + np.sin(t/1e-9)) * 5e7 # Pa
+
+    user_stress = np.zeros((R.shape[0],6)) # xx,yy,zz,yz,xz,xy in Pa
+    user_stress[:,0] = Sxx
+    return user_stress
 '''
 # The user stress's driver, which also writes the line's displacement against time
 DISP_DRIVER = '''\
@@ -494,9 +575,10 @@ def _forces(spec: Spec) -> str:
     cutoff = "" if f.cutoff is None else f", cutoff={num(f.cutoff)}"
     calforce = f"calforce  = CalForce(force_mode={f.force_mode!r}, state=state{ec}{cutoff})\n"
     if f.stress_field:  # the user stress: its field added to a base module's forces
-        calforce = ("data, ngrid = load_stress_field(stress_file, stress_url)\n"
+        calforce = ("# Define user-defined CalForce that adds a user-defined stress to a base force "
+                    "model\n"
                     f"calforce_base = CalForce(force_mode={f.force_mode!r}, state=state{ec}{cutoff})\n"
-                    "calforce  = CalForceUserStress(calforce_base, StressField(data, ngrid, net.cell))\n")
+                    "calforce  = CalForceUserStress(calforce_base=calforce_base, state=state)\n")
     if f.mobility_law in ("BCC_0B", "FCC_0"):
         climb = f", Mclimb={num(f.Mclimb)}" if f.mobility_law == "BCC_0B" else ""
         vmax = "" if f.vmax is None else f", vmax={num(f.vmax)}"
@@ -748,14 +830,23 @@ def line_origin(box: float, seed: int) -> np.ndarray:
     return box * (np.random.default_rng(seed).random(3) - 0.5)
 
 
-def user_stress_code(url: str) -> str:
-    """The user stress's field, its link and its copy's file, and the force module that adds it."""
+def user_stress_code(spec: Spec) -> str:
+    """The user stress's field and force module. A frozen field: its link, its copy's file,
+    its reader and its grid, then UserStress, as in the field's tutorials. Or user_stress.py's
+    UserStress, which varies in space and time. Then CalForceUserStress, as in user_stress.py."""
+    if spec.forces.stress_kind == "space_time":
+        return ("# The user stress of tutorials/05_user_stress/user_stress.py, which varies in "
+                "space and time\n\n" + SPACE_TIME_STRESS + "\n\n" + USER_FORCE[spec.engine])
     return ("# The internal stress of a dislocation network, frozen, on a grid of its periodic\n"
             "# box: the file at this link, which the script downloads once, a copy for each link\n"
-            f"stress_url = {url!r}\n"
+            f"stress_url = {spec.forces.stress_url!r}\n"
             f"stress_file = os.path.join(opendis_dir, {STRESS_DIR!r},\n"
             "                           'stress_%s.npz' % "
-            "hashlib.sha256(stress_url.encode()).hexdigest())\n\n" + USER_STRESS)
+            "hashlib.sha256(stress_url.encode()).hexdigest())\n\n"
+            + STRESS_READER + "\n"
+            f"ngrid, stress_grid = load_stress_field(stress_file, stress_url, "
+            f"Lbox={num(spec.config.box_length)})\n\n\n"
+            + USER_STRESS_FUNCTION + "\n\n" + USER_FORCE[spec.engine])
 
 
 def _drivers(spec: Spec) -> str:
@@ -778,7 +869,7 @@ def step_code(spec: Spec, step: str, final_json: str) -> str:
     if step == "config":
         return init_function(spec) + "\n" + code
     if step == "forces" and spec.forces.stress_field:
-        return user_stress_code(spec.forces.stress_url) + "\n" + code
+        return user_stress_code(spec) + "\n" + code
     if step == "run":
         return _drivers(spec) + code + "\n" + _main_guard(spec, final_json)
     return code
@@ -798,7 +889,7 @@ def full_script(spec: Spec, final_json: str) -> str:
     blocks = "\n".join(textwrap.indent(STEP_CODE[step](spec), "    ") for step in STEP_CODE)
     exadis = spec.engine == "exadis"
     return (header(spec) + "\n" + init_function(spec) + "\n"
-            + (user_stress_code(spec.forces.stress_url) + "\n" if spec.forces.stress_field else "")
+            + (user_stress_code(spec) + "\n" if spec.forces.stress_field else "")
             + _drivers(spec)
             + "def main():\n"
             "    global net, sim, state\n"

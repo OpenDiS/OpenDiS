@@ -31,7 +31,8 @@ class Step:
 
 STEP_LIST = tuple(Step(key, f"{number}. {title}")
                   for number, (key, title) in enumerate(STEPS, start=1))  # a simulation's
-BUILD_STEPS = (STEP_LIST[0], Step("run", "2. Run"))  # a script that only builds a network
+# A script that only builds a network: Initialization, then Run
+BUILD_STEPS = (Step("config", "1. Initialization"), Step("run", "2. Run"))
 
 
 def step_list(example: Example) -> tuple[Step, ...]:

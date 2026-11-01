@@ -7,7 +7,8 @@
 // drag goes on undisturbed. During a run, the job's newest snapshot, which the app writes next to
 // this page, is fetched and drawn the same way. Plotly's "Reset camera to default" goes back to
 // the app's first view. A background (the user stress's field on its slip plane) is drawn under
-// every snapshot, the same traces each time, so that Plotly does not build them again.
+// every snapshot, the same traces each time, so that Plotly does not build them again; a field
+// that changes in time gives each snapshot the colours of those traces at its time.
 (function () {
   "use strict";
   var STORE = "opendis-app-camera";  // {scope, camera}, kept for the browser tab (sessionStorage)
@@ -50,6 +51,14 @@
     } catch (e) { /* no storage */ }
   }
 
+  // The background under a snapshot: recoloured at its time, when it has the colours for that
+  function background(frame) {
+    if (!frame.colors) { return state.background; }
+    return state.background.map(function (trace, i) {
+      return Object.assign({}, trace, {surfacecolor: frame.colors[i]});
+    });
+  }
+
   // Draw the current snapshot, with the user's camera once there is one
   function draw() {
     var frame = state.frames[state.index];
@@ -59,7 +68,7 @@
     layout.title.text = frame.title;
     slider.value = String(state.index);
     label.textContent = frame.label;
-    return Plotly.react(plot, state.background.concat(frame.data), layout, state.config);
+    return Plotly.react(plot, background(frame).concat(frame.data), layout, state.config);
   }
 
   // The first draw is in the app's first view, so that Plotly's reset goes back to it

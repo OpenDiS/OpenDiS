@@ -213,6 +213,18 @@ function args(labels, id, extra) {
   await settled();
   check("during a run, each snapshot is drawn over the background",
         h.draws.length === 1 && h.draws[0].n === 6 && h.draws[0].data[0] === plane[0], h.draws.map((d) => d.n));
+
+  // a field that changes in time: each snapshot recolours the background with its own colours
+  const k = instance();
+  const timed = args(["step 0", "step 10"], "run5", {scope: "user_stress", background: plane});
+  timed.frames.forEach((frame, i) => { frame.colors = [[[i]], [[i + 10]]]; });
+  k.render(timed);
+  await settled();
+  k.elements.play.fire("click");  // at the end: from step 0
+  const colours = k.draws.map((d) => d.data.slice(0, 2).map((t) => t.surfacecolor[0][0]));
+  check("a snapshot with colours recolours the background, and leaves the plane's traces as given",
+        k.draws.length === 2 && k.draws.every((d) => d.n === 6 && d.data[0].type === "surface")
+        && same(colours, [[1, 11], [0, 10]]) && plane[0].surfacecolor === undefined, colours);
   console.log(failures ? `\n${failures} FAILED` : "\nALL PASSED");
   process.exit(failures ? 1 : 0);
 })();

@@ -282,10 +282,14 @@ def main() -> int:  # pylint: disable=too-many-locals,too-many-statements
             refusal = [w.value for w in at.warning]
             next(t for t in at.main.text_input if t.label == link.label).set_value(
                 links[link.label][0]).run()
-            field = "Add the frozen internal stress, the user stress"  # off: no plane
-            next(c for c in at.main.checkbox if c.label == field).uncheck().run()
-            unplaned = shown(at)
-            next(c for c in at.main.checkbox if c.label == field).check().run()
+            for kind in ("none", "space_time", "frozen"):  # a plane for each field, none without
+                next(s for s in at.main.selectbox if s.label == "User stress").set_value(
+                    kind).run()
+                drawn = shown(at)
+                unplaned.append((kind, [len(r.get("background", [])) for r in drawn],
+                                 drawn[-1]["frames"][-1]["data"][0]["line"]["color"],
+                                 next(t for t in at.main.text_input
+                                      if t.label == link.label).disabled))
     next(n for n in at.number_input if n.label.startswith("max_step")).set_value(20).run()
     click(at, "▶ Run")
     replay = shown(at)
@@ -308,10 +312,11 @@ def main() -> int:  # pylint: disable=too-many-locals,too-many-statements
               [len(r.get("background", [])) for r in initial + replay] == [3, 3]
               and {r["frames"][-1]["data"][0]["line"]["color"] for r in initial + replay}
               == {"#111111"}, [len(r.get("background", [])) for r in initial + replay]),
-        check("user stress: without the field, no plane, and the line blue again",
-              [len(r.get("background", [])) for r in unplaned] == [0]
-              and unplaned[0]["frames"][-1]["data"][0]["line"]["color"] == "#1f4fd1",
-              [len(r.get("background", [])) for r in unplaned]),
+        check("user stress: with no field, no plane, the line blue again and the link off; "
+              "user_stress.py's field on the plane, with the link off; the frozen field's plane "
+              "and link back", unplaned == [
+                  ("none", [0], "#1f4fd1", True), ("space_time", [3], "#111111", True),
+                  ("frozen", [3], "#111111", False)], unplaned),
         check("user stress: step 6 offers the shear stresses 1 to 15 MPa, 5 MPa first",
               menus == {"Shear stress τ on the line's slip system": (
                   ["1 MPa", "3 MPa", "5 MPa", "7 MPa", "10 MPa", "15 MPa"], 5e6)}, menus),
@@ -326,6 +331,23 @@ def main() -> int:  # pylint: disable=too-many-locals,too-many-statements
                                                      "half", "M b τ"], (third, lines[-3:])),
         check("no job is left running after the user stress's", not job.running()),
     ]
+
+    # user_stress.py's field, which changes in time: the replay recolours the plane at each frame
+    at = page()
+    choose(at, "User stress")
+    for _ in STEP_LIST[1:]:
+        click(at, "next ›")
+        menu = next((s for s in at.main.selectbox if s.label == "User stress"), None)
+        if menu is not None and menu.value != "space_time":
+            menu.set_value("space_time").run()
+    next(n for n in at.number_input if n.label.startswith("max_step")).set_value(20).run()
+    click(at, "▶ Run")
+    moving = [frame.get("colors") for drawn in shown(at) for frame in drawn["frames"]]
+    results.append(check(
+        "user stress: with user_stress.py's field, each frame of the replay recolours the plane's "
+        "three surfaces at its time", len(moving) >= 2 and all(
+            colours is not None and len(colours) == 3 for colours in moving)
+        and moving[0] != moving[-1], [None if c is None else len(c) for c in moving]))
 
     # the initial configurations: each of the tutorial's networks draws in step 1, and Run
     # builds one with ExaDiS, which the run view shows
@@ -344,7 +366,7 @@ def main() -> int:  # pylint: disable=too-many-locals,too-many-statements
     output = "\n".join(c.value for c in at.code)
     replay = shown(at)
     results += [
-        check("initial configurations: two steps", two == ["1. Initial configuration", "2. Run"],
+        check("initial configurations: two steps", two == ["1. Initialization", "2. Run"],
               two),
         check("initial configurations: each of the tutorial's networks draws in step 1",
               all(drawn.values()), drawn),

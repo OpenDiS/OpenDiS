@@ -52,10 +52,12 @@ _COMPONENT = components.declare_component("network3d", path=str(FOLDER))
 
 
 def frames_payload(frames: list[tuple[str, Network]], background: list | None = None,
-                   on_plane: bool = False) -> Payload:
+                   on_plane: bool = False, colors: list | None = None) -> Payload:
     """The figures of the networks (label, network), as the component takes them, over the
     background's traces: the user stress's slip plane, or nothing; on_plane draws the networks
-    as over that plane (``views.network_figure``), as they are over a background."""
+    as over that plane (``views.network_figure``), as they are over a background. A field that
+    changes in time recolours its plane at each frame: colors has, for each frame, the colours
+    of the background's surfaces (``views.plane_colors``)."""
     background = background or []
     figures = [views.network_figure(net, f"{label} · {views.describe(net)}",
                                     on_plane=on_plane or bool(background))
@@ -63,6 +65,8 @@ def frames_payload(frames: list[tuple[str, Network]], background: list | None = 
     data = [{"label": label, "title": figure.layout.title.text,
              "data": json.loads(figure.to_json())["data"]}
             for (label, _), figure in zip(frames, figures)]
+    for frame, frame_colors in zip(data, colors or []):
+        frame["colors"] = frame_colors
     layout = json.loads(figures[0].to_json())["layout"]
     data_id = hashlib.sha256(json.dumps([data, layout, background]).encode("utf-8")).hexdigest()
     return Payload(data, layout, data_id[:16], background)
@@ -79,10 +83,13 @@ def show(payload: Payload, key: str, scope: str, start: str = "last", frame_ms: 
                scope=scope, key=key, default=None)
 
 
-def write_live(run_id: str, label: str, net: Network, on_plane: bool = False) -> None:
+def write_live(run_id: str, label: str, net: Network, on_plane: bool = False,
+               colors: list | None = None) -> None:
     """Write a running job's newest snapshot where ``show_live``'s page fetches it; on_plane draws
-    it as over the user stress's slip plane, which ``show_live`` draws under it."""
-    payload = frames_payload([(label, net)], on_plane=on_plane)
+    it as over the user stress's slip plane, which ``show_live`` draws under it, recoloured by
+    colors at the snapshot's time when the field changes in time."""
+    payload = frames_payload([(label, net)], on_plane=on_plane,
+                             colors=None if colors is None else [colors])
     LIVE.mkdir(exist_ok=True)
     path = LIVE / f"{run_id}.json"
     part = path.with_suffix(".part")

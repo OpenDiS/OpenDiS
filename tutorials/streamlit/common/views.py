@@ -24,6 +24,12 @@ DARK_COLOR = "#111111"  # the segments and nodes over the user stress's slip pla
 FIELD_SCALE = plotly.colors.make_colorscale(plotly.colors.diverging.RdBu_r)
 FIELD_CLIP = 15.0
 PLANE_POINTS = 96
+# user_stress.py's field on that plane, which changes in time, so each frame recolours it: its
+# resolved shear stress, from -61 to 20 MPa, on a coarser grid, in whole MPa, so that the frames
+# stay small
+SPACE_TIME_CLIP = 60.0
+SPACE_TIME_TITLE = "resolved shear stress (MPa)"
+SPACE_TIME_POINTS = 32
 _CORNERS = np.array(list(itertools.product((-0.5, 0.5), repeat=3)))  # of the cell, per box size
 _EDGES = [(i, j) for i, j in itertools.combinations(range(8), 2) if bin(i ^ j).count("1") == 1]
 HEIGHT = 560
@@ -153,19 +159,17 @@ def _clamp(uv: np.ndarray, polygon: np.ndarray) -> np.ndarray:
     return np.where(inside[:, None], uv, nearest[np.arange(len(uv)), pick])
 
 
-def slip_plane(field, box: float, slip: tuple, offset: float) -> list[dict]:
-    """The user stress's frozen field on its line's slip plane, as the Plotly surfaces (JSON)
-    that the 3-D window draws under the networks. There is one for each polygon where the plane,
-    at the offset (b) along its unit normal, or one of its periodic images cuts the cell: the
-    line's pieces lie on them. Each is coloured by the field's resolved shear stress n·σ·b (MPa),
-    to which the applied stress adds. The field takes positions (b) and gives the stresses (Pa:
-    xx yy zz yz xz xy), as the script's StressField does; slip is (b, n)."""
+def _plane_grids(box: float, slip: tuple, offset: float,
+                 points: int) -> tuple[np.ndarray, np.ndarray, list]:
+    """The unit b and n of slip (b, n), and a grid over each polygon where the plane, at the
+    offset (b) along n, or one of its periodic images cuts the cell: its points (b), and its
+    grid's shape, about points across the cell."""
     b, n = (np.asarray(v, float) / np.linalg.norm(v) for v in slip)
     e2 = np.cross(n, b)  # the plane's second direction, after b
     period = box / np.linalg.norm(slip[1])
     images = np.ceil(0.5 * box * np.abs(n).sum() / period)  # the cell's corners, along n
-    spacing = box / PLANE_POINTS
-    surfaces = []
+    spacing = box / points
+    grids = []
     for c in offset + period * np.arange(-images, images + 1):
         polygon = _section(box, n, b, e2, c)
         if polygon is None:
@@ -175,21 +179,51 @@ def slip_plane(field, box: float, slip: tuple, offset: float) -> list[dict]:
         u, v = np.meshgrid(np.linspace(low[0], high[0], counts[0]),
                            np.linspace(low[1], high[1], counts[1]))
         uv = _clamp(np.column_stack([u.ravel(), v.ravel()]), polygon)
-        r = c * n + uv[:, :1] * b + uv[:, 1:] * e2
-        stress = np.asarray(field(r))[:, [0, 5, 4, 5, 1, 3, 4, 3, 2]].reshape(-1, 3, 3)
-        tau = np.einsum("i,kij,j->k", n, stress, b) / 1e6
+        grids.append((c * n + uv[:, :1] * b + uv[:, 1:] * e2, u.shape))
+    return b, n, grids
 
-        def grid(values: np.ndarray, digits: int) -> list:  # rounded, so that the JSON is short
-            values = values.reshape(u.shape).round(digits)
-            return (values.astype(int) if digits == 0 else values).tolist()
 
+def _resolved(field, r: np.ndarray, b: np.ndarray, n: np.ndarray) -> np.ndarray:
+    """The field's resolved shear stress n·σ·b (MPa) at the points r (b)."""
+    stress = np.asarray(field(r))[:, [0, 5, 4, 5, 1, 3, 4, 3, 2]].reshape(-1, 3, 3)
+    return np.einsum("i,kij,j->k", n, stress, b) / 1e6
+
+
+def _grid(values: np.ndarray, shape: tuple, digits: int) -> list:
+    """The values on a grid of the shape, rounded, so that the JSON is short."""
+    values = values.reshape(shape).round(digits)
+    return (values.astype(int) if digits == 0 else values).tolist()
+
+
+def plane_colors(field, box: float, slip: tuple, offset: float, points: int = PLANE_POINTS,
+                 digits: int = 1) -> list:
+    """The colours of ``slip_plane``'s surfaces, for another field on the same grids: a field
+    that changes in time, at another time."""
+    b, n, grids = _plane_grids(box, slip, offset, points)
+    return [_grid(_resolved(field, r, b, n), shape, digits) for r, shape in grids]
+
+
+def slip_plane(field, box: float, slip: tuple, offset: float, clip: float = FIELD_CLIP,
+               title: str = "internal resolved shear stress (MPa)", points: int = PLANE_POINTS,
+               digits: int = 1) -> list[dict]:
+    """The user stress's field on its line's slip plane, as the Plotly surfaces (JSON) that the
+    3-D window draws under the networks. There is one for each polygon where the plane, at the
+    offset (b) along its unit normal, or one of its periodic images cuts the cell: the line's
+    pieces lie on them. Each is coloured by the field's resolved shear stress n·σ·b (MPa), to
+    which the applied stress adds, clipped at +/- clip, with the colorbar's title. The field
+    takes positions (b) and gives the stresses (Pa: xx yy zz yz xz xy), as the script's
+    UserStress does; slip is (b, n). The grids are about points across the cell, and the
+    colours have that many digits."""
+    b, n, grids = _plane_grids(box, slip, offset, points)
+    surfaces = []
+    for r, shape in grids:
         surfaces.append({
             "type": "surface", "name": "slip plane",
-            "x": grid(r[:, 0], 0), "y": grid(r[:, 1], 0), "z": grid(r[:, 2], 0),
-            "surfacecolor": grid(tau, 1), "colorscale": FIELD_SCALE,
-            "cmin": -FIELD_CLIP, "cmax": FIELD_CLIP, "showscale": not surfaces,
-            "colorbar": {"title": {"text": "internal resolved shear stress (MPa)",
-                                   "side": "right"},
+            "x": _grid(r[:, 0], shape, 0), "y": _grid(r[:, 1], shape, 0),
+            "z": _grid(r[:, 2], shape, 0),
+            "surfacecolor": _grid(_resolved(field, r, b, n), shape, digits),
+            "colorscale": FIELD_SCALE, "cmin": -clip, "cmax": clip, "showscale": not surfaces,
+            "colorbar": {"title": {"text": title, "side": "right"},
                          "thickness": 12, "len": 0.6, "x": 1.0, "xanchor": "right", "y": 0.45},
             "lighting": {"ambient": 1.0, "diffuse": 0.0, "specular": 0.0, "roughness": 1.0,
                          "fresnel": 0.0},

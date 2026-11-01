@@ -8,6 +8,7 @@ time, from the files that the script writes too. This module does not import Str
 """
 import functools
 import io
+import re
 import zipfile
 from pathlib import Path
 
@@ -17,6 +18,8 @@ from common import job
 from common.network import read_json, snapshots
 
 MAX_FRAMES = 120  # an animation with more snapshots plays a subset, the first and last included
+# SimulateNetwork's print_freq line, as PyDiS and ExaDiS print it: step = k, ..., time = t, ...
+_STEP_TIME = re.compile(r"\s*step\s*=\s*(\d+)\b.*?\btime\s*=\s*([-+0-9.eE]+)")
 
 
 def frames(folder: job.RunFolder) -> list[tuple[str, Path]]:
@@ -29,6 +32,19 @@ def frames(folder: job.RunFolder) -> list[tuple[str, Path]]:
     if folder.results.exists():
         labelled.append(("final", folder.results))
     return labelled
+
+
+def frame_times(lines: list[str], labels: list[str], final: float | None = None) -> list[float]:
+    """The time (s) of each frame, by its label (``step k``, or ``final``), from the job's
+    printed lines: a step's own line, else interpolated between the lines around it. The final
+    frame's is final if given, else the last line's; all are 0 without a line."""
+    found = [(int(m.group(1)), float(m.group(2))) for line in lines
+             if (m := _STEP_TIME.match(line))]
+    if not found:
+        return [0.0] * len(labels)
+    steps, times = np.array(found).T
+    return [float(times[-1] if final is None else final) if label == "final"
+            else float(np.interp(int(label.split()[-1]), steps, times)) for label in labels]
 
 
 def history(folder: job.RunFolder, burgmag: float) -> tuple[list[int], list[int], list[float]]:

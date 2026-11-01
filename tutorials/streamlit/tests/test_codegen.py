@@ -130,12 +130,12 @@ def build_checks(example: catalog.Example, tmp: Path) -> list:
 
 
 def field_checks(tmp: Path) -> list:
-    """The user stress's reader of its field, on a small grid: it interpolates the grid's own
-    values, and refuses other columns, a grid off the cell or in another order, and a file over
-    its size limit."""
+    """The user stress's field, on a small grid: UserStress gives the grid's own values at its
+    points, and the reader refuses other columns, a grid of another box or in another order,
+    and a file over its size limit."""
     names = {"np": np, "os": os, "itertools": itertools, "urllib": urllib}
-    exec(codegen.USER_STRESS, names)  # pylint: disable=exec-used
-    load, field = names["load_stress_field"], names["StressField"]
+    exec(codegen.STRESS_FIELD, names)  # pylint: disable=exec-used
+    load = names["load_stress_field"]
     box, n = 100.0, np.array([4, 5, 6])
     cell = types.SimpleNamespace(h=box * np.eye(3), origin=-0.5 * box * np.ones(3))
 
@@ -154,20 +154,20 @@ def field_checks(tmp: Path) -> list:
     data, columns = grid("C"), ["x", "y", "z", "Sxx", "Syy", "Szz", "Syz", "Sxz", "Sxy"]
     np.savez(tmp / "field.npz", data=data, columns=columns, ngrid=n)
     np.savez(tmp / "columns.npz", data=data, columns=columns[::-1], ngrid=n)
+    np.savez(tmp / "fastest.npz", data=grid("F"), columns=columns, ngrid=n)
     (tmp / "large.bin").write_bytes(bytes(2_000_000))
-    stress = field(*load(str(tmp / "field.npz"), "unused"), cell)
-    larger = types.SimpleNamespace(h=2.0 * cell.h, origin=2.0 * cell.origin)
-    too_large = refusal(lambda: load(str(tmp / "copy.npz"), (tmp / "large.bin").as_uri(), 1))
+    names["ngrid"], names["stress_grid"] = load(str(tmp / "field.npz"), "unused", box)
+    too_large = refusal(lambda: load(str(tmp / "copy.npz"), (tmp / "large.bin").as_uri(), box, 1))
     left = sorted(p.name for p in tmp.glob("copy.npz*"))
     return [
-        check("user stress field: the grid's own values at its points",
-              np.allclose(stress(data[[0, 7, 119], :3]), data[[0, 7, 119], 3:])),
+        check("user stress field: the grid's own values at its points", np.allclose(
+            names["UserStress"](data[[0, 7, 119], :3], cell, None), data[[0, 7, 119], 3:])),
         check("user stress field: refuses other columns", "columns" in refusal(
-            lambda: load(str(tmp / "columns.npz"), "unused"))),
+            lambda: load(str(tmp / "columns.npz"), "unused", box))),
         check("user stress field: refuses a grid of another box", "not on the grid" in refusal(
-            lambda: field(data, n, larger))),
+            lambda: load(str(tmp / "field.npz"), "unused", 2.0 * box))),
         check("user stress field: refuses x fastest", "not on the grid" in refusal(
-            lambda: field(grid("F"), n, cell))),
+            lambda: load(str(tmp / "fastest.npz"), "unused", box))),
         check("user stress field: refuses a file over its limit, and leaves no part of it",
               "larger than 1 MB" in too_large and not left, (too_large, left)),
     ]
@@ -246,7 +246,9 @@ def main() -> int:  # pylint: disable=too-many-locals
                     "a box other than the field's": ("config", replace(
                         spec.config, box_length=1000.0), "field"),
                     "a shear stress off the menu": ("loading", replace(
-                        spec.loading, tau=2e6), "tau")})
+                        spec.loading, tau=2e6), "tau"),
+                    "a field kind off the menu": ("forces", replace(
+                        spec.forces, stress_kind="other"), "kind")})
                 link = spec.forces.stress_url
                 for what, url, word in (
                         ("a link off Dropbox", "https://example.com/field.npz", "https link"),
@@ -259,6 +261,21 @@ def main() -> int:  # pylint: disable=too-many-locals
                     spec.forces, stress_url=other)), final)
                 results.append(check(f"{name}: another field's link goes into the script",
                                      f"stress_url = {other!r}\n" in text and link not in text))
+                # user_stress.py's field, which varies in space and time: no file, 20 steps
+                toy = spec.with_part("forces", replace(spec.forces, stress_kind="space_time"))
+                toy = toy.with_part("run", replace(toy.run, max_step=20))
+                text = codegen.full_script(toy, final)
+                toy_folder = job.RunFolder.for_script(f"{name}_space_time", example.script_name,
+                                                      final, text, runs=Path(tmp) / "app")
+                toy_folder.prepare(text, toy.to_json())
+                toy_status = job.run(toy_folder)
+                results += [
+                    check(f"{name}: user_stress.py's field goes into the script, with no file",
+                          codegen.SPACE_TIME_STRESS in text and "stress_url" not in text
+                          and not toy.validate(), toy.validate()),
+                    check(f"{name}: user_stress.py's field runs 20 steps", toy_status.ok,
+                          toy_status.summary()),
+                ]
             for what, (part, value, word) in refused.items():
                 messages = spec.with_part(part, value).validate()
                 results.append(check(f"{name}: refuses {what}", has(messages, word), messages))

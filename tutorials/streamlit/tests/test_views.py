@@ -182,6 +182,35 @@ def main() -> int:  # pylint: disable=too-many-locals
               payload.background == surfaces and plain.background == []
               and payload.data_id != plain.data_id and len(payload.frames[0]["data"]) == 4),
     ]
+
+    # user_stress.py's field on the plane: tau = n.sigma.b = -Sxx/sqrt(6), from z and the time
+    toy = views.slip_plane(network.space_time_field(box), box, LINE_SLIP, offset,
+                           views.SPACE_TIME_CLIP, views.SPACE_TIME_TITLE, views.SPACE_TIME_POINTS,
+                           0)
+    later = views.plane_colors(network.space_time_field(box, 0.5e-9 * np.pi), box, LINE_SLIP,
+                               offset, views.SPACE_TIME_POINTS, 0)  # sin(t/1 ns) = 1
+    z = np.concatenate([np.ravel(s["z"]) for s in toy])
+    tau = [np.concatenate([np.ravel(c) for c in colours])
+           for colours in ([s["surfacecolor"] for s in toy], later)]
+    lines = ["step = 0, nodes = 87, dt = 1.0e-11, time = 1.0e-11, elapsed = 0.5 sec",
+             "step = 10, nodes = 87, dt = 6.0e-11, time = 3.0e-10, elapsed = 1.0 sec"]
+    moving = network3d.frames_payload([("step 0", line), ("step 10", line)], toy,
+                                      colors=[[s["surfacecolor"] for s in toy], later])
+    checks += [
+        check("user_stress.py's field on the plane: -(1 + cos(2π z/L) + sin(t/1 ns)) 50/√6 MPa, "
+              "at t = 0 and at π/2 ns, in whole MPa, under its own colour bar at +/- 60 MPa",
+              all(np.allclose(t, -(1.0 + np.cos(2.0 * np.pi * z / box) + sine) * 50.0
+                              / np.sqrt(6.0), atol=0.51) for t, sine in zip(tau, (0.0, 1.0)))
+              and toy[0]["cmax"] == 60.0
+              and toy[0]["colorbar"]["title"]["text"] == views.SPACE_TIME_TITLE,
+              [(t.min(), t.max()) for t in tau]),
+        check("the frames' times: a step's own line, else interpolated, and the final's apart",
+              np.allclose(results.frame_times(lines, ["step 0", "step 5", "step 10", "final"],
+                                              4e-10), [1e-11, 1.55e-10, 3e-10, 4e-10])),
+        check("each frame carries the plane's colours at its time, on the plane's grids",
+              [len(frame["colors"]) for frame in moving.frames] == [len(toy)] * 2
+              and all(np.shape(c) == np.shape(s["surfacecolor"]) for c, s in zip(later, toy))),
+    ]
     return summary(checks)
 
 

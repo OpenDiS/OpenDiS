@@ -15,10 +15,15 @@ import streamlit as st
 from common.catalog import Example
 from common.spec import (BUILT, CHOICES, CRYSTALS, ENGINE_NAMES, JUNCTION_TYPES, LINE_SLIP,
                          LINE_THETAS, MAX_BUILT, MAX_STEP, PARADIS_FILES, STRESS_LABELS,
-                         USER_TAUS, FCCJunction, FrankReadSource, InfiniteLines, LoopSources,
-                         ParaDiSFile, PrismaticLoops, Run, SimpleSource, Spec, UserStressLine)
+                         USER_STRESS_KINDS, USER_TAUS, FCCJunction, FrankReadSource, InfiniteLines,
+                         LoopSources, ParaDiSFile, PrismaticLoops, Run, SimpleSource, Spec,
+                         UserStressLine)
 
 STRESS_STEP = 1.0e7  # Pa, the +/- of an applied stress component
+# The user stress's menu: its fields, and none
+USER_STRESS_MENU = {"frozen": "loaded stress field, frozen in time",
+                    "space_time": "user defined stress(space,time)",
+                    "none": "none"}
 TUTORIAL_BY = {"pydis": "by pure Python", "exadis": "by Python calling ExaDiS"}  # the pages' titles
 # What each choice does, for the help of its select box
 HELP = {
@@ -269,18 +274,25 @@ def _forces(spec: Spec, ctx: StepContext) -> Spec:
     f, m, k = spec.forces, spec.material, ctx.key
     choices, name = CHOICES[spec.engine], ENGINE_NAMES[spec.engine]
     if f.stress_field is not None:  # the user stress
-        field = st.checkbox(
-            "Add the frozen internal stress, the user stress", f.stress_field,
-            key=f"{k}/stress_field", help="CalForceUserStress adds its Peach-Koehler force to "
-            "the force below. Without it, the line moves at the drag velocity M b τ.")
+        options = (*USER_STRESS_KINDS, "none")
+        kind = st.selectbox(
+            "User stress", options, index=options.index(f.stress_kind if f.stress_field
+                                                        and f.stress_kind in options else "none"),
+            format_func=USER_STRESS_MENU.get, key=f"{k}/stress_kind",
+            help="CalForceUserStress adds its Peach-Koehler force to the force below. "
+            "The user defined one is user_stress.py's: Sxx = (1 + cos(2π z/Lz) + sin(t/1 ns)) × "
+            "50 MPa. Without a "
+            "user stress, the line moves at the drag velocity M b τ.")
         link = st.text_input(
             "Link to the field's file", f.stress_url or "", key=f"{k}/stress_url",
-            disabled=not field, help="A Dropbox share link that ends with dl=1. Its file is an "
+            disabled=kind != "frozen",
+            help="A Dropbox share link that ends with dl=1. Its file is an "
             "npz like rs0084.stress.npz. Its array data has a row x y z Sxx Syy Szz Syz Sxz Sxy "
             f"for each point of a grid of the {spec.config.box_length:g} b box, in b and Pa, x "
             "slowest and z fastest. Its arrays columns and ngrid name them and give the grid's "
             "size. The script downloads each link's file once, up to 300 MB.")
-        f = replace(f, stress_field=field, stress_url=link.strip())
+        f = replace(f, stress_field=kind != "none",
+                    stress_kind=f.stress_kind if kind == "none" else kind, stress_url=link.strip())
     mode = _select("Force", choices["force_mode"], f.force_mode, f"{k}/force_mode",
                    _help(choices["force_mode"]))
     cutoff, default_cutoff = None, f.cutoff or 0.3 * spec.config.box_length

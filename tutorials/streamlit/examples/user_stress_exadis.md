@@ -29,12 +29,14 @@ maxdt = 1e-9
 use_glide_planes = true
 
 [forces]
-force_mode = "LineTension"
+force_mode = "CUTOFF_MODEL"
+cutoff = 5000.0
 mobility_law = "FCC_0"
 Medge = 64103.0
 Mscrew = 64103.0
 vmax = 4000.0
 stress_field = true
+stress_kind = "frozen"
 stress_url = "https://www.dropbox.com/scl/fi/q8025nk18zrovpfupo1vt/rs0084.stress.npz?rlkey=z1ertzr41fn68c6sjzptrysyq&st=5kvnt6qi&dl=1"
 
 [timeint]
@@ -57,4 +59,4 @@ plot_freq = 30
 plot_pause_seconds = 0.0001
 +++
 
-This example illustrates how to add a user-defined stress field to a DDD simulation, as in [user_stress.py](https://github.com/OpenDiS/OpenDiS/blob/main/tutorials/05_user_stress/user_stress.py). A dislocation moves through the frozen internal stress of a dislocation network, driven by the applied shear stress τ.
+This example illustrates how to add a user-defined stress field to a DDD simulation, as in [user_stress.py](https://github.com/OpenDiS/OpenDiS/blob/main/tutorials/05_user_stress/user_stress.py). A dislocation moves through that field, driven by the applied shear stress τ.

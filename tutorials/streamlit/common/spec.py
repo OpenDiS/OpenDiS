@@ -47,6 +47,8 @@ FIELD_BOX = 58824.0  # b: the periodic box of the user stress's frozen field
 LINE_SLIP = ((-1.0, 0.0, 1.0), (1.0, 1.0, 1.0))  # its line's slip system B4: b, and the plane
 LINE_THETAS = (0.0, 90.0)  # its line's character angles (degrees), screw and edge
 USER_TAUS = (1e6, 3e6, 5e6, 7e6, 10e6, 15e6)  # Pa: its shear stresses, as the menu offers them
+# Its fields: a loaded one, frozen in time; user_stress.py's, which varies in space and time
+USER_STRESS_KINDS = ("frozen", "space_time")
 # Its field's file comes from a Dropbox share link, which gives the file itself with dl=1: the
 # server fetches no other address, and the link goes into the script with no quote or space
 STRESS_HOSTS = ("www.dropbox.com", "dl.dropboxusercontent.com")
@@ -350,8 +352,9 @@ class Forces:
     Mscrew: float | None = None
     Mclimb: float | None = None  # BCC_0B's
     vmax: float | None = None
-    stress_field: bool | None = None  # the user stress's: its frozen field added to the force
-    stress_url: str | None = None  # the user stress's: the Dropbox link of its field's file
+    stress_field: bool | None = None  # the user stress's: its field added to the force
+    stress_kind: str | None = None  # the user stress's: which field, of USER_STRESS_KINDS
+    stress_url: str | None = None  # the user stress's: the Dropbox link of its frozen field's file
 
 
 @dataclass(frozen=True)
@@ -510,14 +513,17 @@ class Spec:  # pylint: disable=too-many-instance-attributes
         if isinstance(self.config, LoopSources) and m.crystal not in CRYSTALS:
             errors.append(f"crystal: the loops need one of {', '.join(CRYSTALS)} (step 2)")
         user, tau = isinstance(self.config, UserStressLine), self.loading.tau
-        if any(user != (value is not None) for value in (f.stress_field, f.stress_url, tau)):
-            errors.append("stress field, its link and tau: the user stress takes all three "
-                          "(steps 3 and 6), and the other examples none")
+        if any(user != (value is not None)
+               for value in (f.stress_field, f.stress_kind, f.stress_url, tau)):
+            errors.append("stress field, its kind, its link and tau: the user stress takes all "
+                          "four (steps 3 and 6), and the other examples none")
         elif user:
             if tau not in USER_TAUS:
                 errors.append(f"tau: must be one of "
                               f"{', '.join(f'{t / 1e6:g}' for t in USER_TAUS)} MPa")
-            if f.stress_field:
+            if f.stress_kind not in USER_STRESS_KINDS:
+                errors.append(f"stress kind: must be one of {', '.join(USER_STRESS_KINDS)}")
+            elif f.stress_field and f.stress_kind == "frozen":
                 errors += _link_problems(f.stress_url)
         if user and self.loading.loading_mode != "stress":
             errors.append("loading mode: the user stress's line is driven by a constant stress")
