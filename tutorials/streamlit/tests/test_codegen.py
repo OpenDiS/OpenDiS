@@ -143,11 +143,11 @@ def main() -> int:  # pylint: disable=too-many-locals
     looks = [codegen.num(v) for v in (50e9, 3e-10, 1e-8, -4e8, 1e6)]
     results = [
         check("the input files have no problems", not problems, problems),
-        check("ten examples, in order", [e.name for e in examples] ==
+        check("twelve examples, in order", [e.name for e in examples] ==
               ["frank_read_src", "frank_read_src_exadis", "binary_junction",
                "binary_junction_exadis", "binary_junction_fcc", "binary_junction_fcc_exadis",
-               "uniaxial_tension", "uniaxial_tension_exadis",
-               "initial_configurations", "initial_configurations_exadis"],
+               "uniaxial_tension", "uniaxial_tension_exadis", "user_stress",
+               "user_stress_exadis", "initial_configurations", "initial_configurations_exadis"],
               [e.name for e in examples]),
         check("num: every number comes back exactly", not inexact, inexact),
         check("num: 5.0e10, 3.0e-10, 1.0e-8, -4.0e8, 1.0e6",
@@ -191,6 +191,14 @@ def main() -> int:  # pylint: disable=too-many-locals
             if spec.forces.force_mode == "CUTOFF_MODEL":
                 refused["CUTOFF_MODEL without a cutoff"] = ("forces", replace(
                     spec.forces, cutoff=None), "cutoff")
+            if spec.config.kind == "user_stress_line":
+                refused.update({
+                    "a mixed line, which does not close": ("config", replace(
+                        spec.config, theta=45.0), "theta"),
+                    "a box other than the field's": ("config", replace(
+                        spec.config, box_length=1000.0), "field"),
+                    "a shear stress off the menu": ("loading", replace(
+                        spec.loading, tau=2e6), "tau")})
             for what, (part, value, word) in refused.items():
                 messages = spec.with_part(part, value).validate()
                 results.append(check(f"{name}: refuses {what}", has(messages, word), messages))
@@ -216,6 +224,9 @@ def main() -> int:  # pylint: disable=too-many-locals
             tutorial = Path(tmp) / "tutorial" / name
             tutorial.mkdir(parents=True)
             (tutorial / "tutorial.py").write_text(text, encoding="utf-8")
+            if spec.forces.stress_field:  # the field that the app's job read, in its folder
+                field = OPENDIS_DIR / codegen.STRESS_FILE
+                (tutorial / field.name).symlink_to(field)
             ran = subprocess.run([sys.executable, "-u", "tutorial.py"], cwd=tutorial,
                                  env={**os.environ, **job.JOB_ENV}, stdout=subprocess.PIPE,
                                  stderr=subprocess.STDOUT, text=True, check=False)

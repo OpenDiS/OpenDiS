@@ -4,7 +4,7 @@ ports of ExaDiS' pyexadis_utils
 """
 
 import numpy as np
-from ..disnet import DisNode
+from ..disnet import DisNode, _insert_infinite_line
 
 
 def insert_frank_read_src(cell, nodes, segs, burg, plane, length, center, theta=0.0, linedir=None, numnodes=10):
@@ -36,3 +36,12 @@ def insert_frank_read_src(cell, nodes, segs, burg, plane, length, center, theta=
         segs.append(np.concatenate(([istart+i, istart+i+1], burg, plane)))
 
     return nodes, segs
+
+
+def insert_infinite_line(cell, nodes, segs, burg, plane, origin, theta=0.0, linedir=None, maxseg=-1, trial=False):
+    """insert_infinite_line: append a straight line through origin, closed on itself across the
+       periodic cell, to the lists of nodes and segments, as pyexadis_utils.insert_infinite_line;
+       its segments are at most maxseg long; with trial, only return the line's length
+    """
+    return _insert_infinite_line(cell, nodes, segs, burg, plane, origin, theta=theta,
+                                 linedir=linedir, maxseg=maxseg, trial=trial)

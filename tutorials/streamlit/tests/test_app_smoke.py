@@ -62,8 +62,9 @@ def main() -> int:  # pylint: disable=too-many-locals,too-many-statements
         check("the banner says OpenDiS, with the logo", "<h1>OpenDiS</h1>" in text
               and "data:image/png;base64," in text),
         check("in the sidebar, the Example menu: Frank-Read src, Binary junction, Uniaxial "
-              "tension, Initial configurations", len(picker) == 1 and picker[0].options ==
-              ["Frank-Read src", "Binary junction", "Uniaxial tension", "Initial configurations"],
+              "tension, User stress, Initial configurations", len(picker) == 1
+              and picker[0].options == ["Frank-Read src", "Binary junction", "Uniaxial tension",
+                                        "User stress", "Initial configurations"],
               [s.options for s in at.selectbox]),
         check("below it, the Core menu of the Frank-Read source: PyDiS, ExaDiS",
               codes == [(["PyDiS", "ExaDiS"], "PyDiS", False)], codes),
@@ -86,6 +87,7 @@ def main() -> int:  # pylint: disable=too-many-locals,too-many-statements
     for example, code, variant in (
             ("Frank-Read src", "PyDiS", None), ("Frank-Read src", "ExaDiS", None),
             ("Uniaxial tension", "PyDiS", None), ("Uniaxial tension", "ExaDiS", None),
+            ("User stress", "PyDiS", None), ("User stress", "ExaDiS", None),
             ("Initial configurations", "PyDiS", None), ("Initial configurations", "ExaDiS", None),
             ("Binary junction", "PyDiS", "FCC"), ("Binary junction", "ExaDiS", "FCC"),
             ("Binary junction", "ExaDiS", None), ("Binary junction", "PyDiS", None)):
@@ -261,6 +263,40 @@ def main() -> int:  # pylint: disable=too-many-locals,too-many-statements
               ["step 0", "step 10", "step 20", "final"],
               [[f["label"] for f in r["frames"]] for r in replay]),
         check("no job is left running after ExaDiS's", not job.running()),
+    ]
+
+    # the user stress, 20 steps: its shear stress from a menu, and the history's third plot,
+    # the line's displacement against the time, with its velocity
+    at = page()
+    choose(at, "User stress")
+    menus = {}
+    for _ in STEP_LIST[1:]:
+        click(at, "next ›")
+        menus.update((s.label, (s.options, s.value)) for s in at.main.selectbox
+                     if s.label.startswith("Shear stress"))
+    next(n for n in at.number_input if n.label.startswith("max_step")).set_value(20).run()
+    click(at, "▶ Run")
+    output = "\n".join(c.value for c in at.code)
+    successes = [s.value for s in at.success]
+    next(r for r in at.radio if r.label == "3-D view").set_value("history").run()
+    charts = [json.loads(c.proto.spec) for c in at.get("plotly_chart")]
+    third = [a["text"] for c in charts for a in c["layout"].get("annotations", [])
+             if a["text"].startswith("displacement")]
+    lines = [t.get("name") for c in charts for t in c["data"]]
+    results += [
+        check("user stress: step 6 offers the shear stresses 1 to 15 MPa, 3 MPa first",
+              menus == {"Shear stress τ on the line's slip system": (
+                  ["1 MPa", "3 MPa", "5 MPa", "7 MPa", "10 MPa", "15 MPa"], 3e6)}, menus),
+        check("user stress: the run ends without an exception, and says Done", not at.exception
+              and any(s.startswith("Done after") for s in successes),
+              ([e.value for e in at.exception], successes)),
+        check("user stress: the output column shows PyDiS's lines", "step = 10" in output,
+              output[-300:]),
+        check("user stress: the history plots the displacement against the time, with its "
+              "velocity and the drag velocity", len(third) == 1 and " m/s, against M b τ = 49.04 "
+              "m/s" in third[0] and lines[-3:] == ["displacement", "velocity over the second "
+                                                     "half", "M b τ"], (third, lines[-3:])),
+        check("no job is left running after the user stress's", not job.running()),
     ]
 
     # the initial configurations: each of the tutorial's networks draws in step 1, and Run

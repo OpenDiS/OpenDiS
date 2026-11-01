@@ -174,17 +174,35 @@ def _simulation_view(example: Example, slot: DeltaGenerator,
                        frame_ms=FRAME_MS)
 
 
+def _motion(spec: Spec, folder: job.RunFolder) -> tuple | None:
+    """The user stress's line: the time and its displacement, and its drag velocity M b τ, for
+    FCC_0's mobility of its character (None with another mobility law)."""
+    found = results.displacement(folder)
+    if found is None:
+        return None
+    f = spec.forces
+    mobility = (f.Mscrew if spec.config.theta == 0.0 else f.Medge) \
+        if f.mobility_law == "FCC_0" else None
+    return (*found, None if mobility is None else mobility * spec.material.burgmag
+            * spec.loading.tau)
+
+
 def _history_view(example: Example, spec: Spec, folder: job.RunFolder | None) -> None:
-    """The number of nodes, and the density, against the time step, from the run's snapshots."""
+    """The number of nodes, and the density, against the time step, from the run's snapshots;
+    the stress against the strain, or the user stress's displacement against the time."""
     steps, nodes, density = (results.history(folder, spec.material.burgmag) if folder
                              else ([], [], []))
     if not steps:
         st.info("The history appears with a run: the number of nodes and the density of each "
-                "snapshot of the network that it writes (output/disnet_<step>.json).")
+                "snapshot of the network that it writes (output/disnet_<step>.json)"
+                + (", and the line's displacement against time." if spec.loading.tau is not None
+                   else "."))
         return
     curve = (results.stress_strain(folder) if spec.loading.loading_mode == "strain_rate"
              else None)
-    _chart(st, views.history_figure(steps, nodes, density, curve), key=f"history/{example.name}")
+    motion = _motion(spec, folder) if spec.loading.tau is not None else None
+    _chart(st, views.history_figure(steps, nodes, density, curve, motion),
+           key=f"history/{example.name}")
 
 
 def _view_panel(example: Example, spec: Spec,

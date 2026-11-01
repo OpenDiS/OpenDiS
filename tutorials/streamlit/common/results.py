@@ -3,7 +3,8 @@
 The job's script writes into ``output/`` a snapshot of the network every write_freq steps
 (``disnet_<step>.json``) and, at its end, the final network. The history, the number of nodes
 and the dislocation density against the time step, is read from the snapshots, which every
-PyDiS writes. This module does not import Streamlit.
+PyDiS writes; the stress against the strain, and the user stress's displacement against the
+time, from the files that the script writes too. This module does not import Streamlit.
 """
 import functools
 import io
@@ -64,6 +65,20 @@ def stress_strain(folder: job.RunFolder) -> tuple[np.ndarray, np.ndarray] | None
     except (OSError, ValueError):
         return None
     if table.shape[0] == 0 or table.shape[1] < 3:
+        return None
+    return table[:, 1], table[:, 2]
+
+
+def displacement(folder: job.RunFolder) -> tuple[np.ndarray, np.ndarray] | None:
+    """The time (s) and the mean displacement (m) of the user stress's line, from
+    output/displacement.dat, which its script writes; None without the file, or while it is
+    written."""
+    path = folder.output / "displacement.dat"
+    try:
+        table = np.atleast_2d(np.loadtxt(path, comments="#"))
+    except (OSError, ValueError):
+        return None
+    if table.shape[0] < 2 or table.shape[1] < 3:
         return None
     return table[:, 1], table[:, 2]
 

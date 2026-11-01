@@ -67,6 +67,10 @@ def main() -> int:  # pylint: disable=too-many-locals
         elevation = np.degrees(np.arctan2(eye.z, np.hypot(eye.x, eye.y)))
         history = views.history_figure([0, 10], [7, 9], [5e12, 6e12])
         tension = views.history_figure([0, 10], [7, 9], [5e12, 6e12], ([0.0, 1e-4], [0.0, 5e7]))
+        time = np.array([0.0, 1e-9, 2e-9, 3e-9, 4e-9])  # 100 m/s, then 50 m/s from 1 ns
+        disp = np.array([0.0, 1e-7, 1.5e-7, 2e-7, 2.5e-7])
+        motion = views.history_figure([0, 10], [7, 9], [5e12, 6e12], motion=(time, disp, 60.0))
+        titles = [a.text for a in motion.layout.annotations]
         payload = network3d.frames_payload([("step 0", fr), ("final", bj)])
         again = network3d.frames_payload([("step 0", fr), ("final", bj)])
         other = network3d.frames_payload([("step 0", fr)])
@@ -93,6 +97,14 @@ def main() -> int:  # pylint: disable=too-many-locals
             check("a strain-rate run's history: also the stress (MPa) against the strain",
                   len(tension.data) == 3 and list(tension.data[2].y) == [0.0, 50.0]
                   and tension.layout.height > history.layout.height),
+            check("the user stress's history: also the displacement (µm) against the time (ns), "
+                  "the velocity over the second half, and the drag velocity's line",
+                  len(motion.data) == 5 and np.allclose(motion.data[2].y, disp * 1e6)
+                  and np.allclose(motion.data[3].x, [2.0, 4.0])
+                  and np.allclose(motion.data[3].y, [0.15, 0.25])
+                  and np.allclose(motion.data[4].y, [0.0, 0.24]), list(motion.data[3].y)),
+            check("... whose title gives the two velocities, 50 and 60 m/s", titles[2] ==
+                  "displacement (µm) against time (ns): 50 m/s, against M b τ = 60 m/s", titles),
         ]
 
         # a run's results: 300 snapshots of the triangle, its final network, and one more
@@ -107,6 +119,13 @@ def main() -> int:  # pylint: disable=too-many-locals
         frames = results.frames(folder)
         (folder.output / "disnet_3000.json").write_text(text[:len(text) // 2])
         steps, nodes, density = results.history(folder, 3.0e-10)
+        (folder.output / "displacement.dat").write_text(
+            "# Step Time(s) Displacement(m)\n0 0.000000e+00 0.000000e+00\n")
+        one_row = results.displacement(folder)
+        (folder.output / "displacement.dat").write_text(
+            "# Step Time(s) Displacement(m)\n0 0.000000e+00 0.000000e+00\n"
+            "1 1.000000e-11 1.036107e-09\n2 2.200000e-11 2.279167e-09\n")
+        moved = results.displacement(folder)
         checks += [
             check("300 snapshots play as 120 frames, the first, the last and the final kept",
                   len(frames) == results.MAX_FRAMES + 1 and frames[0][0] == "step 0"
@@ -117,6 +136,10 @@ def main() -> int:  # pylint: disable=too-many-locals
                   and set(nodes) == {3} and np.allclose(density, (2 + np.sqrt(2)) / 1e3 / 9e-20),
                   (steps[-1], set(nodes), density[0])),
             check("the zip holds output/", b"output/final.json" in results.output_zip(folder)),
+            check("the user stress's displacement against the time, from output/displacement.dat; "
+                  "none before its second row", one_row is None and moved is not None
+                  and np.allclose(moved[0], [0.0, 1e-11, 2.2e-11])
+                  and np.allclose(moved[1], [0.0, 1.036107e-9, 2.279167e-9]), moved),
         ]
     return summary(checks)
 

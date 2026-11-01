@@ -37,7 +37,9 @@ class Topology:
     def __init__(self, state: dict={}, split_mode: str='MaxDiss', **kwargs) -> None:
         self.split_mode = split_mode
         self.force = kwargs.get('force')
-        if not self.force.__module__.split('.')[0] in ['pydis', 'pyexadis_base']:
+        # a user's module that wraps a force module, as in tutorials/05_user_stress, by its base
+        base = getattr(self.force, 'calforce_base', self.force)
+        if not base.__module__.split('.')[0] in ['pydis', 'pyexadis_base']:
             print("Topology: force.__module__ = ", self.force.__module__)
             raise ValueError("Topology: force must come compatible modules")
         self.mobility = kwargs.get('mobility')

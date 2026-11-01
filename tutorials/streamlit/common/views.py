@@ -94,17 +94,35 @@ def network_figure(net: Network, title: str) -> go.Figure:
     return fig
 
 
+def second_half(time: np.ndarray, disp: np.ndarray) -> tuple[float, float, float]:
+    """The second half of a run: the time (s) and the displacement (m) at its start, which is
+    interpolated, and the mean velocity over it (m/s)."""
+    start = 0.5 * time[-1]
+    at = float(np.interp(start, time, disp))
+    return start, at, float((disp[-1] - at) / (time[-1] - start)) if start > 0 else float("nan")
+
+
+def _motion_title(motion: tuple) -> str:
+    """The title of the displacement's plot, with its velocity and the drag velocity."""
+    time, disp, drag = motion
+    title = f"displacement (µm) against time (ns): {second_half(time, disp)[2]:.4g} m/s"
+    return title + ("" if drag is None else f", against M b τ = {drag:.4g} m/s")
+
+
 def history_figure(steps: list[int], nodes: list[int], density: list[float],
-                   curve: tuple | None = None) -> go.Figure:
+                   curve: tuple | None = None, motion: tuple | None = None) -> go.Figure:
     """The number of nodes, and the dislocation density, against the time step; with a curve
-    (strain, stress in Pa), also the stress against the strain."""
-    if curve is None:
+    (strain, stress in Pa), also the stress against the strain; with motion (the time in s, the
+    user stress's line's mean displacement in m, and the drag velocity M b τ in m/s or None),
+    also the displacement against the time, with its velocity over the second half (dashed)
+    and the drag velocity's line (dotted)."""
+    if curve is None and motion is None:
         fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.08,
                             subplot_titles=("nodes", "dislocation density (m⁻²)"))
     else:
+        third = "stress (MPa) against strain" if curve is not None else _motion_title(motion)
         fig = make_subplots(rows=3, cols=1, vertical_spacing=0.15,
-                            subplot_titles=("nodes", "dislocation density (m⁻²)",
-                                            "stress (MPa) against strain"))
+                            subplot_titles=("nodes", "dislocation density (m⁻²)", third))
         fig.update_xaxes(matches="x2", showticklabels=False, row=1, col=1)
     fig.add_trace(go.Scatter(x=steps, y=nodes, mode="lines+markers", name="nodes",
                              line={"color": SEGMENT_COLOR}), row=1, col=1)
@@ -116,9 +134,24 @@ def history_figure(steps: list[int], nodes: list[int], density: list[float],
         fig.add_trace(go.Scatter(x=list(strain), y=[s / 1e6 for s in stress], mode="lines",
                                  name="stress", line={"color": "#1a2332"}), row=3, col=1)
         fig.update_xaxes(title_text="strain", row=3, col=1)
+    if motion is not None:
+        time, disp, drag = motion
+        start, at, _ = second_half(time, disp)
+        end = float(time[-1])
+        fig.add_trace(go.Scatter(x=list(time * 1e9), y=list(disp * 1e6), mode="lines",
+                                 name="displacement", line={"color": "#1a2332"}), row=3, col=1)
+        fig.add_trace(go.Scatter(x=[start * 1e9, end * 1e9], y=[at * 1e6, disp[-1] * 1e6],
+                                 mode="lines", name="velocity over the second half",
+                                 line={"color": NODE_COLOR, "dash": "dash"}), row=3, col=1)
+        if drag is not None:
+            fig.add_trace(go.Scatter(x=[0.0, end * 1e9], y=[0.0, drag * end * 1e6],
+                                     mode="lines", name="M b τ",
+                                     line={"color": BOX_COLOR, "dash": "dot"}), row=3, col=1)
+        fig.update_xaxes(title_text="time (ns)", row=3, col=1)
     fig.update_xaxes(automargin=True)
     fig.update_yaxes(automargin=True)  # the tick labels and the axis title stay in view
-    fig.update_layout(height=HISTORY_HEIGHT + (0 if curve is None else CURVE_HEIGHT),
+    fig.update_layout(height=HISTORY_HEIGHT + (0 if curve is None and motion is None
+                                               else CURVE_HEIGHT),
                       margin={"l": 70, "r": 20, "t": 40, "b": 60},
                       showlegend=False, plot_bgcolor="#f7f9fc")
     return fig

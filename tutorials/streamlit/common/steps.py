@@ -9,13 +9,14 @@ import math
 from dataclasses import dataclass, replace
 from typing import Any
 
+import numpy as np
 import streamlit as st
 
 from common.catalog import Example
-from common.spec import (BUILT, CHOICES, CRYSTALS, ENGINE_NAMES, JUNCTION_TYPES, MAX_BUILT,
-                         MAX_STEP, PARADIS_FILES, STRESS_LABELS, FCCJunction, FrankReadSource,
-                         InfiniteLines, LoopSources, ParaDiSFile, PrismaticLoops, Run,
-                         SimpleSource, Spec)
+from common.spec import (BUILT, CHOICES, CRYSTALS, ENGINE_NAMES, JUNCTION_TYPES, LINE_SLIP,
+                         LINE_THETAS, MAX_BUILT, MAX_STEP, PARADIS_FILES, STRESS_LABELS,
+                         USER_TAUS, FCCJunction, FrankReadSource, InfiniteLines, LoopSources,
+                         ParaDiSFile, PrismaticLoops, Run, SimpleSource, Spec, UserStressLine)
 
 STRESS_STEP = 1.0e7  # Pa, the +/- of an applied stress component
 TUTORIAL_BY = {"pydis": "by pure Python", "exadis": "by Python calling ExaDiS"}  # the pages' titles
@@ -111,6 +112,8 @@ def _config(spec: Spec, ctx: StepContext) -> Spec:
             st.markdown(f"From the tutorial [{title}]({example.tutorial_url}).")
     if not c.simulates:
         return spec.with_part("config", _network(c, k))
+    if isinstance(c, UserStressLine):
+        return spec.with_part("config", _user_stress_line(c, k))
     box = _number("Box length, Lbox (b)", c.box_length, f"{k}/box_length",
                   "The edge of the cubic simulation cell, in units of the Burgers vector's length.")
     if isinstance(c, LoopSources):
@@ -155,6 +158,23 @@ def _config(spec: Spec, ctx: StepContext) -> Spec:
     b1 = _vector("b1, the first line's Burgers vector", c.b1, f"{k}/b1")
     b2 = _vector("b2, the second line's Burgers vector", c.b2, f"{k}/b2")
     return spec.with_part("config", replace(c, box_length=box, pbc=pbc, z0=z0, b1=b1, b2=b2))
+
+
+def _user_stress_line(c: UserStressLine, k: str) -> UserStressLine:
+    """Step 1 of the user stress: the line's character and starting point; the box is the
+    stress field's."""
+    st.caption(f"The box is the stress field's, {c.box_length:g} b, periodic in all three "
+               "directions. The line is on the slip system B4: b along [-1 0 1], on (1 1 1).")
+    theta = st.selectbox("Character of the line", LINE_THETAS,
+                         index=LINE_THETAS.index(c.theta) if c.theta in LINE_THETAS else 0,
+                         format_func=lambda t: f"{'screw' if t == 0 else 'edge'} ({t:g}°)",
+                         key=f"{k}/theta", help="theta, the angle between the line and its "
+                         "Burgers vector. At other angles the line would not close on itself "
+                         "across the box.")
+    seed = int(st.number_input("Seed of the starting point", value=int(c.seed), min_value=0,
+                               step=1, key=f"{k}/seed", help="The line runs through a random "
+                               "point of the box. Each seed puts it on another glide plane."))
+    return replace(c, theta=theta, seed=seed)
 
 
 def _network(c, k: str):
@@ -248,6 +268,11 @@ def _forces(spec: Spec, ctx: StepContext) -> Spec:
     """Step 3: the force model and the mobility law, with their optional values."""
     f, m, k = spec.forces, spec.material, ctx.key
     choices, name = CHOICES[spec.engine], ENGINE_NAMES[spec.engine]
+    if f.stress_field is not None:  # the user stress
+        f = replace(f, stress_field=st.checkbox(
+            "Add the frozen internal stress, the user stress", f.stress_field,
+            key=f"{k}/stress_field", help="CalForceUserStress adds its Peach-Koehler force to "
+            "the force below. Without it, the line moves at the drag velocity M b τ."))
     mode = _select("Force", choices["force_mode"], f.force_mode, f"{k}/force_mode",
                    _help(choices["force_mode"]))
     cutoff, default_cutoff = None, f.cutoff or 0.3 * spec.config.box_length
@@ -352,6 +377,8 @@ def _topology(spec: Spec, ctx: StepContext) -> Spec:
 def _loading(spec: Spec, ctx: StepContext) -> Spec:
     """Step 6: the applied stress."""
     loading, k = spec.loading, ctx.key
+    if loading.tau is not None:
+        return spec.with_part("loading", replace(loading, tau=_shear_stress(loading.tau, k)))
     choices = CHOICES[spec.engine]["loading_mode"]
     mode = _select("Loading", choices, loading.loading_mode, f"{k}/loading_mode", _help(choices))
     if mode == "strain_rate":
@@ -364,6 +391,24 @@ def _loading(spec: Spec, ctx: StepContext) -> Spec:
     stress = tuple(_number(f"σ_{label}", value, f"{k}/sigma_{label}", step=STRESS_STEP)
                    for label, value in zip(STRESS_LABELS, loading.applied_stress))
     return spec.with_part("loading", replace(loading, loading_mode=mode, applied_stress=stress))
+
+
+def _shear_stress(tau: float, k: str) -> float:
+    """Step 6 of the user stress: the shear stress on the line's slip system, from a menu, and
+    the applied stress that it gives."""
+    tau = st.selectbox("Shear stress τ on the line's slip system", USER_TAUS,
+                       index=USER_TAUS.index(tau) if tau in USER_TAUS else 0,
+                       format_func=lambda t: f"{t / 1e6:g} MPa", key=f"{k}/tau",
+                       help="The resolved shear stress b·σ·n of the applied stress σ, which has "
+                            "no other part. The stress is constant in time.")
+    b, n = (np.array(v) / np.linalg.norm(v) for v in LINE_SLIP)
+    sigma = tau * (np.outer(b, n) + np.outer(n, b))
+    parts = [f"σ_{label} = {sigma[i, j] / 1e6:.4g} MPa" for label, (i, j) in
+             zip(STRESS_LABELS, ((0, 0), (1, 1), (2, 2), (1, 2), (0, 2), (0, 1)))
+             if abs(sigma[i, j]) > 1e-9 * tau]
+    st.caption(f"The applied stress σ = τ (b n + n b): {', '.join(parts)}. The other "
+               "components are zero.")
+    return tau
 
 
 def run_settings(spec: Spec, ctx: StepContext) -> Spec:

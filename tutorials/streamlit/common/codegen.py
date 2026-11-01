@@ -10,6 +10,10 @@ order; an optional value (Ec, mob, a Burgers vector) appears only when it is not
 and ExaDiS's script also writes its snapshots as PyDiS's does, ``output/disnet_<step>.json``,
 which the app plays.
 
+The user stress's script also defines what its tutorials in ``tutorials/05_user_stress/``
+define: the reader of its frozen field and the force module that adds it (step 3), and a
+driver that writes the line's displacement (step 7). It reads the field from that folder.
+
 A script that builds a network and runs no simulation is one option of
 ``tutorials/01_initial_configurations/initial_configurations.py``, with either code: the
 network that it builds is the tutorial's, which ``tests/test_codegen.py`` checks too. It writes
@@ -20,9 +24,13 @@ from dataclasses import replace
 
 from common.paths import OPENDIS_DIR, PYDIS_PATHS
 from common.spec import (FCCJunction, FrankReadSource, InfiniteLines, LoopSources, ParaDiSFile,
-                         SimpleSource, Spec, TwoLines)
+                         SimpleSource, Spec, TwoLines, UserStressLine)
 
 EXADIS_PATHS = PYDIS_PATHS + ("core/exadis/python",)  # as in the ExaDiS tutorials' scripts
+# The user stress's frozen field: where its scripts keep it, from the repository's root, and
+# where they download it from when it is not there
+STRESS_FILE = "tutorials/05_user_stress/rs0084.stress.npz"
+STRESS_URL = "https://www.dropbox.com/scl/fi/q8025nk18zrovpfupo1vt/rs0084.stress.npz?rlkey=z1ertzr41fn68c6sjzptrysyq&st=5kvnt6qi&dl=1"
 
 
 def num(x: float) -> str:
@@ -232,11 +240,157 @@ INIT_FUNCTIONS.update({
     ("exadis", FCCJunction.kind): _FCC_JUNCTION.format(
         cell="pyexadis.Cell", network="ExaDisNet(cell, nodes, segs)"),
 })
+# The user stress's line, the same in both codes but for its cell and its network
+_INFINITE_LINE = '''\
+def init_infinite_line(Lbox, burg, plane, theta, seed, maxseg):
+    \'\'\'Generate a straight, infinite dislocation line through the periodic box, at theta
+    degrees from its Burgers vector, through a random point
+    \'\'\'
+    cell = {cell}(h=Lbox*np.eye(3), origin=-0.5*Lbox*np.ones(3), is_periodic=[1,1,1])
+    origin = Lbox*(np.random.default_rng(seed).random(3) - 0.5)
+    # segments just shorter than maxseg, so that remeshing does not split them
+    nodes, segs = insert_infinite_line(cell, [], [], burg, plane, origin, theta=theta,
+                                       maxseg=0.95*maxseg)
+    return DisNetManager({network})
+'''
+INIT_FUNCTIONS.update({
+    ("pydis", UserStressLine.kind): _INFINITE_LINE.format(
+        cell="Cell", network="DisNet(cell=cell, rn=np.array(nodes), links=np.array(segs))"),
+    ("exadis", UserStressLine.kind): _INFINITE_LINE.format(
+        cell="pyexadis.Cell", network="ExaDisNet(cell, nodes, segs)"),
+})
 # What a kind's function imports besides the code's own modules
 KIND_IMPORTS = {
     ("pydis", FCCJunction.kind): "from pydis.util.network_util import insert_frank_read_src\n",
     ("exadis", FCCJunction.kind): "from pyexadis_utils import insert_frank_read_src\n",
+    ("pydis", UserStressLine.kind): "import itertools, urllib.request\n"
+                                    "from pydis.util.network_util import insert_infinite_line\n",
+    ("exadis", UserStressLine.kind): "import itertools, urllib.request\n"
+                                     "from pyexadis_utils import insert_infinite_line\n",
 }
+# The user stress's field, and the force module that adds it to a base module's forces, as in
+# tutorials/05_user_stress/user_stress.py; after the lines that name its file and address
+USER_STRESS = '''\
+def load_stress_field(path, url):
+    \'\'\'The rows x y z Sxx Syy Szz Syz Sxz Sxy of a stress field file, and its grid size;
+    the file is downloaded first if it is not there
+    \'\'\'
+    if not os.path.exists(path):
+        print('Downloading %s' % url)
+        part = '%s.%d.part' % (path, os.getpid())
+        urllib.request.urlretrieve(url, part)
+        os.replace(part, path)
+    with np.load(path) as f:
+        return f['data'], f['ngrid']
+
+class StressField:
+    \'\'\'A stress field given at the centres of a grid of the periodic cell, interpolated
+    linearly between them
+    \'\'\'
+    def __init__(self, data, ngrid, cell):
+        self.n = np.array(ngrid)
+        self.S = data[:,3:9].reshape(*ngrid, 6) # Sxx Syy Szz Syz Sxz Sxy, x slowest, z fastest
+        self.L = np.diag(np.array(cell.h))
+        self.h = self.L/self.n
+        self.origin = np.array(cell.origin)
+
+    def __call__(self, R):
+        \'\'\'The stress (Pa, xx yy zz yz xz xy) at positions R (b), in any periodic image\'\'\'
+        u = (np.atleast_2d(R) - self.origin)/self.h - 0.5
+        i = np.floor(u).astype(int)
+        f = u - i
+        S = np.zeros((u.shape[0], 6))
+        for corner in itertools.product((0, 1), repeat=3):
+            w = np.prod(np.where(corner, f, 1.0-f), axis=1)
+            j = (i + corner) % self.n
+            S += w[:,None]*self.S[j[:,0], j[:,1], j[:,2]]
+        return S
+
+class CalForceUserStress:
+    \'\'\'The forces of a base force module, plus the Peach-Koehler force of a user stress
+    field, as in user_stress.py; the stress is integrated along each segment
+    \'\'\'
+    def __init__(self, calforce_base, user_stress, n_gauss=3):
+        self.calforce_base = calforce_base
+        self.user_stress = user_stress
+        x, w = np.polynomial.legendre.leggauss(n_gauss)
+        self.s, self.w = 0.5*(x+1.0), 0.5*w # Gauss points and weights along a segment
+
+    def PreCompute(self, N, state):
+        self.calforce_base.PreCompute(N, state)
+        return state
+
+    def NodeForce(self, N, state, pre_compute=True):
+        self.calforce_base.NodeForce(N, state, pre_compute)
+        data = N.export_data()
+        rn, tags = data["nodes"]["positions"], data["nodes"]["tags"]
+        nid, burg = data["segs"]["nodeids"], data["segs"]["burgers"]
+        L = self.user_stress.L
+        r1 = rn[nid[:,0]]
+        rij = rn[nid[:,1]] - r1
+        rij -= L*np.round(rij/L) # across the periodic boundaries
+        f = np.zeros_like(rn)
+        for s, w in zip(self.s, self.w):
+            S = self.user_stress(r1 + s*rij)
+            sigb = np.einsum('kij,kj->ki', S[:,[0,5,4,5,1,3,4,3,2]].reshape(-1,3,3), burg)
+            fpk = w*np.cross(sigb, rij)
+            np.add.at(f, nid[:,0], (1.0-s)*fpk) # shared by the two nodes linearly
+            np.add.at(f, nid[:,1], s*fpk)
+        rows = {tuple(tag): i for i, tag in enumerate(state["nodeforcetags"])}
+        nodeforces = np.array(state["nodeforces"], dtype=float)
+        nodeforces[[rows[tuple(tag)] for tag in tags]] += f
+        state["nodeforces"] = nodeforces
+        return state
+
+    def OneNodeForce(self, N, state, tag, update_state=True):
+        # the user stress at the node, added to the applied stress for this node only
+        data = N.export_data()
+        tags = data["nodes"]["tags"]
+        i = np.where((tags[:,0] == tag[0]) & (tags[:,1] == tag[1]))[0]
+        applied_stress = state["applied_stress"]
+        state["applied_stress"] = applied_stress + self.user_stress(data["nodes"]["positions"][i])[0]
+        try:
+            return self.calforce_base.OneNodeForce(N, state, tag, update_state)
+        finally:
+            state["applied_stress"] = applied_stress
+'''
+# The user stress's driver, which also writes the line's displacement against time
+DISP_DRIVER = '''\
+def line_length(N):
+    \'\'\'The total length of the network's segments (b), across the periodic boundaries\'\'\'
+    data = N.export_data()
+    rn, nid = data["nodes"]["positions"], data["segs"]["nodeids"]
+    L = np.diag(np.array(data["cell"]["h"]))
+    rij = rn[nid[:,1]] - rn[nid[:,0]]
+    return np.linalg.norm(rij - L*np.round(rij/L), axis=1).sum()
+
+class SimulateNetworkDisp({base}):
+    \'\'\'{base} that also writes the line's mean displacement against time into
+    displacement.dat, with stress_strain_dens.dat: the area that the line has swept on
+    its slip plane, from the plastic strain, over its initial length
+    \'\'\'
+    def __init__(self, burg, plane, **kwargs):
+        super().__init__(**kwargs)
+        self.burg, self.plane = burg, plane
+
+    def run(self, N, state):
+        self.length0, self.volume = line_length(N), abs(np.linalg.det(np.array(N.cell.h)))
+        self.Ep, self.records = np.zeros(6), [[0, 0.0, 0.0]]
+        return super().run(N, state)
+
+    def step_update_response(self, N, state):
+        super().step_update_response(N, state)
+        self.Ep += state["dEp"]
+        gamma = 2.0*self.burg @ self.Ep[[0,5,4,5,1,3,4,3,2]].reshape(3,3) @ self.plane
+        area = gamma*self.volume # swept area (b^2)
+        self.records.append([len(self.records), state["time"], area/self.length0*state["burgmag"]])
+        return state
+
+    def write_results(self):
+        super().write_results()
+        np.savetxt(os.path.join(self.write_dir, 'displacement.dat'), self.records,
+                   fmt='%d %e %e', header='Step Time(s) Displacement(m)')
+'''
 # ExaDiS's SimulateNetwork writes its snapshots as config.<step>.data; this one also writes
 # them as PyDiS's does, for the app's views
 JSON_DRIVER = '''\
@@ -285,6 +439,14 @@ def _config(spec: Spec) -> str:
         return (f"Lbox = {num(c.box_length)}\n"
                 f"net = init_fcc_junction(junction_type={c.junction_type!r}, disloc_length=Lbox,\n"
                 f"                        phi1={num(c.phi1)}, phi2={num(c.phi2)})\n")
+    if isinstance(c, UserStressLine):  # with step 2's maxseg
+        return (f"Lbox = {num(c.box_length)} # the stress field's periodic box (b)\n"
+                f"burg = 1.0/np.sqrt(2.0)*np.array([-1.0, 0.0, 1.0]) # the slip system B4\n"
+                f"plane = 1.0/np.sqrt(3.0)*np.array([1.0, 1.0, 1.0])\n"
+                f"theta = {num(c.theta)} # the line's character angle (deg): 0 screw, 90 edge\n"
+                f"seed = {c.seed} # where the line starts\n"
+                f"net = init_infinite_line(Lbox, burg, plane, theta, seed, "
+                f"maxseg={num(spec.material.maxseg_ratio)}*Lbox)\n")
     return (f"Lbox = {num(c.box_length)}\n"
             f"z0 = {num(c.z0)}\n"
             f"net = init_two_disl_lines(z0=z0, box_length=Lbox, "
@@ -311,6 +473,10 @@ def _forces(spec: Spec) -> str:
     ec = "" if f.Ec is None else f", Ec={num(f.Ec)}"
     cutoff = "" if f.cutoff is None else f", cutoff={num(f.cutoff)}"
     calforce = f"calforce  = CalForce(force_mode={f.force_mode!r}, state=state{ec}{cutoff})\n"
+    if f.stress_field:  # the user stress: its field added to a base module's forces
+        calforce = ("data, ngrid = load_stress_field(stress_file, stress_url)\n"
+                    f"calforce_base = CalForce(force_mode={f.force_mode!r}, state=state{ec}{cutoff})\n"
+                    "calforce  = CalForceUserStress(calforce_base, StressField(data, ngrid, net.cell))\n")
     if f.mobility_law in ("BCC_0B", "FCC_0"):
         climb = f", Mclimb={num(f.Mclimb)}" if f.mobility_law == "BCC_0B" else ""
         vmax = "" if f.vmax is None else f", vmax={num(f.vmax)}"
@@ -366,11 +532,36 @@ def _loading(spec: Spec) -> str:
     loading = spec.loading
     if loading.loading_mode == "strain_rate":
         return f"erate = {num(loading.erate)}\nedir = {array(loading.edir)}\n"
+    if loading.tau is not None:  # the user stress: a shear stress on its line's slip system
+        return (f"tau = {num(loading.tau)} # the resolved shear stress on the slip system (Pa)\n"
+                "S = np.outer(burg, plane) + np.outer(plane, burg)\n"
+                "applied_stress = tau*S[[0,1,2,1,0,0],[0,1,2,2,2,1]] # xx yy zz yz xz xy\n")
     return f"applied_stress = {array(loading.applied_stress)}\n"
+
+
+def _run_user_stress(spec: Spec) -> str:
+    """Step 7 of the user stress: its driver also writes the line's displacement."""
+    r, pad = spec.run, " " * len("sim = SimulateNetworkDisp(")
+    modules = (f"timeint=timeint, collision=collision,\n{pad}topology=topology, remesh=remesh, "
+               f"vis=vis,\n" if spec.engine == "exadis" else
+               f"timeint=timeint, topology=topology,\n{pad}collision=collision, remesh=remesh, "
+               f"vis=vis,\n")
+    return (f"vis = VisualizeNetwork()\n"
+            f"sim = SimulateNetworkDisp(burg, plane, calforce=calforce, mobility=mobility,\n"
+            f"{pad}{modules}"
+            f"{pad}state=state, max_step={r.max_step}, loading_mode='stress',\n"
+            f"{pad}applied_stress=applied_stress,\n"
+            f"{pad}print_freq={r.print_freq}, plot_freq={r.plot_freq}, "
+            f"plot_pause_seconds={num(r.plot_pause_seconds)},\n"
+            f"{pad}write_freq={r.write_freq}, write_dir='output'"
+            f"{'' if spec.engine == 'exadis' else ', save_state=False'})\n"
+            f"sim.run(net, state)\n")
 
 
 def _run(spec: Spec) -> str:
     """Step 7: the simulation, and its run."""
+    if isinstance(spec.config, UserStressLine):
+        return _run_user_stress(spec)
     r, loading_mode = spec.run, spec.loading.loading_mode
     load = ('erate=erate, edir=edir, burgmag=state["burgmag"],' if loading_mode == "strain_rate"
             else "applied_stress=applied_stress,")
@@ -527,6 +718,25 @@ def init_function(spec: Spec) -> str:
     return INIT_FUNCTIONS[spec.engine, spec.config.kind]
 
 
+def user_stress_code() -> str:
+    """The user stress's field, its file and address, and the force module that adds it."""
+    return ("# The internal stress of a dislocation network, frozen, on a 128^3 grid of its "
+            "periodic box\n"
+            f"stress_url = {STRESS_URL!r}\n"
+            f"stress_file = os.path.join(opendis_dir, {STRESS_FILE!r})\n\n" + USER_STRESS)
+
+
+def _drivers(spec: Spec) -> str:
+    """The script's own drivers: ExaDiS's that also writes JSON snapshots, and the user
+    stress's that also writes the line's displacement."""
+    exadis = spec.engine == "exadis"
+    code = JSON_DRIVER + "\n" if exadis else ""
+    if isinstance(spec.config, UserStressLine):
+        code += DISP_DRIVER.format(base="SimulateNetworkJSON" if exadis else "SimulateNetwork")
+        code += "\n"
+    return code
+
+
 def step_code(spec: Spec, step: str, final_json: str) -> str:
     """The code panel's "this step": the step's block, as it reads outside ``main()``."""
     if not spec.config.simulates:
@@ -535,9 +745,10 @@ def step_code(spec: Spec, step: str, final_json: str) -> str:
     code = STEP_CODE[step](spec)
     if step == "config":
         return init_function(spec) + "\n" + code
+    if step == "forces" and spec.forces.stress_field:
+        return user_stress_code() + "\n" + code
     if step == "run":
-        driver = JSON_DRIVER + "\n" if spec.engine == "exadis" else ""
-        return driver + code + "\n" + _main_guard(spec, final_json)
+        return _drivers(spec) + code + "\n" + _main_guard(spec, final_json)
     return code
 
 
@@ -555,7 +766,8 @@ def full_script(spec: Spec, final_json: str) -> str:
     blocks = "\n".join(textwrap.indent(STEP_CODE[step](spec), "    ") for step in STEP_CODE)
     exadis = spec.engine == "exadis"
     return (header(spec) + "\n" + init_function(spec) + "\n"
-            + (JSON_DRIVER + "\n" if exadis else "")
+            + (user_stress_code() + "\n" if spec.forces.stress_field else "")
+            + _drivers(spec)
             + "def main():\n"
             "    global net, sim, state\n"
             "\n"

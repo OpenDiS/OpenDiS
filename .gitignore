@@ -34,3 +34,7 @@ output*
 # paradis_default.data is a committed input deck for examples/06_paradis, not
 # something a run produces, so it must survive the blanket *.data above.
 !examples/06_paradis/*.data
+
+# the user stress's frozen field, which the scripts of tutorials/05_user_stress download there,
+# and its partial downloads
+tutorials/05_user_stress/rs0084.stress.npz*

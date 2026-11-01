@@ -36,11 +36,15 @@ ENGINE_NAMES = {"pydis": "PyDiS", "exadis": "ExaDiS"}
 # The initial configurations that each code's scripts build
 BUILDS = ("simple_source", "paradis_file", "line_config", "prismatic_config")  # no simulation
 ENGINE_KINDS = {engine: ("frank_read_src_loop", "two_disl_lines", "fcc_junction",
-                         "loop_sources") + BUILDS for engine in ENGINES}
+                         "loop_sources", "user_stress_line") + BUILDS for engine in ENGINES}
 CRYSTALS = ("fcc", "bcc")
 JUNCTION_TYPES = ("lomer", "glissile", "hirth", "colinear")  # of ExaDiS' 05_fcc_junctions
 PARADIS_FILES = ("examples/10_strain_hardening/180chains_16.10e.data",)  # of the repository
 MAX_BUILT = 500  # lines or loops in a generated network
+FIELD_BOX = 58824.0  # b: the periodic box of the user stress's frozen field
+LINE_SLIP = ((-1.0, 0.0, 1.0), (1.0, 1.0, 1.0))  # its line's slip system B4: b, and the plane
+LINE_THETAS = (0.0, 90.0)  # its line's character angles (degrees), screw and edge
+USER_TAUS = (1e6, 3e6, 5e6, 7e6, 10e6, 15e6)  # Pa: its shear stresses, as the menu offers them
 # The choices that each code's modules accept, as the app offers them, by the field they fill.
 # A field that a code does not use (PyDiS's split mode and cell list in ExaDiS, ExaDiS's
 # topology mode in PyDiS) is neither offered nor checked for it.
@@ -174,6 +178,29 @@ class LoopSources:
         return errors
 
 
+@dataclass(frozen=True)
+class UserStressLine:
+    """Step 1 of the user stress: one straight, infinite line on the fcc slip system B4, through
+    the periodic box of a frozen internal stress field, from a random point of it."""
+
+    kind: ClassVar[str] = "user_stress_line"
+    simulates: ClassVar[bool] = True
+    box_length: float       # the field's box, FIELD_BOX
+    theta: float = 0.0      # the line's character angle (degrees)
+    seed: int = 0           # its random point
+
+    def problems(self) -> list[str]:
+        """What is wrong with these values."""
+        errors = [] if self.box_length == FIELD_BOX else [
+            f"box length: must be the stress field's, {FIELD_BOX:g} b"]
+        if self.theta not in LINE_THETAS:
+            errors.append("theta: must be 0 (screw) or 90 (edge), or the line does not close "
+                          "on itself across the box")
+        if self.seed < 0:
+            errors.append("seed: must not be negative")
+        return errors
+
+
 # The initial configurations of the tutorial tutorials/01_initial_configurations: a script that
 # builds one of these networks, plots it and writes it, and runs no simulation
 
@@ -280,9 +307,10 @@ class PrismaticLoops:
 
 
 BUILT = (SimpleSource, ParaDiSFile, InfiniteLines, PrismaticLoops)  # the menu of step 1
-CONFIGS = {cls.kind: cls for cls in (FrankReadSource, TwoLines, FCCJunction, LoopSources) + BUILT}
-Config = Union[FrankReadSource, TwoLines, FCCJunction, LoopSources, SimpleSource, ParaDiSFile,
-               InfiniteLines, PrismaticLoops]
+CONFIGS = {cls.kind: cls for cls in (FrankReadSource, TwoLines, FCCJunction, LoopSources,
+                                     UserStressLine) + BUILT}
+Config = Union[FrankReadSource, TwoLines, FCCJunction, LoopSources, UserStressLine, SimpleSource,
+               ParaDiSFile, InfiniteLines, PrismaticLoops]
 
 
 @dataclass(frozen=True)
@@ -316,6 +344,7 @@ class Forces:
     Mscrew: float | None = None
     Mclimb: float | None = None  # BCC_0B's
     vmax: float | None = None
+    stress_field: bool | None = None  # the user stress's: its frozen field added to the force
 
 
 @dataclass(frozen=True)
@@ -342,12 +371,13 @@ class Topology:
 
 @dataclass(frozen=True)
 class Loading:
-    """Step 6: the applied stress, constant in time."""
+    """Step 6: the applied stress, constant in time; the user stress gives it by tau."""
 
     loading_mode: str = "stress"
     applied_stress: Stress = (0.0, 0.0, 0.0, 0.0, 0.0, 0.0)  # Pa, Voigt order
     erate: float = 0.0               # strain_rate's: the strain rate (1/s) along edir
     edir: Vec3 = (0.0, 0.0, 1.0)
+    tau: float | None = None  # Pa, the user stress's: the shear stress on its line's slip system
 
 
 @dataclass(frozen=True)
@@ -460,6 +490,14 @@ class Spec:  # pylint: disable=too-many-instance-attributes
             errors.append("coarsen mode: must be 0 or 1")
         if isinstance(self.config, LoopSources) and m.crystal not in CRYSTALS:
             errors.append(f"crystal: the loops need one of {', '.join(CRYSTALS)} (step 2)")
+        user, tau = isinstance(self.config, UserStressLine), self.loading.tau
+        if user != (f.stress_field is not None) or user != (tau is not None):
+            errors.append("stress field and tau: the user stress takes both (steps 3 and 6), and "
+                          "the other examples neither")
+        elif user and tau not in USER_TAUS:
+            errors.append(f"tau: must be one of {', '.join(f'{t / 1e6:g}' for t in USER_TAUS)} MPa")
+        if user and self.loading.loading_mode != "stress":
+            errors.append("loading mode: the user stress's line is driven by a constant stress")
         if self.timeint.dt <= 0:
             errors.append("dt: must be positive")
         if self.timeint.multi < 0:
