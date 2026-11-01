@@ -38,6 +38,8 @@ STOP_S = 30 * 60  # ...until this long after the page opened; then a click refre
 OPENED = "front_page_opened"  # session key: when the table began to refresh itself
 GAUGE = re.compile(r"^active_sessions\s+(\d+)(?:\.0*)?\s*$", re.MULTILINE)
 CSS = """<style>
+[data-testid="stLayoutWrapper"]:has(> .st-key-opendis_head), .st-key-opendis_head {
+  position: fixed; top: 0; left: 0; width: 0; height: 0; z-index: 2147483000; }
 table.opendis-engines { width: 100%; max-width: 59rem; margin: 0.2rem auto 0; table-layout: fixed;
   border-collapse: separate; border-spacing: 0.45rem 0.35rem; font-size: 0.85rem; }
 .opendis-engines td { padding: 0.3rem 0.65rem; border-radius: 0.35rem; border: 1px solid #b8c5d4;
@@ -51,7 +53,7 @@ table.opendis-engines { width: 100%; max-width: 59rem; margin: 0.2rem auto 0; ta
 .opendis-engines .asleep { background: #eceff3; color: #5f6b78; }
 .opendis-engines .missing { background: #f6f7f9; color: #9aa4b0; }
 .opendis-engines .missing a { color: #9aa4b0 !important; }
-.st-key-opendis_news, .st-key-opendis_guide { max-width: 59rem; margin: 0.8rem auto 0 !important;
+.st-key-opendis_news, .st-key-opendis_guide { max-width: 59rem; margin: 0 auto !important;
   padding: 0.7rem 1.1rem 0.95rem; border-radius: 0.4rem; }
 .st-key-opendis_news { background: #fff6dc; border: 1px solid #e9c46a;
   border-left: 0.35rem solid #e0a800; }
@@ -59,6 +61,8 @@ table.opendis-engines { width: 100%; max-width: 59rem; margin: 0.2rem auto 0; ta
   border-left: 0.35rem solid #5b7fa6; }
 .st-key-opendis_news p, .st-key-opendis_guide p { color: #1a2332; margin: 0 0 0.55rem !important; }
 .st-key-opendis_news p:last-child, .st-key-opendis_guide p:last-child { margin: 0 !important; }
+.st-key-opendis_guide ul { margin: 0 !important; padding-left: 1.3rem; }
+.st-key-opendis_guide li { color: #1a2332; margin: 0.1rem 0 !important; }
 .st-key-opendis_note { max-width: 59rem; margin: 0.4rem auto 0 !important; }
 </style>"""
 _LOCK = threading.Lock()  # one round of reads at a time, for all sessions of this process
@@ -67,10 +71,12 @@ GUIDE = ("**Pick a free engine.** Each engine runs the OpenDiS app on a server o
          "for one user. Its count is the number of browser tabs open on it now. An engine "
          "opens in a new tab. An asleep engine wakes up when you open it: press its button, "
          "and wait a minute or two.\n\n"
-         "Everyone who opens the same engine shares it, which can be confusing. For example, "
-         "another user may press *clear all results*, which wipes out your results too. "
-         "When you close the engine's browser tab, you release the engine. If you do not use "
-         f"it for {IDLE[1]:g} minutes, it signs you off, so that another user can have it.")
+         "**Policy**\n\n"
+         "- Every engine is shared with anyone who opens it. Another user may then press "
+         "*clear all results*, which wipes out your results too.\n"
+         "- Closing the browser tab releases the engine.\n"
+         f"- After {IDLE[1]:g} minutes of idling, the engine signs you off automatically, so "
+         "that another user can have it.")
 SIGNED_OFF = re.compile(r"opendis-\d\d")  # the name in the address after a sign-off
 
 
@@ -206,9 +212,10 @@ def main() -> None:
     """The page: the app's banner, then the announcements, a short guide and the table."""
     st.set_page_config(page_title="OpenDiS tutorial",
                        page_icon=str(ASSETS / "opendis_favicon.png"), layout="wide")
-    st.markdown(style.css() + CSS, unsafe_allow_html=True)
-    st.markdown(style.banner_html(style.BANNER_TITLE, ASSETS / "opendis_logo.png"),
-                unsafe_allow_html=True)
+    with st.container(key="opendis_head"):  # out of the page's flow: no gaps above the boxes
+        st.markdown(style.css() + CSS, unsafe_allow_html=True)
+        st.markdown(style.banner_html(style.BANNER_TITLE, ASSETS / "opendis_logo.png"),
+                    unsafe_allow_html=True)
     _signed_off()
     live = time.time() - st.session_state.setdefault(OPENED, time.time()) < STOP_S
     st.fragment(_body, run_every=REFRESH_S if live else None)(live)

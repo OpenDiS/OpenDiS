@@ -319,8 +319,11 @@ def test_pages() -> list[bool]:
                   == 50, text[:200]),
             check("pages: the front page's announcement",
                   any("A test announcement" in m.value for m in front.markdown)),
-            check("pages: the front page's guide, on sharing and the sign-off",
-                  "clear all results" in text and "for 60 minutes, it signs you off" in text),
+            check("pages: the front page's policy: shared, released, signed off",
+                  "Every engine is shared with anyone who opens it" in text
+                  and "clear all results" in text
+                  and "Closing the browser tab releases the engine" in text
+                  and "After 60 minutes of idling, the engine signs you off" in text),
             check("pages: the note after a sign-off", bool(front.info) and front.info[0].value
                   .startswith("opendis-07 signed you off after 60 minutes"),
                   [i.value for i in front.info]),

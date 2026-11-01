@@ -26,7 +26,7 @@ opendis.streamlit.app shows the front page when its secret `OPENDIS_FRONT_PAGE` 
 
 The page reads each engine's gauge `active_sessions` at `https://opendis-NN.streamlit.app/~/+/_stcore/metrics`. Streamlit publishes it without a login. A session is one open browser tab. The table refreshes itself every 10 s, for 30 minutes after the page opened. The 50 engines are read at most once in 10 s, for all visitors together. An engine whose gauge does not come is shown as asleep: it may also be starting, or failing. An engine that the Cloud does not know is shown as not deployed.
 
-Below the announcements, a second box of the same width holds a short guide on how to use an engine. Everyone who opens the same engine shares it. Closing the engine's tab releases it. An idle engine signs its user off (below). After a sign-off, the front page says which engine signed the visitor off.
+Below the announcements, a second box of the same width holds a short guide on how to use an engine, and the policy: an engine is shared with anyone who opens it, closing its tab releases it, and 60 minutes of idling sign the user off. Everyone who opens the same engine shares it. Closing the engine's tab releases it. An idle engine signs its user off (below). After a sign-off, the front page says which engine signed the visitor off.
 
 ## Announcements
 
