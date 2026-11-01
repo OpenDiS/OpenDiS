@@ -6,7 +6,7 @@ order = 280
 script_name = "user_stress_exadis.py"
 final_json = "user_stress_exadis_final.json"
 tutorial_script = "tutorials/05_user_stress/example_internal_stress_exadis.py"
-run_hint = "The 3000 steps take about 35 s with ExaDiS. They cover about 120 ns."
+run_hint = "The 3000 steps take about 35 s with ExaDiS. They cover about 85 ns."
 
 [config]
 kind = "user_stress_line"

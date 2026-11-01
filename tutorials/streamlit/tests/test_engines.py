@@ -161,6 +161,21 @@ def test_table() -> list[bool]:
                 '<td class="missing">', '<span class="state">not deployed</span>')))]
 
 
+def test_news() -> list[bool]:
+    """The announcements: the file's text, stripped; nothing when it is empty or missing."""
+    saved, texts = front_page.NEWS, []
+    with tempfile.TemporaryDirectory() as tmp:
+        front_page.NEWS = Path(tmp) / "announcements.md"
+        texts.append(front_page.news())
+        front_page.NEWS.write_text("  \n\n")
+        texts.append(front_page.news())
+        front_page.NEWS.write_text("\n**Tutorial** on [MMM](https://example.org).\n")
+        texts.append(front_page.news())
+    front_page.NEWS = saved
+    return [check("news: none, none, the text",
+                  texts == ["", "", "**Tutorial** on [MMM](https://example.org)."], texts)]
+
+
 def test_switch() -> list[bool]:
     """OPENDIS_FRONT_PAGE from the environment; no secrets file here."""
     saved, results = os.environ.pop(front_page.SWITCH, None), []
@@ -196,7 +211,10 @@ def test_pages() -> list[bool]:
     from an engine's entry file. No engine answers here."""
     names = (front_page.SWITCH, "PYTHONPATH", engine.SEEN)
     saved, metrics, path = {k: os.environ.get(k) for k in names}, front_page.METRICS, sys.path[:]
+    news, tmp = front_page.NEWS, tempfile.TemporaryDirectory()
     front_page.METRICS = f"http://127.0.0.1:{_free_port()}/{{name}}"
+    front_page.NEWS = Path(tmp.name) / "announcements.md"
+    front_page.NEWS.write_text("**A test announcement**, with [a link](https://example.org).\n")
     try:
         os.environ[front_page.SWITCH] = "true"
         front = AppTest.from_file(APP, default_timeout=60)
@@ -209,7 +227,8 @@ def test_pages() -> list[bool]:
         one = AppTest.from_file(str(ENGINES / "opendis_00.py"), default_timeout=120)
         one.run()
     finally:
-        front_page.METRICS, sys.path[:] = metrics, path
+        front_page.METRICS, front_page.NEWS, sys.path[:] = metrics, news, path
+        tmp.cleanup()
         for name, value in saved.items():
             if value is None:
                 os.environ.pop(name, None)
@@ -219,6 +238,8 @@ def test_pages() -> list[bool]:
             check("pages: the front page's table, every engine asleep",
                   '<table class="opendis-engines">' in text and text.count('<td class="asleep">')
                   == 50, text[:200]),
+            check("pages: the front page's announcement",
+                  any("A test announcement" in m.value for m in front.markdown)),
             check("pages: the front page has no example menu", not front.selectbox),
             check("pages: the app, when not switched on", not app.exception
                   and app.selectbox(key="picker_example").value is not None, app.exception),
@@ -229,7 +250,7 @@ def test_pages() -> list[bool]:
 def main() -> int:
     """Run every check; the exit code is 0 when all pass."""
     return summary(test_entry_files() + test_paths() + test_reset() + test_parse() + test_read()
-                   + test_table() + test_switch() + test_manage() + test_pages())
+                   + test_table() + test_news() + test_switch() + test_manage() + test_pages())
 
 
 if __name__ == "__main__":

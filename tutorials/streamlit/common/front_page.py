@@ -4,6 +4,7 @@ opendis.streamlit.app shows it in place of the app when the secret ``OPENDIS_FRO
 deployment is true (``wanted()``). Each engine, ``opendis-NN.streamlit.app``, runs the app for
 one user (``engines/README.md``). How many sessions an engine has comes from the gauge
 ``active_sessions`` that Streamlit publishes at ``/_stcore/metrics``, which needs no login.
+Above the table, the page shows the announcements of ``engines/announcements.md``.
 """
 import concurrent.futures
 import html
@@ -18,9 +19,10 @@ from dataclasses import dataclass
 import streamlit as st
 
 from common import style
-from common.paths import ASSETS
+from common.paths import APP, ASSETS
 
 SWITCH = "OPENDIS_FRONT_PAGE"  # the deployment's secret, or an environment variable for tests
+NEWS = APP / "engines" / "announcements.md"  # Markdown; an empty file shows no announcement
 COUNT, ROWS = 50, 10  # the engines, opendis-00 to opendis-49, in 5 columns of 10
 NAME = "opendis-{n:02d}"
 # An engine's page and its gauges on the Cloud. The environment variables of the same names
@@ -47,6 +49,10 @@ table.opendis-engines { margin: 0 auto; border-collapse: separate; border-spacin
 .opendis-engines .asleep { background: #eceff3; color: #5f6b78; }
 .opendis-engines .missing { background: #f6f7f9; color: #9aa4b0; }
 .opendis-engines .missing a { color: #9aa4b0 !important; }
+.st-key-opendis_news { max-width: 59rem; margin: 0.8rem auto 0 !important;
+  padding: 0.7rem 1.1rem 0.95rem; background: #fff6dc; border: 1px solid #e9c46a;
+  border-left: 0.35rem solid #e0a800; border-radius: 0.4rem; }
+.st-key-opendis_news p { color: #1a2332; margin: 0 !important; }
 </style>"""
 _LOCK = threading.Lock()  # one round of reads at a time, for all sessions of this process
 _LAST = {"time": float("-inf"), "engines": []}  # the last round: when, and its engines
@@ -148,8 +154,19 @@ def recent() -> list[Engine]:
         return _LAST["engines"]
 
 
-def _table(live: bool) -> None:
-    """The table, which its fragment refreshes. After STOP_S, a full run stops the refresh."""
+def news() -> str:
+    """The announcements, in Markdown; nothing when their file is empty or missing."""
+    return NEWS.read_text(encoding="utf-8").strip() if NEWS.is_file() else ""
+
+
+def _body(live: bool) -> None:
+    """The announcements, the guide and the table, which their fragment refreshes: a pushed
+    announcement shows without a reload. After STOP_S, a full run stops the refresh."""
+    text = news()
+    if text:
+        with st.container(key="opendis_news"):
+            st.markdown(text)
+    st.markdown(f'<p class="opendis-guide">{GUIDE}</p>', unsafe_allow_html=True)
     st.markdown(table_html(recent()), unsafe_allow_html=True)
     if live and time.time() - st.session_state[OPENED] > STOP_S:
         st.rerun()
@@ -160,15 +177,14 @@ def _reopen() -> None:
 
 
 def main() -> None:
-    """The page: the banner, a short guide, then the table of engines."""
+    """The page: the app's banner, then the announcements, a short guide and the table."""
     st.set_page_config(page_title="OpenDiS tutorial",
                        page_icon=str(ASSETS / "opendis_favicon.png"), layout="wide")
     st.markdown(style.css() + CSS, unsafe_allow_html=True)
     st.markdown(style.banner_html(style.BANNER_TITLE, ASSETS / "opendis_logo.png"),
                 unsafe_allow_html=True)
-    st.markdown(f'<p class="opendis-guide">{GUIDE}</p>', unsafe_allow_html=True)
     live = time.time() - st.session_state.setdefault(OPENED, time.time()) < STOP_S
-    st.fragment(_table, run_every=REFRESH_S if live else None)(live)
+    st.fragment(_body, run_every=REFRESH_S if live else None)(live)
     if not live:
         _, middle, _ = st.columns([2, 1, 2])
         middle.button("↻ refresh the counts", width="stretch", on_click=_reopen)

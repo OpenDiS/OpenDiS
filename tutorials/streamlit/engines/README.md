@@ -10,6 +10,7 @@ The 50 engines of the OpenDiS tutorial, `opendis-00.streamlit.app` to `opendis-4
 | [`engine.py`](engine.py) | Runs the app as `app.py` does. It puts the app's folder first on `sys.path` and on `PYTHONPATH`. Streamlit reloads a changed module only in the entry file's folder or on `PYTHONPATH`. So a push updates an engine in place, as it updates `app.py`. It also resets the engine when `RESET` changes. |
 | [`RESET`](RESET) | One line. A push that changes it resets every engine. At its next page run, each engine deletes the results of its past runs and clears its caches. Its builds of PyDiS and ExaDiS stay. |
 | [`manage.py`](manage.py) | The engines from a terminal: `status`, `open`, `links` and `reset`. |
+| [`announcements.md`](announcements.md) | The announcements of the front page, in Markdown. |
 
 ## Deploy the engines, once
 
@@ -24,6 +25,10 @@ No script drives the Cloud's dashboard: section 7 of its [terms of use](https://
 opendis.streamlit.app shows the front page when its secret `OPENDIS_FRONT_PAGE` is true. Set it once, in the app's **Settings**, under **Secrets**: `OPENDIS_FRONT_PAGE = true`. Without it, the deployment shows the app.
 
 The page reads each engine's gauge `active_sessions` at `https://opendis-NN.streamlit.app/~/+/_stcore/metrics`. Streamlit publishes it without a login. A session is one open browser tab. The table refreshes itself every 10 s, for 30 minutes after the page opened. The 50 engines are read at most once in 10 s, for all visitors together. An engine whose gauge does not come is shown as asleep: it may also be starting, or failing. An engine that the Cloud does not know is shown as not deployed.
+
+## Announcements
+
+The front page shows the text of [`announcements.md`](announcements.md) in a framed box, below the banner and above the table. To post an announcement, write it there in Markdown, commit it, and push it to GitHub's `main`. An open front page shows the new text within 10 s. An empty file shows no box.
 
 ## Manage the engines
 

@@ -5,7 +5,7 @@ order = 280
 script_name = "user_stress_pydis.py"
 final_json = "user_stress_pydis_final.json"
 tutorial_script = "tutorials/05_user_stress/example_internal_stress_pydis.py"
-run_hint = "The 300 steps take about a minute with PyDiS. They cover about 17 ns."
+run_hint = "The 300 steps take about 80 s with PyDiS. They cover about 13 ns."
 
 [config]
 kind = "user_stress_line"
