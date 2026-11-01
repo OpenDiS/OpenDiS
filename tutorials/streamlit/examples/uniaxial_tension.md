@@ -58,8 +58,4 @@ plot_freq = 10
 plot_pause_seconds = 0.01
 +++
 
-A bcc crystal of tantalum's constants holds four prismatic loops, of radius 0.21 Lbox, in a periodic box of 10000 b, about 2.9 µm. It is pulled along z at a constant strain rate of 3000 /s. The loops expand on their glide cylinders, and the applied stress follows from the plastic strain that they make.
-
-The mobility law is BCC_0B: an edge and a screw mobility of 2600 /(Pa s), a climb mobility of 1e-4 /(Pa s), and a speed capped near 3400 m/s. The time step adapts: the Trapezoid integrator starts from nextdt and keeps the error below rtol, two steps at a time (multi = 2). The split mode is Serial, which moves the two new nodes apart, as ParaDiS and ExaDiS do. With MaxDiss, a junction node splits and merges again at every step, and the time step stalls.
-
-The setup is that of uniaxial_strain_rate.py. It follows ExaDiS's example 21_bcc_Ta_100nm_2e8, with a larger box, fewer loops and a much lower strain rate. The history view plots the stress against the strain.
+Prismatic loops in bcc tantalum expand as the box is pulled along z at a constant strain rate. The loops are generated as in the tutorial's [ensemble of prismatic loops](https://opendis.github.io/OpenDiS/tutorials/initial_configuration.html#ensemble-of-prismatic-loops). The history view plots the stress against the strain.

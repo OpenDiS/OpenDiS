@@ -57,12 +57,4 @@ plot_freq = 30
 plot_pause_seconds = 0.0001
 +++
 
-A single dislocation moves through the internal stress of a dislocation network, frozen in place. The network is the ParaDiS restart rs0084, of 29,576 nodes, in a periodic box of 58824 b, about 15 µm. ExaDiS computed its stress on a 128³ grid of the box. The moving line does not change this field.
-
-The line lies on the fcc slip system B4: b along [-1 0 1], on (1 1 1). At first it is straight and screw, and it runs through a random point of the box (the seed). A shear stress τ on its slip system drives it, which step 6 sets. Alone, τ would move it at the drag velocity M b τ, 16.35 m/s per MPa. The frozen field slows it, the more so at a low stress.
-
-The force module CalForceUserStress (step 3) adds the field's Peach-Koehler force to the line tension. It integrates the stress along each segment. It follows the tutorial [05_user_stress](https://github.com/OpenDiS/OpenDiS/tree/main/tutorials/05_user_stress). Step 3 can leave the field out: the line then moves at M b τ.
-
-The script downloads the field once, a file of 55 MB, into tutorials/05_user_stress/. Step 3 shows its Dropbox link, which can be changed to another field's. That field must be on the same box, in the same layout, which the link's help gives. The history view plots the line's mean displacement against time: the area that the line has swept, from the plastic strain, over its initial length. It gives the line's velocity over the second half of the run, next to M b τ.
-
-ExaDiS calls the force module, which is in Python, at each of its force evaluations. Its first 300 steps give the same results as PyDiS's 300.
+This example illustrates how to add a user-defined stress field to a DDD simulation, as in [user_stress.py](https://github.com/OpenDiS/OpenDiS/blob/main/tutorials/05_user_stress/user_stress.py). A dislocation moves through the frozen internal stress of a dislocation network, driven by the applied shear stress τ.

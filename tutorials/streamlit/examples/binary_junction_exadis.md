@@ -54,8 +54,4 @@ plot_freq = 10
 plot_pause_seconds = 0.01
 +++
 
-The initial configuration is made of two dislocation lines that intersect at a single point. Each line has three nodes: its two end nodes are pinned, and its middle node is free. This lets the two lines zip into a binary junction under zero stress.
-
-This is the BCC case. The Burgers vectors b1 = [-1 1 1] and b2 = [1 -1 1] are two ⟨111⟩ ones, and the junction is b1 + b2 = [0 0 2], a ⟨100⟩ one.
-
-The boundary conditions are not periodic.
+Two lines cross at a point, each pinned at its two ends. Under zero stress, they zip into a ⟨100⟩ junction: b1 + b2 = [0 0 2].

@@ -50,6 +50,4 @@ plot_freq = 10
 plot_pause_seconds = 0.01
 +++
 
-The initial configuration is a rectangular (prismatic) dislocation loop, whose four sides are of pure edge type: their Burgers vectors are normal to the plane of the loop. The four corner nodes are pinned, which pins the bottom arm and the two side arms. The top arm has a free node in its middle, so that it bows out under the applied stress and acts as a Frank-Read source.
-
-The boundary conditions are periodic in all three directions.
+A prismatic loop is pinned at its four corners. Its top arm bows out under the applied stress, as a Frank-Read source.

@@ -59,8 +59,4 @@ plot_freq = 10
 plot_pause_seconds = 0.0001
 +++
 
-Two Frank-Read sources lie on two fcc slip systems, in a periodic box of 1000 b. Each is as long as the box and pinned at its two ends. The first has b1 along [0 1 1], on (1 1 -1); the junction type sets the second. The lines cross near the box's centre, at the angles phi1 and phi2 from the intersection of their planes. Under zero stress they zip into a binary junction: the lomer one, b1 + b2 along [1 1 0], lies off the {111} planes and can only move along its line.
-
-The setup is that of ExaDiS's example 05_fcc_junctions. Its force model, DDD_FFT_MODEL, needs ExaDiS built with FFT, which the Cloud's is not. So the segments here interact within a cutoff of 300 b (CUTOFF_MODEL), as in PyDiS. The mobility law is FCC_0, and the time step adapts (Trapezoid).
-
-ExaDiS warns that the Burgers vector is not conserved at 4 nodes: they are the lines' pinned ends, each with one arm.
+Two lines lie on two fcc slip systems, each pinned at its two ends. Under zero stress, they zip into a binary junction of the chosen type. It follows ExaDiS's example [05_fcc_junctions](https://github.com/llnl/exadis/blob/main/examples/05_fcc_junctions/test_fcc_junctions.py), with a cutoff of 300 b instead of its FFT model.
