@@ -8,6 +8,7 @@ import sys
 import tempfile
 import threading
 import time
+import types
 
 os.environ["OPENDIS_APP_RUNS"] = tempfile.mkdtemp(prefix="opendis_app_runs_")  # before the app
 
@@ -16,7 +17,7 @@ from pathlib import Path
 
 from streamlit.testing.v1 import AppTest
 
-from common import front_page
+from common import front_page, style
 from common.testing import check, summary
 from engines import engine, manage
 
@@ -24,6 +25,15 @@ ENGINES = Path(engine.__file__).parent
 APP = str(ENGINES.parent / "app.py")
 ENTRY = ('"""{name}.streamlit.app: one engine of the OpenDiS tutorial (README.md)."""\n'
          "from engine import main\nmain()\n")
+# A page run of the idle check alone, its last click idle_s seconds ago
+WATCH = """
+import sys, time
+sys.path.insert(0, {engines!r})
+import streamlit as st
+import engine
+st.session_state.setdefault(engine.TOUCHED, time.time() - {idle_s})
+engine._watch("opendis-07")
+"""
 # The gauges as the Cloud's opendis.streamlit.app published them on 2026-11-01, shortened
 METRICS = """# TYPE cache_memory_bytes gauge
 cache_memory_bytes{cache_type="st_session_state",cache=""} 27
@@ -100,6 +110,66 @@ def test_reset() -> list[bool]:
         os.environ[engine.SEEN] = seen
     return [check("reset: due once per new line, not at the first run",
                   due == [False, False, True, False, True], due)]
+
+
+def test_idle() -> list[bool]:
+    """The idle check's thresholds and settings, the engine's number and its count of users;
+    then, with AppTest, the warning, Stay, and the sign-off."""
+    states = [engine.idle_state(minutes * 60, 60, 5) for minutes in (0, 54.9, 55, 59.9, 60, 600)]
+    name, saved = engine.IDLE[0], os.environ.pop(engine.IDLE[0], None)
+    minutes = []
+    for value in ("2.5", "soon", None):
+        if value is not None:
+            os.environ[name] = value
+        minutes.append(engine.setting(*engine.IDLE))
+        os.environ.pop(name, None)
+    if saved is not None:
+        os.environ[name] = saved
+    real, fake = sys.modules["__main__"], types.ModuleType("__main__")
+    sys.modules["__main__"] = fake  # number() reads the entry file of the page run
+    fake.__file__ = str(ENGINES / "opendis_07.py")
+    numbers = [engine.number()]
+    fake.__file__ = APP
+    numbers.append(engine.number())
+    sys.modules["__main__"] = real
+    runs = {idle_s: AppTest.from_string(WATCH.format(engines=str(ENGINES), idle_s=idle_s),
+                                        default_timeout=30).run()
+            for idle_s in (60, 56 * 60, 61 * 60)}
+    warn = runs[56 * 60]
+    before = [w.value for w in warn.warning]
+    warn_html = "".join(str(e.proto) for e in warn.main if getattr(e, "type", "") == "html")
+    stay = warn.button(key="opendis_stay").label if warn.button else None
+    if stay:
+        warn.button(key="opendis_stay").click().run()
+    scripts = {s: "".join(str(e.proto) for e in at.main if getattr(e, "type", "") == "html")
+               for s, at in runs.items()}
+    text = runs[56 * 60].warning
+    return [check("idle: warn from 55 minutes, off from 60",
+                  states == ["active", "active", "warn", "warn", "off", "off"], states),
+            check("idle: never when its minutes are 0", engine.idle_state(1e6, 0, 5) == "active"),
+            check("idle: minutes from the environment, else the default",
+                  minutes == [2.5, 60.0, 60.0], minutes),
+            check("number: 07 from opendis_07.py, none from app.py", numbers == ["07", None],
+                  numbers),
+            check("users: none, 1 user, 3 users (shared)", engine.users_html(None) == ""
+                  and ">1 user<" in engine.users_html(1) and "shared" not in engine.users_html(1)
+                  and ">3 users<" in engine.users_html(3) and 'class="shared"'
+                  in engine.users_html(3)),
+            check("idle: nothing in the first minutes", not runs[60].warning
+                  and not scripts[60], scripts[60][:80]),
+            check("idle: the warning at 56 minutes, and Stay", stay == "Stay signed in"
+                  and len(before) == 1 and before[0].startswith("No activity for 56 minutes. "
+                                                                "This engine signs you off in 4 "
+                                                                "minutes"), before),
+            check("idle: with the warning, Stay by itself while the page is in use, no sign-off",
+                  not runs[56 * 60].exception and "opendis_stay" in warn_html
+                  and str(round(engine.WARNING[1] * 60 * 1000)) in warn_html
+                  and "signed_off" not in warn_html,
+                  warn_html[:120]),
+            check("idle: Stay ends the warning", not text, [w.value for w in text]),
+            check("idle: the sign-off, to the front page", "?signed_off=opendis-07&idle=60"
+                  in scripts[61 * 60] and "link.click()" in scripts[61 * 60],
+                  scripts[61 * 60][:120])]
 
 
 def test_parse() -> list[bool]:
@@ -211,6 +281,7 @@ def test_pages() -> list[bool]:
     from an engine's entry file. No engine answers here."""
     names = (front_page.SWITCH, "PYTHONPATH", engine.SEEN)
     saved, metrics, path = {k: os.environ.get(k) for k in names}, front_page.METRICS, sys.path[:]
+    title = style.BANNER_TITLE
     news, tmp = front_page.NEWS, tempfile.TemporaryDirectory()
     front_page.METRICS = f"http://127.0.0.1:{_free_port()}/{{name}}"
     front_page.NEWS = Path(tmp.name) / "announcements.md"
@@ -218,6 +289,7 @@ def test_pages() -> list[bool]:
     try:
         os.environ[front_page.SWITCH] = "true"
         front = AppTest.from_file(APP, default_timeout=60)
+        front.query_params["signed_off"], front.query_params["idle"] = "opendis-07", "60"
         front.run()
         text = "".join(m.value for m in front.markdown)
         del os.environ[front_page.SWITCH]
@@ -228,6 +300,10 @@ def test_pages() -> list[bool]:
         one.run()
     finally:
         front_page.METRICS, front_page.NEWS, sys.path[:] = metrics, news, path
+        banner = "".join(m.value for m in one.markdown) if one.markdown else ""
+        tracked = any("opendisTrack" in str(e.proto) for e in one.main
+                      if getattr(e, "type", "") == "html")
+        style.BANNER_TITLE = title
         tmp.cleanup()
         for name, value in saved.items():
             if value is None:
@@ -240,16 +316,24 @@ def test_pages() -> list[bool]:
                   == 50, text[:200]),
             check("pages: the front page's announcement",
                   any("A test announcement" in m.value for m in front.markdown)),
+            check("pages: the front page's guide, on sharing and the sign-off",
+                  "clear all results" in text and "for 60 minutes, it signs you off" in text),
+            check("pages: the note after a sign-off", bool(front.info) and front.info[0].value
+                  .startswith("opendis-07 signed you off after 60 minutes"),
+                  [i.value for i in front.info]),
             check("pages: the front page has no example menu", not front.selectbox),
             check("pages: the app, when not switched on", not app.exception
                   and app.selectbox(key="picker_example").value is not None, app.exception),
             check("pages: the app from opendis_00.py", not one.exception
-                  and one.selectbox(key="picker_example").value is not None, one.exception)]
+                  and one.selectbox(key="picker_example").value is not None, one.exception),
+            check("pages: the engine's banner, OpenDiS 00", "<h1>OpenDiS 00</h1>" in banner),
+            check("pages: the engine notes use that stays in the browser", tracked)]
 
 
 def main() -> int:
     """Run every check; the exit code is 0 when all pass."""
-    return summary(test_entry_files() + test_paths() + test_reset() + test_parse() + test_read()
+    return summary(test_entry_files() + test_paths() + test_reset() + test_idle() + test_parse()
+                   + test_read()
                    + test_table() + test_news() + test_switch() + test_manage() + test_pages())
 
 

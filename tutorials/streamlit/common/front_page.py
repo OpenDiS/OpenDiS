@@ -20,6 +20,7 @@ import streamlit as st
 
 from common import style
 from common.paths import APP, ASSETS
+from engines.engine import IDLE
 
 SWITCH = "OPENDIS_FRONT_PAGE"  # the deployment's secret, or an environment variable for tests
 NEWS = APP / "engines" / "announcements.md"  # Markdown; an empty file shows no announcement
@@ -53,13 +54,19 @@ table.opendis-engines { margin: 0 auto; border-collapse: separate; border-spacin
   padding: 0.7rem 1.1rem 0.95rem; background: #fff6dc; border: 1px solid #e9c46a;
   border-left: 0.35rem solid #e0a800; border-radius: 0.4rem; }
 .st-key-opendis_news p { color: #1a2332; margin: 0 !important; }
+.st-key-opendis_note { max-width: 59rem; margin: 0.4rem auto 0 !important; }
 </style>"""
 _LOCK = threading.Lock()  # one round of reads at a time, for all sessions of this process
 _LAST = {"time": float("-inf"), "engines": []}  # the last round: when, and its engines
 GUIDE = ("<b>Pick a free engine.</b> Each engine runs the OpenDiS app on a server of its own, "
          "for one user. Its count is the number of browser tabs open on it now. An engine "
          "opens in a new tab. An asleep engine wakes up when you open it: press its button, "
-         "and wait a minute or two.")
+         "and wait a minute or two.<br><br>"
+         "Everyone who opens the same engine shares it, which can be confusing. For example, "
+         "another user may press <i>clear all results</i>, which wipes out your results too. "
+         "When you close the engine's browser tab, you release the engine. If you do not use "
+         f"it for {IDLE[1]:g} minutes, it signs you off, so that another user can have it.")
+SIGNED_OFF = re.compile(r"opendis-\d\d")  # the name in the address after a sign-off
 
 
 @dataclass(frozen=True)
@@ -176,6 +183,18 @@ def _reopen() -> None:
     st.session_state[OPENED] = time.time()
 
 
+def _signed_off() -> None:
+    """A note when an idle engine sent the visitor here: ?signed_off=opendis-07&idle=60."""
+    name, minutes = st.query_params.get("signed_off", ""), st.query_params.get("idle", "")
+    if SIGNED_OFF.fullmatch(name):
+        after = ""
+        if minutes.replace(".", "", 1).isdigit():
+            after = f"after {minutes} minute{'' if float(minutes) == 1 else 's'} "
+        with st.container(key="opendis_note"):
+            st.info(f"{name} signed you off {after}without activity. Open it again below, "
+                    "if it is still free.")
+
+
 def main() -> None:
     """The page: the app's banner, then the announcements, a short guide and the table."""
     st.set_page_config(page_title="OpenDiS tutorial",
@@ -183,6 +202,7 @@ def main() -> None:
     st.markdown(style.css() + CSS, unsafe_allow_html=True)
     st.markdown(style.banner_html(style.BANNER_TITLE, ASSETS / "opendis_logo.png"),
                 unsafe_allow_html=True)
+    _signed_off()
     live = time.time() - st.session_state.setdefault(OPENED, time.time()) < STOP_S
     st.fragment(_body, run_every=REFRESH_S if live else None)(live)
     if not live:
