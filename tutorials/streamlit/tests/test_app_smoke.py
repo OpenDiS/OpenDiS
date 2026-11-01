@@ -265,15 +265,22 @@ def main() -> int:  # pylint: disable=too-many-locals,too-many-statements
         check("no job is left running after ExaDiS's", not job.running()),
     ]
 
-    # the user stress, 20 steps: its shear stress from a menu, and the history's third plot,
-    # the line's displacement against the time, with its velocity
+    # the user stress, 20 steps: its field's link in step 3, its shear stress from a menu, and
+    # the history's third plot, the line's displacement against the time, with its velocity
     at = page()
     choose(at, "User stress")
-    menus = {}
+    menus, links, refusal = {}, {}, []
     for _ in STEP_LIST[1:]:
         click(at, "next ›")
         menus.update((s.label, (s.options, s.value)) for s in at.main.selectbox
                      if s.label.startswith("Shear stress"))
+        link = next((t for t in at.main.text_input if t.label == "Link to the field's file"), None)
+        if link is not None:  # an http link, refused, then the input file's again
+            links[link.label] = (link.value, link.disabled)
+            link.set_value(link.value.replace("https:", "http:")).run()
+            refusal = [w.value for w in at.warning]
+            next(t for t in at.main.text_input if t.label == link.label).set_value(
+                links[link.label][0]).run()
     next(n for n in at.number_input if n.label.startswith("max_step")).set_value(20).run()
     click(at, "▶ Run")
     output = "\n".join(c.value for c in at.code)
@@ -283,7 +290,13 @@ def main() -> int:  # pylint: disable=too-many-locals,too-many-statements
     third = [a["text"] for c in charts for a in c["layout"].get("annotations", [])
              if a["text"].startswith("displacement")]
     lines = [t.get("name") for c in charts for t in c["data"]]
+    value, disabled = links.get("Link to the field's file", ("", True))
     results += [
+        check("user stress: step 3 shows the input file's Dropbox link, which can be changed",
+              list(links) == ["Link to the field's file"] and not disabled
+              and value.startswith("https://www.dropbox.com/") and value.endswith("&dl=1"), links),
+        check("user stress: step 3 warns of an http link", any(
+            "stress field link: must be an https link" in w for w in refusal), refusal),
         check("user stress: step 6 offers the shear stresses 1 to 15 MPa, 3 MPa first",
               menus == {"Shear stress τ on the line's slip system": (
                   ["1 MPa", "3 MPa", "5 MPa", "7 MPa", "10 MPa", "15 MPa"], 3e6)}, menus),

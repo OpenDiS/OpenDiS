@@ -30,16 +30,25 @@ def init_infinite_line(Lbox, burg, plane, theta, seed, maxseg):
 stress_url = 'https://www.dropbox.com/scl/fi/q8025nk18zrovpfupo1vt/rs0084.stress.npz?rlkey=z1ertzr41fn68c6sjzptrysyq&st=5kvnt6qi&dl=1'
 stress_file = 'rs0084.stress.npz'
 
-def load_stress_field(path, url):
+def load_stress_field(path, url, max_mb=300):
     '''The rows x y z Sxx Syy Szz Syz Sxz Sxy of a stress field file, and its grid size;
-    the file is downloaded first if it is not there
+    the file, of at most max_mb, is downloaded first if it is not there
     '''
     if not os.path.exists(path):
         print('Downloading %s' % url)
         part = '%s.%d.part' % (path, os.getpid())
-        urllib.request.urlretrieve(url, part)
-        os.replace(part, path)
+        def check_size(blocks, block_size, size):
+            if max(blocks*block_size, size) > max_mb*1e6:
+                raise ValueError('the file at %s is larger than %d MB' % (url, max_mb))
+        try:
+            urllib.request.urlretrieve(url, part, reporthook=check_size)
+            os.replace(part, path)
+        finally:
+            if os.path.exists(part):
+                os.remove(part)
     with np.load(path) as f:
+        if f['columns'].tolist() != ['x', 'y', 'z', 'Sxx', 'Syy', 'Szz', 'Syz', 'Sxz', 'Sxy']:
+            raise ValueError('the columns of %s are not x y z Sxx Syy Szz Syz Sxz Sxy' % path)
         return f['data'], f['ngrid']
 
 class StressField:
@@ -52,6 +61,14 @@ class StressField:
         self.L = np.diag(np.array(cell.h))
         self.h = self.L/self.n
         self.origin = np.array(cell.origin)
+        # the grid's first points along z, y and x, and its last, at the centres of its cells
+        ijk = np.array([[0, 0, 0], [0, 0, 1], [0, 1, 0], self.n - 1])
+        rows = ijk @ [self.n[1]*self.n[2], self.n[2], 1]
+        if not np.allclose(data[rows,:3], self.origin + (ijk + 0.5)*self.h, rtol=0.0,
+                           atol=0.01*self.h.min()):
+            raise ValueError('the stress field is not on the grid of the cell, x slowest and '
+                             'z fastest: its first point is %s, its last %s'
+                             % (data[0,:3], data[-1,:3]))
 
     def __call__(self, R):
         '''The stress (Pa, xx yy zz yz xz xy) at positions R (b), in any periodic image'''

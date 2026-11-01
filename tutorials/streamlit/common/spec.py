@@ -8,7 +8,9 @@ The module imports neither Streamlit nor PyDiS, so the tests can use it.
 """
 import json
 import math
+import re
 import types
+import urllib.parse
 from collections.abc import Mapping
 from dataclasses import MISSING, asdict, dataclass, fields, replace
 from typing import Any, ClassVar, Union, get_args, get_origin
@@ -45,6 +47,10 @@ FIELD_BOX = 58824.0  # b: the periodic box of the user stress's frozen field
 LINE_SLIP = ((-1.0, 0.0, 1.0), (1.0, 1.0, 1.0))  # its line's slip system B4: b, and the plane
 LINE_THETAS = (0.0, 90.0)  # its line's character angles (degrees), screw and edge
 USER_TAUS = (1e6, 3e6, 5e6, 7e6, 10e6, 15e6)  # Pa: its shear stresses, as the menu offers them
+# Its field's file comes from a Dropbox share link, which gives the file itself with dl=1: the
+# server fetches no other address, and the link goes into the script with no quote or space
+STRESS_HOSTS = ("www.dropbox.com", "dl.dropboxusercontent.com")
+LINK_CHARS = re.compile(r"[A-Za-z0-9\-._~:/?#!$&()*+,;=%]{1,1000}")
 # The choices that each code's modules accept, as the app offers them, by the field they fill.
 # A field that a code does not use (PyDiS's split mode and cell list in ExaDiS, ExaDiS's
 # topology mode in PyDiS) is neither offered nor checked for it.
@@ -345,6 +351,7 @@ class Forces:
     Mclimb: float | None = None  # BCC_0B's
     vmax: float | None = None
     stress_field: bool | None = None  # the user stress's: its frozen field added to the force
+    stress_url: str | None = None  # the user stress's: the Dropbox link of its field's file
 
 
 @dataclass(frozen=True)
@@ -393,6 +400,18 @@ class Run:
 
 PART_CLASSES = {"material": Material, "forces": Forces, "timeint": TimeInt,
                 "topology": Topology, "loading": Loading, "run": Run}
+
+
+def _link_problems(url: str) -> list[str]:
+    """What keeps the user stress's link from being a Dropbox link that gives the file itself."""
+    parts = urllib.parse.urlsplit(url) if LINK_CHARS.fullmatch(url) else None
+    if parts is None or parts.scheme != "https" or parts.hostname not in STRESS_HOSTS:
+        return [f"stress field link: must be an https link to Dropbox "
+                f"({' or '.join(STRESS_HOSTS)}), with no quote, space or @"]
+    if parts.hostname == "www.dropbox.com" and "dl=1" not in parts.query.split("&"):
+        return ["stress field link: must end with dl=1, so that Dropbox gives the file, "
+                "not its page"]
+    return []
 
 
 def _numbers(spec: "Spec") -> list[tuple[str, float]]:
@@ -491,11 +510,15 @@ class Spec:  # pylint: disable=too-many-instance-attributes
         if isinstance(self.config, LoopSources) and m.crystal not in CRYSTALS:
             errors.append(f"crystal: the loops need one of {', '.join(CRYSTALS)} (step 2)")
         user, tau = isinstance(self.config, UserStressLine), self.loading.tau
-        if user != (f.stress_field is not None) or user != (tau is not None):
-            errors.append("stress field and tau: the user stress takes both (steps 3 and 6), and "
-                          "the other examples neither")
-        elif user and tau not in USER_TAUS:
-            errors.append(f"tau: must be one of {', '.join(f'{t / 1e6:g}' for t in USER_TAUS)} MPa")
+        if any(user != (value is not None) for value in (f.stress_field, f.stress_url, tau)):
+            errors.append("stress field, its link and tau: the user stress takes all three "
+                          "(steps 3 and 6), and the other examples none")
+        elif user:
+            if tau not in USER_TAUS:
+                errors.append(f"tau: must be one of "
+                              f"{', '.join(f'{t / 1e6:g}' for t in USER_TAUS)} MPa")
+            if f.stress_field:
+                errors += _link_problems(f.stress_url)
         if user and self.loading.loading_mode != "stress":
             errors.append("loading mode: the user stress's line is driven by a constant stress")
         if self.timeint.dt <= 0:

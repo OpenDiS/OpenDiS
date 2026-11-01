@@ -12,13 +12,15 @@ which the app plays.
 
 The user stress's script also defines what its tutorials in ``tutorials/05_user_stress/``
 define: the reader of its frozen field and the force module that adds it (step 3), and a
-driver that writes the line's displacement (step 7). It reads the field from that folder.
+driver that writes the line's displacement (step 7). It downloads the field from the spec's
+link once, into that folder, a file for each link.
 
 A script that builds a network and runs no simulation is one option of
 ``tutorials/01_initial_configurations/initial_configurations.py``, with either code: the
 network that it builds is the tutorial's, which ``tests/test_codegen.py`` checks too. It writes
 its files into ``output/``, the network as its final one.
 """
+import hashlib
 import textwrap
 from dataclasses import replace
 
@@ -27,10 +29,9 @@ from common.spec import (FCCJunction, FrankReadSource, InfiniteLines, LoopSource
                          SimpleSource, Spec, TwoLines, UserStressLine)
 
 EXADIS_PATHS = PYDIS_PATHS + ("core/exadis/python",)  # as in the ExaDiS tutorials' scripts
-# The user stress's frozen field: where its scripts keep it, from the repository's root, and
-# where they download it from when it is not there
-STRESS_FILE = "tutorials/05_user_stress/rs0084.stress.npz"
-STRESS_URL = "https://www.dropbox.com/scl/fi/q8025nk18zrovpfupo1vt/rs0084.stress.npz?rlkey=z1ertzr41fn68c6sjzptrysyq&st=5kvnt6qi&dl=1"
+# The folder where the user stress's scripts keep a copy of each link's field, from the
+# repository's root
+STRESS_DIR = "tutorials/05_user_stress"
 
 
 def num(x: float) -> str:
@@ -263,24 +264,33 @@ INIT_FUNCTIONS.update({
 KIND_IMPORTS = {
     ("pydis", FCCJunction.kind): "from pydis.util.network_util import insert_frank_read_src\n",
     ("exadis", FCCJunction.kind): "from pyexadis_utils import insert_frank_read_src\n",
-    ("pydis", UserStressLine.kind): "import itertools, urllib.request\n"
+    ("pydis", UserStressLine.kind): "import hashlib, itertools, urllib.request\n"
                                     "from pydis.util.network_util import insert_infinite_line\n",
-    ("exadis", UserStressLine.kind): "import itertools, urllib.request\n"
+    ("exadis", UserStressLine.kind): "import hashlib, itertools, urllib.request\n"
                                      "from pyexadis_utils import insert_infinite_line\n",
 }
 # The user stress's field, and the force module that adds it to a base module's forces, as in
-# tutorials/05_user_stress/user_stress.py; after the lines that name its file and address
+# tutorials/05_user_stress/user_stress.py; after the lines that give its link and file
 USER_STRESS = '''\
-def load_stress_field(path, url):
+def load_stress_field(path, url, max_mb=300):
     \'\'\'The rows x y z Sxx Syy Szz Syz Sxz Sxy of a stress field file, and its grid size;
-    the file is downloaded first if it is not there
+    the file, of at most max_mb, is downloaded first if it is not there
     \'\'\'
     if not os.path.exists(path):
         print('Downloading %s' % url)
         part = '%s.%d.part' % (path, os.getpid())
-        urllib.request.urlretrieve(url, part)
-        os.replace(part, path)
+        def check_size(blocks, block_size, size):
+            if max(blocks*block_size, size) > max_mb*1e6:
+                raise ValueError('the file at %s is larger than %d MB' % (url, max_mb))
+        try:
+            urllib.request.urlretrieve(url, part, reporthook=check_size)
+            os.replace(part, path)
+        finally:
+            if os.path.exists(part):
+                os.remove(part)
     with np.load(path) as f:
+        if f['columns'].tolist() != ['x', 'y', 'z', 'Sxx', 'Syy', 'Szz', 'Syz', 'Sxz', 'Sxy']:
+            raise ValueError('the columns of %s are not x y z Sxx Syy Szz Syz Sxz Sxy' % path)
         return f['data'], f['ngrid']
 
 class StressField:
@@ -293,6 +303,14 @@ class StressField:
         self.L = np.diag(np.array(cell.h))
         self.h = self.L/self.n
         self.origin = np.array(cell.origin)
+        # the grid's first points along z, y and x, and its last, at the centres of its cells
+        ijk = np.array([[0, 0, 0], [0, 0, 1], [0, 1, 0], self.n - 1])
+        rows = ijk @ [self.n[1]*self.n[2], self.n[2], 1]
+        if not np.allclose(data[rows,:3], self.origin + (ijk + 0.5)*self.h, rtol=0.0,
+                           atol=0.01*self.h.min()):
+            raise ValueError('the stress field is not on the grid of the cell, x slowest and '
+                             'z fastest: its first point is %s, its last %s'
+                             % (data[0,:3], data[-1,:3]))
 
     def __call__(self, R):
         \'\'\'The stress (Pa, xx yy zz yz xz xy) at positions R (b), in any periodic image\'\'\'
@@ -718,12 +736,19 @@ def init_function(spec: Spec) -> str:
     return INIT_FUNCTIONS[spec.engine, spec.config.kind]
 
 
-def user_stress_code() -> str:
-    """The user stress's field, its file and address, and the force module that adds it."""
-    return ("# The internal stress of a dislocation network, frozen, on a 128^3 grid of its "
-            "periodic box\n"
-            f"stress_url = {STRESS_URL!r}\n"
-            f"stress_file = os.path.join(opendis_dir, {STRESS_FILE!r})\n\n" + USER_STRESS)
+def stress_file(url: str) -> str:
+    """Where the user stress's script keeps its copy of the link's field, from the root."""
+    return f"{STRESS_DIR}/stress_{hashlib.sha256(url.encode()).hexdigest()}.npz"
+
+
+def user_stress_code(url: str) -> str:
+    """The user stress's field, its link and its copy's file, and the force module that adds it."""
+    return ("# The internal stress of a dislocation network, frozen, on a grid of its periodic\n"
+            "# box: the file at this link, which the script downloads once, a copy for each link\n"
+            f"stress_url = {url!r}\n"
+            f"stress_file = os.path.join(opendis_dir, {STRESS_DIR!r},\n"
+            "                           'stress_%s.npz' % "
+            "hashlib.sha256(stress_url.encode()).hexdigest())\n\n" + USER_STRESS)
 
 
 def _drivers(spec: Spec) -> str:
@@ -746,7 +771,7 @@ def step_code(spec: Spec, step: str, final_json: str) -> str:
     if step == "config":
         return init_function(spec) + "\n" + code
     if step == "forces" and spec.forces.stress_field:
-        return user_stress_code() + "\n" + code
+        return user_stress_code(spec.forces.stress_url) + "\n" + code
     if step == "run":
         return _drivers(spec) + code + "\n" + _main_guard(spec, final_json)
     return code
@@ -766,7 +791,7 @@ def full_script(spec: Spec, final_json: str) -> str:
     blocks = "\n".join(textwrap.indent(STEP_CODE[step](spec), "    ") for step in STEP_CODE)
     exadis = spec.engine == "exadis"
     return (header(spec) + "\n" + init_function(spec) + "\n"
-            + (user_stress_code() + "\n" if spec.forces.stress_field else "")
+            + (user_stress_code(spec.forces.stress_url) + "\n" if spec.forces.stress_field else "")
             + _drivers(spec)
             + "def main():\n"
             "    global net, sim, state\n"

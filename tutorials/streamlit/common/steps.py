@@ -269,10 +269,18 @@ def _forces(spec: Spec, ctx: StepContext) -> Spec:
     f, m, k = spec.forces, spec.material, ctx.key
     choices, name = CHOICES[spec.engine], ENGINE_NAMES[spec.engine]
     if f.stress_field is not None:  # the user stress
-        f = replace(f, stress_field=st.checkbox(
+        field = st.checkbox(
             "Add the frozen internal stress, the user stress", f.stress_field,
             key=f"{k}/stress_field", help="CalForceUserStress adds its Peach-Koehler force to "
-            "the force below. Without it, the line moves at the drag velocity M b τ."))
+            "the force below. Without it, the line moves at the drag velocity M b τ.")
+        link = st.text_input(
+            "Link to the field's file", f.stress_url or "", key=f"{k}/stress_url",
+            disabled=not field, help="A Dropbox share link that ends with dl=1. Its file is an "
+            "npz like rs0084.stress.npz. Its array data has a row x y z Sxx Syy Szz Syz Sxz Sxy "
+            f"for each point of a grid of the {spec.config.box_length:g} b box, in b and Pa, x "
+            "slowest and z fastest. Its arrays columns and ngrid name them and give the grid's "
+            "size. The script downloads each link's file once, up to 300 MB.")
+        f = replace(f, stress_field=field, stress_url=link.strip())
     mode = _select("Force", choices["force_mode"], f.force_mode, f"{k}/force_mode",
                    _help(choices["force_mode"]))
     cutoff, default_cutoff = None, f.cutoff or 0.3 * spec.config.box_length

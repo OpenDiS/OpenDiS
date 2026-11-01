@@ -35,6 +35,6 @@ output*
 # something a run produces, so it must survive the blanket *.data above.
 !examples/06_paradis/*.data
 
-# the user stress's frozen field, which the scripts of tutorials/05_user_stress download there,
-# and its partial downloads
-tutorials/05_user_stress/rs0084.stress.npz*
+# the user stress's frozen fields, which the scripts of tutorials/05_user_stress and the app's
+# download there (rs0084.stress.npz, and stress_<the link's SHA-256>.npz), and partial downloads
+tutorials/05_user_stress/*.npz*

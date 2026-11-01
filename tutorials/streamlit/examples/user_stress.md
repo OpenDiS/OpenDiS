@@ -34,6 +34,7 @@ Medge = 64103.0
 Mscrew = 64103.0
 vmax = 4000.0
 stress_field = true
+stress_url = "https://www.dropbox.com/scl/fi/q8025nk18zrovpfupo1vt/rs0084.stress.npz?rlkey=z1ertzr41fn68c6sjzptrysyq&st=5kvnt6qi&dl=1"
 
 [timeint]
 integrator = "Trapezoid"
@@ -64,6 +65,6 @@ The line lies on the fcc slip system B4: b along [-1 0 1], on (1 1 1). At first 
 
 The force module CalForceUserStress (step 3) adds the field's Peach-Koehler force to the line tension. It integrates the stress along each segment. It follows the tutorial [05_user_stress](https://github.com/OpenDiS/OpenDiS/tree/main/tutorials/05_user_stress). Step 3 can leave the field out: the line then moves at M b τ.
 
-The script downloads the field once, a file of 55 MB, into tutorials/05_user_stress/. The history view plots the line's mean displacement against time: the area that the line has swept, from the plastic strain, over its initial length. It gives the line's velocity over the second half of the run, next to M b τ.
+The script downloads the field once, a file of 55 MB, into tutorials/05_user_stress/. Step 3 shows its Dropbox link, which can be changed to another field's. That field must be on the same box, in the same layout, which the link's help gives. The history view plots the line's mean displacement against time: the area that the line has swept, from the plastic strain, over its initial length. It gives the line's velocity over the second half of the run, next to M b τ.
 
 The state takes three of ExaDiS's defaults, so that PyDiS runs the same simulation: the glide planes, splitMultiNodeAlpha = 1e-3 and coarsen_mode = 1.

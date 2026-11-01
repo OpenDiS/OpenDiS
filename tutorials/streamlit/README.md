@@ -217,12 +217,22 @@ out, and the line then moves at the drag velocity M b τ. The script's driver,
 from the plastic strain, over its initial length. The history plots it against time. Its
 velocity over the second half of the run is compared with M b τ.
 
-The field is a file of 55 MB, `rs0084.stress.npz`: one row for each grid point, `x y z Sxx Syy
-Szz Syz Sxz Sxy`, positions in b and stresses in Pa. The scripts download it once from
-Dropbox, into `tutorials/05_user_stress/`, which git ignores. The link is `STRESS_URL` in
-`common/codegen.py`, and the same line in each of the two tutorials. The two tutorials there are new, one for each
-core. In their first 300 steps, the two cores agree in every digit printed. PyDiS's 300 steps
-take about a minute, and ExaDiS's 3000 about as long. PyDiS gained `insert_infinite_line`
+The field is a file of 55 MB, `rs0084.stress.npz`. Its array `data` has one row for each grid
+point, `x y z Sxx Syy Szz Syz Sxz Sxy`, positions in b and stresses in Pa, x slowest and z
+fastest. Its arrays `columns` and `ngrid` name the columns and give the grid's size. Its
+Dropbox link is a value of step 3, below the field's checkbox. It is `stress_url` in the two
+input files, and the same line in each of the two tutorials. A visitor can change it to
+another field's link. That field must be on the same box, which step 1 fixes. The app takes
+only an https link to Dropbox: `www.dropbox.com` with `dl=1`, or `dl.dropboxusercontent.com`.
+So the server fetches no other address. The link goes into the script as a Python string,
+with no quote or space. The script downloads each link's file once, into
+`tutorials/05_user_stress/`, which git ignores. Its copy is `stress_<the link's SHA-256>.npz`,
+so another link never reuses this field. A file replaced at the same link is not downloaded
+again: share it under a new link. The script refuses a file over 300 MB, other columns, and
+a grid that does not fit the box, x slowest and z fastest. The two tutorials there are new,
+one for each core. They keep the field as `rs0084.stress.npz`, with the same checks. In
+their first 300 steps, the two cores agree in every digit printed. PyDiS's 300 steps take
+about a minute, and ExaDiS's 3000 about as long. PyDiS gained `insert_infinite_line`
 (`core/pydis/python/pydis/util/network_util.py`), a public name for its port of ExaDiS's. Its
 `Topology` now takes a user's force module that wraps one of its own, by `calforce_base`.
 
@@ -280,7 +290,7 @@ matplotlib draws off screen, and the app shows its own 3-D view.
 | `launch_app.sh` | the launcher | committed |
 | `tests/` | the tests, and `record_demo.py`, which records `recordings/app_demo.mp4`, a demo video of the app | committed |
 | `runs/<example>/<run_id>/` | one folder per run: the script, `spec.json`, `log.txt`, and `output/`, with a snapshot of the network every write_freq steps (`disnet_<step>.json`, and ExaDiS's `config.<step>.data`), the final network, and any other file that the script writes there | ignored |
-| `../05_user_stress/rs0084.stress.npz` | the user stress's frozen field, which its scripts download once | ignored |
+| `../05_user_stress/*.npz` | the user stress's frozen fields, downloaded once: the tutorials' `rs0084.stress.npz`, and the app's `stress_<SHA-256>.npz`, one for each link | ignored |
 | `$TMPDIR/opendis_console_*/` | a Python console's session: its copy of the run's script and `output/`, removed when the session ends | outside the repository |
 
 `run_id` is a hash of the script, so the same selections reuse their results without running
@@ -327,7 +337,11 @@ Each test prints `PASS` or `FAIL` for every check, and exits with a non-zero cod
   that its paths are absolute (they are relative to its own folder). Also checked: the numbers
   in the scripts, each step's code inside the full script, the spec's JSON round trip, and
   selections that must be refused (a zero time step, minseg over half of maxseg, a NaN stress,
-  ...). The user stress's tutorial reads the field that the app's job read. For the initial
+  ...), such as a user stress's link off Dropbox, with a quote, or ending with `dl=0`. Another
+  link must go into the user stress's script. Its tutorial reads the field that the app's job
+  read, which must be where `codegen.stress_file` says. The field's reader, on a small grid,
+  must interpolate the grid's own values, and refuse other columns, a grid of another box or
+  with x fastest, and a file over its size limit. For the initial
   configurations, each of the four networks with each core: the app's
   job and the tutorial's option for it give the same network, the 3-D window's own build is
   that network, and the infinite lines' `.data` and `.vtk` files are the tutorial's. The
@@ -349,10 +363,10 @@ Each test prints `PASS` or `FAIL` for every check, and exits with a non-zero cod
   run of the binary junction: its output, status and downloads, and the networks that the 3-D
   window's component gets (AppTest does not run the component's script); then the Python
   console, and **🗑 clear all results**. Then a 20-step run of the Frank-Read source with
-  ExaDiS, and one of the user stress with PyDiS: its menu of shear stresses, and the history's
-  displacement against time. Then ExaDiS's Run, off while ExaDiS is not built, and the build's
-  status bar. Then the initial
-  configurations: their two steps, each network drawn in step 1, and a run that builds the
+  ExaDiS, and one of the user stress with PyDiS: its field's link in step 3, which warns of
+  an http link, its menu of shear stresses, and the history's displacement against time.
+  Then ExaDiS's Run, off while ExaDiS is not built, and the build's status bar. Then the
+  initial configurations: their two steps, each network drawn in step 1, and a run that builds the
   prismatic loops with ExaDiS. Its runs go to a temporary folder (`OPENDIS_APP_RUNS`).
 - **`test_console`**: for each example and code, a 20-step run (the initial configurations
   build their network), then a session whose `G`, `sim` and `net` are the run's (no `sim`
