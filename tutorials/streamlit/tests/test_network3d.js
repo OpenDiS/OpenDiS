@@ -34,7 +34,7 @@ function instance() {
   const plot = elements.plot;
   const Plotly = {
     react(gd, data, layout) {
-      draws.push({camera: layout.scene.camera, title: layout.title.text, n: data.length});
+      draws.push({camera: layout.scene.camera, title: layout.title.text, n: data.length, data});
       return Promise.resolve(gd);
     },
     relayout(gd, update) {
@@ -194,6 +194,25 @@ function args(labels, id, extra) {
   await settled();
   check("the replay's frame takes the camera that the run's view had",
         f.relayouts.length === 1 && same(f.relayouts[0]["scene.camera"], DRAG), f.relayouts);
+
+  // a background (the user stress's slip plane) under every snapshot: the same traces each time
+  const plane = [{type: "surface"}, {type: "surface"}];
+  const g = instance();
+  g.render(args(["step 0", "step 10", "final"], "run4", {scope: "user_stress", background: plane}));
+  await settled();
+  g.elements.play.fire("click");  // at the end: from step 0
+  g.tick();
+  check("a background is drawn under every snapshot, the same traces each time",
+        g.draws.length === 3 && g.draws.every((d) => d.n === 6 && d.data[0] === plane[0]
+                                               && d.data[1] === plane[1]), g.draws.map((d) => d.n));
+  const h = instance();  // during a run, it comes once, with the arguments
+  h.render({live: "live/r2.json", live_ms: 500, config: {}, scope: "user_stress", background: plane});
+  await settled();
+  h.files.set("live/r2.json", snapshot("step 0", "t0"));
+  h.tick();
+  await settled();
+  check("during a run, each snapshot is drawn over the background",
+        h.draws.length === 1 && h.draws[0].n === 6 && h.draws[0].data[0] === plane[0], h.draws.map((d) => d.n));
   console.log(failures ? `\n${failures} FAILED` : "\nALL PASSED");
   process.exit(failures ? 1 : 0);
 })();

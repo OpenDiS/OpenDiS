@@ -6,7 +6,8 @@
 // replay plays here, in the browser; a snapshot is not drawn while the mouse button is down, so a
 // drag goes on undisturbed. During a run, the job's newest snapshot, which the app writes next to
 // this page, is fetched and drawn the same way. Plotly's "Reset camera to default" goes back to
-// the app's first view.
+// the app's first view. A background (the user stress's field on its slip plane) is drawn under
+// every snapshot, the same traces each time, so that Plotly does not build them again.
 (function () {
   "use strict";
   var STORE = "opendis-app-camera";  // {scope, camera}, kept for the browser tab (sessionStorage)
@@ -16,7 +17,8 @@
   var slider = document.getElementById("slider");
   var label = document.getElementById("label");
   var state = {
-    dataId: null, scope: null, frames: [], layout: null, config: {}, index: 0, frameMs: 300,
+    dataId: null, scope: null, frames: [], background: [], layout: null, config: {}, index: 0,
+    frameMs: 300,
     camera: null, timer: null, dragging: false, started: false,
     live: null, liveArgs: null, liveTimer: null, held: null
   };
@@ -57,7 +59,7 @@
     layout.title.text = frame.title;
     slider.value = String(state.index);
     label.textContent = frame.label;
-    return Plotly.react(plot, frame.data, layout, state.config);
+    return Plotly.react(plot, state.background.concat(frame.data), layout, state.config);
   }
 
   // The first draw is in the app's first view, so that Plotly's reset goes back to it
@@ -135,7 +137,8 @@
   function startLive(args) {
     stopLive();
     state.live = args.live;
-    state.liveArgs = {config: args.config, scope: args.scope, start: "last"};
+    state.liveArgs = {config: args.config, scope: args.scope, start: "last",
+                      background: args.background};
     poll();
     state.liveTimer = setInterval(poll, args.live_ms || 500);
   }
@@ -168,6 +171,7 @@
     }
     state.dataId = args.data_id;
     state.frames = args.frames;
+    state.background = args.background || [];
     state.layout = args.layout;
     state.config = args.config || {};
     state.frameMs = args.frame_ms || 300;

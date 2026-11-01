@@ -157,8 +157,8 @@ def main() -> int:  # pylint: disable=too-many-locals,too-many-statements
         click(at, "next ›")
     next(n for n in at.number_input if n.label.startswith("max_step")).set_value(20).run()
     written, write_live = [], network3d.write_live  # the snapshots that the 3-D window fetches
-    network3d.write_live = lambda run_id, label, net: (written.append(label),
-                                                       write_live(run_id, label, net))
+    network3d.write_live = lambda run_id, label, net, **kwargs: (
+        written.append(label), write_live(run_id, label, net, **kwargs))
     try:
         click(at, "▶ Run")
     finally:
@@ -269,7 +269,8 @@ def main() -> int:  # pylint: disable=too-many-locals,too-many-statements
     # the history's third plot, the line's displacement against the time, with its velocity
     at = page()
     choose(at, "User stress")
-    menus, links, refusal = {}, {}, []
+    initial = shown(at)
+    menus, links, refusal, unplaned = {}, {}, [], []
     for _ in STEP_LIST[1:]:
         click(at, "next ›")
         menus.update((s.label, (s.options, s.value)) for s in at.main.selectbox
@@ -281,8 +282,13 @@ def main() -> int:  # pylint: disable=too-many-locals,too-many-statements
             refusal = [w.value for w in at.warning]
             next(t for t in at.main.text_input if t.label == link.label).set_value(
                 links[link.label][0]).run()
+            field = "Add the frozen internal stress, the user stress"  # off: no plane
+            next(c for c in at.main.checkbox if c.label == field).uncheck().run()
+            unplaned = shown(at)
+            next(c for c in at.main.checkbox if c.label == field).check().run()
     next(n for n in at.number_input if n.label.startswith("max_step")).set_value(20).run()
     click(at, "▶ Run")
+    replay = shown(at)
     output = "\n".join(c.value for c in at.code)
     successes = [s.value for s in at.success]
     next(r for r in at.radio if r.label == "3-D view").set_value("history").run()
@@ -297,16 +303,25 @@ def main() -> int:  # pylint: disable=too-many-locals,too-many-statements
               and value.startswith("https://www.dropbox.com/") and value.endswith("&dl=1"), links),
         check("user stress: step 3 warns of an http link", any(
             "stress field link: must be an https link" in w for w in refusal), refusal),
-        check("user stress: step 6 offers the shear stresses 1 to 15 MPa, 3 MPa first",
+        check("user stress: the 3-D window draws the field on the slip plane under the initial "
+              "line, and under the run's replay, with the line black",
+              [len(r.get("background", [])) for r in initial + replay] == [3, 3]
+              and {r["frames"][-1]["data"][0]["line"]["color"] for r in initial + replay}
+              == {"#111111"}, [len(r.get("background", [])) for r in initial + replay]),
+        check("user stress: without the field, no plane, and the line blue again",
+              [len(r.get("background", [])) for r in unplaned] == [0]
+              and unplaned[0]["frames"][-1]["data"][0]["line"]["color"] == "#1f4fd1",
+              [len(r.get("background", [])) for r in unplaned]),
+        check("user stress: step 6 offers the shear stresses 1 to 15 MPa, 5 MPa first",
               menus == {"Shear stress τ on the line's slip system": (
-                  ["1 MPa", "3 MPa", "5 MPa", "7 MPa", "10 MPa", "15 MPa"], 3e6)}, menus),
+                  ["1 MPa", "3 MPa", "5 MPa", "7 MPa", "10 MPa", "15 MPa"], 5e6)}, menus),
         check("user stress: the run ends without an exception, and says Done", not at.exception
               and any(s.startswith("Done after") for s in successes),
               ([e.value for e in at.exception], successes)),
         check("user stress: the output column shows PyDiS's lines", "step = 10" in output,
               output[-300:]),
         check("user stress: the history plots the displacement against the time, with its "
-              "velocity and the drag velocity", len(third) == 1 and " m/s, against M b τ = 49.04 "
+              "velocity and the drag velocity", len(third) == 1 and " m/s, against M b τ = 81.73 "
               "m/s" in third[0] and lines[-3:] == ["displacement", "velocity over the second "
                                                      "half", "M b τ"], (third, lines[-3:])),
         check("no job is left running after the user stress's", not job.running()),

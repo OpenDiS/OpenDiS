@@ -5,8 +5,9 @@ from pathlib import Path
 
 import numpy as np
 
-from common import catalog, job, network, network3d, results, views
+from common import catalog, codegen, job, network, network3d, results, views
 from common.paths import add_pydis_paths
+from common.spec import LINE_SLIP
 from common.testing import check, summary
 
 
@@ -141,6 +142,46 @@ def main() -> int:  # pylint: disable=too-many-locals
                   and np.allclose(moved[0], [0.0, 1e-11, 2.2e-11])
                   and np.allclose(moved[1], [0.0, 1.036107e-9, 2.279167e-9]), moved),
         ]
+
+    # the user stress's slip plane, over a uniform field whose resolved shear stress is 5 MPa
+    spec = next(e.default for e in catalog.examples() if e.name == "user_stress")
+    box, line = spec.config.box_length, found["user_stress"]
+    b, n = (np.array(v) / np.linalg.norm(v) for v in LINE_SLIP)
+    voigt = (5e6 * (np.outer(b, n) + np.outer(n, b)))[[0, 1, 2, 1, 0, 0], [0, 1, 2, 2, 2, 1]]
+    offset = views.plane_offset(box, LINE_SLIP, codegen.line_origin(box, spec.config.seed))
+    surfaces = views.slip_plane(lambda r: np.tile(voigt, (len(r), 1)), box, LINE_SLIP, offset)
+    period = box / np.sqrt(3)  # between the plane's periodic images
+
+    def off_plane(r: np.ndarray) -> np.ndarray:
+        d = r @ n - offset
+        return np.abs(d - period * np.round(d / period))
+
+    grids = [np.stack([np.array(s[axis], float) for axis in "xyz"], axis=-1) for s in surfaces]
+    area = sum(0.5 * np.linalg.norm(np.cross(g[1:, 1:] - g[:-1, :-1], g[:-1, 1:] - g[1:, :-1]),
+                                    axis=-1).sum() for g in grids)
+    over = views.network_figure(line, "over the plane", on_plane=True)
+    plain = network3d.frames_payload([("initial configuration", line)])
+    payload = network3d.frames_payload([("initial configuration", line)], surfaces)
+    checks += [
+        check("the user stress's slip plane: three polygons in the cell, the colour bar on the "
+              "first", [s["showscale"] for s in surfaces] == [True, False, False]),
+        check("... on the plane through the line's start, to within the rounding to 1 b, and "
+              "inside the cell", all(off_plane(g.reshape(-1, 3)).max() < 1.0
+                                     and np.abs(g).max() <= 0.5 * box + 0.5 for g in grids)),
+        check("... covering the plane's area in the cell, √3 L² (the rounding to 1 b gives the "
+              "polygons' edges slivers of 3e-4 of it)",
+              np.isclose(area, np.sqrt(3) * box**2, rtol=1e-3), area / (np.sqrt(3) * box**2)),
+        check("... coloured by the resolved shear stress: 5 MPa in the uniform field",
+              all(np.allclose(s["surfacecolor"], 5.0) for s in surfaces)),
+        check("the user stress's initial line lies on that plane", off_plane(line.positions).max()
+              < 1e-3, off_plane(line.positions).max()),
+        check("over the plane, the network is black, in the plane's first view",
+              over.data[0].line.color == views.DARK_COLOR == over.data[1].marker.color
+              and over.layout.scene.camera.eye.to_plotly_json() == views.PLANE_CAMERA["eye"]),
+        check("the payload keeps the plane apart from its frames, and its id changes with it",
+              payload.background == surfaces and plain.background == []
+              and payload.data_id != plain.data_id and len(payload.frames[0]["data"]) == 4),
+    ]
     return summary(checks)
 
 

@@ -24,6 +24,8 @@ import hashlib
 import textwrap
 from dataclasses import replace
 
+import numpy as np
+
 from common.paths import OPENDIS_DIR, PYDIS_PATHS
 from common.spec import (FCCJunction, FrankReadSource, InfiniteLines, LoopSources, ParaDiSFile,
                          SimpleSource, Spec, TwoLines, UserStressLine)
@@ -739,6 +741,11 @@ def init_function(spec: Spec) -> str:
 def stress_file(url: str) -> str:
     """Where the user stress's script keeps its copy of the link's field, from the root."""
     return f"{STRESS_DIR}/stress_{hashlib.sha256(url.encode()).hexdigest()}.npz"
+
+
+def line_origin(box: float, seed: int) -> np.ndarray:
+    """The point that the user stress's script starts its line through (init_infinite_line)."""
+    return box * (np.random.default_rng(seed).random(3) - 0.5)
 
 
 def user_stress_code(url: str) -> str:

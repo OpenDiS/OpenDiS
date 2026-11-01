@@ -49,7 +49,7 @@ coarsen_mode = 1
 
 [loading]
 loading_mode = "stress"
-tau = 3e6
+tau = 5e6
 
 [run]
 max_step = 300

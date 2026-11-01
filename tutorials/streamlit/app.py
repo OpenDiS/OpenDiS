@@ -20,7 +20,7 @@ from common import (catalog, code_panel, codegen, job, network, network3d, outpu
 from common.catalog import Example
 from common.paths import ASSETS, build_libraries_once, exadis_status, fetch_graph
 from common.picker import Step, run_step
-from common.spec import ENGINE_NAMES, Spec
+from common.spec import ENGINE_NAMES, LINE_SLIP, Spec, UserStressLine
 
 LOGO = ASSETS / "opendis_logo.png"
 FAVICON = ASSETS / "opendis_favicon.png"  # the website's favicon
@@ -121,17 +121,45 @@ def _follow_step(example: Example, step: Step) -> None:
 
 # ── Cached data: what the 3-D window draws ──
 
+@st.cache_resource(show_spinner="Reading the user stress's field…", max_entries=8)
+def _slip_plane(url: str, box: float, offset: float) -> list:
+    """The user stress's field on its line's slip plane, at the offset (b), as the 3-D window's
+    background: the same traces for every session, which nothing changes."""
+    return views.slip_plane(network.user_field(url, box), box, LINE_SLIP, offset)
+
+
+def _plane(spec: Spec) -> tuple | None:
+    """The user stress's slip plane, by its field's link, the box and the plane's offset, when
+    its field is on and can be read; else None, with a warning if it cannot be read."""
+    if not isinstance(spec.config, UserStressLine) or not spec.forces.stress_field:
+        return None
+    box = spec.config.box_length
+    plane = (spec.forces.stress_url, box,
+             views.plane_offset(box, LINE_SLIP, codegen.line_origin(box, spec.config.seed)))
+    try:
+        _slip_plane(*plane)
+    except Exception as exc:  # pylint: disable=broad-exception-caught
+        st.warning(f"The user stress's field cannot be drawn on its slip plane: {exc}")
+        return None
+    return plane
+
+
 @st.cache_data(show_spinner=False, max_entries=32)
-def _initial_payload(spec: Spec) -> network3d.Payload:
-    """The initial configuration of the spec, as PyDiS builds it, for the 3-D window."""
-    return network3d.frames_payload([("initial configuration", network.initial(spec))])
+def _initial_payload(spec: Spec, plane: tuple | None = None) -> network3d.Payload:
+    """The initial configuration of the spec, as PyDiS builds it, for the 3-D window, over the
+    user stress's slip plane, if given."""
+    return network3d.frames_payload([("initial configuration", network.initial(spec))],
+                                    _slip_plane(*plane) if plane else None)
 
 
 @st.cache_data(show_spinner=False, max_entries=8)
-def _run_payload(files: tuple[tuple[str, str, float], ...]) -> network3d.Payload:
-    """A run's snapshots, for its files (label, path, mtime), for the 3-D window to replay."""
+def _run_payload(files: tuple[tuple[str, str, float], ...],
+                 plane: tuple | None = None) -> network3d.Payload:
+    """A run's snapshots, for its files (label, path, mtime), for the 3-D window to replay, over
+    the user stress's slip plane, if given."""
     return network3d.frames_payload([(label, network.read_json(Path(path)))
-                                     for label, path, _ in files])
+                                     for label, path, _ in files],
+                                    _slip_plane(*plane) if plane else None)
 
 
 # ── The panels ──
@@ -154,7 +182,7 @@ def _chart(target: Any, fig: go.Figure, key: str | None = None) -> None:
     target.plotly_chart(fig, width="stretch", theme=None, config=PLOTLY_CONFIG, key=key)
 
 
-def _simulation_view(example: Example, slot: DeltaGenerator,
+def _simulation_view(example: Example, spec: Spec, slot: DeltaGenerator,
                      folder: job.RunFolder | None) -> None:
     """The run's snapshots, to replay, or what to do to get them."""
     files = results.frames(folder) if folder is not None else []
@@ -169,7 +197,7 @@ def _simulation_view(example: Example, slot: DeltaGenerator,
         if not folder.results.exists():
             st.warning("This run did not finish: these are its snapshots so far.")
         payload = _run_payload(tuple((label, str(path), path.stat().st_mtime)
-                                     for label, path in files))
+                                     for label, path in files), _plane(spec))
         network3d.show(payload, key=f"net3d/run/{example.name}", scope=example.name,
                        frame_ms=FRAME_MS)
 
@@ -214,7 +242,7 @@ def _view_panel(example: Example, spec: Spec,
             st.info("Fix the selections first; the code panel lists the problems.")
             return None
         try:
-            payload = _initial_payload(spec)
+            payload = _initial_payload(spec, _plane(spec))
         except Exception as exc:  # pylint: disable=broad-exception-caught
             st.error(f"PyDiS cannot build this initial configuration: {exc}")
             return None
@@ -225,7 +253,7 @@ def _view_panel(example: Example, spec: Spec,
         _history_view(example, spec, folder)
         return None
     slot = st.empty()
-    _simulation_view(example, slot, folder)
+    _simulation_view(example, spec, slot, folder)
     return slot
 
 
@@ -421,6 +449,8 @@ def _run(example: Example, spec: Spec, folder: job.RunFolder | None,
         job.kill_leftovers()
         folder.prepare(codegen.full_script(spec, example.final_json), spec.to_json())
         drawn = {"step": None}
+        plane = _plane(spec) if view_slot is not None else None
+        background = _slip_plane(*plane) if plane else []
 
         def update(status: job.Status) -> None:
             st.session_state[_key(example, "status")] = (folder.run_id, status)
@@ -434,11 +464,12 @@ def _run(example: Example, spec: Spec, folder: job.RunFolder | None,
                     net = network.read_json(path)
                 except ValueError:  # still being written
                     return
-                network3d.write_live(folder.run_id, f"step {step}", net)
+                network3d.write_live(folder.run_id, f"step {step}", net,
+                                     on_plane=bool(background))
                 if drawn["step"] is None:  # the 3-D window then fetches each new snapshot
                     with view_slot.container(height=VIEW_PX, border=False):
                         network3d.show_live(folder.run_id, f"net3d/live/{example.name}",
-                                            example.name)
+                                            example.name, background)
                 drawn["step"] = step
 
         try:

@@ -99,7 +99,8 @@ environment, set `OPENDIS_PYTHON` to its Python, as in
     `output/stress_strain_dens.dat`. For the user stress, the history also plots the line's
     displacement against time, from the run's `output/displacement.dat`, with its velocity. For
     the initial configurations, the second view, **run**, shows the network that the run
-    built, and there is no history.
+    built, and there is no history. The user stress's line is drawn over its frozen field, on
+    its slip plane.
   - The cube first shows its x axis along its front-left edge and its y axis along its
     front-right edge, seen a little from the side rather than along its diagonal. Turn it
     with the mouse: the view you turn to stays when another network of the same example is
@@ -209,13 +210,29 @@ The user stress moves one dislocation through the internal stress of a dislocati
 frozen in place. The network is the ParaDiS restart rs0084. ExaDiS computed its stress on a
 128³ grid of its periodic box, 58824 b. The line is straight and infinite at first, on the fcc
 slip system B4, through a random point of the box. A shear stress τ drives it, picked from a
-menu in step 6: 1, 3, 5, 7, 10 or 15 MPa. Its force module, `CalForceUserStress`, adds the
-field's Peach-Koehler force to the line tension, as in `tutorials/05_user_stress/user_stress.py`.
+menu in step 6: 1, 3, 5, 7, 10 or 15 MPa, 5 MPa by default. Its force module,
+`CalForceUserStress`, adds the field's Peach-Koehler force to the line tension, as in
+`tutorials/05_user_stress/user_stress.py`.
 It integrates the stress along each segment, at three Gauss points. Step 3 can leave the field
 out, and the line then moves at the drag velocity M b τ. The script's driver,
 `SimulateNetworkDisp`, writes `output/displacement.dat`: the area that the line has swept,
 from the plastic strain, over its initial length. The history plots it against time. Its
 velocity over the second half of the run is compared with M b τ.
+
+The 3-D window draws the field on the line's slip plane, as in the figure of the field's own
+tutorial, in 3-D. In the periodic cell, that (111) plane and its periodic images are three
+parallel polygons, and the line's pieces lie on them. Each polygon is a Plotly surface, on a
+grid of 96 points across the cell. Its colour is the field's resolved shear stress n·σ·b, red
+for positive and blue for negative, clipped at ±15 MPa; the applied stress τ adds to it. The
+line is then black. The window's first view is then 22.5° further round and 10° higher than
+the other examples': the plane is seen at 58° from its normal, not nearly edge on. The plane
+takes no hover: plotly.js reads a surface's arrays transposed for a hover template. The app
+reads the field with the script's own reader (`network.user_field`), which downloads it first
+if needed, and computes the plane once for each link, box and seed (`views.slip_plane`, in
+`st.cache_resource`). The plane is about 0.8 MB of JSON. The 3-D component gets it as a
+background, apart from the snapshots: it draws the same traces under each one, so a replay
+does not send or build them again. At 5 MPa, PyDiS's 300 steps cover 17 ns, in which the line
+moves at about M b τ, 82 m/s; ExaDiS's 3000 steps cover 120 ns, at 61 m/s, slowed by the field.
 
 The field is a file of 55 MB, `rs0084.stress.npz`. Its array `data` has one row for each grid
 point, `x y z Sxx Syy Szz Syz Sxz Sxy`, positions in b and stresses in Pa, x slowest and z
@@ -232,7 +249,7 @@ again: share it under a new link. The script refuses a file over 300 MB, other c
 a grid that does not fit the box, x slowest and z fastest. The two tutorials there are new,
 one for each core. They keep the field as `rs0084.stress.npz`, with the same checks. In
 their first 300 steps, the two cores agree in every digit printed. PyDiS's 300 steps take
-about a minute, and ExaDiS's 3000 about as long. PyDiS gained `insert_infinite_line`
+about a minute, and ExaDiS's 3000 about 35 s. PyDiS gained `insert_infinite_line`
 (`core/pydis/python/pydis/util/network_util.py`), a public name for its port of ExaDiS's. Its
 `Topology` now takes a user's force module that wraps one of its own, by `calforce_base`.
 
@@ -356,7 +373,11 @@ Each test prints `PASS` or `FAIL` for every check, and exits with a non-zero cod
   periodic images, against PyDiS's own `Cell.closest_image`; the figures (their traces, the
   first view, the camera kept, the stress against the strain of a strain-rate run, the user
   stress's displacement against time and its velocities); and a run's results (300 snapshots
-  played as 120, the history, the zip, the user stress's `displacement.dat`).
+  played as 120, the history, the zip, the user stress's `displacement.dat`). Then the user
+  stress's slip plane over a uniform field: three polygons, on the plane through the line's
+  start and inside the cell, covering the plane's area in the cell, √3 L², all at the field's
+  resolved shear stress; the line on that plane; the network black over it, in the plane's
+  first view; and the payload, which keeps the plane apart from its frames.
 - **`test_app_smoke`**: the banner, the two menus in the sidebar, no chat, ExaDiS's status,
   every step of each example, sub-example and core, the binary junction's Crystal structure
   menu, a change and a reset, and a 20-step
@@ -364,7 +385,8 @@ Each test prints `PASS` or `FAIL` for every check, and exits with a non-zero cod
   window's component gets (AppTest does not run the component's script); then the Python
   console, and **🗑 clear all results**. Then a 20-step run of the Frank-Read source with
   ExaDiS, and one of the user stress with PyDiS: its field's link in step 3, which warns of
-  an http link, its menu of shear stresses, and the history's displacement against time.
+  an http link, the field on the slip plane under the initial line and under the replay, none
+  without the field, its menu of shear stresses, and the history's displacement against time.
   Then ExaDiS's Run, off while ExaDiS is not built, and the build's status bar. Then the
   initial configurations: their two steps, each network drawn in step 1, and a run that builds the
   prismatic loops with ExaDiS. Its runs go to a temporary folder (`OPENDIS_APP_RUNS`).
@@ -389,7 +411,8 @@ Each test prints `PASS` or `FAIL` for every check, and exits with a non-zero cod
   its next view too, while another example, or a return to the first, starts in the first view;
   play, the slider, a hold while the mouse button is down, the end, and new networks; and
   during a run, the newest snapshot fetched and drawn with the user's camera, held during a
-  drag, and the fetching stopped when the replay comes.
+  drag, and the fetching stopped when the replay comes. A background is drawn under every
+  snapshot, the same traces each time, and during a run too.
 
 ## On Streamlit Community Cloud
 

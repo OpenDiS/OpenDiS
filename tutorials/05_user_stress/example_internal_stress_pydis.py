@@ -201,7 +201,7 @@ def main():
     topology  = Topology(split_mode='Serial', state=state, force=calforce, mobility=mobility)
     remesh    = Remesh(remesh_rule='LengthBased', state=state)
 
-    tau = 3.0e6 # the resolved shear stress on the slip system (Pa)
+    tau = 5.0e6 # the resolved shear stress on the slip system (Pa)
     S = np.outer(burg, plane) + np.outer(plane, burg)
     applied_stress = tau*S[[0,1,2,1,0,0],[0,1,2,2,2,1]] # xx yy zz yz xz xy
 
