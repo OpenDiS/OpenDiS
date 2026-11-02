@@ -18,6 +18,7 @@ import streamlit as st
 APP_DIR = str(Path(__file__).resolve().parents[1])  # tutorials/streamlit, where app.py is
 RESET = Path(__file__).with_name("RESET")  # a push that changes its line resets every engine
 SEEN = "OPENDIS_ENGINE_RESET"  # the line of RESET that this process saw last, in its environment
+CODE = "OPENDIS_ENGINE_CODE"  # the app's code files at this process's last page run, likewise
 FRONT = os.environ.get("OPENDIS_FRONT_URL", "https://opendis.streamlit.app")  # the front page
 # Minutes without a click before a session is signed off (0: never), and of the warning before
 # it. An environment variable, or a secret of the deployment, of the same name overrides each.
@@ -112,6 +113,38 @@ def reset_due() -> bool:
     return seen is not None and seen != line
 
 
+def code_stamp(app_dir: str = APP_DIR) -> str:
+    """The app's code files, ``app.py``, ``common/*.py`` and ``engines/engine.py``: how many,
+    and the newest time of change. A pull changes it; the runs, in ``runs/``, do not."""
+    app = Path(app_dir)
+    files = [app / "app.py", app / "engines" / "engine.py", *(app / "common").glob("*.py")]
+    times = [path.stat().st_mtime_ns for path in files if path.is_file()]
+    return f"{len(times)} {max(times, default=0)}"
+
+
+def code_changed(app_dir: str = APP_DIR) -> bool:
+    """Whether the app's code files changed since this process's last page run, as by a push."""
+    stamp, seen = code_stamp(app_dir), os.environ.get(CODE)
+    os.environ[CODE] = stamp
+    return seen is not None and seen != stamp
+
+
+def forget_app_modules(modules: dict = sys.modules, app_dir: str = APP_DIR) -> list[str]:
+    """Drop the app's modules, but the page's own (``__main__``), as Streamlit does for a tab open
+    at a change: the page's ``import app`` then loads the code on disk. Returns their names."""
+    root = os.path.realpath(app_dir) + os.sep
+
+    def inside(module) -> bool:
+        paths = [getattr(module, "__file__", None), *(getattr(module, "__path__", None) or [])]
+        return any(path and os.path.realpath(path).startswith(root) for path in paths)
+
+    names = [name for name, module in list(modules.items())
+             if name != "__main__" and inside(module)]
+    for name in names:
+        modules.pop(name, None)
+    return names
+
+
 def number() -> str | None:
     """This engine's number, ``07`` for the entry file ``opendis_07.py``; None for another."""
     stem = Path(getattr(sys.modules.get("__main__"), "__file__", None) or "").stem
@@ -185,16 +218,22 @@ def _watch(name: str) -> None:
 
 
 def main() -> None:
-    """Run the app's page as ``app.py`` does, after a reset if one is due, with the engine's
-    number and users in the banner, and the idle check.
+    """Run the app's page as ``app.py`` does, with the code on disk, after a reset if one is due,
+    with the engine's number and users in the banner, and the idle check.
 
     The app's folder goes first on sys.path, for the app's imports, and on PYTHONPATH:
     Streamlit reloads a changed module only if it lies in the entry file's folder or on
-    PYTHONPATH. So a push updates an engine in place, as it updates app.py.
+    PYTHONPATH, and only for a tab open at the change. The times of the code files catch a push
+    that came with no tab open: the app's modules are then dropped, and the page imports the
+    pushed code. So a push reaches the engine at its next page run, without a reboot.
     """
     if APP_DIR not in sys.path:
         sys.path.insert(0, APP_DIR)
     os.environ["PYTHONPATH"] = first(APP_DIR, os.environ.get("PYTHONPATH", ""))
+    if code_changed():
+        names = forget_app_modules()
+        print(f"[OpenDiS engine] new code: dropped {len(names)} module(s) of the app",
+              file=sys.stderr, flush=True)
     if reset_due():
         from common import job  # pylint: disable=import-outside-toplevel
         deleted, kept = job.clear_runs()

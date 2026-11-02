@@ -3,6 +3,7 @@
 The engines' gauges come from a stand-in server on this computer (README.md, Tests).
 """
 import http.server
+import json
 import os
 import re
 import sys
@@ -111,6 +112,39 @@ def test_reset() -> list[bool]:
         os.environ[engine.SEEN] = seen
     return [check("reset: due once per new line, not at the first run",
                   due == [False, False, True, False, True], due)]
+
+
+def test_code() -> list[bool]:
+    """A changed code file is seen once, and a run's script not at all; the app's modules are
+    dropped, the page's own and the others kept."""
+    seen = os.environ.pop(engine.CODE, None)
+    with tempfile.TemporaryDirectory() as tmp:
+        app = Path(tmp)
+        for name in ("app.py", "common/spec.py", "engines/engine.py", "runs/a/b/script.py"):
+            (app / name).parent.mkdir(parents=True, exist_ok=True)
+            (app / name).write_text("x = 1\n")
+        changed = [engine.code_changed(tmp), engine.code_changed(tmp)]
+        later = time.time() + 5
+        os.utime(app / "common" / "spec.py", (later, later))
+        changed += [engine.code_changed(tmp), engine.code_changed(tmp)]
+        os.utime(app / "runs" / "a" / "b" / "script.py", (later + 5, later + 5))
+        changed.append(engine.code_changed(tmp))
+        modules = {"__main__": types.SimpleNamespace(__file__=f"{tmp}/engines/opendis_07.py"),
+                   "app": types.SimpleNamespace(__file__=f"{tmp}/app.py"),
+                   "common": types.SimpleNamespace(__file__=f"{tmp}/common/__init__.py",
+                                                   __path__=[f"{tmp}/common"]),
+                   "common.spec": types.SimpleNamespace(__file__=f"{tmp}/common/spec.py"),
+                   "engines": types.SimpleNamespace(__file__=None, __path__=[f"{tmp}/engines"]),
+                   "json": json, "gone": None}
+        dropped = engine.forget_app_modules(modules, tmp)
+    os.environ.pop(engine.CODE, None)
+    if seen is not None:
+        os.environ[engine.CODE] = seen
+    return [check("code: a changed file seen once, a run's script not, nothing at the first run",
+                  changed == [False, False, True, False, False], changed),
+            check("code: the app's modules dropped, the page's own and the others kept",
+                  sorted(dropped) == ["app", "common", "common.spec", "engines"]
+                  and sorted(modules) == ["__main__", "gone", "json"], (dropped, list(modules)))]
 
 
 def test_idle() -> list[bool]:
@@ -285,7 +319,7 @@ def test_manage() -> list[bool]:
 def test_pages() -> list[bool]:
     """With Streamlit's AppTest: the front page when switched on, else the app; and the app
     from an engine's entry file. No engine answers here."""
-    names = (front_page.SWITCH, "PYTHONPATH", engine.SEEN)
+    names = (front_page.SWITCH, "PYTHONPATH", engine.SEEN, engine.CODE)
     saved, metrics, path = {k: os.environ.get(k) for k in names}, front_page.METRICS, sys.path[:]
     title = style.BANNER_TITLE
     news, tmp = front_page.NEWS, tempfile.TemporaryDirectory()
@@ -343,7 +377,8 @@ def test_pages() -> list[bool]:
 
 def main() -> int:
     """Run every check; the exit code is 0 when all pass."""
-    return summary(test_entry_files() + test_paths() + test_reset() + test_idle() + test_parse()
+    return summary(test_entry_files() + test_paths() + test_reset() + test_code() + test_idle()
+                   + test_parse()
                    + test_read()
                    + test_table() + test_news() + test_switch() + test_manage() + test_pages())
 

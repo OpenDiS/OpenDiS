@@ -465,8 +465,9 @@ Each test prints `PASS` or `FAIL` for every check, and exits with a non-zero cod
   drag, and the fetching stopped when the replay comes. A background is drawn under every
   snapshot, the same traces each time, and during a run too.
 - **`test_engines`**: the 50 entry files of `engines/`, each the same three lines;
-  `engine.py`'s search path and `RESET`; the front page's reading of the engines' gauges, from
-  a stand-in server, in each state; its table, its switch, and `manage.py`'s table and links.
+  `engine.py`'s search path, `RESET` and its check of the code files; the front page's
+  reading of the engines' gauges, from a stand-in server, in each state; its table, its
+  switch, and `manage.py`'s table and links.
   Then, with AppTest: the front page when it is switched on, the app when it is not, and the
   app from an engine's entry file.
 
@@ -490,8 +491,10 @@ entry point.
   some minutes, one file at a time. Until then, ExaDiS's Run is off, and the status bar below
   **🗑 clear all results** shows the build. The app's log, under Manage app, says when each
   was built, or why not. The Cloud runs Python 3.14.
-- A push updates the app in place, and keeps what the app built. After a change to PyDiS's C
-  code or to ExaDiS, reboot the app, so that it builds them anew.
+- A push reaches opendis.streamlit.app only through a tab open on it at that moment.
+  Otherwise reboot it. The engines load a push by themselves, and keep what they built
+  ([`engines/README.md`](engines/README.md)). After a change to PyDiS's C code or to ExaDiS,
+  reboot the engines, so that they build them anew.
 - The Python console works there too, for every visitor. It is meant for looking into a
   run's objects. Each session has its own process, its own copy of the results and an
   environment without the app's variables. It has the guard rails above, limits on time,
