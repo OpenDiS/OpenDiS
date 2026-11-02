@@ -67,6 +67,10 @@ class MobilityLaw(MobilityLaw_Base):
             if not all(M is not None and M > 0.0 for M in (Medge, Mscrew)):
                 raise ValueError("MobilityLaw FCC_0: Medge and Mscrew must be positive")
             self.Medge, self.Mscrew = Medge, Mscrew
+            # lab to crystal frame (ExaDiS' crystal.Rinv)
+            Rorient = state.get("Rorient")
+            self.Rinv = None if Rorient is None else np.linalg.inv(
+                np.array(Rorient, dtype=float) / np.linalg.norm(Rorient, axis=1)[:, None])
         if mobility_law == 'BCC_0B':
             if state.get("crystal", "bcc").lower() != "bcc":
                 raise ValueError("MobilityLaw BCC_0B: the crystal must be bcc")
@@ -287,7 +291,8 @@ class MobilityLaw(MobilityLaw_Base):
 
         normals, lines = [], []
         for dr, _, n in arms:
-            off111 = abs(abs(n[0]) - abs(n[1])) > 1.0e-4 or abs(abs(n[1]) - abs(n[2])) > 1.0e-4
+            nc = n if self.Rinv is None else self.Rinv @ n  # crystal frame
+            off111 = abs(abs(nc[0]) - abs(nc[1])) > 1.0e-4 or abs(abs(nc[1]) - abs(nc[2])) > 1.0e-4
             line = dr if off111 else np.zeros(3)
             nmag, lmag = np.linalg.norm(n), np.linalg.norm(line)
             normals.append(n / nmag if nmag > 0.0 else n)

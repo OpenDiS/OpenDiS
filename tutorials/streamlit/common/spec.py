@@ -38,11 +38,13 @@ ENGINE_NAMES = {"pydis": "PyDiS", "exadis": "ExaDiS"}
 # The initial configurations that each code's scripts build
 BUILDS = ("simple_source", "paradis_file", "line_config", "prismatic_config")  # no simulation
 ENGINE_KINDS = {engine: ("frank_read_src_loop", "two_disl_lines", "fcc_junction",
-                         "loop_sources", "user_stress_line") + BUILDS for engine in ENGINES}
+                         "loop_sources", "user_stress_line", "precipitates") + BUILDS
+                for engine in ENGINES}
 CRYSTALS = ("fcc", "bcc")
 JUNCTION_TYPES = ("lomer", "glissile", "hirth", "colinear")  # of ExaDiS' 05_fcc_junctions
 PARADIS_FILES = ("examples/10_strain_hardening/180chains_16.10e.data",)  # of the repository
 MAX_BUILT = 500  # lines or loops in a generated network
+MAX_PRECIPITATES = 100  # in the precipitates' box
 FIELD_BOX = 58824.0  # b: the periodic box of the user stress's frozen field
 LINE_SLIP = ((-1.0, 0.0, 1.0), (1.0, 1.0, 1.0))  # its line's slip system B4: b, and the plane
 LINE_THETAS = (0.0, 90.0)  # its line's character angles (degrees), screw and edge
@@ -68,13 +70,15 @@ CHOICES = {
                "mobility_law": ("SimpleGlide", "BCC_0B", "FCC_0"),
                "integrator": ("EulerForward", "Trapezoid"),
                "topology_mode": ("None", "TopologySerial", "TopologyParallel"),
+               "cross_slip": ("None", "ForceBasedSerial", "ForceBasedParallel"),
                "collision_mode": ("Retroactive", "Proximity"),
                "remesh_rule": ("LengthBased",),
                "loading_mode": ("stress", "strain_rate")},
 }
 CHOICE_LABELS = {"force_mode": "force mode", "mobility_law": "mobility law",
                  "integrator": "integrator", "split_mode": "split mode",
-                 "topology_mode": "topology mode", "collision_mode": "collision mode",
+                 "topology_mode": "topology mode", "cross_slip": "cross-slip mode",
+                 "collision_mode": "collision mode",
                  "remesh_rule": "remesh rule", "loading_mode": "loading mode"}
 STRESS_LABELS = ("xx", "yy", "zz", "yz", "xz", "xy")  # PyDiS's Voigt order
 MAX_STEP = 100_000
@@ -209,6 +213,37 @@ class UserStressLine:
         return errors
 
 
+@dataclass(frozen=True)
+class Precipitates:
+    """Step 1 of the precipitates: one straight, infinite line in the periodic box, which
+    init_line_config turns to run along y on a glide plane normal to z, and spherical
+    precipitates centred on that plane at random, which the line cannot cut, as in
+    tutorials/06_simple_precipitates."""
+
+    kind: ClassVar[str] = "precipitates"
+    simulates: ClassVar[bool] = True
+    box_length: float = 50000.0
+    theta: float = 90.0          # the line's character angle (degrees): 0 screw, 90 edge
+    num_precipitates: int = 10
+    radius_min: float = 500.0    # b: the radii, uniform from radius_min to radius_max
+    radius_max: float = 2000.0
+    seed: int = 1234             # of np.random, for the centres and the radii
+
+    def problems(self) -> list[str]:
+        """What is wrong with these values."""
+        errors = [] if self.box_length > 0 else ["box length: must be positive"]
+        if self.theta not in LINE_THETAS:
+            errors.append("theta: must be 0 (screw) or 90 (edge)")
+        if not 0 <= self.num_precipitates <= MAX_PRECIPITATES:
+            errors.append(f"number of precipitates: must be from 0 to {MAX_PRECIPITATES}")
+        if not 0 < self.radius_min <= self.radius_max < 0.25 * self.box_length:
+            errors.append("radii: must be positive, the smallest first, and less than a quarter "
+                          "of the box")
+        if self.seed < 0:
+            errors.append("seed: must not be negative")
+        return errors
+
+
 # The initial configurations of the tutorial tutorials/01_initial_configurations: a script that
 # builds one of these networks, plots it and writes it, and runs no simulation
 
@@ -316,9 +351,9 @@ class PrismaticLoops:
 
 BUILT = (SimpleSource, ParaDiSFile, InfiniteLines, PrismaticLoops)  # the menu of step 1
 CONFIGS = {cls.kind: cls for cls in (FrankReadSource, TwoLines, FCCJunction, LoopSources,
-                                     UserStressLine) + BUILT}
-Config = Union[FrankReadSource, TwoLines, FCCJunction, LoopSources, UserStressLine, SimpleSource,
-               ParaDiSFile, InfiniteLines, PrismaticLoops]
+                                     UserStressLine, Precipitates) + BUILT}
+Config = Union[FrankReadSource, TwoLines, FCCJunction, LoopSources, UserStressLine, Precipitates,
+               SimpleSource, ParaDiSFile, InfiniteLines, PrismaticLoops]
 
 
 @dataclass(frozen=True)
@@ -375,6 +410,7 @@ class Topology:
     remesh_rule: str = "LengthBased"
     n_div: tuple[int, int, int] = (8, 8, 8)
     topology_mode: str = "TopologySerial"  # ExaDiS's; "None" is no topology module
+    cross_slip: str = "None"  # ExaDiS's CrossSlip mode; "None" is no cross-slip
     split_alpha: float | None = None  # PyDiS's state["splitMultiNodeAlpha"]; None is 1.0
     coarsen_mode: int | None = None   # PyDiS's state["coarsen_mode"]; None is 0
 

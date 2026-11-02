@@ -20,7 +20,7 @@ from common import (catalog, code_panel, codegen, front_page, job, network, netw
 from common.catalog import Example
 from common.paths import ASSETS, build_libraries_once, exadis_status, fetch_graph
 from common.picker import Step, run_step
-from common.spec import ENGINE_NAMES, LINE_SLIP, Spec, UserStressLine
+from common.spec import ENGINE_NAMES, LINE_SLIP, Precipitates, Spec, UserStressLine
 
 LOGO = ASSETS / "opendis_logo.png"
 FAVICON = ASSETS / "opendis_favicon.png"  # the website's favicon
@@ -121,12 +121,17 @@ def _follow_step(example: Example, step: Step) -> None:
 
 # ── Cached data: what the 3-D window draws ──
 
-@st.cache_resource(show_spinner="Reading the user stress's field…", max_entries=8)
-def _slip_plane(kind: str, url: str | None, box: float, offset: float) -> list:
-    """The user stress's field on its line's slip plane, at the offset (b), as the 3-D window's
-    background: the same traces for every session, which nothing changes. The frozen field is
-    the link's; user_stress.py's is drawn at t = 0, and each frame recolours it at its time
+@st.cache_resource(show_spinner="Drawing the 3-D window's background…", max_entries=8)
+def _background(kind: str, *args) -> list:
+    """What the 3-D window draws under the networks, by its key (``_background_key``): the same
+    traces for every session, which nothing changes. The precipitates' spheres; or the user
+    stress's field on its line's slip plane, at the offset (b): the frozen field is the link's,
+    and user_stress.py's is drawn at t = 0, which each frame recolours at its time
     (``_plane_colors``)."""
+    if kind == "spheres":
+        spec, = args
+        return views.spheres(*network.precipitates(spec), spec.config.box_length)
+    url, box, offset = args
     if kind == "space_time":
         return views.slip_plane(network.space_time_field(box), box, LINE_SLIP, offset,
                                 views.SPACE_TIME_CLIP, views.SPACE_TIME_TITLE,
@@ -134,53 +139,63 @@ def _slip_plane(kind: str, url: str | None, box: float, offset: float) -> list:
     return views.slip_plane(network.user_field(url, box), box, LINE_SLIP, offset)
 
 
-def _plane_colors(plane: tuple | None, times: list[float]) -> list | None:
+def _plane_colors(key: tuple | None, times: list[float]) -> list | None:
     """The colours of the slip plane's surfaces at each time (s), for a field that changes in
-    time, user_stress.py's; None for a frozen field, or no plane: the plane stays as drawn."""
-    if plane is None or plane[0] != "space_time":
+    time, user_stress.py's; None for a frozen field, the precipitates, or nothing: the
+    background stays as drawn."""
+    if key is None or key[0] != "space_time":
         return None
-    _, _, box, offset = plane
+    _, _, box, offset = key
     return [views.plane_colors(network.space_time_field(box, t), box, LINE_SLIP, offset,
                                views.SPACE_TIME_POINTS, 0) for t in times]
 
 
-def _plane(spec: Spec) -> tuple | None:
-    """The user stress's slip plane, by its field's kind and link, the box and the plane's
-    offset, when its field is on and can be read; else None, with a warning if it cannot be
-    read."""
+def _on_plane(key: tuple | None) -> bool:
+    """Whether the networks are drawn as over the user stress's slip plane: black, in the
+    plane's first view (``views.network_figure``)."""
+    return key is not None and key[0] != "spheres"
+
+
+def _background_key(spec: Spec) -> tuple | None:
+    """What the 3-D window draws under the networks, by what it depends on: the precipitates,
+    by the spec; or the user stress's slip plane, by its field's kind and link, the box and the
+    plane's offset, when its field is on and can be read; else None, with a warning if the
+    field cannot be read."""
+    if isinstance(spec.config, Precipitates):
+        return ("spheres", spec)
     f = spec.forces
     if not isinstance(spec.config, UserStressLine) or not f.stress_field:
         return None
     box = spec.config.box_length
-    plane = (f.stress_kind, f.stress_url if f.stress_kind == "frozen" else None, box,
-             views.plane_offset(box, LINE_SLIP, codegen.line_origin(box, spec.config.seed)))
+    key = (f.stress_kind, f.stress_url if f.stress_kind == "frozen" else None, box,
+           views.plane_offset(box, LINE_SLIP, codegen.line_origin(box, spec.config.seed)))
     try:
-        _slip_plane(*plane)
+        _background(*key)
     except Exception as exc:  # pylint: disable=broad-exception-caught
         st.warning(f"The user stress's field cannot be drawn on its slip plane: {exc}")
         return None
-    return plane
+    return key
 
 
 @st.cache_data(show_spinner=False, max_entries=32)
-def _initial_payload(spec: Spec, plane: tuple | None = None) -> network3d.Payload:
-    """The initial configuration of the spec, as PyDiS builds it, for the 3-D window, over the
-    user stress's slip plane, if given, as at t = 0. (Streamlit keys this cache on this code,
-    not on _slip_plane's: a change there must change this too, or a server keeps old planes.)"""
+def _initial_payload(spec: Spec, key: tuple | None = None) -> network3d.Payload:
+    """The initial configuration of the spec, as PyDiS builds it, for the 3-D window, over its
+    background, if given, as at t = 0. (Streamlit keys this cache on this code, not on
+    _background's: a change there must change this too, or a server keeps old backgrounds.)"""
     return network3d.frames_payload([("initial configuration", network.initial(spec))],
-                                    _slip_plane(*plane) if plane else None)
+                                    _background(*key) if key else None, _on_plane(key))
 
 
 @st.cache_data(show_spinner=False, max_entries=8)
-def _run_payload(files: tuple[tuple[str, str, float], ...], plane: tuple | None = None,
+def _run_payload(files: tuple[tuple[str, str, float], ...], key: tuple | None = None,
                  times: tuple[float, ...] = ()) -> network3d.Payload:
     """A run's snapshots, for its files (label, path, mtime), for the 3-D window to replay, over
-    the user stress's slip plane, if given, which the frames' times (s) recolour when its field
+    its background, if given, which the frames' times (s) recolour when the user stress's field
     changes in time."""
     return network3d.frames_payload([(label, network.read_json(Path(path)))
                                      for label, path, _ in files],
-                                    _slip_plane(*plane) if plane else None,
-                                    colors=_plane_colors(plane, list(times)) if times else None)
+                                    _background(*key) if key else None, _on_plane(key),
+                                    colors=_plane_colors(key, list(times)) if times else None)
 
 
 # ── The panels ──
@@ -217,14 +232,14 @@ def _simulation_view(example: Example, spec: Spec, slot: DeltaGenerator,
             return
         if not folder.results.exists():
             st.warning("This run did not finish: these are its snapshots so far.")
-        plane, times = _plane(spec), ()
-        if plane is not None and plane[0] == "space_time":  # the frames' times, from the log
+        key, times = _background_key(spec), ()
+        if key is not None and key[0] == "space_time":  # the frames' times, from the log
             motion = results.displacement(folder)
             times = tuple(results.frame_times(
                 folder.log.read_text(encoding="utf-8").splitlines() if folder.log.exists()
                 else [], [label for label, _ in files], motion[0][-1] if motion else None))
         payload = _run_payload(tuple((label, str(path), path.stat().st_mtime)
-                                     for label, path in files), plane, times)
+                                     for label, path in files), key, times)
         network3d.show(payload, key=f"net3d/run/{example.name}", scope=example.name,
                        frame_ms=FRAME_MS)
 
@@ -269,7 +284,7 @@ def _view_panel(example: Example, spec: Spec,
             st.info("Fix the selections first; the code panel lists the problems.")
             return None
         try:
-            payload = _initial_payload(spec, _plane(spec))
+            payload = _initial_payload(spec, _background_key(spec))
         except Exception as exc:  # pylint: disable=broad-exception-caught
             st.error(f"PyDiS cannot build this initial configuration: {exc}")
             return None
@@ -476,8 +491,8 @@ def _run(example: Example, spec: Spec, folder: job.RunFolder | None,
         job.kill_leftovers()
         folder.prepare(codegen.full_script(spec, example.final_json), spec.to_json())
         drawn = {"step": None}
-        plane = _plane(spec) if view_slot is not None else None
-        background = _slip_plane(*plane) if plane else []
+        key = _background_key(spec) if view_slot is not None else None
+        background = _background(*key) if key else []
 
         def update(status: job.Status) -> None:
             st.session_state[_key(example, "status")] = (folder.run_id, status)
@@ -491,9 +506,8 @@ def _run(example: Example, spec: Spec, folder: job.RunFolder | None,
                     net = network.read_json(path)
                 except ValueError:  # still being written
                     return
-                colors = _plane_colors(plane, results.frame_times(status.lines, [f"step {step}"]))
-                network3d.write_live(folder.run_id, f"step {step}", net,
-                                     on_plane=bool(background),
+                colors = _plane_colors(key, results.frame_times(status.lines, [f"step {step}"]))
+                network3d.write_live(folder.run_id, f"step {step}", net, on_plane=_on_plane(key),
                                      colors=colors[0] if colors else None)
                 if drawn["step"] is None:  # the 3-D window then fetches each new snapshot
                     with view_slot.container(height=VIEW_PX, border=False):

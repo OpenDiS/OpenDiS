@@ -30,7 +30,10 @@ PLANE_POINTS = 96
 SPACE_TIME_CLIP = 60.0
 SPACE_TIME_TITLE = "resolved shear stress (MPa)"
 SPACE_TIME_POINTS = 32
-_CORNERS = np.array(list(itertools.product((-0.5, 0.5), repeat=3)))  # of the cell, per box size
+# The precipitates' spheres: a muted gold, shaded, with the tutorial's 20 points round each way
+PRECIPITATE_COLOR = "#c8a24a"
+SPHERE_POINTS = 20
+_CORNERS =np.array(list(itertools.product((-0.5, 0.5), repeat=3)))  # of the cell, per box size
 _EDGES = [(i, j) for i, j in itertools.combinations(range(8), 2) if bin(i ^ j).count("1") == 1]
 HEIGHT = 560
 HISTORY_HEIGHT = 500  # px: the history's two plots, with their labels, inside the panel
@@ -230,6 +233,31 @@ def slip_plane(field, box: float, slip: tuple, offset: float, clip: float = FIEL
             # no hover: plotly.js reads a surface's arrays transposed for a hover template
             "hoverinfo": "skip",
         })
+    return surfaces
+
+
+def spheres(centres: np.ndarray, radii: np.ndarray, box: float) -> list[dict]:
+    """The precipitates, as the Plotly surfaces (JSON) that the 3-D window draws under the
+    networks: a sphere of each centre and radius (b), and of each of its periodic images along x
+    and y that reaches into the cell, from 0 to box, as the line meets them."""
+    u = np.linspace(0.0, 2.0 * np.pi, SPHERE_POINTS)
+    v = np.linspace(0.0, np.pi, SPHERE_POINTS)
+    unit = np.stack([np.outer(np.cos(u), np.sin(v)), np.outer(np.sin(u), np.sin(v)),
+                     np.outer(np.ones_like(u), np.cos(v))])  # as the tutorial's plot_sphere
+    surfaces = []
+    for centre, radius in zip(np.asarray(centres, float), np.asarray(radii, float)):
+        for dx, dy in itertools.product((-box, 0.0, box), repeat=2):
+            c = centre + np.array([dx, dy, 0.0])
+            if np.all((c[:2] + radius > 0.0) & (c[:2] - radius < box)):
+                xyz = (c[:, None, None] + radius * unit).round(0)
+                surfaces.append({
+                    "type": "surface", "name": "precipitate",
+                    "x": xyz[0].tolist(), "y": xyz[1].tolist(), "z": xyz[2].tolist(),
+                    "colorscale": [[0.0, PRECIPITATE_COLOR], [1.0, PRECIPITATE_COLOR]],
+                    "showscale": False, "hoverinfo": "skip",
+                    "lighting": {"ambient": 0.6, "diffuse": 0.7, "specular": 0.1,
+                                 "roughness": 0.8},
+                })
     return surfaces
 
 

@@ -95,17 +95,27 @@ def read_json(path: Path) -> Network:
     return from_data(json.loads(path.read_text(encoding="utf-8")))
 
 
-def initial(spec: Spec) -> Network:
-    """The initial configuration, built by PyDiS in this process from the script's own code.
-
-    What the code prints (the tutorials' functions print a line) is not shown.
-    """
+def _built(spec: Spec) -> dict:
+    """What the script's own code for the initial configuration defines, run by PyDiS in this
+    process. What the code prints (the tutorials' functions print a line) is not shown."""
     add_pydis_paths()
     namespace: dict = {}
     with contextlib.redirect_stdout(io.StringIO()):
         exec(compile(codegen.init_code(spec), "<initial configuration>", "exec"),  # pylint: disable=exec-used
              namespace)
-    return from_data(namespace["net"].export_data())
+    return namespace
+
+
+def initial(spec: Spec) -> Network:
+    """The initial configuration, built by PyDiS in this process from the script's own code."""
+    return from_data(_built(spec)["net"].export_data())
+
+
+def precipitates(spec: Spec) -> tuple[np.ndarray, np.ndarray]:
+    """The precipitates' centres and radii (b), as the script's own code draws them."""
+    precips = _built(spec)["precips"]
+    return (np.array([p.pos for p in precips], float).reshape(-1, 3),
+            np.array([p.radius for p in precips], float))
 
 
 def user_field(url: str, box: float):

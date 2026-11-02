@@ -14,10 +14,10 @@ import streamlit as st
 
 from common.catalog import Example
 from common.spec import (BUILT, CHOICES, CRYSTALS, ENGINE_NAMES, JUNCTION_TYPES, LINE_SLIP,
-                         LINE_THETAS, MAX_BUILT, MAX_STEP, PARADIS_FILES, STRESS_LABELS,
-                         USER_STRESS_KINDS, USER_TAUS, FCCJunction, FrankReadSource, InfiniteLines,
-                         LoopSources, ParaDiSFile, PrismaticLoops, Run, SimpleSource, Spec,
-                         UserStressLine)
+                         LINE_THETAS, MAX_BUILT, MAX_PRECIPITATES, MAX_STEP, PARADIS_FILES,
+                         STRESS_LABELS, USER_STRESS_KINDS, USER_TAUS, FCCJunction,
+                         FrankReadSource, InfiniteLines, LoopSources, ParaDiSFile,
+                         Precipitates, PrismaticLoops, Run, SimpleSource, Spec, UserStressLine)
 
 STRESS_STEP = 1.0e7  # Pa, the +/- of an applied stress component
 # The user stress's menu: its fields, and none
@@ -119,6 +119,8 @@ def _config(spec: Spec, ctx: StepContext) -> Spec:
         return spec.with_part("config", _network(c, k))
     if isinstance(c, UserStressLine):
         return spec.with_part("config", _user_stress_line(c, k))
+    if isinstance(c, Precipitates):
+        return spec.with_part("config", _precipitates(c, k))
     box = _number("Box length, Lbox (b)", c.box_length, f"{k}/box_length",
                   "The edge of the cubic simulation cell, in units of the Burgers vector's length.")
     if isinstance(c, LoopSources):
@@ -163,6 +165,31 @@ def _config(spec: Spec, ctx: StepContext) -> Spec:
     b1 = _vector("b1, the first line's Burgers vector", c.b1, f"{k}/b1")
     b2 = _vector("b2, the second line's Burgers vector", c.b2, f"{k}/b2")
     return spec.with_part("config", replace(c, box_length=box, pbc=pbc, z0=z0, b1=b1, b2=b2))
+
+
+def _precipitates(c: Precipitates, k: str) -> Precipitates:
+    """Step 1 of the precipitates: the box, the line's character, and the precipitates' number,
+    radii and seed."""
+    box = _number("Box length, Lbox (b)", c.box_length, f"{k}/box_length",
+                  "The edge of the cubic simulation cell, in units of the Burgers vector's length.")
+    st.caption("The box is periodic in all three directions. The line runs along y, on the glide "
+               "plane z = Lbox/2, which holds the precipitates' centres.")
+    theta = st.selectbox("Character of the line", LINE_THETAS,
+                         index=LINE_THETAS.index(c.theta) if c.theta in LINE_THETAS else 0,
+                         format_func=lambda t: f"{'screw' if t == 0 else 'edge'} ({t:g}°)",
+                         key=f"{k}/theta",
+                         help="theta, the angle between the line and its Burgers vector.")
+    count = _integer("Number of precipitates", c.num_precipitates, f"{k}/num_precipitates",
+                     "Their centres are at random on the glide plane.",
+                     max_value=MAX_PRECIPITATES)
+    low = _number("Smallest radius (b)", c.radius_min, f"{k}/radius_min", step=100.0)
+    high = _number("Largest radius (b)", c.radius_max, f"{k}/radius_max",
+                   "The radii are at random between the smallest and the largest.", step=100.0)
+    seed = int(st.number_input("Seed of the precipitates", value=int(c.seed), min_value=0,
+                               step=1, key=f"{k}/seed",
+                               help="np.random.seed, for their centres and radii."))
+    return replace(c, box_length=box, theta=theta, num_precipitates=count, radius_min=low,
+                   radius_max=high, seed=seed)
 
 
 def _user_stress_line(c: UserStressLine, k: str) -> UserStressLine:
@@ -365,8 +392,13 @@ def _topology(spec: Spec, ctx: StepContext) -> Spec:
                             "Proximity is the same.")
         remesh = _select("Remesh rule", choices["remesh_rule"], t.remesh_rule,
                          f"{k}/remesh_rule")
+        cross = _select("Cross-slip", choices["cross_slip"], t.cross_slip, f"{k}/cross_slip",
+                        "ExaDiS's CrossSlip: a screw node moves to its cross-slip plane when the "
+                        "force there is the larger, one node after another (ForceBasedSerial) "
+                        "or in parallel (ForceBasedParallel). None: no cross-slip.")
         return spec.with_part("topology", replace(t, topology_mode=mode,
-                                                  collision_mode=collision, remesh_rule=remesh))
+                                                  collision_mode=collision, remesh_rule=remesh,
+                                                  cross_slip=cross))
     split = _select("Split mode", choices["split_mode"], t.split_mode, f"{k}/split_mode",
                     _help(choices["split_mode"]))
     collision = _select("Collision", choices["collision_mode"], t.collision_mode,

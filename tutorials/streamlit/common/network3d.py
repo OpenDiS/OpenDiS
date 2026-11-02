@@ -52,15 +52,15 @@ _COMPONENT = components.declare_component("network3d", path=str(FOLDER))
 
 
 def frames_payload(frames: list[tuple[str, Network]], background: list | None = None,
-                   on_plane: bool = False, colors: list | None = None) -> Payload:
+                   on_plane: bool | None = None, colors: list | None = None) -> Payload:
     """The figures of the networks (label, network), as the component takes them, over the
-    background's traces: the user stress's slip plane, or nothing; on_plane draws the networks
-    as over that plane (``views.network_figure``), as they are over a background. A field that
-    changes in time recolours its plane at each frame: colors has, for each frame, the colours
-    of the background's surfaces (``views.plane_colors``)."""
+    background's traces: the user stress's slip plane, the precipitates, or nothing; on_plane
+    draws the networks as over that plane (``views.network_figure``), by default when there is a
+    background. A field that changes in time recolours its plane at each frame: colors has, for
+    each frame, the colours of the background's surfaces (``views.plane_colors``)."""
     background = background or []
-    figures = [views.network_figure(net, f"{label} · {views.describe(net)}",
-                                    on_plane=on_plane or bool(background))
+    on_plane = bool(background) if on_plane is None else on_plane
+    figures = [views.network_figure(net, f"{label} · {views.describe(net)}", on_plane=on_plane)
                for label, net in frames]
     data = [{"label": label, "title": figure.layout.title.text,
              "data": json.loads(figure.to_json())["data"]}

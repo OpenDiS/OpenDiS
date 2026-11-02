@@ -165,6 +165,8 @@ Core menu then offers its files. The file has two parts:
 | `examples/uniaxial_tension_exadis.md` | `examples/05_uniaxial_tension/test_uniaxial_tension_exadis.py` | `loop_sources` |
 | `examples/user_stress.md` | `tutorials/05_user_stress/example_internal_stress_pydis.py` | `user_stress_line` |
 | `examples/user_stress_exadis.md` | `tutorials/05_user_stress/example_internal_stress_exadis.py` | `user_stress_line` |
+| `examples/precipitates.md` | `tutorials/06_simple_precipitates/example_simple_precipitates_pydis.py` | `precipitates` |
+| `examples/precipitates_exadis.md` | `tutorials/06_simple_precipitates/example_simple_precipitates.py` | `precipitates` |
 | `examples/initial_configurations.md` | `tutorials/01_initial_configurations/initial_configurations.py` | `simple_source` |
 | `examples/initial_configurations_exadis.md` | the same | `simple_source` |
 
@@ -247,13 +249,13 @@ reads the field with the script's own reader (`network.user_field`), which downl
 if needed, and computes the plane once for each link, box and seed (`views.slip_plane`, in
 `st.cache_resource`). The plane is about 0.8 MB of JSON. The 3-D component gets it as a
 background, apart from the snapshots: it draws the same traces under each one, so a replay
-does not send or build them again. At 5 MPa, PyDiS's 300 steps cover 17 ns, in which the line
-moves at about M b τ, 82 m/s; ExaDiS's 3000 steps cover 120 ns, at 61 m/s, slowed by the field.
+does not send or build them again. At 5 MPa, PyDiS's 300 steps cover 13 ns, at 87 m/s, and
+ExaDiS's 3000 steps 85 ns, at 79 m/s; M b τ is 82 m/s.
 
 The field is a file of 55 MB, `rs0084.stress.npz`. Its array `data` has one row for each grid
 point, `x y z Sxx Syy Szz Syz Sxz Sxy`, positions in b and stresses in Pa, x slowest and z
 fastest. Its arrays `columns` and `ngrid` name the columns and give the grid's size. Its
-Dropbox link is a value of step 3, below the field's checkbox. It is `stress_url` in the two
+Dropbox link is a value of step 3, below the field's menu. It is `stress_url` in the two
 input files, and the same line in each of the two tutorials. A visitor can change it to
 another field's link. That field must be on the same box, which step 1 fixes. The app takes
 only an https link to Dropbox: `www.dropbox.com` with `dl=1`, or `dl.dropboxusercontent.com`.
@@ -263,11 +265,39 @@ with no quote or space. The script downloads each link's file once, into
 so another link never reuses this field. A file replaced at the same link is not downloaded
 again: share it under a new link. The script refuses a file over 300 MB, other columns, and
 a grid that does not fit the box, x slowest and z fastest. The two tutorials there are new,
-one for each core. They keep the field as `rs0084.stress.npz`, with the same checks. In
-their first 300 steps, the two cores agree in every digit printed. PyDiS's 300 steps take
-about a minute, and ExaDiS's 3000 about 35 s. PyDiS gained `insert_infinite_line`
+one for each core. They keep the field as `rs0084.stress.npz`, without those checks.
+PyDiS's 300 steps take about 80 s, and ExaDiS's 3000 about 35 s. PyDiS gained
+`insert_infinite_line`
 (`core/pydis/python/pydis/util/network_util.py`), a public name for its port of ExaDiS's. Its
 `Topology` now takes a user's force module that wraps one of its own, by `calforce_base`.
+
+The precipitates follow the tutorial `tutorials/06_simple_precipitates`. One straight,
+infinite line, edge by default, glides on its plane through spherical precipitates that it
+cannot cut. The tutorial's `init_line_config` turns the
+crystal so that the line runs along y on the glide plane z = Lbox/2. It returns the
+orientation `Rorient`, which the state gives to FCC_0's mobility. The precipitates' centres
+lie at random on that plane, and their radii at random between two values, from
+`np.random.seed` as in the tutorial; step 1 sets their number, radii and seed. The script's
+driver, `SimulateNetworkPrecip`, is the tutorial's `My_SimulateNetwork`: after each time
+integration, it moves the nodes that entered a precipitate back to its surface. The forces are
+the cutoff model at 0.1 Lbox. With ExaDiS, as in the tutorial, the line can cross-slip
+(`ForceBasedSerial`). Cross-slip is a new value of step 5 with ExaDiS: none,
+`ForceBasedSerial` or `ForceBasedParallel`. The 3-D window draws the precipitates as
+spheres under the networks, with their periodic images that reach into the cell
+(`network.precipitates`, `views.spheres`); the line keeps its colours. The app's job and the
+tutorial's own script write the same networks (`test_codegen`, which copies the tutorial's
+`user_precipitates.py` next to it and points its `write_dir` at `output/`). Its 200 steps take
+about 5 s and cover about 2 ns.
+
+PyDiS runs the precipitates from a twin of the tutorial,
+`tutorials/06_simple_precipitates/example_simple_precipitates_pydis.py`. It has no
+cross-slip, which PyDiS lacks and this example hardly needs. Its forces are `Elasticity_SBA`
+with the same cutoff, and its state sets the three ExaDiS defaults that PyDiS lacks. PyDiS's
+FCC_0 now takes the state's `Rorient`, and tests for a {111} plane in the crystal frame, as
+ExaDiS's does (`core/exadis/src/mobility_types/mobility_fcc0.h`). Without it, the glide plane
+is z in the lab frame, not {111}, and FCC_0 holds the line in place, in both codes. The two
+codes agree step by step at first, then part slowly: at step 199, PyDiS has 66 nodes and
+ExaDiS 68. PyDiS's 200 steps take about 40 s.
 
 The initial configurations follow the tutorial's script, which builds a network in one of five
 ways and plots it. Its options 1 (PyDiS) and 2 (ExaDiS) are one network here, the simple

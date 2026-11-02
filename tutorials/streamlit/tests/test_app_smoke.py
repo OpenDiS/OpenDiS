@@ -63,9 +63,9 @@ def main() -> int:  # pylint: disable=too-many-locals,too-many-statements
               "<h1>OpenDiS</h1>" in text and "data:image/png;base64," in text
               and 'href="https://opendis.github.io/OpenDiS/" target="_blank"' in text),
         check("in the sidebar, the Example menu: Frank-Read src, Binary junction, Uniaxial "
-              "tension, User stress, Initial configurations", len(picker) == 1
+              "tension, User stress, Precipitates, Initial configurations", len(picker) == 1
               and picker[0].options == ["Frank-Read src", "Binary junction", "Uniaxial tension",
-                                        "User stress", "Initial configurations"],
+                                        "User stress", "Precipitates", "Initial configurations"],
               [s.options for s in at.selectbox]),
         check("below it, the Core menu of the Frank-Read source: PyDiS, ExaDiS",
               codes == [(["PyDiS", "ExaDiS"], "PyDiS", False)], codes),
@@ -89,6 +89,7 @@ def main() -> int:  # pylint: disable=too-many-locals,too-many-statements
             ("Frank-Read src", "PyDiS", None), ("Frank-Read src", "ExaDiS", None),
             ("Uniaxial tension", "PyDiS", None), ("Uniaxial tension", "ExaDiS", None),
             ("User stress", "PyDiS", None), ("User stress", "ExaDiS", None),
+            ("Precipitates", "PyDiS", None), ("Precipitates", "ExaDiS", None),
             ("Initial configurations", "PyDiS", None), ("Initial configurations", "ExaDiS", None),
             ("Binary junction", "PyDiS", "FCC"), ("Binary junction", "ExaDiS", "FCC"),
             ("Binary junction", "ExaDiS", None), ("Binary junction", "PyDiS", None)):
@@ -349,6 +350,23 @@ def main() -> int:  # pylint: disable=too-many-locals,too-many-statements
         "three surfaces at its time", len(moving) >= 2 and all(
             colours is not None and len(colours) == 3 for colours in moving)
         and moving[0] != moving[-1], [None if c is None else len(c) for c in moving]))
+
+    # the precipitates: their spheres under the initial line, which stays blue, and a 20-step run
+    for code in ("PyDiS", "ExaDiS"):
+        at = page()
+        choose(at, "Precipitates", code)
+        first = shown(at)
+        for _ in STEP_LIST[1:]:
+            click(at, "next ›")
+        next(n for n in at.number_input if n.label.startswith("max_step")).set_value(20).run()
+        click(at, "▶ Run")
+        spheres = [len(drawn.get("background", [])) for drawn in first + shown(at)]
+        results.append(check(
+            f"precipitates with {code}: ten spheres under the initial line, which stays blue, and "
+            "under the replay of a 20-step run, which ends done", spheres == [10, 10]
+            and first[0]["frames"][-1]["data"][0]["line"]["color"] == "#1f4fd1"
+            and any(s.value.startswith("Done after") for s in at.success),
+            (spheres, [s.value for s in at.success][:1])))
 
     # the initial configurations: each of the tutorial's networks draws in step 1, and Run
     # builds one with ExaDiS, which the run view shows

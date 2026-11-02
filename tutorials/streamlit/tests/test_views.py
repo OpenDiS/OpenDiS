@@ -211,6 +211,16 @@ def main() -> int:  # pylint: disable=too-many-locals
               [len(frame["colors"]) for frame in moving.frames] == [len(toy)] * 2
               and all(np.shape(c) == np.shape(s["surfacecolor"]) for c, s in zip(later, toy))),
     ]
+
+    # the precipitates: a sphere of each, and of each image that reaches into the cell
+    near = views.spheres(np.array([[100.0, 25000.0, 25000.0], [25000.0, 25000.0, 25000.0]]),
+                         np.array([500.0, 1000.0]), 50000.0)
+    xyz = np.stack([np.array(near[0][axis], float) for axis in "xyz"], axis=-1).reshape(-1, 3)
+    checks.append(check("the precipitates: a sphere of each radius, and one more for the image "
+                        "of the sphere at the cell's face", len(near) == 3 and np.allclose(
+                            np.linalg.norm(xyz - [100.0, 25000.0, 25000.0], axis=1), 500.0,
+                            atol=1.0) and np.array(near[1]["x"]).min() > 49000.0,
+                        [np.array(s["x"]).mean().round() for s in near]))
     return summary(checks)
 
 

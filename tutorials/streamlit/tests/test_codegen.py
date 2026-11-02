@@ -18,7 +18,7 @@ import numpy as np
 
 from common import catalog, codegen, job, network
 from common.paths import OPENDIS_DIR, PYDIS_PATHS
-from common.spec import BUILT, STEPS, InfiniteLines, Spec
+from common.spec import BUILT, MAX_PRECIPITATES, STEPS, InfiniteLines, Spec
 from common.testing import check, has, summary
 
 SHORT_STEPS = 60
@@ -179,9 +179,9 @@ def step_lines(lines: list[str]) -> list[str]:
 
 
 def main() -> int:  # pylint: disable=too-many-locals
-    """Run every check; ``--full`` runs the tutorials' full length."""
+    """Run every check; ``--full`` runs the examples' full length."""
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--full", action="store_true", help="run the full tutorials")
+    parser.add_argument("--full", action="store_true", help="run the examples at full length")
     full = parser.parse_args().full
     examples, problems = catalog.scan()
     values = [0.0, 1.0, 0.3, 0.125, 0.0316, 1000.0, 3e-10, 50e9, 160e9, 1e6, 1e-8, 1e-9, -4e8,
@@ -190,11 +190,12 @@ def main() -> int:  # pylint: disable=too-many-locals
     looks = [codegen.num(v) for v in (50e9, 3e-10, 1e-8, -4e8, 1e6)]
     results = [
         check("the input files have no problems", not problems, problems),
-        check("twelve examples, in order", [e.name for e in examples] ==
+        check("fourteen examples, in order", [e.name for e in examples] ==
               ["frank_read_src", "frank_read_src_exadis", "binary_junction",
                "binary_junction_exadis", "binary_junction_fcc", "binary_junction_fcc_exadis",
                "uniaxial_tension", "uniaxial_tension_exadis", "user_stress",
-               "user_stress_exadis", "initial_configurations", "initial_configurations_exadis"],
+               "user_stress_exadis", "precipitates", "precipitates_exadis",
+               "initial_configurations", "initial_configurations_exadis"],
               [e.name for e in examples]),
         check("num: every number comes back exactly", not inexact, inexact),
         check("num: 5.0e10, 3.0e-10, 1.0e-8, -4.0e8, 1.0e6",
@@ -233,6 +234,14 @@ def main() -> int:  # pylint: disable=too-many-locals
             if spec.config.kind == "frank_read_src_loop":
                 refused["b along the arms"] = ("config", replace(
                     spec.config, burg_vec=(0.0, 1.0, 0.0)), "parallel")
+            if spec.config.kind == "precipitates":
+                refused.update({
+                    "radii, the largest first": ("config", replace(
+                        spec.config, radius_min=3000.0), "radii"),
+                    "too many precipitates": ("config", replace(
+                        spec.config, num_precipitates=MAX_PRECIPITATES + 1), "precipitates"),
+                    "a cross-slip mode off the menu": ("topology", replace(
+                        spec.topology, cross_slip="Other"), "cross-slip")})
             if spec.forces.mobility_law == "FCC_0":
                 refused["FCC_0 in bcc"] = ("material", replace(spec.material, crystal="bcc"),
                                            "fcc")
@@ -292,15 +301,24 @@ def main() -> int:  # pylint: disable=too-many-locals
             paths = codegen.EXADIS_PATHS if example.engine == "exadis" else PYDIS_PATHS
             text, count = re.subn(r"'\.\./\.\./([\w/]+?)/?'",
                                   lambda match: repr(str(OPENDIS_DIR / match.group(1))), text)
-            if count != len(paths):
+            if count not in (1, len(paths)):  # the precipitates' tutorial has one path
                 raise AssertionError(f"the path line of {example.tutorial_script} has changed")
-            if not full:
-                text, count = re.subn(r"max_step=\d+", f"max_step={SHORT_STEPS}", text)
-                if count != 1:
-                    raise AssertionError(f"max_step moved in {example.tutorial_script}")
+            text = re.sub(r"write_dir='[\w./-]+'", "write_dir='output'", text)  # its own folder
+            # the app's length, which may differ from the tutorial's (the precipitates)
+            text, count = re.subn(r"max_step=\d+", f"max_step={spec.run.max_step}", text)
+            if count != 1:
+                raise AssertionError(f"max_step moved in {example.tutorial_script}")
             tutorial = Path(tmp) / "tutorial" / name
             tutorial.mkdir(parents=True)
             (tutorial / "tutorial.py").write_text(text, encoding="utf-8")
+            here = (OPENDIS_DIR / example.tutorial_script).parent
+            for module in re.findall(r"^from (\w+) import", text, re.MULTILINE):
+                local = here / f"{module}.py"
+                if local.exists():  # the tutorial's own module, as user_precipitates.py
+                    (tutorial / local.name).write_text(re.sub(
+                        r"'\.\./\.\./([\w/]+?)/?'",
+                        lambda match: repr(str(OPENDIS_DIR / match.group(1))),
+                        local.read_text(encoding="utf-8")), encoding="utf-8")
             if spec.forces.stress_field:  # the field that the app's job read, in its folder
                 field = OPENDIS_DIR / codegen.stress_file(spec.forces.stress_url)
                 results.append(check(f"{name}: the app's job keeps its field where "

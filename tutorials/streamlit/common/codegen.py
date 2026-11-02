@@ -28,7 +28,7 @@ import numpy as np
 
 from common.paths import OPENDIS_DIR, PYDIS_PATHS
 from common.spec import (FCCJunction, FrankReadSource, InfiniteLines, LoopSources, ParaDiSFile,
-                         SimpleSource, Spec, TwoLines, UserStressLine)
+                         Precipitates, SimpleSource, Spec, TwoLines, UserStressLine)
 
 EXADIS_PATHS = PYDIS_PATHS + ("core/exadis/python",)  # as in the ExaDiS tutorials' scripts
 # The folder where the user stress's scripts keep a copy of each link's field, from the
@@ -262,6 +262,77 @@ INIT_FUNCTIONS.update({
     ("exadis", UserStressLine.kind): _INFINITE_LINE.format(
         cell="pyexadis.Cell", network="ExaDisNet(cell, nodes, segs)"),
 })
+# The precipitates' function, as in tutorials/06_simple_precipitates/example_simple_precipitates.py,
+# with the class of its precipitates, from user_precipitates.py there
+_LINE_CONFIG = '''\
+def init_line_config(Lbox, burg, plane, theta, maxseg):
+    """init_line_config
+    Initialize an infinite straight line along the y-direction
+    with glide plane normal oriented along the z-direction.
+    Returns the line configuration and appropriate crystal
+    orientation matrix.
+    """
+    from {utils} import insert_infinite_line
+
+    # Crystal orientation
+    plane = plane / np.linalg.norm(plane)
+    b = burg / np.linalg.norm(burg)
+    y = np.cross(plane, b)
+    y = y / np.linalg.norm(y)
+    linedir = np.cos(theta*np.pi/180.0)*b+np.sin(theta*np.pi/180.0)*y
+    x = np.cross(linedir, plane)
+    x = x / np.linalg.norm(x)
+    Rorient = np.array([x, linedir, plane])
+
+    burg = np.matmul(Rorient, burg)
+    plane = np.matmul(Rorient, plane)
+    linedir = -np.matmul(Rorient, linedir)
+
+    # Create the cell and insert the line
+    cell = {cell}
+    nodes, segs = [], []
+    origin = np.array(cell.origin) + 0.5*np.sum(np.array(cell.h), axis=0)
+    nodes, segs = insert_infinite_line(cell, nodes, segs, burg, plane, origin, linedir=linedir, maxseg=maxseg)
+
+    N = DisNetManager({network})
+    return N, Rorient
+
+class Precipitate:
+    """Precipitate
+    Class to hold precipitate object
+    """
+    def __init__(self, pos: np.array, radius: float):
+        self.pos = np.array(pos)
+        self.radius = radius
+'''
+# PyDiS's, as in tutorials/06_simple_precipitates/example_simple_precipitates_pydis.py
+_LINE_CONFIG_PYDIS = '''\
+def init_line_config(Lbox, burg, plane, theta, maxseg):
+    """An infinite line along y on a glide plane normal to z, and the crystal's orientation"""
+    plane = plane / np.linalg.norm(plane)
+    b = burg / np.linalg.norm(burg)
+    y = np.cross(plane, b)
+    y = y / np.linalg.norm(y)
+    linedir = np.cos(theta*np.pi/180.0)*b + np.sin(theta*np.pi/180.0)*y
+    x = np.cross(linedir, plane)
+    Rorient = np.array([x / np.linalg.norm(x), linedir, plane])
+    cell = Cell(h=Lbox*np.eye(3), is_periodic=[1,1,1])
+    origin = np.array(cell.origin) + 0.5*np.sum(np.array(cell.h), axis=0)
+    nodes, segs = insert_infinite_line(cell, [], [], Rorient @ burg, Rorient @ plane, origin,
+                                       linedir=-(Rorient @ linedir), maxseg=maxseg)
+    return DisNetManager(DisNet(cell=cell, rn=np.array(nodes), links=np.array(segs))), Rorient
+
+
+class Precipitate:
+    """A spherical precipitate: its centre and radius (b)"""
+    def __init__(self, pos, radius):
+        self.pos, self.radius = np.array(pos), radius
+'''
+INIT_FUNCTIONS.update({
+    ("pydis", Precipitates.kind): _LINE_CONFIG_PYDIS,
+    ("exadis", Precipitates.kind): _LINE_CONFIG.format(
+        utils="pyexadis_utils", cell="pyexadis.Cell(Lbox)", network="ExaDisNet(cell, nodes, segs)"),
+})
 # What a kind's function imports besides the code's own modules
 KIND_IMPORTS = {
     ("pydis", FCCJunction.kind): "from pydis.util.network_util import insert_frank_read_src\n",
@@ -270,6 +341,7 @@ KIND_IMPORTS = {
                                     "from pydis.util.network_util import insert_infinite_line\n",
     ("exadis", UserStressLine.kind): "import hashlib, itertools, urllib.request\n"
                                      "from pyexadis_utils import insert_infinite_line\n",
+    ("pydis", Precipitates.kind): "from pydis.util.network_util import insert_infinite_line\n",
 }
 # The user stress's field and force module, as in tutorials/05_user_stress/user_stress.py and
 # the field's two tutorials there. The reader of the field's file checks a visitor's file;
@@ -455,6 +527,107 @@ def UserStress(R, cell, state):
     user_stress[:,0] = Sxx
     return user_stress
 '''
+# The precipitates' driver: SimulateNetworkJSON, which also moves the nodes that enter a
+# precipitate back to its surface, as My_SimulateNetwork of tutorials/06_simple_precipitates
+PRECIP_DRIVER = '''\
+class SimulateNetworkPrecip(SimulateNetworkJSON):
+    """SimulateNetworkPrecip
+    SimulateNetworkJSON that adds the precipitate-dislocation interaction,
+    as My_SimulateNetwork of tutorials/06_simple_precipitates/user_precipitates.py
+    """
+    def __init__(self, *args, **kwargs) -> None:
+        super(SimulateNetworkPrecip, self).__init__(*args, **kwargs)
+        self.precips = kwargs.get("precips")
+
+    def precipitates_intersection(self, N: DisNetManager, state: dict, xold):
+        """precipitates_intersection:
+        Adjust node positions of segments entering a precipitate
+        """
+        # Detect nodes that are inside precipitates and move
+        # them to the precipitate surface
+        data = N.export_data()
+        pos = data["nodes"]["positions"]
+        cons = data["nodes"]["constraints"]
+        cell = pyexadis.Cell(**data["cell"])
+
+        def sphere_intersect(ro, rd, ce, ra):
+            oc = ro - ce
+            b = np.einsum('ij,ij->i', oc, rd)
+            qc = oc - b[:,None]*rd
+            h = ra**2 - np.einsum('ij,ij->i', qc, qc)
+            x, y = -1.0, -1.0
+            ind = (h >= 0.0)
+            h[ind] = np.sqrt(h[ind])
+            x, y = -b-h, -b+h
+            x[~ind], y[~ind] = -1, -1
+            return x, y
+
+        dpos = np.array(cell.closest_image(Rref=pos, R=xold)) - pos
+        dposn = np.linalg.norm(dpos, axis=1)
+
+        for p in self.precips:
+            ppos = np.array(cell.closest_image(Rref=p.pos, R=pos))
+            ind = np.argwhere((np.sum((ppos-p.pos)**2, axis=1) < p.radius**2) & (dposn > 1e-10)).ravel()
+            d = dpos[ind]/dposn[ind,None]
+
+            # handle special case where nodes are born inside of the sphere
+            if ind.size > 0:
+                opos = np.array(cell.closest_image(Rref=p.pos, R=xold[ind]))
+                inds = np.argwhere((np.sum((opos - p.pos)**2, axis=1) < p.radius**2)).ravel()
+                ds = ppos[ind] - p.pos
+                d[inds] = ds[inds] / np.linalg.norm(ds, axis=1)[inds,None]
+
+            x, y = sphere_intersect(ppos[ind], d, p.pos, p.radius)
+            ind = ind[x<0]
+            pos[ind] += y[x<0,None]*d
+            #cons[ind] = NodeConstraints.PINNED_NODE
+
+        # Commit changes
+        N.get_disnet(ExaDisNet).import_data(data)
+
+    # Override step_begin to store beginning-of-step node positions
+    def step_begin(self, N: DisNetManager, state: dict):
+        """step_begin: invoked at the begining of each time step
+        """
+        self.xold = N.export_data()["nodes"]["positions"].copy()
+
+    # Override step_post_integrate to handle dislocation-precipitate intersections
+    def step_post_integrate(self, N: DisNetManager, state: dict):
+        """step_post_integrate: invoked after time-integration of each time step
+        """
+        self.precipitates_intersection(N, state, self.xold)
+'''
+# PyDiS's, as in tutorials/06_simple_precipitates/example_simple_precipitates_pydis.py
+PRECIP_DRIVER_PYDIS = '''\
+class SimulateNetworkPrecip(SimulateNetwork):
+    """SimulateNetwork that moves nodes entering a precipitate back to its surface"""
+    def __init__(self, *args, precips=(), **kwargs):
+        super().__init__(*args, **kwargs)
+        self.precips = precips
+
+    def step_begin(self, N, state):
+        self.xold = N.export_data()["nodes"]["positions"].copy()
+
+    def step_post_integrate(self, N, state):
+        data = N.export_data()
+        pos = data["nodes"]["positions"]
+        cell = Cell(**data["cell"])
+        back = np.array(cell.closest_image(Rref=pos, R=self.xold)) - pos
+        moved = np.linalg.norm(back, axis=1) > 1e-10
+        for p in self.precips:
+            r = np.array(cell.closest_image(Rref=p.pos, R=pos)) - p.pos
+            inside = np.flatnonzero(moved & (np.einsum('ij,ij->i', r, r) < p.radius**2))
+            if inside.size == 0:
+                continue
+            r, d = r[inside], back[inside] / np.linalg.norm(back[inside], axis=1)[:, None]
+            old = np.array(cell.closest_image(Rref=p.pos, R=self.xold[inside])) - p.pos
+            born = np.einsum('ij,ij->i', old, old) < p.radius**2  # already inside: go out radially
+            d[born] = r[born] / np.linalg.norm(r[born], axis=1)[:, None]
+            rd = np.einsum('ij,ij->i', r, d)
+            q = r - rd[:, None]*d
+            pos[inside] += (np.sqrt(p.radius**2 - np.einsum('ij,ij->i', q, q)) - rd)[:, None]*d
+        N.get_disnet(DisNet).import_data(data)
+'''
 # The user stress's driver, which also writes the line's displacement against time
 DISP_DRIVER = '''\
 def line_length(N):
@@ -540,6 +713,20 @@ def _config(spec: Spec) -> str:
         return (f"Lbox = {num(c.box_length)}\n"
                 f"net = init_fcc_junction(junction_type={c.junction_type!r}, disloc_length=Lbox,\n"
                 f"                        phi1={num(c.phi1)}, phi2={num(c.phi2)})\n")
+    if isinstance(c, Precipitates):  # with step 2's maxseg, as the tutorial's state["maxseg"]
+        return (f"Lbox = {num(c.box_length)}\n"
+                f"burg = 1.0/np.sqrt(2.0)*np.array([1.,1.,0.])\n"
+                f"plane = np.array([1.,-1.,1.])\n"
+                f"net, Rorient = init_line_config(Lbox, burg, plane, {num(c.theta)}, "
+                f"{num(spec.material.maxseg_ratio)}*Lbox)\n"
+                f"# the precipitates, centred at random on the line's glide plane, z = Lbox/2\n"
+                f"Nprecip = {c.num_precipitates} # number of precipitates\n"
+                f"Rprecip = [{num(c.radius_min)}, {num(c.radius_max)}] # radius range\n"
+                f"np.random.seed({c.seed})\n"
+                f"ppos = Lbox*np.random.rand(Nprecip, 3)\n"
+                f"ppos[:,2] = 0.5*Lbox\n"
+                f"rp = Rprecip[0]+(Rprecip[1]-Rprecip[0])*np.random.rand(Nprecip)\n"
+                f"precips = [Precipitate(p, r) for p, r in zip(ppos, rp)]\n")
     if isinstance(c, UserStressLine):  # with step 2's maxseg
         return (f"Lbox = {num(c.box_length)} # the stress field's periodic box (b)\n"
                 f"burg = 1.0/np.sqrt(2.0)*np.array([-1.0, 0.0, 1.0]) # the slip system B4\n"
@@ -565,7 +752,9 @@ def _material(spec: Spec) -> str:
     return (f'state = {{"burgmag": {num(m.burgmag)}, "mu": {num(m.mu)}, "nu": {num(m.nu)}, '
             f'"a": {num(m.a)},\n'
             f'         "maxseg": {num(m.maxseg_ratio)}*Lbox, "minseg": {num(m.minseg_ratio)}*Lbox, '
-            f'"rann": {num(m.rann)}' + (f",\n         {extras}" if extras else "") + "}\n")
+            f'"rann": {num(m.rann)}' + (f",\n         {extras}" if extras else "") + "}\n"
+            + ('state["Rorient"] = Rorient # the crystal\'s orientation, from init_line_config\n'
+               if isinstance(spec.config, Precipitates) else ""))
 
 
 def _forces(spec: Spec) -> str:
@@ -615,7 +804,10 @@ def _topology(spec: Spec) -> str:
                     f"                     force=calforce, mobility=mobility)\n")
         return (f"collision = Collision(collision_mode={t.collision_mode!r}, state=state)\n"
                 f"topology  = {topology}"
-                f"remesh    = Remesh(remesh_rule={t.remesh_rule!r}, state=state)\n")
+                f"remesh    = Remesh(remesh_rule={t.remesh_rule!r}, state=state)\n"
+                + ("" if t.cross_slip == "None" else
+                   f"cross_slip = CrossSlip(cross_slip_mode={t.cross_slip!r}, state=state, "
+                   f"force=calforce)\n"))
     n_div = ",".join(str(n) for n in t.n_div)
     matched = "".join(f'state["{name}"] = {value}\n' for name, value in  # as ExaDiS's defaults
                       (("splitMultiNodeAlpha", None if t.split_alpha is None else num(t.split_alpha)),
@@ -667,29 +859,39 @@ def _run(spec: Spec) -> str:
     r, loading_mode = spec.run, spec.loading.loading_mode
     load = ('erate=erate, edir=edir, burgmag=state["burgmag"],' if loading_mode == "strain_rate"
             else "applied_stress=applied_stress,")
-    if spec.engine == "exadis":
+    if spec.engine == "exadis":  # the precipitates' driver, as the tutorial's, takes burgmag
+        precips = isinstance(spec.config, Precipitates)
+        driver = "SimulateNetworkPrecip" if precips else "SimulateNetworkJSON"
+        pad = " " * len(f"sim = {driver}(")
+        cross = "" if spec.topology.cross_slip == "None" else "cross_slip=cross_slip, "
+        burgmag = ' burgmag=state["burgmag"],' if precips and loading_mode == "stress" else ""
         return (f"vis = VisualizeNetwork()\n"
-                f"sim = SimulateNetworkJSON(calforce=calforce, mobility=mobility,\n"
-                f"                          timeint=timeint, collision=collision,\n"
-                f"                          topology=topology, remesh=remesh, vis=vis,\n"
-                f"                          state=state, max_step={r.max_step}, "
+                f"sim = {driver}(calforce=calforce, mobility=mobility,\n"
+                f"{pad}timeint=timeint, collision=collision,\n"
+                f"{pad}topology=topology, remesh=remesh, {cross}vis=vis,\n"
+                f"{pad}state=state, max_step={r.max_step}, "
                 f"loading_mode={loading_mode!r},\n"
-                f"                          {load}\n"
-                f"                          print_freq={r.print_freq}, plot_freq={r.plot_freq}, "
+                f"{pad}{load}{burgmag}\n"
+                f"{pad}print_freq={r.print_freq}, plot_freq={r.plot_freq}, "
                 f"plot_pause_seconds={num(r.plot_pause_seconds)},\n"
-                f"                          write_freq={r.write_freq}, write_dir='output')\n"
+                f"{pad}write_freq={r.write_freq}, write_dir='output'"
+                f"{', precips=precips' if precips else ''})\n"
                 f"sim.run(net, state)\n")
+    precips = isinstance(spec.config, Precipitates)
+    driver = "SimulateNetworkPrecip" if precips else "SimulateNetwork"
+    pad = " " * len(f"sim = {driver}(")
+    burgmag = ' burgmag=state["burgmag"],' if precips and loading_mode == "stress" else ""
     return (f"vis = VisualizeNetwork()\n"
-            f"sim = SimulateNetwork(calforce=calforce, mobility=mobility,\n"
-            f"                      timeint=timeint, topology=topology,\n"
-            f"                      collision=collision, remesh=remesh, vis=vis,\n"
-            f"                      state=state, max_step={r.max_step}, "
+            f"sim = {driver}(calforce=calforce, mobility=mobility,\n"
+            f"{pad}timeint=timeint, topology=topology,\n"
+            f"{pad}collision=collision, remesh=remesh, vis=vis,\n"
+            f"{pad}state=state, max_step={r.max_step}, "
             f"loading_mode={loading_mode!r},\n"
-            f"                      {load}\n"
-            f"                      print_freq={r.print_freq}, plot_freq={r.plot_freq}, "
+            f"{pad}{load}{burgmag}\n"
+            f"{pad}print_freq={r.print_freq}, plot_freq={r.plot_freq}, "
             f"plot_pause_seconds={num(r.plot_pause_seconds)},\n"
-            f"                      write_freq={r.write_freq}, write_dir='output', "
-            f"save_state=False)\n"
+            f"{pad}write_freq={r.write_freq}, write_dir='output', "
+            f"save_state=False{', precips=precips' if precips else ''})\n"
             f"sim.run(net, state)\n")
 
 
@@ -812,7 +1014,9 @@ def header(spec: Spec) -> str:
                    else ("pydis_paths", PYDIS_PATHS))
     imports = IMPORTS if spec.config.simulates else BUILD_IMPORTS
     return (_PATHS.format(opendis_dir=str(OPENDIS_DIR), name=name, paths=list(paths))
-            + imports[spec.engine] + KIND_IMPORTS.get((spec.engine, spec.config.kind), ""))
+            + imports[spec.engine] + KIND_IMPORTS.get((spec.engine, spec.config.kind), "")
+            + ("from pyexadis_base import CrossSlip\n" if spec.engine == "exadis"
+               and spec.config.simulates and spec.topology.cross_slip != "None" else ""))
 
 
 def init_function(spec: Spec) -> str:
@@ -857,6 +1061,8 @@ def _drivers(spec: Spec) -> str:
     if isinstance(spec.config, UserStressLine):
         code += DISP_DRIVER.format(base="SimulateNetworkJSON" if exadis else "SimulateNetwork")
         code += "\n"
+    if isinstance(spec.config, Precipitates):
+        code += (PRECIP_DRIVER if exadis else PRECIP_DRIVER_PYDIS) + "\n"
     return code
 
 
