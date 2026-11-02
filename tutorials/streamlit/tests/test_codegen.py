@@ -239,9 +239,10 @@ def main() -> int:  # pylint: disable=too-many-locals
                     "radii, the largest first": ("config", replace(
                         spec.config, radius_min=3000.0), "radii"),
                     "too many precipitates": ("config", replace(
-                        spec.config, num_precipitates=MAX_PRECIPITATES + 1), "precipitates"),
-                    "a cross-slip mode off the menu": ("topology", replace(
-                        spec.topology, cross_slip="Other"), "cross-slip")})
+                        spec.config, num_precipitates=MAX_PRECIPITATES + 1), "precipitates")})
+                if example.engine == "exadis":  # PyDiS has no cross-slip
+                    refused["a cross-slip mode off the menu"] = ("topology", replace(
+                        spec.topology, cross_slip="Other"), "cross-slip")
             if spec.forces.mobility_law == "FCC_0":
                 refused["FCC_0 in bcc"] = ("material", replace(spec.material, crystal="bcc"),
                                            "fcc")
@@ -304,10 +305,12 @@ def main() -> int:  # pylint: disable=too-many-locals
             if count not in (1, len(paths)):  # the precipitates' tutorial has one path
                 raise AssertionError(f"the path line of {example.tutorial_script} has changed")
             text = re.sub(r"write_dir='[\w./-]+'", "write_dir='output'", text)  # its own folder
-            # the app's length, which may differ from the tutorial's (the precipitates)
-            text, count = re.subn(r"max_step=\d+", f"max_step={spec.run.max_step}", text)
-            if count != 1:
-                raise AssertionError(f"max_step moved in {example.tutorial_script}")
+            # the app's length and printing, which may differ from the tutorial's (the precipitates)
+            for setting in ("max_step", "print_freq"):
+                text, count = re.subn(rf"{setting}=\d+", f"{setting}={getattr(spec.run, setting)}",
+                                      text)
+                if count != 1:
+                    raise AssertionError(f"{setting} moved in {example.tutorial_script}")
             tutorial = Path(tmp) / "tutorial" / name
             tutorial.mkdir(parents=True)
             (tutorial / "tutorial.py").write_text(text, encoding="utf-8")

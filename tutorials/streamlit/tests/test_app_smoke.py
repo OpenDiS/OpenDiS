@@ -55,6 +55,7 @@ def main() -> int:  # pylint: disable=too-many-locals,too-many-statements
     picker = [s for s in at.sidebar.selectbox if s.label == "Example"]
     codes = [(s.options, s.value, s.disabled) for s in at.sidebar.selectbox if s.label == "Core"]
     text = "\n".join(m.value for m in at.markdown)
+    links = [c.value for c in at.sidebar.children[max(at.sidebar.children)].caption]
     outputs = [c.value for c in at.code if "No run yet" in c.value]
     initial = shown(at)
     results = [
@@ -78,6 +79,9 @@ def main() -> int:  # pylint: disable=too-many-locals,too-many-statements
               "Simulation output" in text and "Chat" not in text and outputs, outputs),
         check("seven steps", [o for r in at.radio if r.label == "Steps" for o in r.options]
               == [s.label for s in STEP_LIST]),
+        check("last in the sidebar, a caption: the links to the list of engines and to the README",
+              len(links) == 1 and "[list of engines](https://opendis.streamlit.app/)" in links[0]
+              and "/tutorials/streamlit/README.md)" in links[0], links),
         check("the 3-D window draws the initial configuration, in the app's first view",
               len(initial) == 1 and [f["label"] for f in initial[0]["frames"]] ==
               ["initial configuration"] and initial[0]["layout"]["scene"]["camera"]["eye"]["y"] < 0,

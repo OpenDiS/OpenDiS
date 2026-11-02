@@ -4,6 +4,7 @@ The engines' gauges come from a stand-in server on this computer (README.md, Tes
 """
 import http.server
 import os
+import re
 import sys
 import tempfile
 import threading
@@ -221,11 +222,13 @@ def test_table() -> list[bool]:
                for n in range(50)]
     text = front_page.table_html(engines, page="http://localhost:87{n:02d}")
     rows = text.split("<tr>")[1:]
-    first = [cell.split(">", 2)[2].split("<", 1)[0] for cell in rows[0].split("<td")[1:]]
+    first = [re.sub(r"<[^>]+>", "", name) for name in re.findall(r"<a [^>]*>(.*?)</a>", rows[0])]
     return [check("table: 10 rows of 5 cells", len(rows) == 10
                   and all(row.count("<td") == 5 for row in rows), [r.count("<td") for r in rows]),
             check("table: the first row", first == ["opendis-00", "opendis-10", "opendis-20",
                                                     "opendis-30", "opendis-40"], first),
+            check("table: the names' prefix apart, which a narrow box hides",
+                  '<span class="prefix">opendis-</span>07</a>' in text),
             check("table: a link that opens a tab", 'href="http://localhost:8707" target="_blank"'
                   in text),
             check("table: the states", all(part in text for part in (

@@ -84,7 +84,8 @@ environment, set `OPENDIS_PYTHON` to its Python, as in
   ExaDiS. Every example has both. Then the
   steps, where a • marks a step whose values differ from the example's, and ‹ prev and next ›
   buttons. A simulation has seven steps; the initial configurations, which run no simulation,
-  have two.
+  have two. At the bottom are links to the [list of engines](https://opendis.streamlit.app/)
+  that run the app online, and to this README.
 - **2nd left column:** the chosen step's selections. « hides it, » shows it again, and
   choosing a step shows it too. The binary junction's step 1 starts with a third menu,
   **Crystal structure**: BCC or FCC. Each is a sub-example, with its own values in every step,
@@ -384,7 +385,7 @@ Run each test from `tutorials/streamlit/`, with the environment's Python:
 
 ```
 python -m tests.test_codegen          # the generated scripts against the tutorials' own (60 steps)
-python -m tests.test_codegen --full   # ... at the tutorials' full length (about a minute)
+python -m tests.test_codegen --full   # ... at the examples' full length (about 10 min)
 python -m tests.test_job              # the job runner: a run, a stop, a time limit, leftovers
 python -m tests.test_views            # networks from PyDiS's JSON, and the figures
 python -m tests.test_app_smoke        # the whole page, and 20-step runs with PyDiS and ExaDiS
@@ -428,9 +429,9 @@ Each test prints `PASS` or `FAIL` for every check, and exits with a non-zero cod
   start and inside the cell, covering the plane's area in the cell, √3 L², all at the field's
   resolved shear stress; the line on that plane; the network black over it, in the plane's
   first view; and the payload, which keeps the plane apart from its frames.
-- **`test_app_smoke`**: the banner, the two menus in the sidebar, no chat, ExaDiS's status,
-  every step of each example, sub-example and core, the binary junction's Crystal structure
-  menu, a change and a reset, and a 20-step
+- **`test_app_smoke`**: the banner, the two menus in the sidebar and its links, no chat,
+  ExaDiS's status, every step of each example, sub-example and core, the binary junction's
+  Crystal structure menu, a change and a reset, and a 20-step
   run of the binary junction: its output, status and downloads, and the networks that the 3-D
   window's component gets (AppTest does not run the component's script); then the Python
   console, and **🗑 clear all results**. Then a 20-step run of the Frank-Read source with

@@ -283,6 +283,16 @@ section[data-testid="stSidebar"] div[data-testid="stRadio"] label span {
 section[data-testid="stSidebar"] [data-testid="stButton"] button p {
   font-size: 0.92rem !important;
 }
+/* The links at the bottom of the sidebar, small and grey like the status of ExaDiS's build;
+   well below prev / next, and close to each other */
+.st-key-opendis_links { padding-top: 1rem; }
+section[data-testid="stSidebar"] .st-key-opendis_links [data-testid="stCaptionContainer"] p {
+  font-size: 0.74rem !important; line-height: 1.35 !important;
+}
+.st-key-opendis_links [data-testid="stCaptionContainer"] p:not(:last-child) {
+  margin-bottom: 0.25rem !important;
+}
+section[data-testid="stSidebar"] .st-key-opendis_links a { color: inherit !important; }
 </style>
 """
 # pylint: enable=line-too-long

@@ -2,10 +2,11 @@
 
 Run it from this folder with ``./launch_app.sh``, or with
 ``python -m streamlit run app.py``. The page has the pinned banner; the sidebar (the example and
-its code, the steps, prev / next); the chosen step's selections in the 2nd left column; the 3-D
-window and the code panel in the centre; and on the right the simulation's screen output, then
-the status of ExaDiS's build. Run launches the PyDiS or ExaDiS job (``common/job.py``) as the
-last thing in a script run, so that Stop, or any other click, interrupts it and kills the job.
+its code, the steps, prev / next, two links); the chosen step's selections in the 2nd left
+column; the 3-D window and the code panel in the centre; and on the right the simulation's
+screen output, then the status of ExaDiS's build. Run launches the PyDiS or ExaDiS job
+(``common/job.py``) as the last thing in a script run, so that Stop, or any other click,
+interrupts it and kills the job.
 """
 import functools
 from pathlib import Path
@@ -25,6 +26,10 @@ from common.spec import ENGINE_NAMES, LINE_SLIP, Precipitates, Spec, UserStressL
 LOGO = ASSETS / "opendis_logo.png"
 FAVICON = ASSETS / "opendis_favicon.png"  # the website's favicon
 SIDEBAR_WIDTH_PX = 300  # initial width; Streamlit clamps it to 200-600
+# The sidebar's last lines: the app online, and on your own computer
+LINKS = ("A [list of engines](https://opendis.streamlit.app/) to run the app online\n\n"
+         "[Instructions](https://github.com/OpenDiS/OpenDiS/blob/main/tutorials/streamlit/"
+         "README.md) on how to run the app locally")
 VIEWS = ("initial configuration", "simulation", "history")
 BUILD_VIEWS = ("initial configuration", "run")  # a script that builds a network: no history
 FRAME_MS = 300  # the replay's time per snapshot
@@ -555,6 +560,8 @@ def main() -> None:
             example = picker.example_picker(examples)
         steps_box = st.container()  # the steps radio, drawn after the selections
         picker.prev_next(example)
+        with st.container(key="opendis_links"):  # small and grey (common/style.py)
+            st.caption(LINKS)
     step = picker.current_step(example)
     _follow_step(example, step)
     spec, folder, progress_slot = _spec(example), None, None

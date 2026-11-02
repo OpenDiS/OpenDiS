@@ -53,6 +53,11 @@ table.opendis-engines { width: 100%; max-width: 59rem; margin: 0.2rem auto 0; ta
 .opendis-engines .asleep { background: #eceff3; color: #5f6b78; }
 .opendis-engines .missing { background: #f6f7f9; color: #9aa4b0; }
 .opendis-engines .missing a { color: #9aa4b0 !important; }
+.opendis-table { container-type: inline-size; }
+.opendis-engines .prefix { font-size: inherit !important; }
+/* A table narrower than 30.2rem has boxes too narrow for opendis-00 (4.79em, with the paddings
+   and gaps): every box then shows only the number, 00 */
+@container (max-width: 30.2rem) { .opendis-engines .prefix { display: none; } }
 .st-key-opendis_news, .st-key-opendis_guide { max-width: 59rem; margin: 0 auto !important;
   padding: 0.7rem 1.1rem 0.95rem; border-radius: 0.4rem; }
 .st-key-opendis_news { background: #fff6dc; border: 1px solid #e9c46a;
@@ -143,17 +148,20 @@ def read_all(metrics: str | None = None, timeout: float = TIMEOUT_S) -> list[Eng
 
 
 def table_html(engines: list[Engine], page: str | None = None) -> str:
-    """The table: 5 columns of 10 engines, opendis-00 to opendis-09 in the first."""
+    """The table: 5 columns of 10 engines, opendis-00 to opendis-09 in the first. In a window
+    too narrow for the names, the boxes show only the numbers (CSS)."""
     rows = []
     for row in range(ROWS):
         cells = []
         for engine in engines[row::ROWS]:
+            prefix, number = engine.name.rsplit("-", 1)
             cells.append(
                 f'<td class="{engine.state}"><a href="{html.escape(engine.url(page))}" '
-                f'target="_blank" rel="noopener">{engine.name}</a>'
+                f'target="_blank" rel="noopener"><span class="prefix">{prefix}-</span>{number}</a>'
                 f'<span class="state">{html.escape(engine.label)}</span></td>')
         rows.append(f"<tr>{''.join(cells)}</tr>")
-    return f'<table class="opendis-engines">{"".join(rows)}</table>'
+    table = f'<table class="opendis-engines">{"".join(rows)}</table>'
+    return f'<div class="opendis-table">{table}</div>'  # the container of the CSS's @container
 
 
 def wanted() -> bool:
