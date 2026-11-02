@@ -8,7 +8,7 @@ final_json = "precipitates_exadis_final.json"
 tutorial_script = "tutorials/06_simple_precipitates/example_simple_precipitates.py"
 tutorial_url = "https://github.com/OpenDiS/OpenDiS/tree/main/tutorials/06_simple_precipitates"
 tutorial_title = "06_simple_precipitates"
-run_hint = "The 200 steps take about 5 s with ExaDiS. They cover about 2 ns."
+run_hint = "The 2000 steps take about 30 s with ExaDiS. They cover about 10 ns."
 
 [config]
 kind = "precipitates"

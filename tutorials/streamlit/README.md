@@ -286,8 +286,9 @@ the cutoff model at 0.1 Lbox. With ExaDiS, as in the tutorial, the line can cros
 spheres under the networks, with their periodic images that reach into the cell
 (`network.precipitates`, `views.spheres`); the line keeps its colours. The app's job and the
 tutorial's own script write the same networks (`test_codegen`, which copies the tutorial's
-`user_precipitates.py` next to it and points its `write_dir` at `output/`). Its 200 steps take
-about 5 s and cover about 2 ns.
+`user_precipitates.py` next to it, points its `write_dir` at `output/` and runs it for the
+app's steps). The app's default is 2000 steps, against the tutorial's 200. They take about
+30 s and cover about 10 ns.
 
 PyDiS runs the precipitates from a twin of the tutorial,
 `tutorials/06_simple_precipitates/example_simple_precipitates_pydis.py`. It has no
@@ -295,9 +296,10 @@ cross-slip, which PyDiS lacks and this example hardly needs. Its forces are `Ela
 with the same cutoff, and its state sets the three ExaDiS defaults that PyDiS lacks. PyDiS's
 FCC_0 now takes the state's `Rorient`, and tests for a {111} plane in the crystal frame, as
 ExaDiS's does (`core/exadis/src/mobility_types/mobility_fcc0.h`). Without it, the glide plane
-is z in the lab frame, not {111}, and FCC_0 holds the line in place, in both codes. The two
-codes agree step by step at first, then part slowly: at step 199, PyDiS has 66 nodes and
-ExaDiS 68. PyDiS's 200 steps take about 40 s.
+is z in the lab frame, not {111}, and FCC_0 holds the line in place, in both codes. With
+ExaDiS's cross-slip off, the two codes agree step by step at first, then part slowly: at step
+199, PyDiS has 66 nodes and ExaDiS 68. PyDiS's default is 400 steps, which take about 70 s
+and cover about 3 ns.
 
 The initial configurations follow the tutorial's script, which builds a network in one of five
 ways and plots it. Its options 1 (PyDiS) and 2 (ExaDiS) are one network here, the simple

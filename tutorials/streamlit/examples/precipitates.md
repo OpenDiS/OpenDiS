@@ -7,7 +7,7 @@ final_json = "precipitates_pydis_final.json"
 tutorial_script = "tutorials/06_simple_precipitates/example_simple_precipitates_pydis.py"
 tutorial_url = "https://github.com/OpenDiS/OpenDiS/tree/main/tutorials/06_simple_precipitates"
 tutorial_title = "06_simple_precipitates"
-run_hint = "The 200 steps take about 40 s with PyDiS. They cover about 2 ns."
+run_hint = "The 400 steps take about 70 s with PyDiS. They cover about 3 ns."
 
 [config]
 kind = "precipitates"
