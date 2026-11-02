@@ -10,9 +10,8 @@ from pydis import DisNode, DisNet, Cell, CellList
 from pydis import CalForce, MobilityLaw, TimeIntegration, Topology
 from pydis import Collision, Remesh, VisualizeNetwork, SimulateNetwork
 
-def init_circular_loop(radius=1.0, N=20, burg_vec=np.array([1.0,0.0,0.0]), pbc=False):
+def init_circular_loop(box_length, radius, N=20, burg_vec=np.array([1.0,0.0,0.0]), pbc=False):
     print("init_circular_loop: radius = %f, N = %d" % (radius, N))
-    box_length = 10.0
     theta = np.arange(N)*2.0*np.pi/N
     rn    = np.vstack([radius*np.cos(theta)+box_length/2, radius*np.sin(theta)+box_length/2, np.zeros_like(theta)+box_length/2]).T
     links = np.zeros((N, 8))
@@ -24,19 +23,28 @@ def init_circular_loop(radius=1.0, N=20, burg_vec=np.array([1.0,0.0,0.0]), pbc=F
 
 def main():
     global N, sim
-    
-    N = init_circular_loop()
+
+    Lbox = 1000.0
+    N = init_circular_loop(Lbox, radius=0.1*Lbox)
+
+    state = {
+        "burgmag": 3e-10,
+        "mu": 50e9,
+        "nu": 0.3,
+        "a": 1.0,
+        "maxseg": 0.05*Lbox,
+        "minseg": 0.01*Lbox,
+        "rann": 0.5,
+    }
 
     bounds = np.array([-0.5*np.diag(N.cell.h), 0.5*np.diag(N.cell.h)])
     vis = VisualizeNetwork(bounds=bounds)
     # for debugging purposes
     #vis.plot_disnet(N)
-
-    state = {"burgmag": 3e-10, "mu": 160e9, "nu": 0.31, "a": 0.01, "maxseg": 0.3, "minseg": 0.1, "rann": 0.02}
     
-    calforce  = CalForce(force_mode='LineTension', state=state, Ec=1.0e6)
-    mobility  = MobilityLaw(mobility_law='Relax', state=state)
-    timeint   = TimeIntegration(integrator='EulerForward', dt=1.0e-8, state=state)
+    calforce  = CalForce(force_mode='LineTension', state=state)
+    mobility  = MobilityLaw(mobility_law='SimpleGlide', state=state)
+    timeint   = TimeIntegration(integrator='EulerForward', dt=1e-8, state=state)
     topology  = Topology(split_mode='MaxDiss', state=state, force=calforce, mobility=mobility)
     collision = None #Collision(collision_mode='Proximity', state=state)
     remesh    = None #Remesh(remesh_rule='LengthBased', state=state)
@@ -44,7 +52,7 @@ def main():
     sim = SimulateNetwork(calforce=calforce, mobility=mobility, timeint=timeint,
                           topology=topology, collision=collision, remesh=remesh, vis=vis,
                           max_step=200, loading_mode="stress", state=state,
-                          applied_stress=np.array([0.0, 0.0, 0.0, 0.0, -2.0e6, 0.0]),
+                          applied_stress=np.array([0.0, 0.0, 0.0, 0.0, -200e6, 0.0]),
                           print_freq=10, plot_freq=10, plot_pause_seconds=0.1,
                           write_freq=10, write_dir='test_loop_results')
     
