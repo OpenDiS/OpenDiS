@@ -14,7 +14,7 @@ from framework.mobility_base import MobilityLaw_Base
 class My_MobilityLaw(MobilityLaw_Base):
     """MobilityLaw: class for mobility laws
     """
-    def __init__(self, state: dict={}, mobility_law: str='Relax', vmax: float=1e9) -> None:
+    def __init__(self, state: dict={}, mobility_law: str='BCCGlide', vmax: float=1e9) -> None:
         self.mobility_law = mobility_law
         self.mob = state.get("mob", 1.0)
         self.vmax = vmax
