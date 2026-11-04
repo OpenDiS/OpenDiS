@@ -14,12 +14,12 @@ from framework.mobility_base import MobilityLaw_Base
 class My_MobilityLaw(MobilityLaw_Base):
     """MobilityLaw: class for mobility laws
     """
-    def __init__(self, state: dict={}, mobility_law: str='BCCGlide', vmax: float=1e9) -> None:
+    def __init__(self, state: dict={}, mobility_law: str='BCCGlide', **kwargs) -> None:
         self.mobility_law = mobility_law
-        self.mob = state.get("mob", 1.0)
-        self.vmax = vmax
-        self.mob_edge = state.get("mob_edge", 1.0)
-        self.mob_screw = state.get("mob_screw", 0.1)
+        self.mob = kwargs.get("mob", 1.0)
+        self.mob_edge = kwargs.get("mob_edge", 1.0)
+        self.mob_screw = kwargs.get("mob_screw", 0.1)
+        self.vmax = kwargs.get("vmax", 1e13) # b/s
 
         self.NodeMobility_Functions = {
             'BCCGlide': self.NodeMobility_BCCGlide
@@ -143,3 +143,4 @@ class My_Topology(Topology):
             raise ValueError("Topology: mobility must come compatible modules")
         self.Handle_Functions = {
             'MaxDiss': self.Handle_MaxDiss }
+        self.params = None

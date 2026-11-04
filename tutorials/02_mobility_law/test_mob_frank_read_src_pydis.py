@@ -67,12 +67,14 @@ def main():
 
     vis = VisualizeNetwork()
     
-    state = {"crystal": 'bcc', "Rorient": Rorient,
-             "burgmag": 3e-10, "mu": 50e9, "nu": 0.3, "a": 1.0, "maxseg": 0.04*Lbox, "minseg": 0.01*Lbox, "rann": 3.0,
-             "mob": 1.0, "mob_edge": 1.0, "mob_screw": 0.1}
+    state = {
+        "crystal": 'bcc', "Rorient": Rorient,
+        "burgmag": 3e-10, "mu": 50e9, "nu": 0.3, "a": 1.0,
+        "maxseg": 0.04*Lbox, "minseg": 0.01*Lbox, "rann": 3.0,
+    }
 
     calforce  = CalForce(force_mode='LineTension', state=state)
-    mobility  = My_MobilityLaw(mobility_law='BCCGlide', state=state)
+    mobility  = My_MobilityLaw(mobility_law='BCCGlide', state=state, mob=1.0, mob_edge=1.0, mob_screw=0.1)
     timeint   = TimeIntegration(integrator='EulerForward', dt=1.0e-8, state=state)
     topology  = My_Topology(split_mode='MaxDiss', state=state, force=calforce, mobility=mobility)
     collision = Collision(collision_mode='Proximity', state=state, nbrlist=nbrlist)
