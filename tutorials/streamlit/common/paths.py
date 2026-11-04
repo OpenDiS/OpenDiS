@@ -3,7 +3,7 @@
 The app lives in ``tutorials/streamlit/`` of the OpenDiS repository, and runs PyDiS from that
 repository: ``OPENDIS_DIR`` is its root, as in the tutorials' ``cd ${OPENDIS_DIR}``. A clone
 that lacks PyDiS's graph submodule, PyDiS's compiled library or ExaDiS's Python module gets
-them here, as Streamlit Community Cloud's does.
+them here, as Streamlit Community Cloud's does: ExaDiS's at the press of Build ExaDiS.
 """
 import collections
 import concurrent.futures
@@ -34,7 +34,9 @@ EXADIS_MODULE = "pyexadis" + sysconfig.get_config_var("EXT_SUFFIX")  # in core/e
 # ExaDiS's build: OpenDiS's Linux preset; no FFTW, which the Cloud lacks; and no link-time
 # optimization, whose final link would compile all the files at once, in parallel
 EXADIS_OPTIONS = ("-DSYS=ubuntu", "-DEXADIS_FFT=Off", "-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF")
-BUILD_THREAD = "opendis-build"
+BUILD_THREAD = "opendis-build"  # PyDiS's library, when the app starts
+EXADIS_THREAD = "opendis-build-exadis"  # ExaDiS's module, at the press of Build ExaDiS
+CAN_BUILD_EXADIS = sys.platform.startswith("linux")  # as on Streamlit Community Cloud
 _PERCENT = re.compile(r"\[\s*(\d+)%\]")  # CMake's progress, as in "[ 45%] Building CXX object"
 _OBJECT = re.compile(r"object \S*?([^/\s]+)\.o\s*$")  # ... and the file it compiles
 _GRAPH_LOCK = threading.Lock()
@@ -196,44 +198,62 @@ def _build(builds: list) -> None:
 
 
 def build_libraries_once() -> None:
-    """Build what the clone lacks, once, in the background: PyDiS's C library, then, on Linux,
-    ExaDiS's Python module, for the app's Python.
+    """Build PyDiS's C library, once, in the background, if the clone lacks it.
 
-    Until PyDiS's library is there, and if its build fails, PyDiS uses its Python versions,
-    and its output starts with "pydis_lib not found". Until ExaDiS's module is there, ``import
-    pyexadis`` fails. The outcomes go to the app's log (on Streamlit Community Cloud, under
-    Manage app). A build that runs on after Streamlit reloaded this module is not started again.
+    Until the library is there, and if its build fails, PyDiS uses its Python versions, and
+    its output starts with "pydis_lib not found". ExaDiS's module is built only on request
+    (``start_exadis_build()``), so that the app starts sooner. The outcomes go to the app's log
+    (on Streamlit Community Cloud, under Manage app). A build that runs on after Streamlit
+    reloaded this module is not started again.
     """
     with _BUILD_LOCK:
         if _BUILD["started"] or any(t.name == BUILD_THREAD for t in threading.enumerate()):
             return
         _BUILD["started"] = True
-    builds, exadis = [], None
     if not all((OPENDIS_DIR / "lib" / name).is_file() for name in LIBRARY):
-        builds.append(("PyDiS's C library", _build_pydis, {}))
-    if (sys.platform.startswith("linux")
-            and not (OPENDIS_DIR / EXADIS / "python" / EXADIS_MODULE).is_file()):
-        exadis = {"phase": "waiting for PyDiS's library" if builds else "starting"}
-        builds.append(("ExaDiS's Python module", _build_exadis, exadis))
-    _BUILD["exadis"] = exadis
-    if builds:
-        thread = threading.Thread(target=_build, args=(builds,), name=BUILD_THREAD, daemon=True)
-        thread.exadis = exadis  # for exadis_status(), also after Streamlit reloads this module
+        threading.Thread(target=_build, args=([("PyDiS's C library", _build_pydis, {})],),
+                         name=BUILD_THREAD, daemon=True).start()
+
+
+def _build_exadis_after_pydis(progress: dict) -> None:
+    """ExaDiS's build, after that of PyDiS's library if it still runs: at once, the two would
+    share the server's few cores and its memory."""
+    pydis = next((t for t in threading.enumerate() if t.name == BUILD_THREAD), None)
+    if pydis is not None:
+        progress.update(phase="waiting for PyDiS's library")
+        pydis.join()
+    _build([("ExaDiS's Python module", _build_exadis, progress)])
+
+
+def start_exadis_build() -> None:
+    """Start building ExaDiS's Python module for the app's Python, in the background, where the
+    app builds it (on Linux): the button Build ExaDiS. Nothing starts if the module is there or
+    a build runs, also one that runs on after Streamlit reloaded this module."""
+    with _BUILD_LOCK:
+        if (not CAN_BUILD_EXADIS or (OPENDIS_DIR / EXADIS / "python" / EXADIS_MODULE).is_file()
+                or any(t.name == EXADIS_THREAD for t in threading.enumerate())):
+            return
+        progress = {"phase": "starting"}
+        _BUILD["exadis"] = progress
+        thread = threading.Thread(target=_build_exadis_after_pydis, args=(progress,),
+                                  name=EXADIS_THREAD, daemon=True)
+        thread.exadis = progress  # for exadis_status(), also after Streamlit reloads this module
         thread.start()
 
 
 def exadis_status() -> dict:
     """ExaDiS's module for the app's Python: ``ready``; ``building``, with the build's phase,
-    CMake's percent, the file it compiles and the time so far; ``failed``, with why; or
+    CMake's percent, the file it compiles and the time so far; ``failed``, with why;
+    ``unbuilt``, where the app builds it at the press of Build ExaDiS (on Linux); or
     ``missing``, where the app does not build it (on macOS)."""
     module = OPENDIS_DIR / EXADIS / "python" / EXADIS_MODULE
     if module.is_file():
         return {"state": "ready", "module": module.name}
-    thread = next((t for t in threading.enumerate() if t.name == BUILD_THREAD), None)
+    thread = next((t for t in threading.enumerate() if t.name == EXADIS_THREAD), None)
     progress = getattr(thread, "exadis", None) or _BUILD.get("exadis") or {}
     if progress.get("error"):
         return {"state": "failed", "error": progress["error"]}
-    if thread is not None and progress:
+    if thread is not None:
         return {"state": "building", "percent": 0, **progress,
                 "elapsed_s": time.monotonic() - progress.get("start", time.monotonic())}
-    return {"state": "missing"}
+    return {"state": "unbuilt" if CAN_BUILD_EXADIS else "missing"}

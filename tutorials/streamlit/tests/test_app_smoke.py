@@ -58,6 +58,8 @@ def main() -> int:  # pylint: disable=too-many-locals,too-many-statements
     links = [c.value for c in at.sidebar.children[max(at.sidebar.children)].caption]
     outputs = [c.value for c in at.code if "No run yet" in c.value]
     initial = shown(at)
+    exadis = paths.exadis_status()["state"]
+    build = [b.label for b in at.button if b.label == "Build ExaDiS"]
     results = [
         check("the page loads without an exception", not at.exception, at.exception),
         check("the banner says OpenDiS, with the logo, which links to the website",
@@ -72,9 +74,11 @@ def main() -> int:  # pylint: disable=too-many-locals,too-many-statements
               codes == [(["PyDiS", "ExaDiS"], "PyDiS", False)], codes),
         check("no menu in the page's main part", not list(at.main.selectbox),
               [s.label for s in at.main.selectbox]),
-        check("below 🗑 clear all results, ExaDiS's status",
-              any(c.value.startswith("ExaDiS is") for c in at.caption),
-              [c.value for c in at.caption][-3:]),
+        check(f"below 🗑 clear all results, ExaDiS's status ({exadis}), and Build ExaDiS only "
+              "while the app can build ExaDiS and has not",
+              (build == ["Build ExaDiS"]) if exadis in ("unbuilt", "failed") else
+              (not build and any(c.value.startswith("ExaDiS is") for c in at.caption)),
+              ([c.value for c in at.caption][-3:], build)),
         check("the right column is the simulation output, not a chat",
               "Simulation output" in text and "Chat" not in text and outputs, outputs),
         check("seven steps", [o for r in at.radio if r.label == "Steps" for o in r.options]
@@ -401,37 +405,66 @@ def main() -> int:  # pylint: disable=too-many-locals,too-many-statements
               [[f["label"] for f in r["frames"]] for r in replay]),
     ]
 
-    # until ExaDiS is built for this Python, its examples cannot run; while the app builds it,
-    # a bar shows how far it is (a stand-in for the build: a thread of its name and progress)
-    built, paths.EXADIS_MODULE = paths.EXADIS_MODULE, "pyexadis.not-built.so"
-    done = threading.Event()
-    builder = threading.Thread(target=done.wait, name=paths.BUILD_THREAD, daemon=True)
-    builder.exadis = {"phase": "compiling", "percent": 45, "file": "exadis_pybind.cpp",
-                      "start": time.monotonic() - 90}
+    # until ExaDiS is built for this Python, its examples cannot run. Where the app does not
+    # build it (macOS), a line says so. Where it does (Linux), only Build ExaDiS starts the
+    # build, and a bar shows how far it is (a stand-in for the build: it sets the progress,
+    # waits, then fails)
+    started, done = threading.Event(), threading.Event()
+
+    def stand_in(progress: dict) -> str:
+        progress.update(phase="compiling", percent=45, file="exadis_pybind.cpp",
+                        start=time.monotonic() - 90)
+        started.set()
+        done.wait(60)
+        raise OSError("no build in this test")
+
+    def state(at: AppTest) -> tuple[bool, list[str], list[str]]:
+        """Whether Run is off, the warnings, and Build ExaDiS if it shows."""
+        return (next(b for b in at.button if b.label == "▶ Run").disabled,
+                [w.value for w in at.warning],
+                [b.label for b in at.button if b.label == "Build ExaDiS"])
+
+    saved = paths.EXADIS_MODULE, paths.CAN_BUILD_EXADIS, paths.build_exadis
+    paths.EXADIS_MODULE, paths.CAN_BUILD_EXADIS = "pyexadis.not-built.so", False
     try:
         at = page()
         choose(at, "Frank-Read src", "ExaDiS")
         for _ in STEP_LIST[1:]:
             click(at, "next ›")
-        run = next(b for b in at.button if b.label == "▶ Run")
-        warnings = [w.value for w in at.warning]
+        missing = state(at)
         bar = [c.value for c in at.caption if c.value.startswith("ExaDiS is")]
-        builder.start()
+        paths.CAN_BUILD_EXADIS, paths.build_exadis = True, stand_in
         at.run()
-        building = [(p.value, p.proto.text) for p in at.get("progress")]
-        run_building = next(b for b in at.button if b.label == "▶ Run").disabled
+        unbuilt = (*state(at), any(t.name == paths.EXADIS_THREAD for t in threading.enumerate()))
+        click(at, "Build ExaDiS")
+        started.wait(60)
+        at.run()
+        building = [(p.value, p.proto.text) for p in at.get("progress")], state(at)
+        done.set()
+        for thread in [t for t in threading.enumerate() if t.name == paths.EXADIS_THREAD]:
+            thread.join(60)
+        at.run()
+        failed = [e.value for e in at.error], state(at)
     finally:
         done.set()
-        paths.EXADIS_MODULE = built
+        paths.EXADIS_MODULE, paths.CAN_BUILD_EXADIS, paths.build_exadis = saved
     results += [
         check("without ExaDiS, its Run is off, and the Run step says why",
-              run.disabled and any("ExaDiS is not built" in w for w in warnings),
-              (run.disabled, warnings)),
-        check("... and so does the status below 🗑 clear all results",
-              any("not built" in c for c in bar), bar),
-        check("while ExaDiS builds, a bar shows its phase, percent, file and time, and Run is off",
-              building == [(45, "Building ExaDiS: compiling, 45 %, exadis_pybind.cpp · 1.5 min "
-                                "so far")] and run_building, (building, run_building)),
+              missing[0] and any("ExaDiS is not built" in w for w in missing[1]), missing),
+        check("... and so does the status below 🗑 clear all results, where the app does not "
+              "build ExaDiS (macOS), with no Build ExaDiS",
+              any("not built" in c for c in bar) and not missing[2], (bar, missing[2])),
+        check("where the app builds ExaDiS (Linux), Build ExaDiS, which the Run step names, and "
+              "no build before its press", unbuilt[0] and unbuilt[2] == ["Build ExaDiS"]
+              and any("Press Build ExaDiS" in w for w in unbuilt[1]) and not unbuilt[3], unbuilt),
+        check("at its press, the build starts: a bar shows its phase, percent, file and time, Run "
+              "is off, and the button goes",
+              building[0] == [(45, "Building ExaDiS: compiling, 45 %, exadis_pybind.cpp · "
+                                   "1.5 min so far")] and building[1][0] and not building[1][2],
+              building),
+        check("after a failed build, its error, and Build ExaDiS again",
+              any("ExaDiS was not built: no build in this test" in e for e in failed[0])
+              and failed[1][2] == ["Build ExaDiS"] and failed[1][0], failed),
     ]
 
     # a changed source file makes Streamlit load the app's modules again, with new classes:

@@ -44,10 +44,10 @@ The front page shows the text of [`announcements.md`](announcements.md) in a fra
 | Command | What it does |
 |---------|--------------|
 | `python manage.py status` | Prints the front page's table. |
-| `python manage.py open` | Opens in the browser each engine that does not answer. Press the button of each asleep one. Opening an engine also starts its builds, about 6 minutes for ExaDiS. So do it about 10 minutes before a tutorial. `--all` opens every engine. |
+| `python manage.py open` | Opens in the browser each engine that does not answer. Press the button of each asleep one. Opening an engine also builds PyDiS's library, if the engine lacks it. ExaDiS is built only when someone presses **Build ExaDiS**, at the bottom of the engine's right column, in about 6 minutes. So open the engines about 10 minutes before a tutorial, and press that button on each engine that is to run ExaDiS. `--all` opens every engine. |
 | `python manage.py reset` | Writes a new line in `RESET`. Commit it, and push it to GitHub's `main`. Each engine then resets at its next page run. Do it when nobody uses the engines. |
 
-An engine sleeps after 12 hours without visitors. A push to `main` reaches every engine at its next page run (`engine.py`). A full reboot of an engine, from a fresh clone with fresh dependencies, is done by hand: the engine's menu in the workspace, **Reboot**. It also rebuilds PyDiS's library and ExaDiS, which a push does not.
+An engine sleeps after 12 hours without visitors. A push to `main` reaches every engine at its next page run (`engine.py`). A full reboot of an engine, from a fresh clone with fresh dependencies, is done by hand: the engine's menu in the workspace, **Reboot**. It also rebuilds PyDiS's library, which a push does not. ExaDiS then waits for a press of **Build ExaDiS**.
 
 ## Test on this computer
 

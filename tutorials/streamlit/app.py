@@ -4,9 +4,9 @@ Run it from this folder with ``./launch_app.sh``, or with
 ``python -m streamlit run app.py``. The page has the pinned banner; the sidebar (the example and
 its code, the steps, prev / next, two links); the chosen step's selections in the 2nd left
 column; the 3-D window and the code panel in the centre; and on the right the simulation's
-screen output, then the status of ExaDiS's build. Run launches the PyDiS or ExaDiS job
-(``common/job.py``) as the last thing in a script run, so that Stop, or any other click,
-interrupts it and kills the job.
+screen output, then the status of ExaDiS's build, or Build ExaDiS. Run launches the PyDiS or
+ExaDiS job (``common/job.py``) as the last thing in a script run, so that Stop, or any other
+click, interrupts it and kills the job.
 """
 import functools
 from pathlib import Path
@@ -19,7 +19,8 @@ from streamlit.delta_generator import DeltaGenerator
 from common import (catalog, code_panel, codegen, front_page, job, network, network3d,
                     output_panel, picker, results, steps, style, views)
 from common.catalog import Example
-from common.paths import ASSETS, build_libraries_once, exadis_status, fetch_graph
+from common.paths import (ASSETS, build_libraries_once, exadis_status, fetch_graph,
+                          start_exadis_build)
 from common.picker import Step, run_step
 from common.spec import ENGINE_NAMES, LINE_SLIP, Precipitates, Spec, UserStressLine
 
@@ -44,11 +45,16 @@ EXADIS_STATE = "exadis_state"  # session key: the state of ExaDiS's build at the
 BUILD_POLL_S = 5  # the build's status bar refreshes itself this often while ExaDiS builds
 # Why an ExaDiS example cannot run, by the state of ExaDiS's build
 NOT_READY = {
+    "unbuilt": "ExaDiS is not built on this server yet. Press Build ExaDiS at the bottom of the "
+               "right column. Run turns on when ExaDiS is ready.",
     "building": "ExaDiS is being built on this server. Run turns on when it is ready: its status "
                 "bar is in the right column.",
-    "failed": "ExaDiS could not be built on this server: the right column says why.",
+    "failed": "ExaDiS could not be built on this server: the right column says why. Build ExaDiS "
+              "there tries again.",
     "missing": "ExaDiS is not built for this Python. Build it with CMake, as for the tutorials.",
 }
+BUILD_HELP = ("Builds ExaDiS on this server, for all its users, in some minutes. PyDiS runs "
+              "meanwhile.")
 COLUMNS_OPEN, COLUMNS_SHUT = [0.95, 1.7, 0.95], [1.7, 0.95]
 
 
@@ -425,15 +431,20 @@ def _clear_button(example: Example) -> None:
                   args=(False,))
 
 
-def _exadis_bar() -> None:
-    """The status of ExaDiS's build, below 🗑 clear all results. It is a fragment, which
-    refreshes itself while ExaDiS builds; when the build ends, the whole page runs again, so
-    that the Run buttons follow."""
+def _exadis_bar(running: bool) -> None:
+    """The status of ExaDiS's build, below 🗑 clear all results, and Build ExaDiS while the app
+    can build ExaDiS and has not: the app builds it only at that press. It is a fragment, which
+    refreshes itself while ExaDiS builds; when the build's state changes, the whole page runs
+    again, so that the Run buttons follow."""
     status = exadis_status()
     if status["state"] != st.session_state.get(EXADIS_STATE, status["state"]):
         st.rerun()
-    with st.container(key="opendis_build_status"):  # its text is small (common/style.py)
-        _exadis_lines(status)
+    if status["state"] != "unbuilt":
+        with st.container(key="opendis_build_status"):  # its text is small (common/style.py)
+            _exadis_lines(status)
+    if status["state"] in ("unbuilt", "failed"):  # not while a run of this session goes on
+        st.button("Build ExaDiS", key="build_exadis", width="stretch", disabled=running,
+                  on_click=start_exadis_build, help=BUILD_HELP)
 
 
 def _exadis_lines(status: dict) -> None:
@@ -449,7 +460,8 @@ def _exadis_lines(status: dict) -> None:
         st.error(f"ExaDiS was not built: {status['error']}. The app's log says more.")
     else:
         st.caption("ExaDiS is not built for this Python. The app builds it on Linux, as on "
-                   "Streamlit Community Cloud. Elsewhere, build it with CMake.")
+                   "Streamlit Community Cloud, at the press of Build ExaDiS. Elsewhere, build it "
+                   "with CMake.")
 
 
 def _show_selections(show: bool) -> None:
@@ -591,7 +603,8 @@ def main() -> None:
         _clear_button(example)
         state = exadis_status()["state"]
         st.session_state[EXADIS_STATE] = state
-        st.fragment(_exadis_bar, run_every=BUILD_POLL_S if state == "building" else None)()
+        st.fragment(_exadis_bar, run_every=BUILD_POLL_S if state == "building" else None)(
+            bool(st.session_state.get(_key(example, "run"))))
     if st.session_state.get(_key(example, "run")):
         _run(example, spec, folder, (progress_slot, output_slot, view_slot))
 

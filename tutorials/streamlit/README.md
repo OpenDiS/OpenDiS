@@ -50,9 +50,13 @@ agree byte for byte with those of a `_repro` build made with CMake. Until the li
 there, and if gcc is missing, PyDiS uses its Python versions, and its output starts with
 "pydis_lib not found".
 
-The Frank-Read source also runs with ExaDiS, through its Python module `pyexadis`. On Linux,
-if a clone lacks the module for the app's Python, the app builds it after PyDiS's library, in
-the background (`build_exadis()` in `common/paths.py`). It uses
+Each example also runs with ExaDiS, through its Python module `pyexadis`. On Linux, if a clone
+lacks the module for the app's Python, the right column ends with a button, **Build ExaDiS**.
+The app builds the module only when it is pressed, so that it starts sooner
+(`start_exadis_build()` and `build_exadis()` in `common/paths.py`). The build runs in the
+background, for all the users of the server, after PyDiS's library if that is still being
+built. Meanwhile a bar in its place shows the build's progress. The button does not show when
+the module is there. After a failed build, it shows again, under the error. The build uses
 OpenDiS's CMake project with its `ubuntu` preset, `-DSYS=ubuntu`. Two options differ from a
 usual build. `-DEXADIS_FFT=Off` leaves out ExaDiS's FFT force, since the Cloud has no FFTW.
 `-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF` turns off link-time optimization, whose last step
@@ -130,7 +134,9 @@ environment, set `OPENDIS_PYTHON` to its Python, as in
   `log.txt`, which ends with a line on how the job ended. Below it, **🗑 clear all results**
   deletes the results of all past runs, after a confirmation: those of every example, for
   everyone who uses the app. A run in progress is kept. Below it is ExaDiS's status: ready,
-  or a bar while the app builds it, which refreshes itself every 5 s.
+  or a bar while the app builds it, which refreshes itself every 5 s. On Linux, before
+  ExaDiS is built, the column ends instead with **Build ExaDiS**, which builds it
+  ([Installation](#installation)).
 - **Run (the last step)** runs the full script as a separate job, in its run folder. With
   ExaDiS, it is off until ExaDiS is built, and the step says why. The app stops a run only if
   you press **Stop** or change any selection during the run, if it prints nothing for 5 min,
@@ -430,7 +436,8 @@ Each test prints `PASS` or `FAIL` for every check, and exits with a non-zero cod
   resolved shear stress; the line on that plane; the network black over it, in the plane's
   first view; and the payload, which keeps the plane apart from its frames.
 - **`test_app_smoke`**: the banner, the two menus in the sidebar and its links, no chat,
-  ExaDiS's status, every step of each example, sub-example and core, the binary junction's
+  ExaDiS's status, with no **Build ExaDiS** where ExaDiS is ready, every step of each
+  example, sub-example and core, the binary junction's
   Crystal structure menu, a change and a reset, and a 20-step
   run of the binary junction: its output, status and downloads, and the networks that the 3-D
   window's component gets (AppTest does not run the component's script); then the Python
@@ -438,7 +445,10 @@ Each test prints `PASS` or `FAIL` for every check, and exits with a non-zero cod
   ExaDiS, and one of the user stress with PyDiS: its field's link in step 3, which warns of
   an http link, the field on the slip plane under the initial line and under the replay, none
   without the field, its menu of shear stresses, and the history's displacement against time.
-  Then ExaDiS's Run, off while ExaDiS is not built, and the build's status bar. Then the
+  Then ExaDiS's Run, off while ExaDiS is not built, and the line that says so where the app
+  does not build ExaDiS (macOS). Where it does (Linux): **Build ExaDiS**, and no build before
+  its press; then the build's status bar; and after a failed build, its error and the button
+  again (a stand-in replaces the build). Then the
   initial configurations: their two steps, each network drawn in step 1, and a run that builds the
   prismatic loops with ExaDiS. Its runs go to a temporary folder (`OPENDIS_APP_RUNS`).
 - **`test_console`**: for each example and code, a 20-step run (the initial configurations
@@ -487,14 +497,16 @@ entry point.
   the same selections, until **🗑 clear all results** or a reboot of the app.
 - The Cloud's clone has no `lib/libpydis.so`, so the app builds it when it starts. The Cloud
   has gcc, g++ and make, and CMake only from pip. PyDiS's library takes some seconds. Runs
-  that start before it is done use PyDiS's Python versions. ExaDiS's module comes next, in
-  some minutes, one file at a time. Until then, ExaDiS's Run is off, and the status bar below
-  **🗑 clear all results** shows the build. The app's log, under Manage app, says when each
-  was built, or why not. The Cloud runs Python 3.14.
+  that start before it is done use PyDiS's Python versions. ExaDiS's module is built only at
+  the press of **Build ExaDiS**, at the bottom of the right column, in some minutes, one file
+  at a time. Until then, ExaDiS's Run is off. During the build, the status bar in the
+  button's place shows its progress. The app's log, under Manage app, says when each was
+  built, or why not. The Cloud runs Python 3.14.
 - A push reaches opendis.streamlit.app only through a tab open on it at that moment.
   Otherwise reboot it. The engines load a push by themselves, and keep what they built
   ([`engines/README.md`](engines/README.md)). After a change to PyDiS's C code or to ExaDiS,
-  reboot the engines, so that they build them anew.
+  reboot the engines, so that they build PyDiS's library anew. ExaDiS is then built again on
+  each engine at the press of **Build ExaDiS**.
 - The Python console works there too, for every visitor. It is meant for looking into a
   run's objects. Each session has its own process, its own copy of the results and an
   environment without the app's variables. It has the guard rails above, limits on time,
