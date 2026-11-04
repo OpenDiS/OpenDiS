@@ -22,6 +22,7 @@ try:
 except ImportError:
     raise ImportError('Cannot import pyexadis')
 
+from user_mob_bccglide import My_MobilityLaw
 
 def init_line_config(Lbox, burg, plane, theta, maxseg):
     """init_line_config
@@ -199,23 +200,45 @@ def test_stress_velocity():
 
     # Mobility law
     #mobility_law = 'SimpleGlide'
-    mobility_law = 'BCC_0B'
     #mobility_law = 'FCC_0'
+    mobility_law = 'BCC_0B'
+    #mobility_law = 'BCC_NL'
+    #mobility_law = 'BCC_0C'
     #mobility_law = My_MobilityLaw
     
     # Mobility law parameters
     if mobility_law == 'SimpleGlide':
         crystal = ''
         mobparams = {"Medge": 2000.0, "Mscrew": 1000.0}
-    elif mobility_law == 'BCC_0B':
-        crystal = 'bcc'
-        mobparams = {"Medge": 2600.0, "Mscrew": 20.0, "Mclimb": 1e-4, "vmax": 3400.0}
+        linear_mob = True
     elif mobility_law == 'FCC_0':
         crystal = 'fcc'
         mobparams = {"Medge": 60000.0, "Mscrew": 40000.0}
+        linear_mob = True
+    elif mobility_law == 'BCC_0B':
+        crystal = 'bcc'
+        mobparams = {"Medge": 2600.0, "Mscrew": 20.0, "Mclimb": 1e-4, "vmax": 3400.0}
+        linear_mob = True
+    elif mobility_law == 'BCC_NL':
+        crystal = 'bcc'
+        mobparams = {
+            "Peierls": 1.2e9, "Bscrew": 4.6e-4, "Rscrew": 1.0, "PeierlsTATasym": 0.0,
+            "B0edge": 0.0, "B1edge": 7.7e-7, "Bclimb": 3.0e-1, "tempK": 300.0, "vmax": -1.0
+        }
+        linear_mob = False
+    elif mobility_law == 'BCC_0C':
+        crystal = 'bcc'
+        mobparams = {
+            "Medge": 2000.0, "Mscrew": 2000.0, "Mclimb": 1e-4, "FscrewTATasym": 0.0,
+            "tau0": 0.5e9, "p": 0.75, "q": 1.1, "H0": 1.06, "T0": -1.0, "tauv": 0.0,
+            "B1screw": 0.0, "B1edge": 0.0, "Dedge": 0.0, "D1edge": 0.0, "v0edge": -1.0,
+            "vmax": -1.0, "tempK": 300.0
+        }
+        linear_mob = False
     elif mobility_law == My_MobilityLaw:
         crystal = 'bcc'
-        mobparams = {"mob_edge": 6000.0, "mob_screw": 200.0}
+        mobparams = {"mob": 1000.0, "mob_edge": 1000.0, "mob_screw": 100.0}
+        linear_mob = True
     else:
         raise ValueError('invalid mobility law %s' % mobility_law)
         
@@ -230,13 +253,13 @@ def test_stress_velocity():
     )
     
     # Plot results
-    add_linear_fit = True #(mobility_law != My_MobilityLaw)
+    add_linear_fit = linear_mob
     
     fig, ax = plt.subplots()
     
     for i in range(len(vel_results)):
         results = np.array(vel_results[i])
-        ax.plot(results[:,0], results[:,1], 'o' if add_linear_fit else '-', label=r'$\theta$ = %.1f$^o$'%theta[i])
+        ax.plot(results[:,0], results[:,1], 'o' if add_linear_fit else 'o-', label=r'$\theta$ = %.1f$^o$'%theta[i])
         
         if add_linear_fit:
             pfit = np.polyfit(results[:,0], results[:,1], 1)
